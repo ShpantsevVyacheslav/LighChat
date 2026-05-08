@@ -17,6 +17,7 @@ import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storag
 import { useToast } from '@/hooks/use-toast';
 import { compressImage } from '@/lib/image-compression';
 import type { BackgroundConfig } from '@/hooks/use-meeting-webrtc';
+import { useI18n } from '@/hooks/use-i18n';
 
 interface MeetingRoomHeaderProps {
   meetingName: string;
@@ -52,6 +53,7 @@ export function MeetingRoomHeader({
   onToggleViewMode,
   onCopyLink
 }: MeetingRoomHeaderProps) {
+  const { t } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isEffectsOpen, setIsEffectsOpen] = useState(false);
@@ -82,10 +84,10 @@ export function MeetingRoomHeader({
       });
       
       onBackgroundChange({ type: 'image', url: publicUrl });
-      toast({ title: 'Фон добавлен в галерею' });
+      toast({ title: t('meetingHeader.bgAdded') });
     } catch (err) {
       console.error("Custom background upload failed", err);
-      toast({ variant: 'destructive', title: 'Ошибка загрузки фона' });
+      toast({ variant: 'destructive', title: t('meetingHeader.bgUploadError') });
     } finally {
       setIsUploading(false);
     }
@@ -150,8 +152,8 @@ export function MeetingRoomHeader({
               <PopoverContent side="bottom" align="end" className="w-80 p-0 bg-black/80 backdrop-blur-3xl border-white/10 rounded-3xl mt-4 text-white shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
                   <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/5">
                       <div className="flex flex-col">
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">Визуальные эффекты</h4>
-                        <p className="text-[8px] text-white/30 uppercase">Задний план</p>
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">{t('meetingHeader.visualEffects')}</h4>
+                        <p className="text-[8px] text-white/30 uppercase">{t('meetingHeader.background')}</p>
                       </div>
                       <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
                           {isUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-4 w-4" />}
@@ -162,16 +164,16 @@ export function MeetingRoomHeader({
                       <div className="p-5 space-y-6">
                           <div className="grid grid-cols-2 gap-3">
                               <div role="button" tabIndex={0} className={cn("flex flex-col items-center justify-center p-3 rounded-2xl border transition-all gap-2 h-24 cursor-pointer", backgroundConfig.type === 'none' ? "border-primary bg-primary/20" : "border-white/5 bg-white/5 hover:bg-white/10")} onClick={() => selectBackground({ type: 'none' })}>
-                                  <Ban className="h-5 w-5 opacity-40" /><span className="text-[10px] font-black uppercase tracking-widest">Выключить</span>
+                                  <Ban className="h-5 w-5 opacity-40" /><span className="text-[10px] font-black uppercase tracking-widest">{t('meetingHeader.off')}</span>
                               </div>
                               <div role="button" tabIndex={0} className={cn("flex flex-col items-center justify-center p-3 rounded-2xl border transition-all gap-2 h-24 cursor-pointer", backgroundConfig.type === 'blur' ? "border-primary bg-primary/20 shadow-[inset_0_0_20px_rgba(67,56,202,0.2)]" : "border-white/5 bg-white/5 hover:bg-white/10")} onClick={() => selectBackground({ type: 'blur' })}>
-                                  <Sparkles className="h-5 w-5 text-primary" /><span className="text-[10px] font-black uppercase tracking-widest">Размытие</span>
+                                  <Sparkles className="h-5 w-5 text-primary" /><span className="text-[10px] font-black uppercase tracking-widest">{t('meetingHeader.blur')}</span>
                               </div>
                           </div>
                           {user?.customBackgrounds && user.customBackgrounds.length > 0 && (
-                              <div className="space-y-3"><h5 className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1">Ваши фоны</h5><div className="grid grid-cols-2 gap-3">{user.customBackgrounds.map((url, idx) => (<div key={`custom-${idx}`} role="button" tabIndex={0} className={cn("relative flex flex-col items-center justify-center h-24 rounded-2xl border overflow-hidden transition-all group cursor-pointer", (backgroundConfig.type === 'image' && backgroundConfig.url === url) ? "border-primary ring-2 ring-primary/50" : "border-white/5")} onClick={() => selectBackground({ type: 'image', url })}><img src={url} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700" alt="" /><div className="absolute inset-0 bg-black/40" /><User className="relative z-10 h-4 w-4 text-white/40" /></div>))}</div></div>
+                              <div className="space-y-3"><h5 className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1">{t('meetingHeader.yourBackgrounds')}</h5><div className="grid grid-cols-2 gap-3">{user.customBackgrounds.map((url, idx) => (<div key={`custom-${idx}`} role="button" tabIndex={0} className={cn("relative flex flex-col items-center justify-center h-24 rounded-2xl border overflow-hidden transition-all group cursor-pointer", (backgroundConfig.type === 'image' && backgroundConfig.url === url) ? "border-primary ring-2 ring-primary/50" : "border-white/5")} onClick={() => selectBackground({ type: 'image', url })}><img src={url} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700" alt="" /><div className="absolute inset-0 bg-black/40" /><User className="relative z-10 h-4 w-4 text-white/40" /></div>))}</div></div>
                           )}
-                          <div className="space-y-3"><h5 className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1">Галерея</h5><div className="grid grid-cols-2 gap-3">{standardBackgrounds?.map((bg: any) => (<div key={bg.id} role="button" tabIndex={0} className={cn("relative flex flex-col items-center justify-center h-24 rounded-2xl border overflow-hidden transition-all group cursor-pointer", (backgroundConfig.type === 'image' && backgroundConfig.url === bg.url) ? "border-primary ring-2 ring-primary/50" : "border-white/5")} onClick={() => selectBackground({ type: 'image', url: bg.url })}><img src={bg.url} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700" alt="" /><div className="absolute inset-0 bg-black/40" /><span className="relative z-10 text-[9px] font-black uppercase tracking-widest drop-shadow-lg text-center px-2">{bg.name}</span></div>))}</div></div>
+                          <div className="space-y-3"><h5 className="text-[9px] font-bold uppercase tracking-widest opacity-40 ml-1">{t('meetingHeader.gallery')}</h5><div className="grid grid-cols-2 gap-3">{standardBackgrounds?.map((bg: any) => (<div key={bg.id} role="button" tabIndex={0} className={cn("relative flex flex-col items-center justify-center h-24 rounded-2xl border overflow-hidden transition-all group cursor-pointer", (backgroundConfig.type === 'image' && backgroundConfig.url === bg.url) ? "border-primary ring-2 ring-primary/50" : "border-white/5")} onClick={() => selectBackground({ type: 'image', url: bg.url })}><img src={bg.url} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700" alt="" /><div className="absolute inset-0 bg-black/40" /><span className="relative z-10 text-[9px] font-black uppercase tracking-widest drop-shadow-lg text-center px-2">{bg.name}</span></div>))}</div></div>
                       </div>
                   </ScrollArea>
               </PopoverContent>

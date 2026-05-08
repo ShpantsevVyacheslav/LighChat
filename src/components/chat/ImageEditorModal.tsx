@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { useI18n } from '@/hooks/use-i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
@@ -51,6 +52,7 @@ const COLORS = [
 const PADDING = 24;
 
 export function ImageEditorModal({ files: initialFiles, initialIndex, onSave, onClose, onDeleteImage }: ImageEditorModalProps) {
+  const { t } = useI18n();
   const [mounted, setMounted] = useState(false);
   const [files, setFiles] = useState<File[]>(initialFiles);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -448,11 +450,11 @@ export function ImageEditorModal({ files: initialFiles, initialIndex, onSave, on
             </>
           ) : (
             <>
-              <Button variant="ghost" size="icon" disabled={history.length === 0} className="rounded-full bg-white/10 backdrop-blur-xl hover:bg-white/20 border-none h-10 w-10 disabled:opacity-20 transition-all" onClick={handleUndo} title="Отменить действие"><Undo2 className="h-5 w-5" /></Button>
-              <Button variant="ghost" size="icon" className="rounded-full bg-white/10 backdrop-blur-xl hover:bg-white/20 border-none h-10 w-10" onClick={handleResetAll} title="Сбросить все"><RefreshCcw className="h-5 w-5" /></Button>
-              <Button variant="ghost" size="icon" className="rounded-full bg-white/10 backdrop-blur-xl hover:bg-white/20 border-none h-10 w-10" onClick={handleRotate} title="Повернуть"><RotateCw className="h-5 w-5" /></Button>
+              <Button variant="ghost" size="icon" disabled={history.length === 0} className="rounded-full bg-white/10 backdrop-blur-xl hover:bg-white/20 border-none h-10 w-10 disabled:opacity-20 transition-all" onClick={handleUndo} title={t('chat.imageEditor.undo')}><Undo2 className="h-5 w-5" /></Button>
+              <Button variant="ghost" size="icon" className="rounded-full bg-white/10 backdrop-blur-xl hover:bg-white/20 border-none h-10 w-10" onClick={handleResetAll} title={t('chat.imageEditor.resetAll')}><RefreshCcw className="h-5 w-5" /></Button>
+              <Button variant="ghost" size="icon" className="rounded-full bg-white/10 backdrop-blur-xl hover:bg-white/20 border-none h-10 w-10" onClick={handleRotate} title={t('chat.imageEditor.rotate')}><RotateCw className="h-5 w-5" /></Button>
               <Button variant="ghost" size="icon" className={cn("rounded-full transition-all border-none h-10 w-10 backdrop-blur-xl", activeTool === 'draw' ? "bg-primary text-white scale-110 shadow-primary/40 shadow-lg" : "bg-white/10 text-white hover:bg-white/20")} onClick={() => setActiveTool(activeTool === 'draw' ? 'none' : 'draw')}><Pencil className="h-5 w-5" /></Button>
-              <Button variant="ghost" size="icon" className="rounded-full bg-white/10 backdrop-blur-xl hover:bg-white/20 border-none h-10 w-10" onClick={() => setActiveTool('crop')} title="Обрезать"><Crop className="h-5 w-5" /></Button>
+              <Button variant="ghost" size="icon" className="rounded-full bg-white/10 backdrop-blur-xl hover:bg-white/20 border-none h-10 w-10" onClick={() => setActiveTool('crop')} title={t('chat.imageEditor.crop')}><Crop className="h-5 w-5" /></Button>
             </>
           )}
         </div>
@@ -539,7 +541,7 @@ export function ImageEditorModal({ files: initialFiles, initialIndex, onSave, on
           <div className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-50 pointer-events-auto w-[min(220px,calc(100vw-5rem))]">
             <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-black/50 p-3 backdrop-blur-md">
               <span className="text-[10px] font-black uppercase tracking-widest text-white/40">
-                Толщина кисти
+                {t('chat.imageEditor.brushWidth')}
               </span>
               <div className="flex items-center gap-3">
                 <Slider
@@ -552,7 +554,7 @@ export function ImageEditorModal({ files: initialFiles, initialIndex, onSave, on
                 />
                 <div
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/20 bg-black/30"
-                  title="Предпросмотр"
+                  title={t('chat.imageEditor.preview')}
                 >
                   <span
                     className="rounded-full bg-white"
@@ -618,7 +620,7 @@ export function ImageEditorModal({ files: initialFiles, initialIndex, onSave, on
             </div>
             <div className="max-w-2xl mx-auto flex items-center gap-3 pointer-events-auto">
                 <div className="flex-1 relative group">
-                    <Input placeholder="Добавить подпись..." value={caption} onChange={(e) => setCaption(e.target.value)} className="h-12 rounded-2xl bg-white/10 backdrop-blur-3xl border-none text-white placeholder:text-white/40 pl-10 focus-visible:ring-primary shadow-none" />
+                    <Input placeholder={t('chat.imageEditor.addCaption')} value={caption} onChange={(e) => setCaption(e.target.value)} className="h-12 rounded-2xl bg-white/10 backdrop-blur-3xl border-none text-white placeholder:text-white/40 pl-10 focus-visible:ring-primary shadow-none" />
                     <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40 group-focus-within:text-primary transition-colors" />
                 </div>
                 <button className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-white shadow-2xl shadow-primary/40 shrink-0 transition-transform active:scale-90" onClick={handleFinish}><SendHorizonal className="h-6 w-6" /></button>

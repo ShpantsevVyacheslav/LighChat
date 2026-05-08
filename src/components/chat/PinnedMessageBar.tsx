@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import type { PinnedMessage } from '@/lib/types';
 import { Pin, X, FileIcon, Film, Sticker, PlayCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 
 export function PinnedMessageBar({
   pinnedMessage,
@@ -19,6 +20,7 @@ export function PinnedMessageBar({
   onUnpin: () => void;
   onNavigate: () => void;
 }) {
+  const { t } = useI18n();
   const getMediaIcon = () => {
     switch (pinnedMessage.mediaType) {
       case 'video': return <Film className="h-3 w-3 text-white/70" />;
@@ -83,7 +85,7 @@ export function PinnedMessageBar({
 
         <div className="min-w-0 flex-1 antialiased">
           <p className="text-[10px] font-semibold uppercase leading-snug tracking-[0.08em] text-primary">
-            {totalPins > 1 ? 'Закреплённые сообщения' : 'Закреплённое сообщение'}
+            {totalPins > 1 ? t('chat.pinnedBar.pinnedMessages') : t('chat.pinnedBar.pinnedMessage')}
           </p>
           <p className="mt-1 truncate text-sm leading-snug text-card-foreground">
             <span className="font-semibold text-foreground">{pinnedMessage.senderName}:</span>{' '}
@@ -105,7 +107,7 @@ export function PinnedMessageBar({
             </Button>
           </TooltipTrigger>
           <TooltipContent side="left">
-            <p>Открепить это сообщение</p>
+            <p>{t('chat.pinnedBar.unpin')}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

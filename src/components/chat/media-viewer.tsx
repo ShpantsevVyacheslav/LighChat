@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useI18n } from '@/hooks/use-i18n';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   Carousel,
@@ -92,6 +93,7 @@ export function MediaViewer({
   const [isZoomed, setIsZoomed] = useState(false);
   const [translateY, setTranslateY] = useState(0);
   
+  const { t } = useI18n();
   const transformRefs = useRef<Record<number, TransformRefHandle | null>>({});
   /** Синхронно для `watchDrag` карусели: не вызывать `reInit` при зуме (ломает pinch на мобильных). */
   const isZoomedRef = useRef(false);
@@ -300,8 +302,8 @@ export function MediaViewer({
         onTouchEnd={onTouchEnd}
       >
         <DialogHeader className="sr-only">
-          <DialogTitle>Просмотр медиа</DialogTitle>
-          <DialogDescription>Просмотр изображений и видео из чата</DialogDescription>
+          <DialogTitle>{t('chat.mediaViewer.title')}</DialogTitle>
+          <DialogDescription>{t('chat.mediaViewer.description')}</DialogDescription>
         </DialogHeader>
 
         {/* Размытый фон по текущему кадру (не сплошной чёрный) */}
@@ -326,7 +328,7 @@ export function MediaViewer({
             </Button>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-bold truncate leading-tight">{sender?.name || 'Участник'}</p>
+                <p className="text-sm font-bold truncate leading-tight">{sender?.name || t('chat.participant')}</p>
                 <Badge variant="outline" className="h-4 px-1.5 text-[9px] bg-white/10 border-white/20 text-white/80 font-bold rounded-full">
                   {current} / {media.length}
                 </Badge>
@@ -346,21 +348,21 @@ export function MediaViewer({
               </DropdownMenuTrigger>
               <DropdownMenuPortal>
                 <DropdownMenuContent collisionPadding={16} align="end" className="w-56 rounded-2xl bg-popover/90 backdrop-blur-xl border-none shadow-2xl z-[170]">
-                  <DropdownMenuItem className="rounded-xl h-11 px-4" onSelect={() => handleReply()}><Reply className="mr-3 h-4 w-4" /> Ответить</DropdownMenuItem>
+                  <DropdownMenuItem className="rounded-xl h-11 px-4" onSelect={() => handleReply()}><Reply className="mr-3 h-4 w-4" /> {t('chat.mediaViewer.reply')}</DropdownMenuItem>
                   {allowForward ? (
                     <DropdownMenuItem className="rounded-xl h-11 px-4" onSelect={() => onForward?.(toChatMessage(currentMedia))}>
-                      <Forward className="mr-3 h-4 w-4" /> Переслать
+                      <Forward className="mr-3 h-4 w-4" /> {t('chat.mediaViewer.forward')}
                     </DropdownMenuItem>
                   ) : null}
                   {allowSave ? (
                     <DropdownMenuItem className="rounded-xl h-11 px-4" onSelect={() => { handleDownload(); }}>
-                      <Download className="mr-3 h-4 w-4" /> Сохранить
+                      <Download className="mr-3 h-4 w-4" /> {t('chat.mediaViewer.save')}
                     </DropdownMenuItem>
                   ) : null}
                   {canDelete && (
                     <>
                       <DropdownMenuSeparator className="bg-border/50" />
-                      <DropdownMenuItem className="text-destructive focus:text-destructive rounded-xl h-11 px-4" onSelect={() => { handleDelete(); }}><Trash2 className="mr-3 h-4 w-4" /> Удалить</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive focus:text-destructive rounded-xl h-11 px-4" onSelect={() => { handleDelete(); }}><Trash2 className="mr-3 h-4 w-4" /> {t('chat.mediaViewer.delete')}</DropdownMenuItem>
                     </>
                   )}
                 </DropdownMenuContent>
@@ -481,8 +483,8 @@ export function MediaViewer({
             <button
               type="button"
               className={mediaViewerFloatingActionClass}
-              aria-label="Ответить"
-              title="Ответить"
+              aria-label={t('chat.mediaViewer.reply')}
+              title={t('chat.mediaViewer.reply')}
               onClick={(e) => {
                 e.stopPropagation();
                 handleReply();
@@ -494,8 +496,8 @@ export function MediaViewer({
               <button
                 type="button"
                 className={mediaViewerFloatingActionClass}
-                aria-label="Переслать"
-                title="Переслать"
+                aria-label={t('chat.mediaViewer.forward')}
+                title={t('chat.mediaViewer.forward')}
                 onClick={(e) => {
                   e.stopPropagation();
                   onForward?.(toChatMessage(currentMedia));
@@ -508,8 +510,8 @@ export function MediaViewer({
               <button
                 type="button"
                 className={mediaViewerFloatingDangerClass}
-                aria-label="Удалить"
-                title="Удалить"
+                aria-label={t('chat.mediaViewer.delete')}
+                title={t('chat.mediaViewer.delete')}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDelete();

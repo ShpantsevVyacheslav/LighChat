@@ -25,6 +25,7 @@ import { Badge } from '../ui/badge';
 import { MeetingChatMessageItem } from './MeetingChatMessageItem';
 import { MeetingChatMessageInput } from './MeetingChatMessageInput';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
+import { useI18n } from '@/hooks/use-i18n';
 
 interface ParticipantState {
   id: string;
@@ -83,6 +84,7 @@ export function MeetingSidebar({
   pollsNode,
   meetingId,
 }: MeetingSidebarProps) {
+  const { t } = useI18n();
   const isOpen = activeTab !== null;
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -192,7 +194,7 @@ export function MeetingSidebar({
             setNewMessageText('');
         }
     } catch (err: any) {
-        toast({ variant: 'destructive', title: 'Ошибка отправки', description: err.message });
+        toast({ variant: 'destructive', title: t('meetingSidebar.sendError'), description: err.message });
     } finally {
         setIsUploading(false);
     }
@@ -204,8 +206,8 @@ export function MeetingSidebar({
 
   const formatDateLabel = (dateStr: string) => {
     const date = parseISO(dateStr);
-    if (isToday(date)) return 'Сегодня';
-    if (isYesterday(date)) return 'Вчера';
+    if (isToday(date)) return t('meetingSidebar.today');
+    if (isYesterday(date)) return t('meetingSidebar.yesterday');
     return format(date, 'd MMMM', { locale: ru });
   };
 
@@ -216,13 +218,13 @@ export function MeetingSidebar({
             <Tabs value={activeTab || 'chat'} onValueChange={(v: any) => onActiveTabChange(v)} className="flex-1 flex flex-col min-h-0">
                 <div className="px-6 pt-4 pb-2 shrink-0">
                     <div className="flex items-center justify-between mb-3">
-                        <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Конференция</h2>
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">{t('meetingSidebar.conference')}</h2>
                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-white/5 hover:bg-white/15 text-white/50 hover:text-white border-none shadow-none" onClick={onClose}><X className="h-4 w-4" /></Button>
                     </div>
                     <TabsList className="grid w-full grid-cols-3 bg-white/5 p-1 rounded-2xl h-11 border border-white/5">
-                        <TabsTrigger value="participants" className="rounded-xl text-[9px] font-black uppercase tracking-wider data-[state=active]:bg-white/10 data-[state=active]:text-primary transition-all shadow-none">Участники</TabsTrigger>
-                        <TabsTrigger value="polls" className="rounded-xl text-[9px] font-black uppercase tracking-wider data-[state=active]:bg-white/10 data-[state=active]:text-primary transition-all shadow-none">Опросы</TabsTrigger>
-                        <TabsTrigger value="chat" className="rounded-xl text-[9px] font-black uppercase tracking-wider data-[state=active]:bg-white/10 data-[state=active]:text-primary transition-all shadow-none">Чат</TabsTrigger>
+                        <TabsTrigger value="participants" className="rounded-xl text-[9px] font-black uppercase tracking-wider data-[state=active]:bg-white/10 data-[state=active]:text-primary transition-all shadow-none">{t('meetingSidebar.participants')}</TabsTrigger>
+                        <TabsTrigger value="polls" className="rounded-xl text-[9px] font-black uppercase tracking-wider data-[state=active]:bg-white/10 data-[state=active]:text-primary transition-all shadow-none">{t('meetingSidebar.polls')}</TabsTrigger>
+                        <TabsTrigger value="chat" className="rounded-xl text-[9px] font-black uppercase tracking-wider data-[state=active]:bg-white/10 data-[state=active]:text-primary transition-all shadow-none">{t('meetingSidebar.chatTab')}</TabsTrigger>
                     </TabsList>
                 </div>
                 <div className="flex-1 min-h-0 overflow-hidden">
@@ -231,20 +233,20 @@ export function MeetingSidebar({
                             <div className="px-6 pb-10 space-y-6">
                                 {requestsNode}
                                 <div className="space-y-1">
-                                    <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/20 px-2 mb-3">В комнате</h4>
-                                    <ParticipantRow name={`${currentUser.name} (Вы)`} avatar={currentUser.avatar} avatarThumb={currentUser.avatarThumb} role={getRoleLabel(currentUser.id, hostId, adminIds)} isMe />
+                                    <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/20 px-2 mb-3">{t('meetingSidebar.inRoom')}</h4>
+                                    <ParticipantRow name={`${currentUser.name} ${t('meetingSidebar.youSuffix')}`} avatar={currentUser.avatar} avatarThumb={currentUser.avatarThumb} role={getRoleLabel(currentUser.id, hostId, adminIds, t)} isMe />
                                     {participants.map(p => {
                                         const isAlreadyAdmin = adminIds.includes(p.id);
                                         const isParticipantHost = p.id === hostId;
                                         return (
-                                            <ParticipantRow 
-                                                key={p.id} name={p.name} avatar={p.avatar} avatarThumb={p.avatarThumb} role={getRoleLabel(p.id, hostId, adminIds)} isAudioMuted={p.isAudioMuted} isVideoMuted={p.isVideoMuted} isHost={isHost}
+                                            <ParticipantRow
+                                                key={p.id} name={p.name} avatar={p.avatar} avatarThumb={p.avatarThumb} role={getRoleLabel(p.id, hostId, adminIds, t)} isAudioMuted={p.isAudioMuted} isVideoMuted={p.isVideoMuted} isHost={isHost}
                                                 controls={isHost && p.id !== currentUser.id && !isParticipantHost && (
                                                     <div className="flex items-center gap-1">
-                                                        <Button variant="ghost" size="icon" onClick={() => onToggleAdmin(p.id)} className={cn("h-8 w-8 rounded-full hover:bg-primary/20", isAlreadyAdmin ? "text-primary" : "text-white/30")} title={isAlreadyAdmin ? "Убрать админа" : "Сделать админом"}>{isAlreadyAdmin ? <ShieldOff className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}</Button>
-                                                        <Button variant="ghost" size="icon" onClick={() => onForceMuteAudio(p.id)} className={cn("h-8 w-8 rounded-full hover:bg-red-500/20", p.isAudioMuted ? "text-red-500" : "text-white/30")} title="Заглушить"><MicOff className="h-3.5 w-3.5" /></Button>
-                                                        <Button variant="ghost" size="icon" onClick={() => onForceMuteVideo(p.id)} className={cn("h-8 w-8 rounded-full hover:bg-red-500/20", p.isVideoMuted ? "text-red-500" : "text-white/30")} title="Выключить камеру"><VideoOff className="h-3.5 w-3.5" /></Button>
-                                                        <Button variant="ghost" size="icon" onClick={() => onKick(p.id)} className="h-8 w-8 rounded-full hover:bg-red-500/20 text-white/30 hover:text-red-500" title="Исключить"><UserX className="h-3.5 w-3.5" /></Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => onToggleAdmin(p.id)} className={cn("h-8 w-8 rounded-full hover:bg-primary/20", isAlreadyAdmin ? "text-primary" : "text-white/30")} title={isAlreadyAdmin ? t('meetingSidebar.removeAdminAria') : t('meetingSidebar.makeAdminAria')}>{isAlreadyAdmin ? <ShieldOff className="h-3.5 w-3.5" /> : <ShieldCheck className="h-3.5 w-3.5" />}</Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => onForceMuteAudio(p.id)} className={cn("h-8 w-8 rounded-full hover:bg-red-500/20", p.isAudioMuted ? "text-red-500" : "text-white/30")} title={t('meetingSidebar.muteAria')}><MicOff className="h-3.5 w-3.5" /></Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => onForceMuteVideo(p.id)} className={cn("h-8 w-8 rounded-full hover:bg-red-500/20", p.isVideoMuted ? "text-red-500" : "text-white/30")} title={t('meetingSidebar.disableCameraAria')}><VideoOff className="h-3.5 w-3.5" /></Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => onKick(p.id)} className="h-8 w-8 rounded-full hover:bg-red-500/20 text-white/30 hover:text-red-500" title={t('meetingSidebar.kickAria')}><UserX className="h-3.5 w-3.5" /></Button>
                                                     </div>
                                                 )}
                                             />
@@ -324,8 +326,8 @@ export function MeetingSidebar({
     <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)}>
         <DialogContent className="max-w-[90vw] sm:max-w-lg p-0 bg-transparent border-none shadow-none z-[200] overflow-visible" showCloseButton={false}>
             <DialogHeader className="sr-only">
-                <DialogTitle>Просмотр изображения</DialogTitle>
-                <DialogDescription>Полноэкранный просмотр изображения из чата.</DialogDescription>
+                <DialogTitle>{t('meetingSidebar.imagePreview')}</DialogTitle>
+                <DialogDescription>{t('meetingSidebar.fullscreenPreview')}</DialogDescription>
             </DialogHeader>
             <div className="relative aspect-auto max-h-[85vh] w-full flex items-center justify-center">
                 {previewImage && (
@@ -373,8 +375,8 @@ function ParticipantRow({ name, avatar, avatarThumb, role, isMe, controls, isAud
     );
 }
 
-function getRoleLabel(uid: string, hostId: string, adminIds: string[]) {
-    if (uid === hostId) return 'Организатор';
-    if (adminIds?.includes(uid)) return 'Администратор';
+function getRoleLabel(uid: string, hostId: string, adminIds: string[], t: (key: string) => string) {
+    if (uid === hostId) return t('meetingSidebar.organizer');
+    if (adminIds?.includes(uid)) return t('meetingSidebar.administrator');
     return null;
 }

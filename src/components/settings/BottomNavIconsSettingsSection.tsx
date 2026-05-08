@@ -19,12 +19,14 @@ import { DynamicIcon, type IconName } from 'lucide-react/dynamic';
 import { Pencil, Undo2, LayoutTemplate, Palette, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { tileBackgroundToColorInputValue } from '@/lib/bottom-nav-tile-color-input';
+import { useI18n } from '@/hooks/use-i18n';
 import type { BottomNavIconVisualStyle, UserRole } from '@/lib/types';
 
 export function BottomNavIconsSettingsSection() {
   const { user } = useAuth();
   const { chatSettings, updateChatSettings } = useSettings();
   const { toast } = useToast();
+  const { t } = useI18n();
   const role = user?.role as UserRole | undefined;
 
   const [pickerHref, setPickerHref] = useState<string | null>(null);
@@ -97,7 +99,7 @@ export function BottomNavIconsSettingsSection() {
         });
         if (!ok) {
           globalStyleMergeRef.current = { ...(chatSettings.bottomNavIconGlobalStyle ?? {}) };
-          toast({ variant: 'destructive', title: 'Не удалось сохранить универсальное оформление' });
+          toast({ variant: 'destructive', title: t('settings.bottomNav.globalSaveError') });
         }
       });
       return persistChainRef.current;
@@ -138,7 +140,7 @@ export function BottomNavIconsSettingsSection() {
         });
         if (!ok) {
           stylesMergeRef.current = { ...(chatSettings.bottomNavIconStyles ?? {}) };
-          toast({ variant: 'destructive', title: 'Не удалось сохранить оформление' });
+          toast({ variant: 'destructive', title: t('settings.bottomNav.stylesSaveError') });
         }
       });
       return persistChainRef.current;
@@ -151,9 +153,9 @@ export function BottomNavIconsSettingsSection() {
     const next = { ...iconNamesMap, [pickerHref]: name };
     const ok = await updateChatSettings({ bottomNavIconNames: next });
     if (ok) {
-      toast({ title: 'Иконка сохранена' });
+      toast({ title: t('settings.bottomNav.iconSaved') });
     } else {
-      toast({ variant: 'destructive', title: 'Не удалось сохранить' });
+      toast({ variant: 'destructive', title: t('settings.bottomNav.saveError') });
     }
   };
 
@@ -168,9 +170,9 @@ export function BottomNavIconsSettingsSection() {
     });
     if (ok) {
       stylesMergeRef.current = { ...nextStyles };
-      toast({ title: 'Сброшено на значение по умолчанию' });
+      toast({ title: t('settings.bottomNav.resetDone') });
     } else {
-      toast({ variant: 'destructive', title: 'Не удалось сохранить' });
+      toast({ variant: 'destructive', title: t('settings.bottomNav.saveError') });
     }
   };
 
@@ -189,9 +191,9 @@ export function BottomNavIconsSettingsSection() {
     const ok = await updateChatSettings({ bottomNavIconGlobalStyle: {} });
     if (ok) {
       globalStyleMergeRef.current = {};
-      toast({ title: 'Универсальное оформление сброшено' });
+      toast({ title: t('settings.bottomNav.globalResetDone') });
     } else {
-      toast({ variant: 'destructive', title: 'Не удалось сохранить' });
+      toast({ variant: 'destructive', title: t('settings.bottomNav.saveError') });
     }
   };
 
@@ -220,7 +222,7 @@ export function BottomNavIconsSettingsSection() {
       <section className="space-y-4">
         <h2 className="flex items-center gap-2 text-base font-semibold leading-none tracking-tight">
           <LayoutTemplate className="h-4 w-4 text-primary shrink-0" />
-          Иконки нижнего меню
+          {t('settings.bottomNav.title')}
         </h2>
         <div className="space-y-2">
           <div className="rounded-xl border border-primary/20 bg-primary/[0.06] dark:border-primary/25 dark:bg-primary/[0.08]">
@@ -263,9 +265,9 @@ export function BottomNavIconsSettingsSection() {
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">Для всех иконок</p>
+                <p className="truncate text-sm font-medium">{t('settings.bottomNav.forAllIcons')}</p>
                 <p className="text-[10px] text-muted-foreground">
-                  Цвет, толщина штриха и фон плитки — как общий слой; пункты ниже могут переопределить.
+                  {t('settings.bottomNav.forAllIconsDesc')}
                 </p>
               </div>
               <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
@@ -275,7 +277,7 @@ export function BottomNavIconsSettingsSection() {
                     variant="ghost"
                     size="icon"
                     className="h-9 w-9 rounded-lg"
-                    title="Сбросить универсальные"
+                    title={t('settings.bottomNav.resetGlobal')}
                     onClick={() => void handleResetGlobal()}
                   >
                     <Undo2 className="h-4 w-4" />
@@ -289,18 +291,18 @@ export function BottomNavIconsSettingsSection() {
                   onClick={() => setGlobalStylePanelOpen((o) => !o)}
                 >
                   <Palette className="h-3.5 w-3.5" />
-                  Настроить
+                  {t('settings.bottomNav.customize')}
                 </Button>
               </div>
             </div>
             {globalStylePanelOpen && (
               <div className="space-y-4 bg-background/40 px-3 py-3 dark:bg-black/10">
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Цвет иконки (все пункты)</Label>
+                  <Label className="text-xs text-muted-foreground">{t('settings.bottomNav.iconColorAll')}</Label>
                   <div className="flex flex-wrap items-center gap-2">
                     <input
                       type="color"
-                      aria-label="Универсальный цвет иконки"
+                      aria-label={t('settings.bottomNav.colorResetGlobal')}
                       className="h-9 w-12 cursor-pointer rounded-md border border-border bg-background"
                       value={
                         globalPreviewIconColor ??
@@ -315,13 +317,13 @@ export function BottomNavIconsSettingsSection() {
                       className="h-8 rounded-lg text-xs"
                       onClick={() => void persistGlobalStylePatch({ iconColor: null })}
                     >
-                      Сбросить
+                      {t('settings.bottomNav.resetBtn')}
                     </Button>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <Label className="text-xs text-muted-foreground">Толщина линии</Label>
+                    <Label className="text-xs text-muted-foreground">{t('settings.bottomNav.strokeWidth')}</Label>
                     <span className="font-mono text-[11px] text-muted-foreground">
                       {globalPreviewStroke.toFixed(2)}
                     </span>
@@ -349,15 +351,15 @@ export function BottomNavIconsSettingsSection() {
                     className="h-7 px-2 text-xs text-muted-foreground"
                     onClick={() => void persistGlobalStylePatch({ strokeWidth: null })}
                   >
-                    Сбросить толщину
+                    {t('settings.bottomNav.resetStroke')}
                   </Button>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Фон плитки</Label>
+                  <Label className="text-xs text-muted-foreground">{t('settings.bottomNav.tileBackground')}</Label>
                   <div className="flex flex-wrap items-center gap-2">
                     <input
                       type="color"
-                      aria-label="Универсальный фон плитки"
+                      aria-label={t('settings.bottomNav.tileResetGlobal')}
                       className="h-9 w-12 cursor-pointer rounded-md border border-border bg-background"
                       value={tileBackgroundToColorInputValue(
                         globalStyleMap.tileBackground,
@@ -374,7 +376,7 @@ export function BottomNavIconsSettingsSection() {
                       className="h-8 rounded-lg text-xs"
                       onClick={() => void persistGlobalStylePatch({ tileBackground: null })}
                     >
-                      Градиент по умолчанию
+                      {t('settings.bottomNav.defaultGradient')}
                     </Button>
                   </div>
                 </div>
@@ -447,7 +449,7 @@ export function BottomNavIconsSettingsSection() {
                     <p className="truncate text-sm font-medium">{link.label}</p>
                     <p className="truncate font-mono text-[10px] text-muted-foreground">{resolved}</p>
                     <p className="truncate text-[10px] text-muted-foreground/80">
-                      По умолчанию: {DEFAULT_BOTTOM_NAV_LUCIDE_NAMES[link.href] ?? '—'}
+                      {t('settings.bottomNav.defaultValue')} {DEFAULT_BOTTOM_NAV_LUCIDE_NAMES[link.href] ?? '—'}
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
@@ -457,7 +459,7 @@ export function BottomNavIconsSettingsSection() {
                         variant="ghost"
                         size="icon"
                         className="h-9 w-9 rounded-lg"
-                        title="Как по умолчанию"
+                        title={t('settings.bottomNav.resetToDefault')}
                         onClick={() => void handleResetHref(link.href)}
                       >
                         <Undo2 className="h-4 w-4" />
@@ -468,7 +470,7 @@ export function BottomNavIconsSettingsSection() {
                       variant={stylePanelHref === link.href ? 'secondary' : 'ghost'}
                       size="icon"
                       className="h-9 w-9 rounded-lg"
-                      title="Цвет, толщина, фон"
+                      title={t('settings.bottomNav.colorStrokeTitle')}
                       onClick={() =>
                         setStylePanelHref((h) => (h === link.href ? null : link.href))
                       }
@@ -483,18 +485,18 @@ export function BottomNavIconsSettingsSection() {
                       onClick={() => setPickerHref(link.href)}
                     >
                       <Pencil className="h-3.5 w-3.5" />
-                      Выбрать
+                      {t('settings.bottomNav.chooseBtn')}
                     </Button>
                   </div>
                 </div>
                 {stylePanelHref === link.href && (
                   <div className="space-y-4 bg-background/40 px-3 py-3 dark:bg-black/10">
                     <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Цвет иконки</Label>
+                      <Label className="text-xs text-muted-foreground">{t('settings.bottomNav.iconColor')}</Label>
                       <div className="flex flex-wrap items-center gap-2">
                         <input
                           type="color"
-                          aria-label="Цвет иконки"
+                          aria-label={t('settings.bottomNav.iconColor')}
                           className="h-9 w-12 cursor-pointer rounded-md border border-border bg-background"
                           value={
                             previewIconColor ??
@@ -509,13 +511,13 @@ export function BottomNavIconsSettingsSection() {
                           className="h-8 rounded-lg text-xs"
                           onClick={() => void persistStylePatch(link.href, { iconColor: null })}
                         >
-                          По умолчанию
+                          {t('settings.bottomNav.defaultColor')}
                         </Button>
                       </div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2">
-                        <Label className="text-xs text-muted-foreground">Толщина линии</Label>
+                        <Label className="text-xs text-muted-foreground">{t('settings.bottomNav.strokeWidth')}</Label>
                         <span className="font-mono text-[11px] text-muted-foreground">
                           {previewStroke.toFixed(2)}
                         </span>
@@ -543,17 +545,17 @@ export function BottomNavIconsSettingsSection() {
                         className="h-7 px-2 text-xs text-muted-foreground"
                         onClick={() => void persistStylePatch(link.href, { strokeWidth: null })}
                       >
-                        Сбросить толщину
+                        {t('settings.bottomNav.resetStroke')}
                       </Button>
                     </div>
                     <div className="space-y-2">
                       <Label className="text-xs text-muted-foreground">
-                        Фон плитки под иконкой
+                        {t('settings.bottomNav.tileBackgroundItem')}
                       </Label>
                       <div className="flex flex-wrap items-center gap-2">
                         <input
                           type="color"
-                          aria-label="Фон плитки"
+                          aria-label={t('settings.bottomNav.tileBackground')}
                           className="h-9 w-12 cursor-pointer rounded-md border border-border bg-background"
                           value={tileBackgroundToColorInputValue(
                             visual?.tileBackground,
@@ -570,7 +572,7 @@ export function BottomNavIconsSettingsSection() {
                           className="h-8 rounded-lg text-xs"
                           onClick={() => void persistStylePatch(link.href, { tileBackground: null })}
                         >
-                          Градиент по умолчанию
+                          {t('settings.bottomNav.defaultGradient')}
                         </Button>
                       </div>
                     </div>
@@ -587,10 +589,10 @@ export function BottomNavIconsSettingsSection() {
         onOpenChange={(o) => !o && setPickerHref(null)}
         title={
           pickForHref
-            ? `Иконка: «${links.find((l) => l.href === pickForHref)?.label ?? pickForHref}»`
-            : 'Иконка'
+            ? t('settings.bottomNav.iconPickerTitle', { label: links.find((l) => l.href === pickForHref)?.label ?? pickForHref })
+            : t('settings.bottomNav.iconPickerFallbackTitle')
         }
-        description="Нажмите на иконку, чтобы применить её к пункту меню."
+        description={t('settings.bottomNav.iconPickerDesc')}
         currentName={String(currentResolved)}
         onSelect={handleIconChosen}
       />

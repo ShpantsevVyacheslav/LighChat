@@ -1,5 +1,4 @@
 'use client';
-import { useI18n } from '@/hooks/use-i18n';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -33,6 +32,7 @@ import type { AdminChatStorageStatsResult, Conversation, PlatformSettingsDoc } f
 import { formatStorageBytes, bytesToGiB } from '@/lib/format-storage';
 import { ruEnSubstringMatch } from '@/lib/ru-latin-search-normalize';
 import { BarChart3, Loader2, RefreshCw } from 'lucide-react';
+import { useI18n } from '@/hooks/use-i18n';
 
 const MAIN_DOC = 'main';
 
@@ -89,7 +89,7 @@ export function AdminStorageStatsPanel() {
         const token = await firebaseAuth.currentUser?.getIdToken();
         if (!token) {
           if (!cancelled) {
-            toast({ variant: 'destructive', title: 'Нет сессии' });
+            toast({ variant: 'destructive', title: t('adminPage.storageStats.noSession') });
           }
           return;
         }
@@ -103,7 +103,7 @@ export function AdminStorageStatsPanel() {
         setConversations(res.conversations);
       } catch (e) {
         console.error(e);
-        toast({ variant: 'destructive', title: 'Не удалось загрузить список чатов' });
+        toast({ variant: 'destructive', title: t('adminPage.storageStats.chatListError') });
       } finally {
         if (!cancelled) setLoadingConvos(false);
       }
@@ -168,7 +168,7 @@ export function AdminStorageStatsPanel() {
   const runStats = useCallback(async () => {
     const token = await firebaseAuth.currentUser?.getIdToken();
     if (!token) {
-      toast({ variant: 'destructive', title: 'Нет сессии' });
+      toast({ variant: 'destructive', title: t('adminPage.storageStats.noSession') });
       return;
     }
     setLoadingStats(true);
@@ -187,7 +187,7 @@ export function AdminStorageStatsPanel() {
       }
     } catch (e) {
       console.error(e);
-      toast({ variant: 'destructive', title: 'Ошибка расчёта статистики' });
+      toast({ variant: 'destructive', title: t('adminPage.storageStats.statsError') });
     } finally {
       setLoadingStats(false);
     }
@@ -197,7 +197,7 @@ export function AdminStorageStatsPanel() {
     if (!firestore || user?.role !== 'admin') return;
     const n = parseFloat(priceUsd.replace(',', '.'));
     if (!Number.isFinite(n) || n < 0) {
-      toast({ variant: 'destructive', title: 'Укажите неотрицательное число' });
+      toast({ variant: 'destructive', title: t('adminPage.storageStats.nonNegativeNumber') });
       return;
     }
     try {
@@ -212,10 +212,10 @@ export function AdminStorageStatsPanel() {
         updatedBy: user.id,
       };
       await setDoc(ref, { storage }, { merge: true });
-      toast({ title: 'Ставка сохранена в platformSettings' });
+      toast({ title: t('adminPage.storageStats.rateSaved') });
     } catch (e) {
       console.error(e);
-      toast({ variant: 'destructive', title: 'Не удалось сохранить ставку' });
+      toast({ variant: 'destructive', title: t('adminPage.storageStats.rateSaveError') });
     }
   }, [firestore, user, priceUsd, toast]);
 
@@ -239,36 +239,33 @@ export function AdminStorageStatsPanel() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <BarChart3 className="h-5 w-5 text-primary" />
-          Статистика вложений (оценка по сообщениям)
+          {t('adminPage.storageStats.title')}
         </CardTitle>
         <CardDescription>
-          Суммируется поле <code className="text-xs">attachments[].size</code> в сообщениях чатов и тредов. Это
-          приближение к объёму в Firebase Storage: без ключей в Storage API, старые вложения без{' '}
-          <code className="text-xs">size</code> не попадают в сумму (счётчик «без размера»). Фильтр по чатам не
-          действует на конференции. Расчёт денег — оценка по вашей ставке, не выгрузка из Google Cloud Billing.
+          {t('adminPage.storageStats.description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-2">
-            <Label>Период</Label>
+            <Label>{t('adminPage.storageStats.periodLabel')}</Label>
             <Select value={preset} onValueChange={(v) => setPreset(v as PeriodPreset)}>
               <SelectTrigger className="rounded-xl">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Всё время</SelectItem>
-                <SelectItem value="day">Текущий день (с 00:00 локально)</SelectItem>
-                <SelectItem value="week">Последние 7 дней</SelectItem>
-                <SelectItem value="month">Последние 30 дней</SelectItem>
-                <SelectItem value="year">Последние 365 дней</SelectItem>
-                <SelectItem value="custom">Произвольный диапазон</SelectItem>
+                <SelectItem value="all">{t('adminPage.storageStats.periodAll')}</SelectItem>
+                <SelectItem value="day">{t('adminPage.storageStats.periodDay')}</SelectItem>
+                <SelectItem value="week">{t('adminPage.storageStats.periodWeek')}</SelectItem>
+                <SelectItem value="month">{t('adminPage.storageStats.periodMonth')}</SelectItem>
+                <SelectItem value="year">{t('adminPage.storageStats.periodYear')}</SelectItem>
+                <SelectItem value="custom">{t('adminPage.storageStats.periodCustom')}</SelectItem>
               </SelectContent>
             </Select>
             {preset === 'custom' && (
               <div className="grid gap-2 sm:grid-cols-2">
                 <div>
-                  <Label className="text-xs text-muted-foreground">С (локальное datetime)</Label>
+                  <Label className="text-xs text-muted-foreground">{t('adminPage.storageStats.customFrom')}</Label>
                   <Input
                     type="datetime-local"
                     value={customFrom}
@@ -277,7 +274,7 @@ export function AdminStorageStatsPanel() {
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">По</Label>
+                  <Label className="text-xs text-muted-foreground">{t('adminPage.storageStats.customTo')}</Label>
                   <Input
                     type="datetime-local"
                     value={customTo}
@@ -290,31 +287,30 @@ export function AdminStorageStatsPanel() {
           </div>
 
           <div className="space-y-2">
-            <Label>Оценка стоимости (USD за 1 Гб·мес)</Label>
+            <Label>{t('adminPage.storageStats.costLabel')}</Label>
             <div className="flex flex-wrap gap-2">
               <Input
                 type="number"
                 min={0}
                 step="0.001"
-                placeholder="например 0.026"
+                placeholder={t('adminPage.storageStats.costPlaceholder')}
                 value={priceUsd}
                 onChange={(e) => setPriceUsd(e.target.value)}
                 className="max-w-[200px] rounded-xl"
               />
               <Button type="button" variant="secondary" className="rounded-full" onClick={() => void savePrice()}>
-                Сохранить ставку
+                {t('adminPage.storageStats.saveRate')}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Умножается на объём в Гб по выбранным фильтрам. Хранится в{' '}
-              <code className="text-xs">platformSettings/main.storage.estimatedPricePerGbMonthUsd</code>.
+              {t('adminPage.storageStats.costHint')}
             </p>
           </div>
         </div>
 
         <div className="space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <Label>Фильтр по чатам (пусто — все)</Label>
+            <Label>{t('adminPage.storageStats.chatFilterLabel')}</Label>
             <Button
               type="button"
               variant="ghost"
@@ -323,11 +319,11 @@ export function AdminStorageStatsPanel() {
               onClick={() => setSelectedConvIds(new Set())}
               disabled={selectedConvIds.size === 0}
             >
-              Сбросить выбор
+              {t('adminPage.storageStats.resetSelection')}
             </Button>
           </div>
           <Input
-            placeholder="Поиск по названию или ID…"
+            placeholder={t('adminPage.storageStats.searchPlaceholder')}
             value={convSearch}
             onChange={(e) => setConvSearch(e.target.value)}
             className="rounded-xl"
@@ -335,7 +331,7 @@ export function AdminStorageStatsPanel() {
           />
           <ScrollArea className="h-40 rounded-xl border border-border/60 bg-muted/10 p-2">
             {loadingConvos ? (
-              <p className="text-sm text-muted-foreground p-2">Загрузка чатов…</p>
+              <p className="text-sm text-muted-foreground p-2">{t('adminPage.storageStats.loadingChats')}</p>
             ) : (
               <ul className="space-y-2 pr-3">
                 {filteredConversations.map((c) => (
@@ -346,9 +342,9 @@ export function AdminStorageStatsPanel() {
                       onCheckedChange={(v) => toggleConv(c.id, v === true)}
                     />
                     <label htmlFor={`conv-${c.id}`} className="cursor-pointer leading-tight">
-                      <span className="font-medium">{c.name || 'Без названия'}</span>
+                      <span className="font-medium">{c.name || t('adminPage.storageStats.noTitle')}</span>
                       <span className="ml-1 text-muted-foreground text-xs">
-                        {c.isGroup ? '· группа' : '· личный'} · {c.id.slice(0, 12)}…
+                        {c.isGroup ? `· ${t('adminPage.storageStats.groupTag')}` : `· ${t('adminPage.storageStats.directTag')}`} · {c.id.slice(0, 12)}…
                       </span>
                     </label>
                   </li>
@@ -365,50 +361,49 @@ export function AdminStorageStatsPanel() {
           disabled={loadingStats}
         >
           {loadingStats ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          <span className="ml-2">Рассчитать</span>
+          <span className="ml-2">{t('adminPage.storageStats.calculate')}</span>
         </Button>
 
         {stats && stats.ok && (
           <div className="space-y-4 border-t pt-4">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div className="rounded-2xl border border-border/60 bg-muted/10 p-4">
-                <p className="text-xs text-muted-foreground">Всего в чатах</p>
+                <p className="text-xs text-muted-foreground">{t('adminPage.storageStats.totalChats')}</p>
                 <p className="text-xl font-semibold">{formatStorageBytes(stats.chatTotalBytes)}</p>
                 {chatCost != null && (
-                  <p className="text-xs text-muted-foreground mt-1">≈ ${chatCost.toFixed(2)} / мес по ставке</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('adminPage.storageStats.perMonthRate').replace('${amount}', chatCost.toFixed(2))}</p>
                 )}
               </div>
               <div className="rounded-2xl border border-border/60 bg-muted/10 p-4">
-                <p className="text-xs text-muted-foreground">Личные чаты</p>
+                <p className="text-xs text-muted-foreground">{t('adminPage.storageStats.directChats')}</p>
                 <p className="text-xl font-semibold">{formatStorageBytes(stats.directChatsBytes)}</p>
               </div>
               <div className="rounded-2xl border border-border/60 bg-muted/10 p-4">
-                <p className="text-xs text-muted-foreground">Групповые чаты</p>
+                <p className="text-xs text-muted-foreground">{t('adminPage.storageStats.groupChats')}</p>
                 <p className="text-xl font-semibold">{formatStorageBytes(stats.groupChatsBytes)}</p>
               </div>
               <div className="rounded-2xl border border-border/60 bg-muted/10 p-4">
-                <p className="text-xs text-muted-foreground">Конференции (meetings)</p>
+                <p className="text-xs text-muted-foreground">{t('adminPage.storageStats.meetings')}</p>
                 <p className="text-xl font-semibold">{formatStorageBytes(stats.meetingsBytes)}</p>
                 {meetingCost != null && (
-                  <p className="text-xs text-muted-foreground mt-1">≈ ${meetingCost.toFixed(2)} / мес по ставке</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('adminPage.storageStats.perMonthRate').replace('${amount}', meetingCost.toFixed(2))}</p>
                 )}
               </div>
               <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:col-span-2">
-                <p className="text-xs text-muted-foreground">Итого (чаты + конференции)</p>
+                <p className="text-xs text-muted-foreground">{t('adminPage.storageStats.grandTotal')}</p>
                 <p className="text-2xl font-bold">{formatStorageBytes(grandBytes)}</p>
                 {costEstimate != null && (
-                  <p className="text-sm mt-1">Оценка: <strong>${costEstimate.toFixed(2)}</strong> USD/мес при указанной ставке</p>
+                  <p className="text-sm mt-1">{t('adminPage.storageStats.costEstimate').replace('${amount}', costEstimate.toFixed(2))}</p>
                 )}
               </div>
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Просканировано документов: основные сообщения {stats.scannedMainMessageDocs}, треды{' '}
-              {stats.scannedThreadDocs}, конференции {stats.scannedMeetingMessageDocs}.
+              {t('adminPage.storageStats.scannedDocs').replace('{main}', String(stats.scannedMainMessageDocs)).replace('{threads}', String(stats.scannedThreadDocs)).replace('{meetings}', String(stats.scannedMeetingMessageDocs))}
               {stats.skippedUndatedInRange > 0 && (
-                <> Без даты в выбранном периоде пропущено: {stats.skippedUndatedInRange}.</>
+                <>{t('adminPage.storageStats.skippedUndated').replace('{count}', String(stats.skippedUndatedInRange))}</>
               )}{' '}
-              Вложений без поля size: {stats.attachmentsMissingSize}.
+              {t('adminPage.storageStats.missingSize').replace('{count}', String(stats.attachmentsMissingSize))}
             </p>
 
             {stats.byConversation.length > 0 && (
@@ -416,10 +411,10 @@ export function AdminStorageStatsPanel() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Чат</TableHead>
-                      <TableHead>Тип</TableHead>
-                      <TableHead className="text-right">Объём</TableHead>
-                      <TableHead className="text-right">Сообщений с вложениями</TableHead>
+                      <TableHead>{t('adminPage.storageStats.colChat')}</TableHead>
+                      <TableHead>{t('adminPage.storageStats.colType')}</TableHead>
+                      <TableHead className="text-right">{t('adminPage.storageStats.colVolume')}</TableHead>
+                      <TableHead className="text-right">{t('adminPage.storageStats.colMessageDocs')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -433,7 +428,7 @@ export function AdminStorageStatsPanel() {
                             {row.conversationId}
                           </div>
                         </TableCell>
-                        <TableCell>{row.isGroup ? t('chat.groupType') : t('chat.directType')}</TableCell>
+                        <TableCell>{row.isGroup ? t('adminPage.storageStats.typeGroup') : t('adminPage.storageStats.typeDirect')}</TableCell>
                         <TableCell className="text-right font-mono text-sm">{formatStorageBytes(row.bytes)}</TableCell>
                         <TableCell className="text-right text-sm">{row.messageDocs}</TableCell>
                       </TableRow>

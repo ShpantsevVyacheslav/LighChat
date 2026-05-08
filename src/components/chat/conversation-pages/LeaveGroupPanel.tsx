@@ -6,6 +6,7 @@ import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, writeBatch, arrayRemove } from 'firebase/firestore';
 import type { Conversation, User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
@@ -17,6 +18,7 @@ type LeaveGroupPanelProps = {
 };
 
 export function LeaveGroupPanel({ conversationId, currentUser, onCancel }: LeaveGroupPanelProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -36,8 +38,8 @@ export function LeaveGroupPanel({ conversationId, currentUser, onCancel }: Leave
     if (isCreator) {
       toast({
         variant: 'destructive',
-        title: 'Действие запрещено',
-        description: 'Создатель не может покинуть группу. Передайте права или удалите группу.',
+        title: t('chat.leaveGroup.forbidden'),
+        description: t('chat.leaveGroup.forbiddenHint'),
       });
       onCancel();
       return;
@@ -49,7 +51,7 @@ export function LeaveGroupPanel({ conversationId, currentUser, onCancel }: Leave
     const newAdminIds = (conversation.adminIds || []).filter((id) => id !== currentUser.id);
     const newParticipantInfo = { ...conversation.participantInfo };
     delete newParticipantInfo[currentUser.id];
-    const lastMessageText = `${currentUser.name} покинул(а) группу.`;
+    const lastMessageText = `${currentUser.name} ${t('chat.leaveGroup.leftMessage')}`;
 
     try {
       const batch = writeBatch(firestore);
@@ -70,11 +72,11 @@ export function LeaveGroupPanel({ conversationId, currentUser, onCancel }: Leave
 
       await batch.commit();
 
-      toast({ title: 'Вы покинули группу' });
+      toast({ title: t('chat.leaveGroup.success') });
       router.push('/dashboard/chat');
     } catch (e) {
       console.error('Failed to leave group:', e);
-      toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось покинуть группу.' });
+      toast({ variant: 'destructive', title: t('common.error'), description: t('chat.leaveGroup.failed') });
       setIsLeaving(false);
     }
   };
@@ -91,10 +93,10 @@ export function LeaveGroupPanel({ conversationId, currentUser, onCancel }: Leave
     <div className="space-y-6 text-zinc-100">
       <p className="text-sm text-zinc-400">
         {isCreator ? (
-          'Создатель не может покинуть группу. Вы можете удалить группу или передать права другому администратору.'
+          t('chat.leaveGroup.creatorHint')
         ) : (
           <>
-            Вы уверены, что хотите покинуть группу{' '}
+            {t('chat.leaveGroup.confirmPrefix')}{' '}
             <span className="font-semibold text-zinc-100">{conversation?.name}</span>?
           </>
         )}
@@ -107,7 +109,7 @@ export function LeaveGroupPanel({ conversationId, currentUser, onCancel }: Leave
           disabled={isLeaving}
           onClick={onCancel}
         >
-          Отмена
+          {t('common.cancel')}
         </Button>
         {!isCreator && (
           <Button
@@ -118,7 +120,7 @@ export function LeaveGroupPanel({ conversationId, currentUser, onCancel }: Leave
             onClick={() => void handleConfirmLeave()}
           >
             {isLeaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Да, покинуть
+            {t('chat.leaveGroup.confirm')}
           </Button>
         )}
       </div>

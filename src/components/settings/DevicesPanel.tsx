@@ -19,7 +19,7 @@
  */
 
 import * as React from 'react';
-import { Fingerprint, Loader2, MapPin, Pencil, ShieldOff, Trash2, QrCode } from 'lucide-react';
+import { Fingerprint, Loader2, Pencil, ShieldOff, Trash2, QrCode } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,20 +63,6 @@ async function shortFingerprint(publicKeySpkiB64: string): Promise<string | null
   } catch {
     return null;
   }
-}
-
-function formatDeviceLocation(device: E2eeDeviceDocV2): string | null {
-  const city = device.lastLoginCity;
-  const country = device.lastLoginCountry;
-  const hasCity = !!city && city !== '?';
-  const hasCountry = !!country && country !== '' && country !== 'ZZ';
-  if (!hasCity && !hasCountry) return null;
-  const parts: string[] = [];
-  if (hasCity) {
-    try { parts.push(decodeURIComponent(city)); } catch { parts.push(city); }
-  }
-  if (hasCountry) parts.push(country!.toUpperCase());
-  return parts.join(', ');
 }
 
 export function DevicesPanel() {
@@ -159,7 +145,7 @@ export function DevicesPanel() {
     const trimmed = renameDraft.trim();
     try {
       await renameE2eeDeviceV2(firestore, user.id, renameTarget, trimmed);
-      toast({ title: 'Переименовано' });
+      toast({ title: t('devices.toastRenamed') });
       setRenameTarget(null);
       setRenameDraft('');
       await loadDevices();
@@ -246,7 +232,6 @@ export function DevicesPanel() {
         {devices?.map((d) => {
           const isCurrent = identity?.deviceId === d.deviceId;
           const isRevoked = d.revoked === true;
-          const locationLabel = formatDeviceLocation(d);
           return (
             <div
               key={d.deviceId}
@@ -275,12 +260,6 @@ export function DevicesPanel() {
                     activity: formatDate(d.lastSeenAt),
                   })}
                 </div>
-                {locationLabel && (
-                  <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                    <MapPin className="h-3 w-3 shrink-0" />
-                    {locationLabel}
-                  </div>
-                )}
                 {d.fingerprintShort && (
                   <div className="text-[11px] font-mono text-muted-foreground mt-1 break-all">
                     {d.fingerprintShort}

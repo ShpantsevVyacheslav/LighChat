@@ -11,15 +11,15 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
-const TTL_LABELS: Record<number, string> = {
-  300: '5 мин',
-  900: '15 мин',
-  1800: '30 мин',
-  3600: '1 час',
-  7200: '2 часа',
-  21600: '6 часов',
-  43200: '12 часов',
-  86400: '24 часа',
+const TTL_LABEL_KEYS: Record<number, string> = {
+  300: 'chat.secretChat.ttl5m',
+  900: 'chat.secretChat.ttl15m',
+  1800: 'chat.secretChat.ttl30m',
+  3600: 'chat.secretChat.ttl1h',
+  7200: 'chat.secretChat.ttl2h',
+  21600: 'chat.secretChat.ttl6h',
+  43200: 'chat.secretChat.ttl12h',
+  86400: 'chat.secretChat.ttl24h',
 };
 
 type SecretChatSettingsDialogProps = {
@@ -66,19 +66,19 @@ export function SecretChatSettingsDialog({
 
   const expiresAt = useMemo(() => parseIso(secret?.expiresAt), [secret?.expiresAt]);
   const remaining = expiresAt ? formatRemaining(expiresAt.getTime() - nowMs) : '—';
-  const ttlLabel = secret ? TTL_LABELS[secret.ttlPresetSec] ?? `${secret.ttlPresetSec} сек` : '—';
+  const ttlLabel = secret ? (TTL_LABEL_KEYS[secret.ttlPresetSec] ? t(TTL_LABEL_KEYS[secret.ttlPresetSec]) : t('chat.secretChat.ttlSec', { n: secret.ttlPresetSec })) : '—';
 
   const mediaRows = useMemo(() => {
     const media = secret?.mediaViewPolicy;
-    const asText = (value?: number | null) => (value == null ? 'Безлимит' : `${value} просмотров`);
+    const asText = (value?: number | null) => (value == null ? t('chat.secretChat.unlimited') : t('chat.secretChat.nViews', { n: value }));
     return [
-      { label: 'Изображения', value: asText(media?.image) },
-      { label: 'Видео', value: asText(media?.video) },
-      { label: 'Голосовые', value: asText(media?.voice) },
-      { label: 'Файлы', value: asText(media?.file) },
+      { label: t('chat.secretChat.images'), value: asText(media?.image) },
+      { label: t('chat.secretChat.videos'), value: asText(media?.video) },
+      { label: t('chat.secretChat.voice'), value: asText(media?.voice) },
+      { label: t('chat.secretChat.files'), value: asText(media?.file) },
       { label: t('chat.locationLabel'), value: asText(media?.location) },
     ];
-  }, [secret?.mediaViewPolicy]);
+  }, [secret?.mediaViewPolicy, t]);
 
   const handleDelete = async () => {
     setBusy(true);
@@ -99,41 +99,41 @@ export function SecretChatSettingsDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Настройки секретного чата</DialogTitle>
+            <DialogTitle>{t('chat.secretChat.settingsTitle')}</DialogTitle>
             <DialogDescription>
-              После создания эти параметры доступны только для просмотра.
+              {t('chat.secretChat.settingsDescription')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 text-sm">
             <section className="rounded-lg border p-3">
               <p className="mb-2 flex items-center gap-2 font-semibold">
-                <Timer className="h-4 w-4" /> Срок жизни
+                <Timer className="h-4 w-4" /> {t('chat.secretChat.lifetime')}
               </p>
-              <p>Профиль TTL: {ttlLabel}</p>
-              <p>Осталось: {remaining}</p>
-              <p>Истекает: {expiresAt ? expiresAt.toLocaleString() : '—'}</p>
+              <p>{t('chat.secretChat.ttlProfile')} {ttlLabel}</p>
+              <p>{t('chat.secretChat.remaining')} {remaining}</p>
+              <p>{t('chat.secretChat.expires')} {expiresAt ? expiresAt.toLocaleString() : '—'}</p>
             </section>
 
             <section className="rounded-lg border p-3">
               <p className="mb-2 flex items-center gap-2 font-semibold">
-                <Shield className="h-4 w-4" /> Ограничения
+                <Shield className="h-4 w-4" /> {t('chat.secretChat.restrictions')}
               </p>
-              <p>Запрет пересылки: {secret.restrictions.noForward ? 'Да' : 'Нет'}</p>
-              <p>Запрет копирования: {secret.restrictions.noCopy ? 'Да' : 'Нет'}</p>
-              <p>Запрет сохранения: {secret.restrictions.noSave ? 'Да' : 'Нет'}</p>
-              <p>Защита скриншотов: {secret.restrictions.screenshotProtection ? 'Да' : 'Нет'}</p>
+              <p>{t('chat.secretChat.noForward')} {secret.restrictions.noForward ? t('chat.secretChat.yes') : t('chat.secretChat.no')}</p>
+              <p>{t('chat.secretChat.noCopy')} {secret.restrictions.noCopy ? t('chat.secretChat.yes') : t('chat.secretChat.no')}</p>
+              <p>{t('chat.secretChat.noSave')} {secret.restrictions.noSave ? t('chat.secretChat.yes') : t('chat.secretChat.no')}</p>
+              <p>{t('chat.secretChat.screenshotProtection')} {secret.restrictions.screenshotProtection ? t('chat.secretChat.yes') : t('chat.secretChat.no')}</p>
             </section>
 
             <section className="rounded-lg border p-3">
               <p className="mb-2 flex items-center gap-2 font-semibold">
-                <Lock className="h-4 w-4" /> Доступ
+                <Lock className="h-4 w-4" /> {t('chat.secretChat.access')}
               </p>
-              <p>Требуется PIN при входе: {secret.lockPolicy.required ? 'Да' : 'Нет'}</p>
+              <p>{t('chat.secretChat.pinRequired')} {secret.lockPolicy.required ? t('chat.secretChat.yes') : t('chat.secretChat.no')}</p>
             </section>
 
             <section className="rounded-lg border p-3">
-              <p className="mb-2 font-semibold">Лимиты просмотров медиа</p>
+              <p className="mb-2 font-semibold">{t('chat.secretChat.mediaViewLimitsTitle')}</p>
               <div className="space-y-1">
                 {mediaRows.map((row) => (
                   <p key={row.label}>
@@ -150,7 +150,7 @@ export function SecretChatSettingsDialog({
               onClick={() => setConfirmOpen(true)}
               disabled={busy}
             >
-              <Trash2 className="mr-2 h-4 w-4" /> Удалить секретный чат
+              <Trash2 className="mr-2 h-4 w-4" /> {t('chat.secretChat.deleteButton')}
             </Button>
           </div>
         </DialogContent>
@@ -159,13 +159,13 @@ export function SecretChatSettingsDialog({
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить секретный чат?</AlertDialogTitle>
+            <AlertDialogTitle>{t('chat.secretChat.deleteConfirmTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Чат будет удалён для обоих участников вместе с вложениями. Это действие нельзя отменить.
+              {t('chat.secretChat.deleteConfirmDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Отмена</AlertDialogCancel>
+            <AlertDialogCancel disabled={busy}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               disabled={busy}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -175,7 +175,7 @@ export function SecretChatSettingsDialog({
               }}
             >
               {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Удалить
+              {t('chat.secretChat.deleteAction')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

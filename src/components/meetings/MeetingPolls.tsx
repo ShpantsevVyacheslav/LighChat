@@ -27,6 +27,7 @@ import { countVotesForOption, normalizeUserVote, userHasVoted, userSelectedOptio
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useI18n } from '@/hooks/use-i18n';
 
 interface MeetingPollsProps {
   meetingId: string;
@@ -39,6 +40,7 @@ interface MeetingPollsProps {
 }
 
 export function MeetingPolls({ meetingId, currentUser, participantsCount, allParticipants, isHost, subscriptionsEnabled = true }: MeetingPollsProps) {
+  const { t } = useI18n();
   const [isCreating, setIsCreating] = useState(false);
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '']);
@@ -83,7 +85,7 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
         
         await updateDoc(pollRef, updateData);
     } catch (e) {
-        toast({ variant: 'destructive', title: 'Ошибка при голосовании' });
+        toast({ variant: 'destructive', title: t('meetingPolls.voteError') });
     }
   };
 
@@ -105,13 +107,13 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
                 }
                 break;
         }
-    } catch (e) { toast({ variant: 'destructive', title: 'Ошибка действия' }); }
+    } catch (e) { toast({ variant: 'destructive', title: t('meetingPolls.actionError') }); }
   };
 
   const handleCreatePoll = async (asDraft: boolean) => {
       if (!question.trim() || !firestore) return;
       const filteredOptions = options.filter(o => o.trim() !== '');
-      if (filteredOptions.length < 2) { toast({ variant: 'destructive', title: 'Минимум 2 варианта ответа' }); return; }
+      if (filteredOptions.length < 2) { toast({ variant: 'destructive', title: t('meetingPolls.minTwoOptions') }); return; }
       setIsSaving(true);
       try {
           const pollId = `poll-${Date.now()}`;
@@ -121,7 +123,7 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
               isAnonymous, createdAt: serverTimestamp(), votes: {}
           });
           setIsCreating(false); setQuestion(''); setOptions(['', '']); setIsAnonymous(true);
-      } catch (e) { toast({ variant: 'destructive', title: 'Ошибка при создании' }); } finally { setIsSaving(false); }
+      } catch (e) { toast({ variant: 'destructive', title: t('meetingPolls.createError') }); } finally { setIsSaving(false); }
   };
 
   return (
@@ -129,7 +131,7 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
       {!isCreating && isHost && (
         <div className="px-6 py-2 shrink-0">
             <Button size="sm" variant="outline" onClick={() => setIsCreating(true)} className="w-full rounded-2xl h-12 bg-primary text-white border-none hover:bg-primary/90 font-black uppercase text-[10px] tracking-[0.2em] gap-3 shadow-lg shadow-primary/30">
-                <Plus className="h-4 w-4" /> Создать опрос
+                <Plus className="h-4 w-4" /> {t('meetingPolls.createPoll')}
             </Button>
         </div>
       )}
@@ -139,16 +141,16 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
           {isCreating ? (
             <div className="bg-white/5 backdrop-blur-3xl p-6 rounded-[2.5rem] border border-white/10 space-y-6 shadow-2xl animate-in zoom-in-95 duration-500">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 px-1">Ваш вопрос</Label>
-                <Input value={question} onChange={e => setQuestion(e.target.value)} placeholder="Напр: Когда начнем?" className="rounded-2xl h-12 bg-black/40 border-white/5 focus:ring-primary/50 text-sm border-none shadow-none" />
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 px-1">{t('meetingPolls.questionPlaceholder')}</Label>
+                <Input value={question} onChange={e => setQuestion(e.target.value)} placeholder={t('meetingPolls.questionHint')} className="rounded-2xl h-12 bg-black/40 border-white/5 focus:ring-primary/50 text-sm border-none shadow-none" />
               </div>
               <div className="space-y-3">
-                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 px-1">Варианты ответа</Label>
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 px-1">{t('meetingPolls.optionsLabel')}</Label>
                 {options.map((opt, idx) => (
                   <div key={idx} className="flex gap-2 group">
                     <Input value={opt} onChange={e => {
                         const newOpts = [...options]; newOpts[idx] = e.target.value; setOptions(newOpts);
-                    }} placeholder={`Вариант ${idx + 1}`} className="rounded-xl h-11 bg-black/40 border-white/5 text-sm border-none shadow-none" />
+                    }} placeholder={t('meetingPolls.optionN', { n: String(idx + 1) })} className="rounded-xl h-11 bg-black/40 border-white/5 text-sm border-none shadow-none" />
                     {options.length > 2 && (
                         <Button variant="ghost" size="icon" className="shrink-0 h-11 w-11 rounded-xl hover:bg-red-500/20 border-none shadow-none" onClick={() => setOptions(options.filter((_, i) => i !== idx))}>
                             <Trash2 className="h-4 w-4 text-red-500/50" />
@@ -157,20 +159,20 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
                   </div>
                 ))}
                 <Button variant="ghost" size="sm" onClick={() => setOptions([...options, ''])} className="w-full h-11 text-[9px] font-black uppercase tracking-widest border border-dashed border-white/10 rounded-2xl hover:bg-white/5 transition-all shadow-none">
-                    <Plus className="h-3 w-3 mr-2" /> Добавить еще
+                    <Plus className="h-3 w-3 mr-2" /> {t('meetingPolls.addMore')}
                 </Button>
               </div>
               <div className="flex items-center justify-between p-4 bg-black/20 rounded-2xl border border-white/5">
-                  <div className="flex flex-col"><span className="text-xs font-bold">{isAnonymous ? 'Анонимно' : 'Публично'}</span><span className="text-[9px] text-white/30 uppercase tracking-wider mt-0.5">Кто увидит выбор</span></div>
+                  <div className="flex flex-col"><span className="text-xs font-bold">{isAnonymous ? t('meetingPolls.anonymous') : t('meetingPolls.public')}</span><span className="text-[9px] text-white/30 uppercase tracking-wider mt-0.5">{t('meetingPolls.whoSeesChoice')}</span></div>
                   <Switch checked={isAnonymous} onCheckedChange={setIsAnonymous} />
               </div>
               <div className="flex flex-col gap-2 pt-2">
                   <div className="flex gap-2">
-                    <Button variant="ghost" onClick={() => setIsCreating(false)} className="flex-1 rounded-2xl h-12 border-none bg-white/5 font-bold text-xs">Отмена</Button>
-                    <Button variant="outline" onClick={() => handleCreatePoll(true)} className="flex-1 rounded-2xl h-12 bg-white/5 border-white/10 font-bold text-xs" disabled={isSaving || !question.trim()}>В черновики</Button>
+                    <Button variant="ghost" onClick={() => setIsCreating(false)} className="flex-1 rounded-2xl h-12 border-none bg-white/5 font-bold text-xs">{t('meetingPolls.cancel')}</Button>
+                    <Button variant="outline" onClick={() => handleCreatePoll(true)} className="flex-1 rounded-2xl h-12 bg-white/5 border-white/10 font-bold text-xs" disabled={isSaving || !question.trim()}>{t('meetingPolls.toDrafts')}</Button>
                   </div>
                   <Button onClick={() => handleCreatePoll(false)} className="w-full rounded-2xl h-14 font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20" disabled={isSaving || !question.trim()}>
-                    {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Опубликовать'}
+                    {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : t('meetingPolls.publish')}
                   </Button>
               </div>
             </div>
@@ -198,8 +200,8 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
                               <Badge variant="outline" className={cn(
                                   "text-[8px] font-black uppercase tracking-widest rounded-full px-2.5 h-5 border-none",
                                   isEnded ? "bg-red-500/20 text-red-500" : isDraft ? "bg-amber-500/20 text-amber-500" : "bg-green-500/20 text-green-500"
-                              )}>{isEnded ? 'Завершено' : isDraft ? 'Черновик' : 'Активно'}</Badge>
-                              {!poll.isAnonymous && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest rounded-full h-5 bg-primary/10 text-primary border-none shadow-none">Публичное</Badge>}
+                              )}>{isEnded ? t('meetingPolls.completed') : isDraft ? t('meetingPolls.draft') : t('meetingPolls.active')}</Badge>
+                              {!poll.isAnonymous && <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest rounded-full h-5 bg-primary/10 text-primary border-none shadow-none">{t('meetingPolls.publicPoll')}</Badge>}
                           </div>
                       </div>
                       <DropdownMenu>
@@ -210,29 +212,29 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
                               <DropdownMenuContent align="end" className="rounded-2xl bg-[#0a0e17]/95 backdrop-blur-3xl border-white/10 shadow-2xl z-[160] w-56 p-1.5">
                                   {isDraft && (poll.creatorId === currentUser.id || isHost) && (
                                       <DropdownMenuItem onSelect={() => handleAction(poll.id, 'start')} className="rounded-xl font-bold px-3 py-2.5 text-xs text-white">
-                                          <PlayCircle className="h-4 w-4 mr-3 text-green-500" /> Запустить
+                                          <PlayCircle className="h-4 w-4 mr-3 text-green-500" /> {t('meetingPolls.launch')}
                                       </DropdownMenuItem>
                                   )}
                                   {hasVoted && !isEnded && (
                                       <DropdownMenuItem onSelect={() => handleAction(poll.id, 'revote')} className="rounded-xl font-bold px-3 py-2.5 text-xs text-white">
-                                          <RotateCcw className="h-4 w-4 mr-3 text-primary" /> Изменить голос
+                                          <RotateCcw className="h-4 w-4 mr-3 text-primary" /> {t('meetingPolls.changeVote')}
                                       </DropdownMenuItem>
                                   )}
                                   {isEnded && (isHost || poll.creatorId === currentUser.id) && (
                                       <DropdownMenuItem onSelect={() => handleAction(poll.id, 'restart')} className="rounded-xl font-bold px-3 py-2.5 text-xs text-white">
-                                          <RotateCcw className="h-4 w-4 mr-3 text-primary" /> Перезапустить
+                                          <RotateCcw className="h-4 w-4 mr-3 text-primary" /> {t('meetingPolls.restart')}
                                       </DropdownMenuItem>
                                   )}
                                   {isHost && !isEnded && !isDraft && (
                                       <DropdownMenuItem onSelect={() => handleAction(poll.id, 'end')} className="rounded-xl font-bold px-3 py-2.5 text-xs text-amber-500">
-                                          <StopCircle className="h-4 w-4 mr-3" /> Остановить
+                                          <StopCircle className="h-4 w-4 mr-3" /> {t('meetingPolls.stop')}
                                       </DropdownMenuItem>
                                   )}
                                   {(isHost || poll.creatorId === currentUser.id) && (
                                       <>
                                         <DropdownMenuSeparator className="bg-white/10" />
                                         <DropdownMenuItem onSelect={() => handleAction(poll.id, 'delete')} className="rounded-xl font-bold px-3 py-2.5 text-xs text-red-500">
-                                            <Trash2 className="h-4 w-4 mr-3" /> Удалить
+                                            <Trash2 className="h-4 w-4 mr-3" /> {t('meetingPolls.deletePoll')}
                                         </DropdownMenuItem>
                                       </>
                                   )}
@@ -250,7 +252,7 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
                           // Get voters for this specific option
                           const votersForOption = !poll.isAnonymous ? Object.entries(votes)
                             .filter(([_, raw]) => normalizeUserVote(raw).includes(idx))
-                            .map(([uId]) => allParticipants.find(p => p.id === uId) || { id: uId, name: 'Участник', avatar: '' })
+                            .map(([uId]) => allParticipants.find(p => p.id === uId) || { id: uId, name: t('meetingPolls.participant'), avatar: '' })
                             : [];
 
                           return (
@@ -301,10 +303,10 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
                   <div className="flex justify-between items-center px-1">
                       <div className="flex items-center gap-4 text-[8px] font-black text-white/20 uppercase tracking-[0.25em]">
                           <span className="flex items-center gap-2">
-                              <Activity className="h-3 w-3" /> {totalVotes} голосов
+                              <Activity className="h-3 w-3" /> {t('meetingPolls.nVotes', { n: String(totalVotes) })}
                           </span>
                           {!isEnded && !isDraft && (
-                              <span>Цель: {participantsCount}</span>
+                              <span>{t('meetingPolls.goalN', { n: String(participantsCount) })}</span>
                           )}
                       </div>
                       
@@ -316,7 +318,7 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
                             className="h-7 rounded-full text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/5 border-none shadow-none"
                           >
                               {isExpanded ? <ChevronUp className="h-3 w-3 mr-1.5" /> : <ChevronDown className="h-3 w-3 mr-1.5" />}
-                              Статистика
+                              {t('meetingPolls.stats')}
                           </Button>
                       )}
                   </div>

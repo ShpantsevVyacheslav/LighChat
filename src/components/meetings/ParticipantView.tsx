@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { BackgroundConfig } from '@/hooks/use-meeting-webrtc';
 import type { PeerConnectionQuality } from '@/lib/webrtc/peer-stats';
+import { useI18n } from '@/hooks/use-i18n';
 
 interface ParticipantState {
   id: string;
@@ -86,6 +87,7 @@ const ParticipantViewComponent = ({
   onSpeaking,
   onClick
 }: ParticipantViewProps) => {
+  const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hasVideo, setHasVideo] = useState(false);
@@ -314,7 +316,7 @@ const ParticipantViewComponent = ({
         </div>}
         <div className={cn("font-bold tracking-tight text-white flex items-center gap-2", isCompact ? "text-[9px]" : "text-xs")}>
             <span className="truncate max-w-[80px] sm:max-w-[120px]">
-                {isLocal ? `${participant.name} (Вы)` : (participant.name || 'Гость')}
+                {isLocal ? `${participant.name} ${t('meetingParticipant.youSuffix')}` : (participant.name || t('meetingParticipant.guest'))}
             </span>
             {isHost && (
               <div className="flex items-center">
@@ -326,13 +328,13 @@ const ParticipantViewComponent = ({
         {!isLocal && participant.connectionQuality === 'poor' && (
           <SignalLow
             className="h-3 w-3 text-amber-400"
-            aria-label="Нестабильное соединение"
+            aria-label={t('meetingParticipant.unstableConnection')}
           />
         )}
         {!isLocal && participant.connectionQuality === 'bad' && (
           <SignalZero
             className="h-3 w-3 text-red-500"
-            aria-label="Плохое соединение"
+            aria-label={t('meetingParticipant.poorConnection')}
           />
         )}
       </div>

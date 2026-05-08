@@ -18,6 +18,7 @@
 import { useEffect, useState } from 'react';
 import { Fingerprint, Loader2 } from 'lucide-react';
 import type { Firestore } from 'firebase/firestore';
+import { useI18n } from '@/hooks/use-i18n';
 
 import { computeUserFingerprintV2, listActiveE2eeDevicesV2 } from '@/lib/e2ee';
 import { cn } from '@/lib/utils';
@@ -45,6 +46,7 @@ export function E2eeFingerprintBadge({
   userLabel,
   className,
 }: E2eeFingerprintBadgeProps) {
+  const { t } = useI18n();
   const [fp, setFp] = useState<string | null>(null);
   const [devicesCount, setDevicesCount] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -85,7 +87,7 @@ export function E2eeFingerprintBadge({
         )}
       >
         <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-        <span>Загружаем отпечаток…</span>
+        <span>{t('chat.e2eeFingerprint.loading')}</span>
       </div>
     );
   }
@@ -96,7 +98,7 @@ export function E2eeFingerprintBadge({
         className={cn('text-xs text-destructive', className)}
         data-testid="e2ee-fingerprint-error"
       >
-        Не удалось получить отпечаток: {error}
+        {t('chat.e2eeFingerprint.error')}: {error}
       </div>
     );
   }
@@ -107,7 +109,7 @@ export function E2eeFingerprintBadge({
         className={cn('text-xs text-muted-foreground', className)}
         data-testid="e2ee-fingerprint-empty"
       >
-        У {userLabel ?? 'пользователя'} нет активных E2EE-устройств.
+        {t('chat.e2eeFingerprint.noDevices').replace('{user}', userLabel ?? t('chat.userLabel'))}
       </div>
     );
   }
@@ -120,8 +122,8 @@ export function E2eeFingerprintBadge({
       <Fingerprint className="h-4 w-4 text-muted-foreground mt-0.5" aria-hidden />
       <div className="space-y-0.5">
         <div className="text-xs text-muted-foreground">
-          Отпечаток E2EE {userLabel ? `• ${userLabel}` : ''}{' '}
-          <span className="opacity-60">({devicesCount} устр.)</span>
+          {t('chat.e2eeFingerprint.label')} {userLabel ? `• ${userLabel}` : ''}{' '}
+          <span className="opacity-60">({devicesCount} {t('chat.e2eeFingerprint.devicesShort')})</span>
         </div>
         <code
           className="block text-xs font-mono tracking-tight break-all select-all"

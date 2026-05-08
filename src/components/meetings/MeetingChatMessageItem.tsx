@@ -8,6 +8,7 @@ import {
   Trash2, Edit, Copy, Clock, Check, MoreVertical 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 import type { MeetingMessage, User, ChatAttachment } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
@@ -35,6 +36,7 @@ export function MeetingChatMessageItem({
   onDelete, 
   onOpenImage 
 }: MeetingChatMessageItemProps) {
+  const { t } = useI18n();
   const isMe = message.senderId === currentUser.id;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
@@ -105,7 +107,7 @@ export function MeetingChatMessageItem({
         )}>
           {message.isDeleted ? (
             <div className="flex items-center gap-2 italic text-xs opacity-70 py-2 px-0 font-medium select-none min-h-[32px]">
-              <Trash2 className="h-3 w-3" /> Сообщение удалено
+              <Trash2 className="h-3 w-3" /> {t('meetingChat.messageDeleted')}
             </div>
           ) : (
             <>
@@ -155,19 +157,19 @@ export function MeetingChatMessageItem({
           >
             {hasText && (
               <button onClick={handleCopy} className="w-full flex items-center px-3 py-2 text-xs font-bold hover:bg-white/10 rounded-xl transition-colors text-white/80">
-                <Copy className="mr-3 h-4 w-4 opacity-60" /> Копировать
+                <Copy className="mr-3 h-4 w-4 opacity-60" /> {t('meetingChat.copy')}
               </button>
             )}
             {isMe && !message.isDeleted && (
               <>
                 {hasText && !isOnlyEmojis(message.text!) && (
                   <button onClick={() => { onEdit(message); setIsMenuOpen(false); }} className="w-full flex items-center px-3 py-2 text-xs font-bold hover:bg-white/10 rounded-xl transition-colors text-white/80">
-                    <Edit className="mr-3 h-4 w-4 opacity-60" /> Изменить
+                    <Edit className="mr-3 h-4 w-4 opacity-60" /> {t('meetingChat.edit')}
                   </button>
                 )}
                 <Separator className="my-1 bg-white/5" />
                 <button onClick={() => { onDelete(); setIsMenuOpen(false); }} className="w-full flex items-center px-3 py-2 text-xs font-bold hover:bg-red-500/20 text-red-500 rounded-xl transition-colors">
-                  <Trash2 className="mr-3 h-4 w-4" /> Удалить
+                  <Trash2 className="mr-3 h-4 w-4" /> {t('meetingChat.delete')}
                 </button>
               </>
             )}

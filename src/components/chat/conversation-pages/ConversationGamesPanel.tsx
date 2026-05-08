@@ -11,6 +11,7 @@ import type { User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 import { cn } from '@/lib/utils';
 
 type GameLobbyIndexDoc = {
@@ -85,6 +86,7 @@ export function ConversationGamesPanel({
 }) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [selectedGame, setSelectedGame] = useState<'durak' | null>(null);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const [showSingleSettings, setShowSingleSettings] = useState(false);
@@ -155,16 +157,16 @@ export function ConversationGamesPanel({
       });
       const gameId = (res.data as any)?.gameId as string | undefined;
       if (gameId) {
-        toast({ title: 'Партия создана' });
+        toast({ title: t('gamesPanel.gameCreated') });
         onCreatedGameLobby?.(gameId);
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Не удалось создать партию';
-      toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+      const msg = e instanceof Error ? e.message : t('gamesPanel.createFailed');
+      toast({ variant: 'destructive', title: t('gamesPanel.error'), description: msg });
     } finally {
       setBusy(null);
     }
-  }, [conversationId, firestore, isGroup, onCreatedGameLobby, settings, toast]);
+  }, [conversationId, firestore, isGroup, onCreatedGameLobby, settings, t, toast]);
 
   const createTournament = useCallback(async () => {
     if (!firestore) return;
@@ -174,11 +176,11 @@ export function ConversationGamesPanel({
       const res = await fn({ conversationId, totalGames: tournamentTotalGames });
       const tid = (res.data as any)?.tournamentId as string | undefined;
       if (tid) setSelectedTournamentId(tid);
-      toast({ title: 'Турнир создан' });
+      toast({ title: t('gamesPanel.tournamentCreated') });
       setShowTournamentSettings(false);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Не удалось создать турнир';
-      toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+      const msg = e instanceof Error ? e.message : t('gamesPanel.createFailed');
+      toast({ variant: 'destructive', title: t('gamesPanel.error'), description: msg });
     } finally {
       setBusy(null);
     }
@@ -195,16 +197,16 @@ export function ConversationGamesPanel({
       });
       const gameId = (res.data as any)?.gameId as string | undefined;
       if (gameId) {
-        toast({ title: 'Партия турнира создана' });
+        toast({ title: t('gamesPanel.roundCreated') });
         onCreatedGameLobby?.(gameId);
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Не удалось создать партию';
-      toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+      const msg = e instanceof Error ? e.message : t('gamesPanel.createFailed');
+      toast({ variant: 'destructive', title: t('gamesPanel.error'), description: msg });
     } finally {
       setBusy(null);
     }
-  }, [firestore, isGroup, onCreatedGameLobby, selectedTournamentId, settings, toast]);
+  }, [firestore, isGroup, onCreatedGameLobby, selectedTournamentId, settings, t, toast]);
 
   const finishDurakGame = useCallback(
     async (gameId: string) => {
@@ -218,10 +220,10 @@ export function ConversationGamesPanel({
           actionType: 'surrender',
           payload: null,
         });
-        toast({ title: 'Игра завершена' });
+        toast({ title: t('gamesPanel.gameFinished') });
       } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Не удалось завершить игру';
-        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+        const msg = e instanceof Error ? e.message : t('gamesPanel.finishFailed');
+        toast({ variant: 'destructive', title: t('gamesPanel.error'), description: msg });
       } finally {
         setBusy(null);
       }
@@ -241,8 +243,8 @@ export function ConversationGamesPanel({
             <Swords className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-bold text-foreground">Дурак</div>
-            <div className="text-xs text-muted-foreground">Одиночная партия или турнир</div>
+            <div className="text-sm font-bold text-foreground">{t('gamesPanel.durakTitle')}</div>
+            <div className="text-xs text-muted-foreground">{t('gamesPanel.durakSubtitle')}</div>
           </div>
           <ChevronRight className="h-5 w-5 text-muted-foreground" />
         </button>
@@ -251,9 +253,9 @@ export function ConversationGamesPanel({
   }
 
   if (selectedTournamentId) {
-    const t = selectedTournament;
-    const pointsByUid = t?.pointsByUid ?? {};
-    const playedByUid = t?.gamesPlayedByUid ?? {};
+    const tourney = selectedTournament;
+    const pointsByUid = tourney?.pointsByUid ?? {};
+    const playedByUid = tourney?.gamesPlayedByUid ?? {};
     const standingsUids = Array.from(new Set([...Object.keys(pointsByUid), ...Object.keys(playedByUid)].filter(Boolean)));
     standingsUids.sort((a, b) => {
       const pa = pointsByUid[a] ?? 0;
@@ -267,43 +269,43 @@ export function ConversationGamesPanel({
         <div className="flex items-center justify-between gap-2">
           <Button variant="ghost" size="sm" onClick={() => setSelectedTournamentId(null)} className="gap-2">
             <ArrowLeft className="h-4 w-4" />
-            Назад
+            {t('gamesPanel.back')}
           </Button>
           <Button
             onClick={createTournamentGame}
             disabled={
               busy != null ||
-              t?.status === 'finished' ||
-              (typeof t?.totalGames === 'number' &&
-                t.totalGames > 0 &&
-                (t?.gameIds?.length ?? 0) >= t.totalGames)
+              tourney?.status === 'finished' ||
+              (typeof tourney?.totalGames === 'number' &&
+                tourney.totalGames > 0 &&
+                (tourney?.gameIds?.length ?? 0) >= tourney.totalGames)
             }
             className="gap-2"
           >
             <PlusCircle className="h-4 w-4" />
-            Новая партия
+            {t('gamesPanel.newGame')}
           </Button>
         </div>
 
         <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
           <div className="mb-1 flex items-center gap-2">
             <Trophy className="h-5 w-5 text-amber-500" />
-            <div className="text-sm font-bold">{t?.title ?? 'Турнир'}</div>
-            <Badge variant="secondary" className="ml-auto">{t?.status ?? 'active'}</Badge>
+            <div className="text-sm font-bold">{selectedTournament?.title ?? t('gamesPanel.tournament')}</div>
+            <Badge variant="secondary" className="ml-auto">{tourney?.status ?? 'active'}</Badge>
           </div>
-          {typeof t?.totalGames === 'number' && t.totalGames > 0 ? (
+          {typeof tourney?.totalGames === 'number' && tourney.totalGames > 0 ? (
             <div className="mt-1 text-xs text-muted-foreground">
-              Сыграно {t?.finishedGameIds?.length ?? 0} из {t.totalGames}
+              {t('gamesPanel.playedNofM', { n: tourney?.finishedGameIds?.length ?? 0, m: tourney.totalGames })}
             </div>
           ) : null}
           <div className="mt-3 space-y-2">
             {standingsUids.length === 0 ? (
-              <div className="text-xs text-muted-foreground">Пока нет результатов</div>
+              <div className="text-xs text-muted-foreground">{t('gamesPanel.noResults')}</div>
             ) : (
               standingsUids.map((uid) => (
                 <div key={uid} className="flex items-center justify-between gap-2 text-sm">
                   <div className="min-w-0 truncate">{nameOfUid(uid, allUsers)}</div>
-                  <div className="shrink-0 text-muted-foreground">{pointsByUid[uid] ?? 0} pts · {playedByUid[uid] ?? 0} игр</div>
+                  <div className="shrink-0 text-muted-foreground">{t('gamesPanel.ptsGames', { pts: pointsByUid[uid] ?? 0, games: playedByUid[uid] ?? 0 })}</div>
                 </div>
               ))
             )}
@@ -311,9 +313,9 @@ export function ConversationGamesPanel({
         </div>
 
         <div className="space-y-2">
-          <div className="text-xs font-bold uppercase text-muted-foreground">Партии</div>
+          <div className="text-xs font-bold uppercase text-muted-foreground">{t('gamesPanel.rounds')}</div>
           {tournamentGames.length === 0 ? (
-            <div className="text-xs text-muted-foreground">Пока нет партий</div>
+            <div className="text-xs text-muted-foreground">{t('gamesPanel.noRounds')}</div>
           ) : (
             tournamentGames.map((g, idx) => {
               const status = g.status ?? '';
@@ -328,12 +330,12 @@ export function ConversationGamesPanel({
                 >
                   <div className="flex items-center gap-2">
                     <Swords className="h-4 w-4 text-emerald-500" />
-                    <div className="text-sm font-bold">Дурак</div>
+                    <div className="text-sm font-bold">{t('gamesPanel.durakTitle')}</div>
                     <Badge variant="secondary" className="ml-auto">{status}</Badge>
                   </div>
-                  {players && <div className="mt-2 text-xs text-muted-foreground">Игроки: {players}</div>}
+                  {players && <div className="mt-2 text-xs text-muted-foreground">{t('gamesPanel.players')} {players}</div>}
                   {status === 'finished' && (
-                    <div className="mt-1 text-xs text-muted-foreground">Результат: {loser ? `дурак — ${loser}` : 'ничья'}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{t('gamesPanel.result')} {loser ? t('gamesPanel.loserResult', { name: loser }) : t('gamesPanel.draw')}</div>
                   )}
                 </button>
               );
@@ -348,28 +350,28 @@ export function ConversationGamesPanel({
     <div className="space-y-4">
       <Button variant="ghost" size="sm" onClick={() => setSelectedGame(null)} className="gap-2">
         <ArrowLeft className="h-4 w-4" />
-        К играм
+        {t('gamesPanel.toGames')}
       </Button>
 
       <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
         <div className="mb-3 flex items-center gap-2">
           <Swords className="h-5 w-5 text-emerald-500" />
-          <div className="text-sm font-bold">Дурак</div>
+          <div className="text-sm font-bold">{t('gamesPanel.durakTitle')}</div>
         </div>
         <div className="grid gap-2">
           <Button onClick={() => setShowSingleSettings((v) => !v)} className="justify-start gap-2">
             <Settings2 className="h-4 w-4" />
-            Одиночная партия
+            {t('gamesPanel.singleGame')}
           </Button>
           <Button variant="outline" onClick={() => setShowTournamentSettings((v) => !v)} className="justify-start gap-2">
             <Trophy className="h-4 w-4" />
-            Турнир
+            {t('gamesPanel.tournament')}
           </Button>
         </div>
         {showTournamentSettings ? (
           <div className="mt-4 space-y-3 rounded-2xl border border-border/60 bg-background/45 p-3">
             <label className="block text-xs font-bold uppercase text-muted-foreground">
-              Игр в турнире
+              {t('gamesPanel.gamesInTournament')}
             </label>
             <div className="flex items-center gap-2">
               <Button
@@ -401,11 +403,11 @@ export function ConversationGamesPanel({
               >
                 +
               </Button>
-              <span className="text-xs text-muted-foreground">партий</span>
+              <span className="text-xs text-muted-foreground">{t('gamesPanel.nGames')}</span>
             </div>
             <Button onClick={createTournament} disabled={busy != null} className="w-full gap-2">
               <Trophy className="h-4 w-4" />
-              Создать турнир
+              {t('gamesPanel.createTournament')}
             </Button>
           </div>
         ) : null}
@@ -420,7 +422,7 @@ export function ConversationGamesPanel({
         ) : null}
       </div>
 
-      <ListSection title="Активные лобби" empty="Активных лобби нет">
+      <ListSection title={t('gamesPanel.activeLobbies')} empty={t('gamesPanel.noActiveLobbies')}>
         {durakLobbies.map((l, idx) => {
           const gameId = (l.gameId ?? l.id ?? '') || '';
           const status = String(l.status ?? '');
@@ -437,7 +439,7 @@ export function ConversationGamesPanel({
               >
                 <Swords className="h-5 w-5 text-emerald-500" />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-bold">Дурак</div>
+                  <div className="truncate text-sm font-bold">{t('gamesPanel.durakTitle')}</div>
                   <div className="text-xs text-muted-foreground">{status} · {l.playerCount ?? 0}/{l.maxPlayers ?? 0}</div>
                 </div>
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -449,14 +451,14 @@ export function ConversationGamesPanel({
                 onClick={() => gameId && void finishDurakGame(gameId)}
                 className="shrink-0"
               >
-                Завершить
+                {t('gamesPanel.finish')}
               </Button>
             </div>
           );
         })}
       </ListSection>
 
-      <ListSection title="Турниры" empty={isLoadingTournaments && !tournamentIndexRows ? 'Загрузка…' : 'Пока нет турниров'}>
+      <ListSection title={t('gamesPanel.tournaments')} empty={isLoadingTournaments && !tournamentIndexRows ? t('gamesPanel.loading') : t('gamesPanel.noTournaments')}>
         {tournaments.map((row: any) => (
           <button
             key={row.tournamentId ?? row.id}
@@ -466,7 +468,7 @@ export function ConversationGamesPanel({
           >
             <Trophy className="h-5 w-5 text-amber-500" />
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-bold">{row.title ?? 'Турнир'}</div>
+              <div className="truncate text-sm font-bold">{row.title ?? t('gamesPanel.tournament')}</div>
               <div className="text-xs text-muted-foreground">{row.status ?? 'active'}</div>
             </div>
             <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -501,20 +503,21 @@ function DurakSettingsForm({
   onChange: (v: DurakSettings) => void;
   onCreate: () => void;
 }) {
+  const { t } = useI18n();
   const update = (patch: Partial<DurakSettings>) => onChange({ ...value, ...patch, maxPlayers: isGroup ? (patch.maxPlayers ?? value.maxPlayers) : 2 });
   return (
     <div className="mt-4 space-y-3 rounded-2xl border border-border/60 bg-background/45 p-3">
       <Segmented
-        label="Режим"
+        label={t('gamesPanel.mode')}
         value={value.mode}
         options={[
-          ['podkidnoy', 'Подкидной'],
-          ['perevodnoy', 'Переводной'],
+          ['podkidnoy', t('gamesPanel.throwIn')],
+          ['perevodnoy', t('gamesPanel.transfer')],
         ]}
         onChange={(mode) => update({ mode: mode as DurakSettings['mode'] })}
       />
       <Segmented
-        label="Колода"
+        label={t('gamesPanel.deck')}
         value={String(value.deckSize)}
         options={[
           ['36', '36'],
@@ -523,26 +526,26 @@ function DurakSettingsForm({
         onChange={(deckSize) => update({ deckSize: Number(deckSize) === 52 ? 52 : 36 })}
       />
       <Segmented
-        label="Игроки"
+        label={t('gamesPanel.playersLabel')}
         value={String(isGroup ? value.maxPlayers : 2)}
         disabled={!isGroup}
         options={['2', '3', '4', '5', '6'].map((n) => [n, n] as [string, string])}
         onChange={(maxPlayers) => update({ maxPlayers: Number(maxPlayers) })}
       />
       <Segmented
-        label="Подкидывают"
+        label={t('gamesPanel.tossers')}
         value={value.throwInPolicy}
         options={[
-          ['all', 'Все'],
-          ['neighbors', 'Соседи'],
+          ['all', t('gamesPanel.all')],
+          ['neighbors', t('gamesPanel.neighbors')],
         ]}
         onChange={(throwInPolicy) => update({ throwInPolicy: throwInPolicy as DurakSettings['throwInPolicy'] })}
       />
       <Segmented
-        label="Таймер"
+        label={t('gamesPanel.timer')}
         value={String(value.turnTimeSec ?? 'off')}
         options={[
-          ['off', 'Выкл'],
+          ['off', t('gamesPanel.timerOff')],
           ['30', '30s'],
           ['60', '60s'],
           ['90', '90s'],
@@ -551,15 +554,15 @@ function DurakSettingsForm({
       />
       <div className="grid grid-cols-2 gap-2">
         <ToggleTile active={value.withJokers} onClick={() => update({ withJokers: !value.withJokers })}>
-          Джокеры
+          {t('gamesPanel.jokers')}
         </ToggleTile>
         <ToggleTile active={value.shulerEnabled} onClick={() => update({ shulerEnabled: !value.shulerEnabled })}>
-          Шулер
+          {t('gamesPanel.cheater')}
         </ToggleTile>
       </div>
       <Button onClick={onCreate} disabled={disabled} className="w-full gap-2">
         <PlusCircle className="h-4 w-4" />
-        Создать партию
+        {t('gamesPanel.createGame')}
       </Button>
     </div>
   );

@@ -10,6 +10,7 @@ import { useContactDisplayNames } from '@/hooks/use-contact-display-names';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { splitNameForContactForm } from '@/lib/contact-display-name';
 import { upsertContactProfile } from '@/lib/contacts-client-actions';
+import { useI18n } from '@/hooks/use-i18n';
 import type { User } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ export function ContactEditClient({ contactUserId }: { contactUserId: string }) 
   const router = useRouter();
   const firestore = useFirestore();
   const { user: currentUser } = useAuth();
+  const { t } = useI18n();
   const { contactProfiles } = useContactDisplayNames(currentUser?.id);
 
   const contactRef = useMemoFirebase(
@@ -92,11 +94,11 @@ export function ContactEditClient({ contactUserId }: { contactUserId: string }) 
           }
           disabled={busy}
         >
-          Отмена
+          {t('common.cancel')}
         </Button>
         <Button type="button" className="rounded-full" disabled={!canSave} onClick={save}>
           {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Готово
+          {t('contacts.edit.done')}
         </Button>
       </div>
 
@@ -107,7 +109,7 @@ export function ContactEditClient({ contactUserId }: { contactUserId: string }) 
           </div>
         ) : !contactUser ? (
           <p className="py-14 text-center text-sm text-muted-foreground">
-            Пользователь недоступен.
+            {t('contacts.edit.userUnavailable')}
           </p>
         ) : (
           <div className="space-y-5">
@@ -119,7 +121,7 @@ export function ContactEditClient({ contactUserId }: { contactUserId: string }) 
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-muted-foreground">Редактирование контакта</p>
+                <p className="truncate text-sm font-medium text-muted-foreground">{t('contacts.edit.editingContact')}</p>
                 <p className="truncate text-base font-semibold">{contactUser.name}</p>
               </div>
             </div>
@@ -128,19 +130,19 @@ export function ContactEditClient({ contactUserId }: { contactUserId: string }) 
               <Input
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                placeholder="Имя"
+                placeholder={t('contacts.edit.firstNamePlaceholder')}
                 disabled={busy}
                 className="h-11 rounded-xl"
               />
               <Input
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                placeholder="Фамилия"
+                placeholder={t('contacts.edit.lastNamePlaceholder')}
                 disabled={busy}
                 className="h-11 rounded-xl"
               />
               <p className="text-xs text-muted-foreground">
-                Это имя будет видно только вам: в чатах, поиске и списке контактов.
+                {t('contacts.edit.nameVisibilityHint')}
               </p>
             </div>
           </div>

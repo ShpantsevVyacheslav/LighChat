@@ -12,11 +12,13 @@ import { useFirestore, useAuth as useFirebaseAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { setFeatureFlagAction, deleteFeatureFlagAction } from '@/actions/feature-flags-actions';
 import type { FeatureFlag, PlatformSettingsDoc } from '@/lib/types';
+import { useI18n } from '@/hooks/use-i18n';
 
 export function AdminFeatureFlagsPanel() {
   const firestore = useFirestore();
   const firebaseAuth = useFirebaseAuth();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [flags, setFlags] = useState<Record<string, FeatureFlag>>({});
   const [loading, setLoading] = useState(true);
   const [newFlagName, setNewFlagName] = useState('');
@@ -66,7 +68,7 @@ export function AdminFeatureFlagsPanel() {
           <ToggleLeft className="h-5 w-5 text-primary" />
           Feature flags
         </CardTitle>
-        <CardDescription>Включение и отключение функций без редеплоя.</CardDescription>
+        <CardDescription>{t('adminPage.featureFlags.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {loading ? (
@@ -74,7 +76,7 @@ export function AdminFeatureFlagsPanel() {
         ) : (
           <>
             {Object.keys(flags).length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">Флаги не созданы.</p>
+              <p className="text-sm text-muted-foreground text-center py-4">{t('adminPage.featureFlags.noFlags')}</p>
             ) : (
               <div className="space-y-2">
                 {Object.entries(flags).map(([name, flag]) => (
@@ -103,9 +105,9 @@ export function AdminFeatureFlagsPanel() {
             )}
 
             <div className="rounded-xl border border-dashed p-3 space-y-3">
-              <p className="text-sm font-medium">Создать новый флаг</p>
+              <p className="text-sm font-medium">{t('adminPage.featureFlags.createNew')}</p>
               <div className="space-y-2">
-                <Label className="text-xs">Имя (a-z, 0-9, _)</Label>
+                <Label className="text-xs">{t('adminPage.featureFlags.nameLabel')}</Label>
                 <Input
                   value={newFlagName}
                   onChange={(e) => setNewFlagName(e.target.value)}
@@ -114,16 +116,16 @@ export function AdminFeatureFlagsPanel() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs">Описание (необязательно)</Label>
+                <Label className="text-xs">{t('adminPage.featureFlags.descriptionLabel')}</Label>
                 <Input
                   value={newFlagDesc}
                   onChange={(e) => setNewFlagDesc(e.target.value)}
-                  placeholder="Новый UI для чата"
+                  placeholder={t('adminPage.featureFlags.descriptionPlaceholder')}
                   className="rounded-xl text-sm"
                 />
               </div>
               <Button onClick={create} disabled={!newFlagName.trim()} className="rounded-full w-full">
-                <Plus className="h-4 w-4 mr-1" /> Добавить
+                <Plus className="h-4 w-4 mr-1" /> {t('adminPage.featureFlags.add')}
               </Button>
             </div>
           </>

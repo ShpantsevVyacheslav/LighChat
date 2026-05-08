@@ -54,6 +54,7 @@ import {
   type InitiatorSession,
   type PairingQrPayload,
 } from '@/lib/e2ee';
+import { useI18n } from '@/hooks/use-i18n';
 import type { E2eePairingSessionDocV2 } from '@/lib/types';
 
 type Mode = 'pick' | 'initiator' | 'donor';
@@ -70,6 +71,7 @@ export function E2eeQrPairingDialog({
   const firestore = useFirestore();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const [mode, setMode] = React.useState<Mode>('pick');
   // Initiator state
@@ -149,7 +151,7 @@ export function E2eeQrPairingDialog({
         if (!data) {
           // Документ удалён (TTL / manual reject) — закрываем диалог.
           if (initStage !== 'completed') {
-            setInitError('Сессия завершилась до получения ответа.');
+            setInitError(t('settings.e2eeQr.sessionExpired'));
             setInitStage('error');
           }
           return;
@@ -199,8 +201,8 @@ export function E2eeQrPairingDialog({
     if (!firestore || !user?.id || !pendingPkcs8 || !pendingPkcs8.backupId) {
       toast({
         variant: 'destructive',
-        title: 'Нет данных для восстановления',
-        description: 'Попробуйте запустить сопряжение заново.',
+        title: t('settings.e2eeQr.noRestoreData'),
+        description: t('settings.e2eeQr.noRestoreDataDesc'),
       });
       return;
     }
@@ -225,8 +227,8 @@ export function E2eeQrPairingDialog({
       sessionToCleanupRef.current = null;
       setInitStage('completed');
       toast({
-        title: 'Ключ перенесён',
-        description: 'Обновите страницу, чтобы зашифрованные чаты использовали новый ключ.',
+        title: t('settings.e2eeQr.keyTransferred'),
+        description: t('settings.e2eeQr.keyTransferredDesc'),
       });
     } catch (e) {
       setInitError(e instanceof Error ? e.message : String(e));
@@ -247,15 +249,15 @@ export function E2eeQrPairingDialog({
       try {
         payload = parseQrPayload(donorQrString.trim());
       } catch {
-        throw new Error('Некорректная QR-строка.');
+        throw new Error(t('settings.e2eeQr.invalidQrString'));
       }
       if (payload.uid !== user.id) {
-        throw new Error('QR сгенерирован под другой аккаунт.');
+        throw new Error(t('settings.e2eeQr.qrWrongAccount'));
       }
       // Нужен наш текущий PKCS#8 приватник — его и передаём новому устройству.
       await getOrCreateDeviceIdentityV2();
       const pkcs8 = await readStoredIdentityPkcs8V2();
-      if (!pkcs8) throw new Error('На этом устройстве нет приватного ключа.');
+      if (!pkcs8) throw new Error(t('settings.e2eeQr.noPrivateKey'));
       // Формируем deviceDraft из текущей identity, чтобы initiator получил deviceId.
       const myIdentity = await getOrCreateDeviceIdentityV2();
       const res = await donorRespondToPairingV2({
@@ -302,31 +304,31 @@ export function E2eeQrPairingDialog({
         <DialogHeader>
           <DialogTitle>
             {mode === 'pick'
-              ? 'Передача ключа по QR'
+              ? t('settings.e2eeQr.title')
               : mode === 'initiator'
-                ? 'QR для нового устройства'
-                : 'Сканирование QR'}
+                ? t('settings.e2eeQr.qrForNewDevice')
+                : t('settings.e2eeQr.scanQr')}
           </DialogTitle>
           <DialogDescription>
             {mode === 'pick'
-              ? 'Выберите роль этого устройства.'
+              ? t('settings.e2eeQr.pickRoleDesc')
               : mode === 'initiator'
-                ? 'Отсканируйте QR на старом устройстве, где уже есть ваш ключ.'
-                : 'Вставьте QR-строку, сгенерированную на новом устройстве.'}
+                ? t('settings.e2eeQr.initiatorDesc')
+                : t('settings.e2eeQr.donorDesc')}
           </DialogDescription>
         </DialogHeader>
 
         {mode === 'pick' && (
           <div className="flex flex-col gap-3 py-2">
             <Button onClick={startInitiator} className="w-full">
-              Я на новом устройстве — показать QR
+              {t('settings.e2eeQr.newDeviceBtn')}
             </Button>
             <Button
               variant="outline"
               onClick={() => setMode('donor')}
               className="w-full"
             >
-              У меня уже есть ключ — вставить QR
+              {t('settings.e2eeQr.haveKeyBtn')}
             </Button>
           </div>
         )}
@@ -339,16 +341,16 @@ export function E2eeQrPairingDialog({
                   <QRCodeCanvas value={initSession.qrEncoded} size={220} includeMargin={false} />
                 </div>
                 <p className="text-center text-sm text-muted-foreground">
-                  Ждём сканирование со старого устройства…
+                  {t('settings.e2eeQr.waitingScan')}
                 </p>
                 <Button variant="ghost" size="sm" onClick={copyQr}>
                   {copied ? (
                     <>
-                      <Check className="mr-1 h-4 w-4" /> Скопировано
+                      <Check className="mr-1 h-4 w-4" /> {t('settings.e2eeQr.copied')}
                     </>
                   ) : (
                     <>
-                      <Copy className="mr-1 h-4 w-4" /> Скопировать QR-строку
+                      <Copy className="mr-1 h-4 w-4" /> {t('settings.e2eeQr.copyQrString')}
                     </>
                   )}
                 </Button>
@@ -359,11 +361,11 @@ export function E2eeQrPairingDialog({
             )}
             {initStage === 'awaiting-accept' && (
               <>
-                <p className="text-center text-sm">Сверьте 6-значный код со старым устройством:</p>
+                <p className="text-center text-sm">{t('settings.e2eeQr.verifyCode')}</p>
                 <div className="text-3xl font-mono font-bold tracking-widest">{initCode}</div>
                 {donorDocSnapshot?.donorPayload?.deviceDraft && (
                   <p className="text-xs text-muted-foreground">
-                    Подтверждение переноса с устройства&nbsp;
+                    {t('settings.e2eeQr.confirmTransfer')}&nbsp;
                     <code>
                       {(donorDocSnapshot.donorPayload.deviceDraft as { label?: string }).label ??
                         '—'}
@@ -372,18 +374,18 @@ export function E2eeQrPairingDialog({
                 )}
                 <div className="flex gap-2">
                   <Button variant="ghost" onClick={handleClose} disabled={initBusy}>
-                    Отмена
+                    {t('settings.e2eeQr.cancelBtn')}
                   </Button>
                   <Button onClick={confirmInitiator} disabled={initBusy}>
                     {initBusy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Код совпал — применить
+                    {t('settings.e2eeQr.codeMatches')}
                   </Button>
                 </div>
               </>
             )}
             {initStage === 'completed' && (
               <p className="text-center text-sm text-emerald-500">
-                Ключ применён. Перезагрузите страницу, чтобы чаты начали использовать его.
+                {t('settings.e2eeQr.keyApplied')}
               </p>
             )}
             {initStage === 'error' && (
@@ -396,7 +398,7 @@ export function E2eeQrPairingDialog({
           <div className="flex flex-col gap-3 py-2">
             {donorStage === 'input' && (
               <>
-                <Label htmlFor="qr-donor-input">QR-строка с нового устройства</Label>
+                <Label htmlFor="qr-donor-input">{t('settings.e2eeQr.donorQrLabel')}</Label>
                 <Input
                   id="qr-donor-input"
                   value={donorQrString}
@@ -405,21 +407,19 @@ export function E2eeQrPairingDialog({
                   autoFocus
                 />
                 <p className="text-xs text-muted-foreground">
-                  На web-клиенте сканер камеры отсутствует — скопируйте строку с кнопки под QR на
-                  новом устройстве или отсканируйте её сторонним приложением.
+                  {t('settings.e2eeQr.donorHint')}
                 </p>
               </>
             )}
             {donorStage === 'confirming' && <Loader2 className="h-6 w-6 animate-spin" />}
             {donorStage === 'done' && (
               <>
-                <p className="text-center text-sm">Сверьте код с новым устройством:</p>
+                <p className="text-center text-sm">{t('settings.e2eeQr.verifyCodeDonor')}</p>
                 <div className="mx-auto text-3xl font-mono font-bold tracking-widest">
                   {donorCode}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Если код совпадает — подтвердите на новом устройстве. Если нет, немедленно
-                  нажмите «Отмена» и сгенерируйте новый QR.
+                  {t('settings.e2eeQr.donorCodeHint')}
                 </p>
               </>
             )}
@@ -433,16 +433,16 @@ export function E2eeQrPairingDialog({
           {mode === 'donor' && donorStage === 'input' && (
             <>
               <Button variant="ghost" onClick={() => setMode('pick')}>
-                Назад
+                {t('settings.e2eeQr.backBtn')}
               </Button>
               <Button onClick={submitDonor} disabled={!donorQrString.trim()}>
-                Продолжить
+                {t('settings.e2eeQr.continueBtn')}
               </Button>
             </>
           )}
           {!(mode === 'donor' && donorStage === 'input') && (
             <Button variant="ghost" onClick={handleClose}>
-              Закрыть
+              {t('settings.e2eeQr.closeBtn')}
             </Button>
           )}
         </DialogFooter>

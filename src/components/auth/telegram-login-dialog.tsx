@@ -13,6 +13,7 @@ import {
   AUTH_GLASS_CARD_SHELL_CLASS,
 } from "@/components/auth/auth-glass-classes";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/hooks/use-i18n";
 
 declare global {
   interface Window {
@@ -38,6 +39,7 @@ export function TelegramLoginDialog({
   botName,
   onAuthUser,
 }: TelegramLoginDialogProps) {
+  const { t } = useI18n();
   const containerRef = React.useRef<HTMLDivElement>(null);
   const onAuthUserRef = React.useRef(onAuthUser);
   onAuthUserRef.current = onAuthUser;
@@ -104,16 +106,14 @@ export function TelegramLoginDialog({
         )}
       >
         <DialogHeader>
-          <DialogTitle>Вход через Telegram</DialogTitle>
+          <DialogTitle>{t('telegramLogin.title')}</DialogTitle>
           <DialogDescription>
-            Нажмите кнопку ниже и подтвердите вход в Telegram. Домен сайта должен быть указан у бота
-            (BotFather → /setdomain).
+            {t('telegramLogin.description')}
           </DialogDescription>
         </DialogHeader>
         {!botName?.trim() ? (
           <p className="text-center text-sm text-destructive">
-            Не задана переменная окружения{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">NEXT_PUBLIC_TELEGRAM_BOT_NAME</code>.
+            {t('telegramLogin.envMissing', { var: 'NEXT_PUBLIC_TELEGRAM_BOT_NAME' })}
           </p>
         ) : (
           <div

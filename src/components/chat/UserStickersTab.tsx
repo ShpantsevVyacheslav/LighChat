@@ -1,5 +1,4 @@
 'use client';
-import { useI18n } from '@/hooks/use-i18n';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ImagePlus, Loader2, Plus, Trash2 } from 'lucide-react';
@@ -24,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 import { usePublicStickerPacks } from '@/hooks/use-public-sticker-packs';
 import { useUserStickerPacks } from '@/hooks/use-user-sticker-packs';
 import type { ChatAttachment } from '@/lib/types';
@@ -41,8 +41,8 @@ type UserStickersTabProps = {
  * Вкладка «Стикеры»: общие паки (`publicStickerPacks`) и свои паки; загрузка и удаление — только для своих.
  */
 export function UserStickersTab({ userId, onPickSticker, className }: UserStickersTabProps) {
-  const { t } = useI18n();
   const { toast } = useToast();
+  const { t } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newPackOpen, setNewPackOpen] = useState(false);
   const [newPackName, setNewPackName] = useState('');
@@ -110,13 +110,13 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
         setSelectedPackId(id);
         setNewPackOpen(false);
         setNewPackName('');
-        toast({ title: t('chat.stickerpackCreated') });
+        toast({ title: t('chat.userStickers.packCreated') });
       } else {
-        toast({ title: 'Не удалось создать пак', variant: 'destructive' });
+        toast({ title: t('chat.userStickers.packCreateFailed'), variant: 'destructive' });
       }
     } catch (e) {
       console.warn('[LighChat:stickers] createPack', e);
-      toast({ title: 'Ошибка при создании пака', variant: 'destructive' });
+      toast({ title: t('chat.userStickers.packCreateError'), variant: 'destructive' });
     } finally {
       setBusy(false);
     }
@@ -133,13 +133,13 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
       if (ok) {
         setDeletePackOpen(false);
         setPackIdPendingDelete(null);
-        toast({ title: t('chat.stickerpackDeleted') });
+        toast({ title: t('chat.userStickers.packDeleted') });
       } else {
-        toast({ title: 'Не удалось удалить пак', variant: 'destructive' });
+        toast({ title: t('chat.userStickers.packDeleteFailed'), variant: 'destructive' });
       }
     } catch (e) {
       console.warn('[LighChat:stickers] deletePack', e);
-      toast({ title: 'Ошибка при удалении пака', variant: 'destructive' });
+      toast({ title: t('chat.userStickers.packDeleteError'), variant: 'destructive' });
     } finally {
       setBusy(false);
     }
@@ -153,24 +153,24 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
         const files = Array.from(list);
         const res = await addFilesToPack(selectedPackId, files, firestore, storage);
         if (res.ok > 0) {
-          toast({ title: `Добавлено стикеров: ${res.ok}` });
+          toast({ title: t('chat.userStickers.stickersAdded') + ': ' + res.ok });
         }
         if (res.errors.includes('file_too_large')) {
           toast({
-            title: 'Файл слишком большой',
-            description: `Максимум ${Math.round(USER_STICKER_MAX_FILE_BYTES / (1024 * 1024))} МБ на изображение.`,
+            title: t('chat.userStickers.fileTooLarge'),
+            description: t('chat.userStickers.fileTooLargeDesc') + ' ' + Math.round(USER_STICKER_MAX_FILE_BYTES / (1024 * 1024)) + ' MB.',
             variant: 'destructive',
           });
         }
         if (res.errors.includes('video_too_long')) {
           toast({
-            title: 'Видео слишком длинное',
-            description: `В пак можно добавить только ролики до ${USER_STICKER_VIDEO_MAX_UPLOAD_SEC} с.`,
+            title: t('chat.userStickers.videoTooLong'),
+            description: t('chat.userStickers.videoTooLongDesc') + ' ' + USER_STICKER_VIDEO_MAX_UPLOAD_SEC + 's.',
             variant: 'destructive',
           });
         }
         if (res.ok === 0 && res.skipped > 0 && !res.errors.length) {
-          toast({ title: 'Нет подходящих файлов', variant: 'destructive' });
+          toast({ title: t('chat.userStickers.noSuitableFiles'), variant: 'destructive' });
         }
       } finally {
         setBusy(false);
@@ -197,7 +197,7 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
     <div className={cn('flex flex-col gap-2', className)}>
       {errMsg ? (
         <p className="text-[10px] text-destructive px-0.5" role="alert">
-          Нет доступа к стикерам. Проверьте правила Firestore и войдите снова.
+          {t('chat.userStickers.noAccess')}
         </p>
       ) : null}
 
@@ -211,7 +211,7 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
                 size="sm"
                 variant={isPublicScope && p.id === selectedPublicPackId ? 'default' : 'outline'}
                 className="shrink-0 rounded-lg text-[10px] font-semibold uppercase tracking-wide h-8 px-2.5 border-dashed"
-                title="Общий стикерпак"
+                title={t('chat.userStickers.publicPackTitle')}
                 onClick={() => {
                   setStickerScope('public');
                   setSelectedPublicPackId(p.id);
@@ -235,7 +235,7 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
                 size="sm"
                 variant={!isPublicScope && p.id === selectedPackId ? 'default' : 'outline'}
                 className="shrink-0 rounded-lg text-[10px] font-semibold uppercase tracking-wide h-8 px-2.5"
-                title="Долгое нажатие или правая кнопка — удалить пак"
+                title={t('chat.userStickers.longPressDeleteHint')}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   setStickerScope('my');
@@ -287,7 +287,7 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
             setStickerScope('my');
             setNewPackOpen(true);
           }}
-          title="Новый стикерпак"
+          title={t('chat.userStickers.newPackBtn')}
         >
           <Plus className="h-4 w-4" />
         </Button>
@@ -298,7 +298,7 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
           className="h-8 w-8 shrink-0 rounded-lg"
           disabled={busy || isPublicScope || !selectedPackId}
           onClick={() => fileInputRef.current?.click()}
-          title="Добавить стикеры с устройства"
+          title={t('chat.userStickers.addFromDeviceBtn')}
         >
           <ImagePlus className="h-4 w-4" />
         </Button>
@@ -316,8 +316,7 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
       <div className="relative min-h-0 flex-1">
       {noPacksAtAll ? (
         <p className="text-center text-xs text-muted-foreground py-4 px-1">
-          Нет стикерпаков. Создайте свой пак кнопкой «+» или попросите администратора добавить общие наборы в коллекцию{' '}
-          <code className="text-[10px]">publicStickerPacks</code>.
+          {t('chat.userStickers.noPacks')}
         </p>
       ) : (
         <ScrollArea className="absolute inset-0 pr-2">
@@ -328,8 +327,8 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
           ) : !displayItems?.length ? (
             <p className="py-6 text-center text-xs text-muted-foreground">
               {isPublicScope
-                ? 'В этом общем паке пока пусто.'
-                : `В этом паке пока пусто — загрузите изображения или короткое видео (до ${USER_STICKER_VIDEO_MAX_UPLOAD_SEC} с).`}
+                ? t('chat.userStickers.publicPackEmpty')
+                : t('chat.userStickers.myPackEmpty')}
             </p>
           ) : (
             <div className="grid grid-cols-4 gap-2 p-1">
@@ -363,7 +362,7 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
                   {!isPublicScope ? (
                     <button
                       type="button"
-                      title="Удалить из пака"
+                      title={t('chat.userStickers.deleteFromPack')}
                       className="absolute -right-0.5 -top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-background/90 text-muted-foreground opacity-0 shadow-sm ring-1 ring-border transition-opacity group-hover:opacity-100 hover:text-destructive"
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => selectedPackId && deleteItem(selectedPackId, st.id)}
@@ -382,22 +381,22 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
       <Dialog open={newPackOpen} onOpenChange={setNewPackOpen}>
         <DialogContent className="rounded-2xl sm:max-w-sm" onMouseDown={(e) => e.stopPropagation()}>
           <DialogHeader>
-            <DialogTitle>Новый стикерпак</DialogTitle>
+            <DialogTitle>{t('chat.userStickers.newPackTitle')}</DialogTitle>
           </DialogHeader>
           <Input
             value={newPackName}
             onChange={(e) => setNewPackName(e.target.value)}
-            placeholder="Название"
+            placeholder={t('chat.userStickers.namePlaceholder')}
             className="rounded-xl"
             maxLength={80}
             onKeyDown={(e) => e.key === 'Enter' && void handleCreatePack()}
           />
           <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="outline" className="rounded-xl" onClick={() => setNewPackOpen(false)}>
-              Отмена
+              {t('common.cancel')}
             </Button>
             <Button type="button" className="rounded-xl" disabled={busy} onClick={() => void handleCreatePack()}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Создать'}
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t('chat.userStickers.createBtn')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -412,15 +411,14 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
       >
         <AlertDialogContent className="rounded-2xl" onMouseDown={(e) => e.stopPropagation()}>
           <AlertDialogHeader>
-            <AlertDialogTitle>Удалить стикерпак?</AlertDialogTitle>
+            <AlertDialogTitle>{t('chat.userStickers.deletePackTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Пак «{packPendingDelete?.name ?? '…'}» и все его стикеры будут удалены. Общие паки здесь удалить нельзя. Файлы,
-              которые используются в других паках, в хранилище не трогаем.
+              {t('chat.userStickers.deletePackDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 sm:gap-0">
             <AlertDialogCancel className="rounded-xl" disabled={busy}>
-              Отмена
+              {t('common.cancel')}
             </AlertDialogCancel>
             <Button
               type="button"
@@ -429,7 +427,7 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
               disabled={busy}
               onClick={() => void handleDeletePack()}
             >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Удалить'}
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t('chat.userStickers.deleteBtn')}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

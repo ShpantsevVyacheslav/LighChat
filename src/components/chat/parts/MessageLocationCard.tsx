@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useReducer, useState } from 'react';
+import { useI18n } from '@/hooks/use-i18n';
 import { MapPin } from 'lucide-react';
 import type { ChatLocationShare, UserLiveLocationShare } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,7 @@ export function MessageLocationCard({
   readAt,
   showTimestamps = true,
 }: MessageLocationCardProps) {
+  const { t } = useI18n();
   const [mapOpen, setMapOpen] = useState(false);
   const [, bump] = useReducer((x: number) => x + 1, 0);
   const externalHref = share.mapsUrl || `https://www.google.com/maps?q=${share.lat},${share.lng}`;
@@ -58,12 +60,9 @@ export function MessageLocationCard({
         style={{ maxWidth: CHAT_LOCATION_MAP_PREVIEW_MAX_WIDTH_PX }}
       >
         {isCurrentUser ? (
-          <>
-            Трансляция геолокации завершена. Собеседник больше не видит ваше актуальное
-            местоположение.
-          </>
+          <>{t('chat.locationCard.liveEndedOwn')}</>
         ) : (
-          <>Трансляция геолокации у этого контакта завершена. Актуальная позиция недоступна.</>
+          <>{t('chat.locationCard.liveEndedOther')}</>
         )}
       </div>
     );
@@ -83,12 +82,12 @@ export function MessageLocationCard({
             type="button"
             onClick={openMap}
             className="relative block w-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            aria-label="Открыть карту"
+            aria-label={t('chat.locationCard.openMap')}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={share.staticMapUrl}
-              alt="Карта"
+              alt={t('chat.locationCard.mapAlt')}
               className="h-auto w-full max-h-[180px] object-cover bg-muted"
               loading="lazy"
             />
@@ -117,14 +116,14 @@ export function MessageLocationCard({
               'text-sm text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               'focus-visible:ring-offset-2 focus-visible:ring-offset-background',
             )}
-            aria-label="Открыть карту"
+            aria-label={t('chat.locationCard.openMap')}
           >
             <MapPin className="h-5 w-5 shrink-0 text-primary" />
             <span className="min-w-0">
-              <span className="font-medium text-foreground">Местоположение</span>
+              <span className="font-medium text-foreground">{t('chat.locationCard.locationLabel')}</span>
               {share.accuracyM != null ? (
                 <span className="mt-0.5 block text-[11px] opacity-80">
-                  ±{Math.round(share.accuracyM)} м
+                  {t('chat.locationCard.accuracyMeters', { accuracy: Math.round(share.accuracyM) })}
                 </span>
               ) : null}
             </span>

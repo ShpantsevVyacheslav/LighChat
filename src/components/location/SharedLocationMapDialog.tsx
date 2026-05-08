@@ -7,6 +7,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { LocationLiveCountdown } from '@/components/location/LocationLiveCountdown';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 
 /** Выше плавающего якоря чата (`ChatAnchor`, z-[10050]). */
 const MAP_SHEET_Z = 'z-[10100]';
@@ -30,6 +31,7 @@ export function SharedLocationMapDialog({
   externalMapsUrl,
   liveExpiresAt,
 }: SharedLocationMapDialogProps) {
+  const { t } = useI18n();
   const embedUrl = buildGoogleMapsEmbedUrl(lat, lng);
   const external =
     (externalMapsUrl && externalMapsUrl.trim()) || buildGoogleMapsPlaceUrl(lat, lng);
@@ -51,7 +53,7 @@ export function SharedLocationMapDialog({
       >
         <div className="relative min-h-0 flex-1 bg-muted">
           <iframe
-            title="Карта: выбранная точка"
+            title={t('liveLocation.mapTitleStatic')}
             src={embedUrl}
             className="absolute inset-0 h-full w-full border-0"
             loading="lazy"
@@ -66,7 +68,7 @@ export function SharedLocationMapDialog({
               floatBtn,
               'absolute left-[max(0.75rem,env(safe-area-inset-left))] top-[max(0.75rem,env(safe-area-inset-top))] z-20',
             )}
-            aria-label="Закрыть"
+            aria-label={t('liveLocation.closeAria')}
             onClick={() => onOpenChange(false)}
           >
             <X className="h-6 w-6" strokeWidth={2} />
@@ -93,7 +95,7 @@ export function SharedLocationMapDialog({
               floatBtn,
               'absolute right-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] z-20',
             )}
-            aria-label="Открыть в браузере"
+            aria-label={t('liveLocation.openInBrowser')}
           >
             <ExternalLink className="h-5 w-5" strokeWidth={2} />
           </a>

@@ -1,8 +1,9 @@
 
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { User, ReactionDetail } from '@/lib/types';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
@@ -20,22 +21,27 @@ interface MessageReactionsProps {
 
 type ReactionUserRow = User & { timestamp: string | undefined };
 
-const formatDateSafe = (dateStr?: string) => {
-    if (!dateStr) return 'Ранее';
+function formatDateSafeI18n(dateStr: string | undefined, todayLabel: string, yesterdayLabel: string, earlierLabel: string): string {
+    if (!dateStr) return earlierLabel;
     try {
         const date = parseISO(dateStr);
-        if (isToday(date)) return `Сегодня, ${format(date, 'HH:mm')}`;
-        if (isYesterday(date)) return `Вчера, ${format(date, 'HH:mm')}`;
+        if (isToday(date)) return `${todayLabel}, ${format(date, 'HH:mm')}`;
+        if (isYesterday(date)) return `${yesterdayLabel}, ${format(date, 'HH:mm')}`;
         return format(date, 'd MMMM, HH:mm', { locale: ru });
     } catch (e) {
-        return 'Ранее';
+        return earlierLabel;
     }
-};
+}
 
 export function MessageReactions({ reactions, currentUserId, allUsers, onReact }: MessageReactionsProps) {
+  const { t } = useI18n();
   const [openPopover, setOpenPopover] = useState<string | null>(null);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const wasLongPressed = useRef(false);
+
+  const formatDateSafe = useCallback((dateStr?: string) => {
+    return formatDateSafeI18n(dateStr, t('chat.today'), t('chat.yesterday'), t('chat.reactions.earlier'));
+  }, [t]);
 
   if (!reactions || Object.keys(reactions).length === 0) return null;
 
@@ -113,7 +119,7 @@ export function MessageReactions({ reactions, currentUserId, allUsers, onReact }
             <PopoverContent className="w-64 p-0 rounded-2xl border-none shadow-2xl bg-popover/90 backdrop-blur-xl overflow-hidden z-[600]" side="top" align="center">
                 <div className="p-3 border-b bg-white/5 flex items-center justify-between">
                     <span className="text-xl leading-none">{emoji}</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Оценили: {userIds.length}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('chat.reactions.reactedCount')}: {userIds.length}</span>
                 </div>
                 <ScrollArea className="max-h-60">
                     <div className="p-1 space-y-0.5">

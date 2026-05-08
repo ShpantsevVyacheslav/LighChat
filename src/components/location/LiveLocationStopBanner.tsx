@@ -4,9 +4,11 @@ import { MapPin, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useLiveLocationControl } from '@/components/location/LiveLocationProvider';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 
 /** Полоса «идёт трансляция геолокации» + кнопка отзыва. */
 export function LiveLocationStopBanner({ className }: { className?: string }) {
+  const { t } = useI18n();
   const { isSharing, stopSharing } = useLiveLocationControl();
   if (!isSharing) return null;
 
@@ -19,7 +21,7 @@ export function LiveLocationStopBanner({ className }: { className?: string }) {
       role="status"
     >
       <MapPin className="h-4 w-4 shrink-0 animate-pulse text-emerald-300" aria-hidden />
-      <span className="min-w-0 flex-1 font-medium">Вы делитесь геолокацией</span>
+      <span className="min-w-0 flex-1 font-medium">{t('liveLocation.sharingBanner')}</span>
       <Button
         type="button"
         size="sm"
@@ -28,7 +30,7 @@ export function LiveLocationStopBanner({ className }: { className?: string }) {
         onClick={() => void stopSharing()}
       >
         <X className="h-3.5 w-3.5" />
-        Остановить
+        {t('liveLocation.stop')}
       </Button>
     </div>
   );

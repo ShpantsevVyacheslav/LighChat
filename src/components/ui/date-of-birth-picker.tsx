@@ -9,11 +9,7 @@ import { DayPicker } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-
-const MONTHS = [
-  "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-  "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
-];
+import { useI18n } from "@/hooks/use-i18n";
 
 const MIN_YEAR = 1920;
 const MAX_DATE = new Date();
@@ -37,7 +33,15 @@ interface DateOfBirthPickerProps {
 
 const DateOfBirthPicker = React.forwardRef<HTMLButtonElement, DateOfBirthPickerProps>(
   ({ value, onChange, className }, ref) => {
+    const { t } = useI18n();
     const [open, setOpen] = React.useState(false);
+
+    const MONTHS = [
+      t('common.months.january'), t('common.months.february'), t('common.months.march'),
+      t('common.months.april'), t('common.months.may'), t('common.months.june'),
+      t('common.months.july'), t('common.months.august'), t('common.months.september'),
+      t('common.months.october'), t('common.months.november'), t('common.months.december'),
+    ];
 
     const selectedDate = React.useMemo(() => {
       if (!value) return undefined;
@@ -94,7 +98,7 @@ const DateOfBirthPicker = React.forwardRef<HTMLButtonElement, DateOfBirthPickerP
             <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
             {selectedDate
               ? format(selectedDate, "d MMMM yyyy", { locale: ru })
-              : "Выберите дату"}
+              : t('common.selectDate')}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 rounded-2xl border-0 bg-card shadow-2xl" align="start">

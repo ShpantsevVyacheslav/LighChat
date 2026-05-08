@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import { MapPin, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 import type { ChatLocationSendMeta, ChatLocationShare } from '@/lib/types';
 import { buildGoogleMapsPlaceUrl, buildGoogleStaticMapUrl } from '@/lib/google-maps';
 import {
@@ -44,10 +45,10 @@ interface ChatAttachLocationDialogProps {
   onShare: (payload: ChatLocationSharePayload) => void | Promise<void>;
 }
 
-function userMessageForGeolocationError(err: GeolocationPositionError): string {
-  if (err.code === 1) return 'Доступ к геолокации запрещён';
-  if (err.code === 2) return 'Позиция недоступна';
-  return 'Таймаут запроса геолокации';
+function geolocationErrorKey(err: GeolocationPositionError): string {
+  if (err.code === 1) return 'chat.location.errorDenied';
+  if (err.code === 2) return 'chat.location.errorUnavailable';
+  return 'chat.location.errorTimeout';
 }
 
 function metaForDurationId(id: LiveLocationDurationId): ChatLocationSendMeta {
@@ -56,6 +57,7 @@ function metaForDurationId(id: LiveLocationDurationId): ChatLocationSendMeta {
 }
 
 export function ChatAttachLocationDialog({ open, onOpenChange, onShare }: ChatAttachLocationDialogProps) {
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [durationId, setDurationId] = useState<LiveLocationDurationId>('once');
   const inFlightRef = useRef(false);
@@ -106,11 +108,11 @@ export function ChatAttachLocationDialog({ open, onOpenChange, onShare }: ChatAt
         onOpenChange(false);
       } catch (e) {
         console.error(GEOLOCATION_CLIENT_LOG, 'onShare.failed', e);
-        toast({ variant: 'destructive', title: 'Не удалось отправить геолокацию' });
+        toast({ variant: 'destructive', title: t('chat.location.sendFailed') });
       }
     } catch (e) {
       if (e instanceof GeolocationUnsupportedError) {
-        toast({ variant: 'destructive', title: 'Геолокация не поддерживается браузером' });
+        toast({ variant: 'destructive', title: t('chat.location.notSupported') });
       } else {
         const err = e as GeolocationPositionError;
         if (typeof err?.code === 'number') {
@@ -119,10 +121,10 @@ export function ChatAttachLocationDialog({ open, onOpenChange, onShare }: ChatAt
             codeName: geolocationErrorCodeName(err.code),
             message: err.message,
           });
-          toast({ variant: 'destructive', title: userMessageForGeolocationError(err) });
+          toast({ variant: 'destructive', title: t(geolocationErrorKey(err)) });
         } else {
           console.error(GEOLOCATION_CLIENT_LOG, 'unexpected', e);
-          toast({ variant: 'destructive', title: 'Ошибка геолокации' });
+          toast({ variant: 'destructive', title: t('chat.location.errorGeneric') });
         }
       }
     } finally {
@@ -147,13 +149,13 @@ export function ChatAttachLocationDialog({ open, onOpenChange, onShare }: ChatAt
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-primary" />
-            Поделиться геолокацией
+            {t('chat.location.shareTitle')}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-2 py-1">
           <Label htmlFor="location-share-mode" className="text-sm font-semibold">
-            Как делиться
+            {t('chat.location.shareMode')}
           </Label>
           <Select
             value={durationId}
@@ -164,7 +166,7 @@ export function ChatAttachLocationDialog({ open, onOpenChange, onShare }: ChatAt
               id="location-share-mode"
               className="w-full rounded-xl border-0 bg-muted/40 shadow-none ring-offset-background focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
-              <SelectValue placeholder="Выберите режим" />
+              <SelectValue placeholder={t('chat.location.selectMode')} />
             </SelectTrigger>
             <SelectContent className="z-[200] max-h-[min(60vh,320px)] rounded-xl border-0 shadow-lg">
               {LIVE_LOCATION_DURATION_OPTIONS.map((opt) => (
@@ -186,11 +188,11 @@ export function ChatAttachLocationDialog({ open, onOpenChange, onShare }: ChatAt
               onOpenChange(false);
             }}
           >
-            Отмена
+            {t('common.cancel')}
           </Button>
           <Button type="button" onClick={() => void requestAndShare()} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="mr-2 h-4 w-4" />}
-            Отправить
+            {t('chat.location.send')}
           </Button>
         </DialogFooter>
       </DialogContent>

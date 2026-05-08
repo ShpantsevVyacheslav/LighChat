@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useI18n } from '@/hooks/use-i18n';
 import type { ChatFolder, Conversation } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { CHAT_SIDEBAR_RAIL_GLASS } from '@/lib/chat-glass-styles';
@@ -59,6 +60,7 @@ export function ChatFolderRail({
   layout = 'vertical',
   onToggleSidebarCollapse,
 }: ChatFolderRailProps) {
+  const { t } = useI18n();
   const isHorizontal = layout === 'horizontal';
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [touchReorderIds, setTouchReorderIds] = useState<string[] | null>(null);
@@ -300,7 +302,7 @@ export function ChatFolderRail({
           {onToggleSidebarCollapse ? (
             <LighChatSidebarMarkButton
               onClick={onToggleSidebarCollapse}
-              title="Свернуть боковую панель"
+              title={t('chat.folderRail.collapseSidebar')}
             />
           ) : null}
           <button
@@ -309,7 +311,7 @@ export function ChatFolderRail({
             onClick={() => {
               if (savedMessagesConversationId) onOpenSavedMessages();
             }}
-            title="Избранное"
+            title={t('chat.folderRail.favorites')}
             className={cn(
               'relative mx-1 flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-center transition-all duration-200',
               savedActive
@@ -325,7 +327,7 @@ export function ChatFolderRail({
                 savedActive ? 'font-bold' : 'font-medium'
               )}
             >
-              Избранное
+              {t('chat.folderRail.favorites')}
             </span>
             {savedUnreadCount > 0 && (
               <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[8px] font-black text-primary-foreground shadow-sm ring-2 ring-background">
@@ -407,7 +409,7 @@ export function ChatFolderRail({
               {!isDefault && (
                 <button
                   type="button"
-                  aria-label="Меню папки"
+                  aria-label={t('chat.folderRail.folderMenu')}
                   className={cn(
                     'absolute bottom-0 right-0 h-6 w-6 flex items-center justify-center rounded-lg text-muted-foreground hover:bg-background/80 active:scale-95',
                     isHorizontal ? 'md:flex' : 'md:hidden'
@@ -445,7 +447,7 @@ export function ChatFolderRail({
         )}
       >
         <FolderPlus className="h-5 w-5 shrink-0" />
-        <span className="mt-0.5 text-[9px] font-semibold leading-tight">Новая</span>
+        <span className="mt-0.5 text-[9px] font-semibold leading-tight">{t('chat.folderRail.newFolder')}</span>
       </button>
     </div>
   );

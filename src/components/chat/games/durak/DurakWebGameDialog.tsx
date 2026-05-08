@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 import type { DurakCard, DurakGameSession, DurakLegalMoves, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -98,6 +99,7 @@ export function DurakWebGameDialog({
 }) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [busy, setBusy] = useState<string | null>(null);
   const [selectedCardIdx, setSelectedCardIdx] = useState<number | null>(null);
   const [selectedAttackIndex, setSelectedAttackIndex] = useState(0);
@@ -150,8 +152,8 @@ export function DurakWebGameDialog({
         await fn(data);
         return true;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Ошибка';
-        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+        const msg = e instanceof Error ? e.message : t('durak.error');
+        toast({ variant: 'destructive', title: t('durak.error'), description: msg });
         return false;
       } finally {
         if (name === 'makeDurakMove') moveInFlightRef.current = false;
@@ -186,12 +188,12 @@ export function DurakWebGameDialog({
       const nextGameId = (res.data as any)?.gameId as string | undefined;
       if (nextGameId) openInPopup(nextGameId);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Ошибка';
-      toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+      const msg = e instanceof Error ? e.message : t('durak.error');
+      toast({ variant: 'destructive', title: t('durak.error'), description: msg });
     } finally {
       setBusy(null);
     }
-  }, [firestore, game, openInPopup, toast]);
+  }, [firestore, game, openInPopup, t, toast]);
   const rematch = useCallback(async () => {
     if (!firestore) return;
     setBusy('createDurakRematch');
@@ -204,12 +206,12 @@ export function DurakWebGameDialog({
         openInPopup(nextGameId);
       }
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Ошибка';
-      toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+      const msg = e instanceof Error ? e.message : t('durak.error');
+      toast({ variant: 'destructive', title: t('durak.error'), description: msg });
     } finally {
       setBusy(null);
     }
-  }, [firestore, gameId, onOpenChange, toast]);
+  }, [firestore, gameId, onOpenChange, t, toast]);
   const publicView = game?.publicView ?? null;
   const status = game?.status ?? '';
   const isOwner = game?.createdBy === currentUser.id;
@@ -429,7 +431,7 @@ export function DurakWebGameDialog({
     async (dropEl: Element | null, d: DragState) => {
       const target = dropEl?.closest<HTMLElement>('[data-durak-drop]');
       if (!target) {
-        toast({ title: 'Карта вернулась в руку', description: 'Перетащи карту на подсвеченную зону стола.' });
+        toast({ title: t('durak.cardReturned'), description: t('durak.cardReturnedDesc') });
         return;
       }
       const kind = target.dataset.durakDrop;
@@ -452,7 +454,7 @@ export function DurakWebGameDialog({
           return;
         }
       }
-      toast({ variant: 'destructive', title: 'Ход недоступен', description: 'Эту карту нельзя сыграть в выбранную зону.' });
+      toast({ variant: 'destructive', title: t('durak.moveUnavailable'), description: t('durak.moveUnavailableDesc') });
     },
     [canAttackCard, canDefendCardAt, canTransferCard, makeMove, toast]
   );
@@ -509,38 +511,38 @@ export function DurakWebGameDialog({
 
   const myTurnLabel = useMemo(() => {
     if (status !== 'active') return '';
-    if (publicView?.turnUid === currentUser.id && serverTurnKind !== 'wait') return 'Твой ход';
-    if (attacks.length === 0 && currentUser.id === attackerUid && currentUser.id !== defenderUid) return 'Твой ход';
-    if (currentUser.id === defenderUid && attacks.length > 0) return 'Твой ход';
-    if (currentUser.id === currentThrowerUid) return 'Твой ход';
+    if (publicView?.turnUid === currentUser.id && serverTurnKind !== 'wait') return t('durak.yourTurn');
+    if (attacks.length === 0 && currentUser.id === attackerUid && currentUser.id !== defenderUid) return t('durak.yourTurn');
+    if (currentUser.id === defenderUid && attacks.length > 0) return t('durak.yourTurn');
+    if (currentUser.id === currentThrowerUid) return t('durak.yourTurn');
     return '';
-  }, [attackerUid, attacks.length, currentThrowerUid, currentUser.id, defenderUid, publicView?.turnUid, serverTurnKind, status]);
+  }, [attackerUid, attacks.length, currentThrowerUid, currentUser.id, defenderUid, publicView?.turnUid, serverTurnKind, status, t]);
 
   const primaryLabel = useMemo(() => {
     if (status !== 'active') return '';
     const isTaking = publicView?.phase === 'throwIn';
-    if (legalMoves?.canTake && hasUndefendedAttacks && !isTaking) return 'Беру';
-    if (legalMoves?.canPass) return 'Пас';
-    if (serverTurnKind === 'attack' && publicView?.turnUid === currentUser.id) return 'Твой ход';
-    if (currentUser.id === defenderUid) return (hasUndefendedAttacks && !isTaking) ? 'Беру' : '';
-    if (attacks.length === 0 && currentUser.id === attackerUid && currentUser.id !== defenderUid) return 'Твой ход';
-    if (currentUser.id === currentThrowerUid) return 'Пас';
+    if (legalMoves?.canTake && hasUndefendedAttacks && !isTaking) return t('durak.take');
+    if (legalMoves?.canPass) return t('durak.pass');
+    if (serverTurnKind === 'attack' && publicView?.turnUid === currentUser.id) return t('durak.yourTurn');
+    if (currentUser.id === defenderUid) return (hasUndefendedAttacks && !isTaking) ? t('durak.take') : '';
+    if (attacks.length === 0 && currentUser.id === attackerUid && currentUser.id !== defenderUid) return t('durak.yourTurn');
+    if (currentUser.id === currentThrowerUid) return t('durak.pass');
     return '';
-  }, [attackerUid, attacks.length, currentThrowerUid, currentUser.id, defenderUid, hasUndefendedAttacks, legalMoves, publicView?.phase, publicView?.turnUid, serverTurnKind, status]);
+  }, [attackerUid, attacks.length, currentThrowerUid, currentUser.id, defenderUid, hasUndefendedAttacks, legalMoves, publicView?.phase, publicView?.turnUid, serverTurnKind, status, t]);
 
   const enabledCard = (card: DurakCard) =>
     canAttackCard(card) || canTransferCard(card) || firstDefenseIndexForCard(card) != null;
 
   const gameBody = () => {
-    if (gameLoading) return <div className="text-sm text-white/70">Загрузка…</div>;
+    if (gameLoading) return <div className="text-sm text-white/70">{t('durak.loading')}</div>;
     if (gameError) {
       return (
         <div className="max-w-md rounded-2xl bg-white/10 p-5 text-sm text-white/75">
-          Нет доступа к игре. Если это лобби, попробуй присоединиться из карточки приглашения.
+          {t('durak.noAccessDesc')}
         </div>
       );
     }
-    if (!game) return <div className="text-sm text-white/70">Игра не найдена</div>;
+    if (!game) return <div className="text-sm text-white/70">{t('durak.gameNotFound')}</div>;
 
     if (status === 'finished' || publicView?.phase === 'finished' || publicView?.result) {
       const winners = publicView?.result?.winners ?? game.result?.winners ?? [];
@@ -557,11 +559,11 @@ export function DurakWebGameDialog({
               );
             })}
           </div>
-          <Badge className="bg-lime-300 text-lime-950">Победитель</Badge>
+          <Badge className="bg-lime-300 text-lime-950">{t('durak.winner')}</Badge>
           <div className="text-xl font-black">
-            {winners.map((uid) => displayName(uid, allUsers)).join(', ') || 'Победителей нет'}
+            {winners.map((uid) => displayName(uid, allUsers)).join(', ') || t('durak.noWinners')}
           </div>
-          {loserUid ? <div className="text-sm text-white/70">Проиграл: {displayName(loserUid, allUsers)}</div> : null}
+          {loserUid ? <div className="text-sm text-white/70">{t('durak.loser')} {displayName(loserUid, allUsers)}</div> : null}
           {tournamentId ? (
             (() => {
               const totalGames = tournament?.totalGames ?? 0;
@@ -574,17 +576,17 @@ export function DurakWebGameDialog({
                 <div className="mt-2 flex flex-col items-center gap-2">
                   {totalGames > 0 ? (
                     <div className="text-xs text-white/60">
-                      Сыграно {finishedCount} из {totalGames}
+                      {t('durak.playedNofM', { n: finishedCount, m: totalGames })}
                     </div>
                   ) : null}
                   {limitReached ? (
-                    <div className="text-sm text-white/70">Турнир завершён</div>
+                    <div className="text-sm text-white/70">{t('durak.tournamentFinished')}</div>
                   ) : (
                     <Button
                       onClick={() => void nextTournamentGame()}
                       disabled={busy != null}
                     >
-                      Следующая партия турнира
+                      {t('durak.nextRound')}
                     </Button>
                   )}
                 </div>
@@ -592,7 +594,7 @@ export function DurakWebGameDialog({
             })()
           ) : (
             <Button onClick={() => void rematch()} disabled={busy != null} className="mt-2">
-              Сыграть ещё раз
+              {t('durak.playAgain')}
             </Button>
           )}
           <button
@@ -603,7 +605,7 @@ export function DurakWebGameDialog({
               else onOpenChange(false);
             }}
           >
-            Вернуться в чат
+            {t('durak.backToChat')}
           </button>
         </div>
       );
@@ -630,7 +632,7 @@ export function DurakWebGameDialog({
             <div className="flex items-center justify-between px-4 py-4">
               <div className="w-12" />
               <div className="text-base font-extrabold tracking-wide text-white">
-                Лобби
+                {t('durak.lobby')}
               </div>
               {isOwner ? (
                 <Button
@@ -639,7 +641,7 @@ export function DurakWebGameDialog({
                   className="h-10 w-10 rounded-xl bg-white/10 text-white hover:bg-white/18"
                   onClick={cancelLobby}
                   disabled={busy != null || status !== 'lobby'}
-                  title="Завершить ожидание"
+                  title={t('durak.cancelWaitTitle')}
                 >
                   <X className="h-5 w-5" />
                 </Button>
@@ -657,7 +659,7 @@ export function DurakWebGameDialog({
                         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>
                       </div>
                       <div className="text-xs font-semibold text-white/55">
-                        Ждём…
+                        {t('durak.waiting')}
                       </div>
                     </div>
                   );
@@ -721,7 +723,7 @@ export function DurakWebGameDialog({
             <div className="mt-auto flex flex-col items-center gap-3 px-6 pb-6">
               {inGame && gamePlayerIds.length < 2 ? (
                 <div className="text-sm text-white/60">
-                  Ждём, пока подключится соперник…
+                  {t('durak.waitingForOpponent')}
                 </div>
               ) : null}
               <button
@@ -744,12 +746,12 @@ export function DurakWebGameDialog({
                 )}
               >
                 {canJoin
-                  ? 'Войти'
+                  ? t('durak.enterGame')
                   : canStart
-                    ? 'Начать игру'
+                    ? t('durak.startGame')
                     : iAmReady
-                      ? 'Ждём…'
-                      : 'Готов'}
+                      ? t('durak.waiting')
+                      : t('durak.ready')}
               </button>
             </div>
           </div>
@@ -770,7 +772,7 @@ export function DurakWebGameDialog({
                 className="h-11 w-11 rounded-xl bg-white/16 text-white hover:bg-white/24"
                 onClick={() => void makeMove('surrender')}
                 disabled={busy != null}
-                title="Сдаться"
+                title={t('durak.surrenderTitle')}
               >
                 <Flag className="h-5 w-5" />
               </Button>
@@ -781,7 +783,7 @@ export function DurakWebGameDialog({
                 className="h-11 w-11 rounded-xl bg-white/10 text-white hover:bg-white/18"
                 onClick={() => void makeMove('surrender')}
                 disabled={busy != null || status !== 'active'}
-                title="Завершить игру"
+                title={t('durak.endGameTitle')}
               >
                 <LogOut className="h-5 w-5" />
               </Button>
@@ -798,7 +800,7 @@ export function DurakWebGameDialog({
                   turnStartedAt={publicView?.turnStartedAt ?? null}
                   turnDeadlineAt={publicView?.turnDeadlineAt ?? null}
                   nowMs={nowMs}
-                  role={uid === defenderUid ? 'БЬЕТ' : uid === attackerUid ? 'ХОД' : uid === currentThrowerUid ? 'ПОДК' : ''}
+                  role={uid === defenderUid ? t('durak.beats') : uid === attackerUid ? t('durak.moves') : uid === currentThrowerUid ? t('durak.toss') : ''}
                   showHandBacks
                 />
               ))}
@@ -899,14 +901,14 @@ export function DurakWebGameDialog({
                   selectedCard && canAttackCard(selectedCard) && 'border-emerald-200 bg-emerald-200/12 text-emerald-50'
                 )}
               >
-                Ход
+                {t('durak.moveAction')}
               </div>
               {selectedCard && canTransferCard(selectedCard) ? (
                 <div
                   data-durak-drop="transfer"
                   className="flex h-32 w-24 items-center justify-center rounded-2xl border-2 border-dashed border-amber-100 bg-amber-200/12 text-sm font-black text-amber-50"
                 >
-                  Перевод
+                  {t('durak.transferAction')}
                 </div>
               ) : null}
             </div>
@@ -923,23 +925,23 @@ export function DurakWebGameDialog({
                 turnStartedAt={publicView?.turnStartedAt ?? null}
                 turnDeadlineAt={publicView?.turnDeadlineAt ?? null}
                 nowMs={nowMs}
-                role={currentUser.id === defenderUid ? 'БЬЮ' : currentUser.id === attackerUid ? 'ХОД' : currentUser.id === currentThrowerUid ? 'ПОДК' : ''}
+                role={currentUser.id === defenderUid ? t('durak.iAttack') : currentUser.id === attackerUid ? t('durak.iMove') : currentUser.id === currentThrowerUid ? t('durak.iToss') : ''}
                 tone="panel"
               />
               {primaryLabel ? (
                 <button
                   type="button"
                   className="min-w-[150px] rounded-2xl bg-white px-5 py-3 text-2xl font-semibold shadow-md disabled:cursor-default disabled:opacity-100"
-                  disabled={busy != null || primaryLabel === 'Твой ход'}
+                  disabled={busy != null || primaryLabel === t('durak.yourTurn')}
                   onClick={() => {
-                    if (primaryLabel === 'Беру') void makeMove('take');
-                    if (primaryLabel === 'Пас') void makeMove('pass');
+                    if (primaryLabel === t('durak.take')) void makeMove('take');
+                    if (primaryLabel === t('durak.pass')) void makeMove('pass');
                   }}
                 >
                   {primaryLabel}
                 </button>
               ) : null}
-              {myTurnLabel && primaryLabel !== 'Твой ход' ? (
+              {myTurnLabel && primaryLabel !== t('durak.yourTurn') ? (
                 <div className="rounded-2xl border border-emerald-200/40 bg-emerald-100 px-4 py-3 text-lg font-black text-emerald-700 shadow-md">
                   {myTurnLabel}
                 </div>
@@ -1015,7 +1017,7 @@ export function DurakWebGameDialog({
         className="h-[100dvh] max-h-[100dvh] w-[100dvw] max-w-none overflow-hidden rounded-none border-0 bg-[#263d4d] p-2 shadow-none sm:rounded-none"
       >
         <DialogHeader className="sr-only">
-          <DialogTitle>Дурак</DialogTitle>
+          <DialogTitle>{t('durak.dialogTitle')}</DialogTitle>
         </DialogHeader>
         {gameBody()}
       </DialogContent>

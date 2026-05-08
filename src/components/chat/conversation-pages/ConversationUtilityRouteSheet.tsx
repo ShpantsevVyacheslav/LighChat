@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/hooks/use-i18n';
 import { ArrowLeft } from 'lucide-react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -29,6 +30,7 @@ export function ConversationUtilityRouteSheet({
   paddedScroll?: boolean;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const handleClose = () => router.push(buildDashboardChatOpenUrl(conversationId));
 
   return (
@@ -50,7 +52,7 @@ export function ConversationUtilityRouteSheet({
             size="icon"
             className="shrink-0 rounded-full text-zinc-100 hover:bg-zinc-800"
             onClick={handleClose}
-            aria-label="Назад к чату"
+            aria-label={t('chat.pages.backToChat')}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

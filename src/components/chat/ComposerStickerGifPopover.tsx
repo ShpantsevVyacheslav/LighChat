@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/sheet';
 import { ChatStickerGifPanel } from '@/components/chat/ChatStickerGifPanel';
 import type { ChatAttachment } from '@/lib/types';
+import { useI18n } from '@/hooks/use-i18n';
 
 type EditorLike = {
   chain: () => {
@@ -41,6 +42,7 @@ export function ComposerStickerGifPopover({
   onPickGifAttachment,
   disabled,
 }: ComposerStickerGifPopoverProps) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
 
   const insertEmoji = (emoji: string) => {
@@ -58,7 +60,7 @@ export function ComposerStickerGifPopover({
           size="icon"
           className="h-9 w-9 shrink-0"
           disabled={disabled}
-          aria-label="Эмодзи, стикеры и GIF"
+          aria-label={t('chat.composerStickerGif.triggerAria')}
         >
           <Smile className="h-4 w-4" />
         </Button>
@@ -68,7 +70,7 @@ export function ComposerStickerGifPopover({
         className="flex w-full flex-col gap-0 p-0 sm:w-[400px] sm:max-w-[400px]"
       >
         <SheetHeader className="border-b border-border/40 px-4 py-3">
-          <SheetTitle className="text-base">Эмодзи • Стикеры • GIF</SheetTitle>
+          <SheetTitle className="text-base">{t('chat.composerStickerGif.sheetTitle')}</SheetTitle>
         </SheetHeader>
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3">
           <ChatStickerGifPanel

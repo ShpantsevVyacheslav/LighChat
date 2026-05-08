@@ -30,6 +30,7 @@ import { isEitherBlockingFromUserIds } from '@/lib/user-block-utils';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { getWebRtcIceConfig } from '@/lib/webrtc-ice-servers';
+import { useI18n } from '@/hooks/use-i18n';
 
 interface AudioCallOverlayProps {
   currentUser: User;
@@ -116,6 +117,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
   const processedCandidateIds = useRef<Set<string>>(new Set());
   const activeCallRef = useRef<Call | null>(null);
 
+  const { t } = useI18n();
   const firestore = useFirestore();
   const storage = useStorage();
   const { toast } = useToast();
@@ -287,7 +289,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
     } catch (e) {
         console.error("[WebRTC] Media capture failed:", e);
         mediaRequestInProgress.current = false;
-        toast({ variant: 'destructive', title: 'Ошибка доступа', description: 'Не удалось включить камеру или микрофон.' });
+        toast({ variant: 'destructive', title: t('chat.audioCall.accessErrorTitle'), description: t('chat.audioCall.accessErrorDesc') });
         throw e;
     }
 
@@ -351,12 +353,11 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
         if (picked) setActiveCall(picked);
       },
       (err) => {
-        console.error('[AudioCallOverlay] Подписка на calls:', err);
+        console.error('[AudioCallOverlay] calls subscription error:', err);
         toast({
           variant: 'destructive',
-          title: 'Звонки',
-          description:
-            'Не удалось получать вызовы. Проверьте сеть. Если в консоли запрос индекса Firestore — выполните deploy индексов.',
+          title: t('chat.audioCall.callsTitle'),
+          description: t('chat.audioCall.callsSubscriptionDesc'),
         });
       },
     );
@@ -381,8 +382,8 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
           isSettingUp.current = false;
           toast({
             variant: 'destructive',
-            title: 'Звонок',
-            description: 'Не удалось передать приглашение. Проверьте права Firestore и сеть.',
+            title: t('chat.audioCall.callTitle'),
+            description: t('chat.audioCall.callInviteError'),
           });
         } finally {
           setIsConnecting(false);
@@ -398,8 +399,8 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
     if (!offerInit) {
       toast({
         variant: 'destructive',
-        title: 'Звонок',
-        description: 'Данные звонка ещё не готовы. Подождите секунду и нажмите снова.',
+        title: t('chat.audioCall.callNotReadyTitle'),
+        description: t('chat.audioCall.callNotReadyDesc'),
       });
       return;
     }
@@ -423,11 +424,11 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
       console.error('[WebRTC] acceptCall', e);
       toast({
         variant: 'destructive',
-        title: 'Не удалось принять звонок',
+        title: t('chat.audioCall.acceptFailedTitle'),
         description:
           e instanceof Error
             ? e.message
-            : 'Проверьте доступ к микрофону и камере в настройках браузера.',
+            : t('chat.audioCall.acceptFailedFallbackDesc'),
       });
       handleReject();
     } finally {
@@ -529,7 +530,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
     }
     const fallbackName = (
       activeCall.callerId === currentUser.id ? activeCall.receiverName : activeCall.callerName
-    )?.trim() || 'Участник';
+    )?.trim() || t('chat.audioCall.participant');
 
     if (!peerUserDocRef) {
       setOtherUser({ name: fallbackName, avatar: '', avatarThumb: undefined });
@@ -709,7 +710,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
         }
     } catch (e) {
         console.error("Switch camera failed:", e);
-        toast({ variant: 'destructive', title: 'Ошибка', description: 'Не удалось переключить камеру.' });
+        toast({ variant: 'destructive', title: t('chat.audioCall.errorTitle'), description: t('chat.audioCall.switchCameraErrorDesc') });
     }
   };
 
@@ -761,7 +762,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
                 </div>
                 <h2 className="text-2xl md:text-4xl font-bold max-w-2xl drop-shadow-lg leading-tight">{otherUser?.name}</h2>
                 <p className="text-cyan-400 mt-4 font-mono tracking-widest text-sm md:text-base uppercase">
-                    {activeCall.status === 'ongoing' ? formatTime(callDuration) : (activeCall.isVideo ? 'ВИДЕОВЫЗОВ...' : 'АУДИОВЫЗОВ...')}
+                    {activeCall.status === 'ongoing' ? formatTime(callDuration) : (activeCall.isVideo ? t('chat.audioCall.videoCallStatus') : t('chat.audioCall.audioCallStatus'))}
                 </p>
             </div>
         )}
@@ -791,7 +792,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
       )}
 
       {localStream && activeCall.isVideo && !showLocalPreview && (
-        <Button variant="outline" size="sm" className="fixed bottom-[max(8rem,env(safe-area-inset-bottom,0px)+5.5rem)] right-[max(1.5rem,env(safe-area-inset-right,0px))] z-40 h-10 rounded-full border-white/20 bg-black/40 px-4 text-white shadow-xl backdrop-blur-md animate-in slide-in-from-right-4" onClick={() => setShowLocalPreview(true)}><Maximize2 className="mr-2 h-4 w-4" /> Своё видео</Button>
+        <Button variant="outline" size="sm" className="fixed bottom-[max(8rem,env(safe-area-inset-bottom,0px)+5.5rem)] right-[max(1.5rem,env(safe-area-inset-right,0px))] z-40 h-10 rounded-full border-white/20 bg-black/40 px-4 text-white shadow-xl backdrop-blur-md animate-in slide-in-from-right-4" onClick={() => setShowLocalPreview(true)}><Maximize2 className="mr-2 h-4 w-4" /> {t('chat.audioCall.ownVideo')}</Button>
       )}
       
       <div className="absolute right-[max(1rem,env(safe-area-inset-right,0px))] top-[max(1rem,env(safe-area-inset-top,0px))] z-40">
@@ -854,11 +855,12 @@ export const initiateCall = async (
   caller: User,
   receiver: Pick<User, 'id' | 'name'> & { blockedUserIds?: string[] },
   isVideo: boolean,
-  toast: (opts: { variant?: 'default' | 'destructive' | null; title: string; description?: string }) => void
+  toast: (opts: { variant?: 'default' | 'destructive' | null; title: string; description?: string }) => void,
+  t: (key: string) => string = (k) => k,
 ) => {
     if (!firestore || !caller || !receiver?.id) return;
     if (!navigator.mediaDevices || !window.RTCPeerConnection) {
-        toast({ variant: 'destructive', title: 'Ошибка вызова', description: 'Браузер не поддерживает звонки.' });
+        toast({ variant: 'destructive', title: t('chat.audioCall.callErrorTitle'), description: t('chat.audioCall.browserUnsupportedDesc') });
         return;
     }
     if (
@@ -871,26 +873,26 @@ export const initiateCall = async (
     ) {
       toast({
         variant: 'destructive',
-        title: 'Звонок недоступен',
-        description: 'Нельзя звонить при блокировке или если пользователь ограничил с вами общение.',
+        title: t('chat.audioCall.callUnavailableTitle'),
+        description: t('chat.audioCall.callUnavailableDesc'),
       });
       return;
     }
     try {
         const callId = `call_${Date.now()}`;
-        const callData: Call = { 
-            id: callId, 
-            callerId: caller.id, 
-            receiverId: receiver.id, 
-            callerName: caller.name, 
+        const callData: Call = {
+            id: callId,
+            callerId: caller.id,
+            receiverId: receiver.id,
+            callerName: caller.name,
             receiverName: receiver.name,
-            status: 'calling', 
-            isVideo: isVideo, 
-            createdAt: new Date().toISOString() 
+            status: 'calling',
+            isVideo: isVideo,
+            createdAt: new Date().toISOString()
         };
         await setDoc(doc(firestore, 'calls', callId), callData);
         return { callId };
     } catch {
-        toast({ variant: 'destructive', title: 'Ошибка вызова', description: 'Не удалось создать вызов.' });
+        toast({ variant: 'destructive', title: t('chat.audioCall.callErrorTitle'), description: t('chat.audioCall.callCreateErrorDesc') });
     }
 };

@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useI18n } from '@/hooks/use-i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
@@ -83,6 +84,7 @@ interface EditorState {
 }
 
 export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProps) {
+  const { t } = useI18n();
   const [mounted, setMounted] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -629,7 +631,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
             </>
           ) : (
             <>
-              <Button variant="glass" size="icon" onClick={handleResetAll} disabled={isProcessing} title="Сбросить все" className="border-none"><RefreshCcw className="h-5 w-5" /></Button>
+              <Button variant="glass" size="icon" onClick={handleResetAll} disabled={isProcessing} title={t('chat.videoEditor.resetAll')} className="border-none"><RefreshCcw className="h-5 w-5" /></Button>
               <Button variant="glass" size="icon" className={cn("border-none", isMuted && "bg-red-500/50")} onClick={() => { saveToHistory(); setIsMuted(!isMuted); }} disabled={isProcessing}>{isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}</Button>
               <Button variant="glass" size="icon" onClick={handleRotate} disabled={isProcessing} className="border-none"><RotateCw className="h-5 w-5" /></Button>
               <Button variant="glass" size="icon" className="border-none transition-all" onClick={() => setActiveTool('crop')} disabled={isProcessing}><Crop className="h-5 w-5" /></Button>
@@ -689,7 +691,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
         )}
         {isProcessing && (
             <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" /><div className="text-center space-y-1"><p className="font-bold text-xl">Обработка видео...</p><p className="text-sm text-white/60">{Math.round(processingProgress)}%</p></div>
+                <Loader2 className="h-12 w-12 animate-spin text-primary" /><div className="text-center space-y-1"><p className="font-bold text-xl">{t('chat.videoEditor.processingVideo')}</p><p className="text-sm text-white/60">{Math.round(processingProgress)}%</p></div>
             </div>
         )}
       </main>
@@ -701,7 +703,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
                     {isThumbnailsLoading ? (
                         <div className="absolute inset-0 flex items-center justify-center gap-3 bg-white/5 backdrop-blur-sm z-30">
                             <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Загрузка раскадровки... {thumbnailProgress}%</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-white/60">{t('chat.videoEditor.loadingStoryboard', { progress: thumbnailProgress })}</span>
                         </div>
                     ) : (
                         <div className="absolute inset-0 flex overflow-hidden rounded-xl">
@@ -729,7 +731,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
             {activeTool === 'draw' ? (
                 <div className="flex-1 flex flex-col gap-4 p-4 bg-black/40 backdrop-blur-md rounded-2xl border border-white/10 animate-in slide-in-from-bottom-2">
                     <div className="flex items-center gap-4">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Толщина</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-white/40">{t('chat.videoEditor.thickness')}</span>
                         <Slider 
                             value={[brushSize]} 
                             min={2} 
@@ -758,7 +760,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
                 </div>
             ) : (
                 <div className="flex-1 relative group">
-                    <Input placeholder="Добавить подпись..." value={caption} onChange={e => setCaption(e.target.value)} className="h-12 rounded-2xl bg-white/10 backdrop-blur-3xl border-none text-white placeholder:text-white/40 pl-14 pr-14 focus-visible:ring-primary shadow-2xl" disabled={isProcessing} />
+                    <Input placeholder={t('chat.videoEditor.addCaption')} value={caption} onChange={e => setCaption(e.target.value)} className="h-12 rounded-2xl bg-white/10 backdrop-blur-3xl border-none text-white placeholder:text-white/40 pl-14 pr-14 focus-visible:ring-primary shadow-2xl" disabled={isProcessing} />
                     <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40 group-focus-within:text-primary transition-colors pointer-events-none" />
                 </div>
             )}

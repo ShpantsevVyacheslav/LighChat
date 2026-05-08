@@ -685,7 +685,7 @@ export function ThreadWindow({
                     await updateDoc(msgRef, { text, attachments: attachments || [], updatedAt: now });
                 }
             } catch {
-                toast({ variant: 'destructive', title: 'Ошибка обновления' });
+                toast({ variant: 'destructive', title: t('chat.updateError') });
             }
         },
         [firestore, conversation.id, parentMessage.id, allMessages, e2eeConv.e2eeEnabled, e2eeConv.encryptOutgoingHtmlV2, toast]
@@ -768,7 +768,7 @@ export function ThreadWindow({
                     );
                     e2eeAttachmentEnvelopes = res.envelopes;
                 } catch (encErr) {
-                    toast({ variant: 'destructive', title: 'Не удалось зашифровать вложение' });
+                    toast({ variant: 'destructive', title: t('chat.encryptAttachmentError') });
                     throw encErr;
                 }
             }
@@ -893,11 +893,11 @@ export function ThreadWindow({
             if (msg === 'E2EE_NO_CHAT_KEY' || msg === 'E2EE_UNWRAP_FAILED') {
                 toast({
                     variant: 'destructive',
-                    title: 'Не удалось зашифровать сообщение',
+                    title: t('chat.encryptMessageError'),
                     description:
                         msg === 'E2EE_UNWRAP_FAILED'
-                            ? 'Этот браузер не совпадает с ключом, под который включали шифрование (часто: другое устройство/браузер или очистка данных). Откройте профиль чата → «Шифрование» и выключите/включите снова на этом устройстве.'
-                            : 'Этот браузер не может открыть ключ чата. Попробуйте тот же браузер, где включали шифрование, или перевключите «Шифрование» в профиле чата.',
+                            ? t('chat.encryptKeyMismatchHint')
+                            : t('chat.encryptKeyGenericHint'),
                 });
             }
         }
@@ -908,8 +908,8 @@ export function ThreadWindow({
             if (e2eeConv.e2eeEnabled) {
                 toast({
                     variant: 'destructive',
-                    title: 'Геолокация недоступна',
-                    description: 'В чате со сквозным шифрованием отправка геолокации пока не поддерживается.',
+                    title: t('chat.locationUnavailable'),
+                    description: t('chat.locationE2eeHint'),
                 });
                 return;
             }
@@ -957,7 +957,7 @@ export function ThreadWindow({
                 otherParticipantIds.forEach((id) => {
                     threadUnreadUpdates[`unreadThreadCounts.${id}`] = increment(1);
                 });
-                const threadLastText = '📍 Геолокация';
+                const threadLastText = `📍 ${t('chat.locationPreviewText')}`;
                 await updateDoc(parentMessageRef, {
                     threadCount: increment(1),
                     threadParticipantIds: arrayUnion(currentUser.id),
@@ -1001,7 +1001,7 @@ export function ThreadWindow({
                 toast({
                     variant: 'destructive',
                     title: t('chat.pollUnavailable'),
-                    description: 'В чате со сквозным шифрованием опросы пока не поддерживаются.',
+                    description: t('chat.pollUnavailableE2ee'),
                 });
                 return;
             }
@@ -1012,7 +1012,7 @@ export function ThreadWindow({
             const newDocRef = doc(threadCollection);
             const messageId = newDocRef.id;
             const now = new Date().toISOString();
-            const pollText = '<p>📊 Опрос</p>';
+            const pollText = `<p>📊 ${t('chat.pollPreviewText')}</p>`;
             const optimisticMessage: ChatMessage = {
                 id: messageId,
                 senderId: currentUser.id,
@@ -1047,7 +1047,7 @@ export function ThreadWindow({
                 otherParticipantIds.forEach((id) => {
                     threadUnreadUpdates[`unreadThreadCounts.${id}`] = increment(1);
                 });
-                const threadLastText = '📊 Опрос';
+                const threadLastText = `📊 ${t('chat.pollPreviewText')}`;
                 await updateDoc(parentMessageRef, {
                     threadCount: increment(1),
                     threadParticipantIds: arrayUnion(currentUser.id),
@@ -1139,13 +1139,13 @@ export function ThreadWindow({
                     isThread: true,
                     parentMessageId: parentMessage.id,
                 });
-                toast({ title: 'Повторная обработка запущена' });
+                toast({ title: t('chat.retryProcessingStarted') });
             } catch (error) {
                 const msg =
                     error instanceof Error
                         ? error.message
-                        : 'Не удалось запустить обработку';
-                toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+                        : t('chat.retryProcessingFailed');
+                toast({ variant: 'destructive', title: t('common.error'), description: msg });
             }
         },
         [conversation.id, firestore, parentMessage.id, toast]
@@ -1153,8 +1153,8 @@ export function ThreadWindow({
 
     const formatDateLabel = (dateStr: string) => {
         const date = parseISO(dateStr);
-        if (isToday(date)) return 'Сегодня';
-        if (isYesterday(date)) return 'Вчера';
+        if (isToday(date)) return t('chat.today');
+        if (isYesterday(date)) return t('chat.yesterday');
         return format(date, 'd MMMM', { locale: ru });
     };
 
@@ -1212,7 +1212,7 @@ export function ThreadWindow({
                         <div className="flex min-w-0 items-center gap-3">
                             <MessageSquare className="h-5 w-5 shrink-0 text-primary" />
                             <div className="min-w-0">
-                                <h3 className="truncate text-base font-bold lg:text-lg lg:leading-tight">Обсуждение</h3>
+                                <h3 className="truncate text-base font-bold lg:text-lg lg:leading-tight">{t('chat.discussionTitle')}</h3>
                                 <p className="hidden lg:block truncate text-xs text-muted-foreground">{parentPreviewLabel}</p>
                             </div>
                         </div>
@@ -1241,8 +1241,8 @@ export function ThreadWindow({
                                         variant="ghost"
                                         size="icon"
                                         className="hidden lg:inline-flex h-8 w-8 rounded-md"
-                                        aria-label={isExpandedDesktop ? 'Свернуть панель обсуждения' : 'Развернуть панель обсуждения'}
-                                        title={isExpandedDesktop ? 'Свернуть' : 'Развернуть'}
+                                        aria-label={isExpandedDesktop ? t('chat.collapseDiscussionPanel') : t('chat.expandDiscussionPanel')}
+                                        title={isExpandedDesktop ? t('chat.collapse') : t('chat.expand')}
                                         onClick={onToggleExpandDesktop}
                                     >
                                         {isExpandedDesktop ? (
@@ -1265,7 +1265,7 @@ export function ThreadWindow({
                 {!isFullyReady && (
                     <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-md flex flex-col items-center justify-center space-y-4">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Загрузка...</p>
+                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('chat.loading')}</p>
                     </div>
                 )}
                 <div className={cn('relative h-full w-full min-h-0 min-w-0 flex-1 overflow-hidden transition-opacity duration-500', isFullyReady ? 'opacity-100' : 'opacity-0')}>
@@ -1298,7 +1298,7 @@ export function ThreadWindow({
                         Header: () => isLoadingOlder ? (
                             <div className="p-4 flex items-center justify-center text-muted-foreground">
                                 <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Загрузка ответов...</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest">{t('chat.loadingReplies')}</span>
                             </div>
                         ) : null,
                         Footer: () => (
@@ -1313,11 +1313,11 @@ export function ThreadWindow({
                         if (item.type === 'parent') {
                             const repliesLabel =
                                 allMessages.length === 1
-                                    ? '1 ответ'
+                                    ? t('chat.replyOne')
                                     : [2, 3, 4].includes(allMessages.length % 10) &&
                                       ![12, 13, 14].includes(allMessages.length % 100)
-                                      ? `${allMessages.length} ответа`
-                                      : `${allMessages.length} ответов`;
+                                      ? t('chat.replyFew', { count: allMessages.length })
+                                      : t('chat.replyMany', { count: allMessages.length });
                             return (
                                 <div className="mx-3 mb-4 mt-2">
                                     <ChatMessageItem 
@@ -1336,7 +1336,7 @@ export function ThreadWindow({
                                             if (!allowCopy) return;
                                             const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
                                             navigator.clipboard.writeText(cleanText);
-                                            toast({ title: 'Текст скопирован' });
+                                            toast({ title: t('chat.textCopied') });
                                         }}
                                         onPin={() => {}}
                                         onReply={(context) => onReplyTo(context)}
@@ -1375,7 +1375,7 @@ export function ThreadWindow({
                             return (
                                 <div className="flex items-center gap-4 px-6 py-4 animate-in fade-in duration-500">
                                     <div className="h-px bg-primary/30 flex-1" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-3 py-1 rounded-full border border-primary/20">Непрочитанные сообщения</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-3 py-1 rounded-full border border-primary/20">{t('chat.unreadMessages')}</span>
                                     <div className="h-px bg-primary/30 flex-1" />
                                 </div>
                             );
@@ -1420,7 +1420,7 @@ export function ThreadWindow({
                                             if (!allowCopy) return;
                                             const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
                                             navigator.clipboard.writeText(cleanText);
-                                            toast({ title: 'Текст скопирован' });
+                                            toast({ title: t('chat.textCopied') });
                                         }}
                                         onPin={() => {}}
                                         onReply={(context) => onReplyTo(context)}

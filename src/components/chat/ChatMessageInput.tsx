@@ -14,6 +14,7 @@ import type {
 } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
@@ -144,6 +145,7 @@ const ChatMessageInputInner = (
     const lastTypingWriteAtRef = useRef(0);
     
     const { toast } = useToast();
+    const { t } = useI18n();
     const firestore = useFirestore();
     const firebaseAuth = useAuth();
 
@@ -523,7 +525,7 @@ const ChatMessageInputInner = (
             recorder.ondataavailable = (e) => videoChunksRef.current.push(e.data);
             recorder.onstop = () => setVideoPreview({ url: URL.createObjectURL(new Blob(videoChunksRef.current, { type: 'video/webm' })), blob: new Blob(videoChunksRef.current, { type: 'video/webm' }) });
             recorder.start();
-        } catch { toast({ variant: "destructive", title: "Ошибка камеры" }); }
+        } catch { toast({ variant: "destructive", title: t('chat.composer.cameraError') }); }
     };
 
     const stopVideoRecording = () => {
@@ -600,7 +602,7 @@ const ChatMessageInputInner = (
             setAudioRecordingTime(0);
             audioTimerRef.current = setInterval(() => setAudioRecordingTime(t => t + 1), 1000);
         } catch {
-            toast({ variant: "destructive", title: "Нет доступа к микрофону" });
+            toast({ variant: "destructive", title: t('chat.composer.noMicAccess') });
         }
     };
 
@@ -620,7 +622,7 @@ const ChatMessageInputInner = (
             if (blob.size < 100) {
                 setIsAudioRecording(false);
                 setAudioRecordingTime(0);
-                toast({ variant: "destructive", title: "Слишком короткая запись" });
+                toast({ variant: "destructive", title: t('chat.composer.recordingTooShort') });
                 return;
             }
             const url = URL.createObjectURL(blob);
@@ -664,13 +666,13 @@ const ChatMessageInputInner = (
             <div className="flex flex-col gap-1.5 shrink-0">
                 {isPartnerDeleted ? (
                     <div className="p-4 bg-muted/50 rounded-2xl flex items-center justify-center gap-2 text-muted-foreground">
-                        <UserX className="h-4 w-4" /><p className="text-sm font-medium">Пользователь удален</p>
+                        <UserX className="h-4 w-4" /><p className="text-sm font-medium">{t('chat.composer.userDeleted')}</p>
                     </div>
                 ) : composerLocked ? (
                     <div className="flex gap-3 rounded-2xl bg-muted/50 p-4 text-muted-foreground">
                         <Ban className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                         <p className="text-sm font-medium leading-snug">
-                          {composerLockedHint?.trim() || 'Общение недоступно.'}
+                          {composerLockedHint?.trim() || t('chat.composer.communicationUnavailable')}
                         </p>
                     </div>
                 ) : isVideoRecording ? (
@@ -679,7 +681,7 @@ const ChatMessageInputInner = (
                         <div className="relative h-48 w-48 shrink-0 rounded-full overflow-hidden border-4 border-primary/20">
                             <video ref={videoPreviewRef} autoPlay muted playsInline className="pointer-events-none h-full w-full object-cover -scale-x-100" />
                         </div>
-                        <Button type="button" variant="destructive" size="icon" className="h-14 w-14 shrink-0 rounded-full" onClick={stopVideoRecording} aria-label="Остановить запись">
+                        <Button type="button" variant="destructive" size="icon" className="h-14 w-14 shrink-0 rounded-full" onClick={stopVideoRecording} aria-label={t('chat.composer.stopRecording')}>
                             <StopCircle className="h-7 w-7" />
                         </Button>
                     </div>
@@ -691,14 +693,14 @@ const ChatMessageInputInner = (
                             size="icon"
                             className="h-14 w-14 shrink-0 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={() => setVideoPreview(null)}
-                            aria-label="Удалить видеокружок"
+                            aria-label={t('chat.composer.deleteVideoCircle')}
                         >
                             <Trash2 className="h-7 w-7" />
                         </Button>
                         <div className="relative h-48 w-48 shrink-0 rounded-full overflow-hidden border-4 border-green-500/20 shadow-2xl">
                             <video src={videoPreview.url} autoPlay loop playsInline className="pointer-events-none h-full w-full object-cover" />
                         </div>
-                        <Button type="button" size="icon" className="h-14 w-14 shrink-0 rounded-full bg-primary shadow-xl" onClick={handleSend} aria-label="Отправить">
+                        <Button type="button" size="icon" className="h-14 w-14 shrink-0 rounded-full bg-primary shadow-xl" onClick={handleSend} aria-label={t('chat.composer.send')}>
                             <SendHorizonal className="h-7 w-7" />
                         </Button>
                     </div>
@@ -719,13 +721,13 @@ const ChatMessageInputInner = (
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <p className="text-[9px] font-black uppercase text-primary tracking-[0.1em] opacity-80 leading-none mb-1">
-                                            {replyingTo ? 'Ответ пользователю' : 'Редактирование сообщения'}
+                                            {replyingTo ? t('chat.composer.replyToUser') : t('chat.composer.editingMessage')}
                                         </p>
                                         <p className="text-xs text-muted-foreground truncate font-medium">
                                             {replyingTo ? (
                                                 <><span className="font-bold text-foreground/80">{replyingTo.senderName}:</span> {replyingTo.text}</>
                                             ) : (
-                                                editingMessage?.text?.replace(/<[^>]*>/g, '') || 'Без текста'
+                                                editingMessage?.text?.replace(/<[^>]*>/g, '') || t('chat.composer.noText')
                                             )}
                                         </p>
                                     </div>
@@ -759,7 +761,7 @@ const ChatMessageInputInner = (
                         {detectedUrl && !editingMessage && (
                             <div className="bg-muted/50 rounded-2xl p-1 animate-in slide-in-from-bottom-2">
                                 <div className="flex justify-between items-center px-3 pt-1">
-                                    <span className="text-[10px] font-bold uppercase text-muted-foreground">Превью ссылки</span>
+                                    <span className="text-[10px] font-bold uppercase text-muted-foreground">{t('chat.composer.linkPreview')}</span>
                                     <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setDetectedUrl(null)}><X className="h-3 w-3" /></Button>
                                 </div>
                                 <LinkPreview url={detectedUrl} isLive />
@@ -858,7 +860,7 @@ const ChatMessageInputInner = (
                                                         }}
                                                         className="w-full justify-start rounded-xl h-11"
                                                     >
-                                                        <FileIcon className="mr-3 h-4 w-4" />Файл
+                                                        <FileIcon className="mr-3 h-4 w-4" />{t('chat.composer.file')}
                                                     </Button>
                                                     <Button
                                                         variant="ghost"
@@ -866,7 +868,7 @@ const ChatMessageInputInner = (
                                                         className="w-full justify-start rounded-xl h-11 hover:bg-white/25 dark:hover:bg-white/10 active:bg-white/35 dark:active:bg-white/15"
                                                     >
                                                         <Video className="mr-3 h-4 w-4 text-sky-600 dark:text-sky-400" />
-                                                        Кружок
+                                                        {t('chat.composer.videoCircle')}
                                                     </Button>
                                                     {onSendLocationShare && (
                                                         <Button
@@ -877,7 +879,7 @@ const ChatMessageInputInner = (
                                                             className="w-full justify-start rounded-xl h-11"
                                                         >
                                                             <MapPin className="mr-3 h-4 w-4 text-emerald-600" />
-                                                            Локация
+                                                            {t('chat.composer.location')}
                                                         </Button>
                                                     )}
                                                     {onSendPoll && (
@@ -889,11 +891,11 @@ const ChatMessageInputInner = (
                                                             className="w-full justify-start rounded-xl h-11"
                                                         >
                                                             <BarChart3 className="mr-3 h-4 w-4 text-violet-600" />
-                                                            Опрос
+                                                            {t('chat.composer.poll')}
                                                         </Button>
                                                     )}
                                                 <Separator className="my-1" />
-                                                <Button variant="ghost" onClick={() => setShowFormatting(true)} className="w-full justify-start rounded-xl h-11"><Type className="mr-3 h-4 w-4" />Форматировать</Button>
+                                                <Button variant="ghost" onClick={() => setShowFormatting(true)} className="w-full justify-start rounded-xl h-11"><Type className="mr-3 h-4 w-4" />{t('chat.composer.format')}</Button>
                                             </div>
                                         )}
                                     </PopoverContent>
@@ -943,7 +945,7 @@ const ChatMessageInputInner = (
                                             onPointerLeave={handleSendButtonPointerUp}
                                             onContextMenu={handleSendButtonContextMenu}
                                             disabled={isSending || inputFrozen}
-                                            title={onScheduleMessage && !editingMessage ? 'Отправить (удерживайте для планирования)' : undefined}
+                                            title={onScheduleMessage && !editingMessage ? t('chat.composer.sendHoldToSchedule') : undefined}
                                         >
                                     {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
                                 </Button>

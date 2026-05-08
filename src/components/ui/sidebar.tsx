@@ -6,6 +6,7 @@ import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useI18n } from "@/hooks/use-i18n"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -174,6 +175,7 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const { t } = useI18n()
 
     if (collapsible === "none") {
       return (
@@ -204,9 +206,9 @@ const Sidebar = React.forwardRef<
             }
             side={side}
           >
-            <SheetTitle className="sr-only">Меню навигации</SheetTitle>
+            <SheetTitle className="sr-only">{t('layout.sidebarMenuTitle')}</SheetTitle>
             <SheetDescription className="sr-only">
-              Выберите раздел для перехода.
+              {t('layout.sidebarMenuDescription')}
             </SheetDescription>
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>

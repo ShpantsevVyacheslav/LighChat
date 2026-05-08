@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { useI18n } from '@/hooks/use-i18n';
 import { collection, limit, orderBy, query } from 'firebase/firestore';
 import { File as FileIcon, Image as ImageIcon, Link as LinkIcon, Mic, Play, Video } from 'lucide-react';
 import Link from 'next/link';
@@ -82,6 +83,7 @@ export function ConversationMediaPanel({
   allowForward?: boolean;
   edgeToEdge?: boolean;
 }) {
+  const { t } = useI18n();
   const firestore = useFirestore();
   const [mediaViewerState, setMediaViewerState] = useState({ isOpen: false, startIndex: 0 });
   const [activeCircleUrl, setActiveCircleUrl] = useState<string | null>(null);
@@ -143,24 +145,24 @@ export function ConversationMediaPanel({
   const tabsBody = (
     <>
       {isLoading && !messageRows ? (
-        <p className="text-sm text-zinc-500">Загрузка…</p>
+        <p className="text-sm text-zinc-500">{t('chat.mediaPanel.loading')}</p>
       ) : (
         <Tabs defaultValue="media" className="w-full">
           <TabsList className={tabsListClass}>
             <TabsTrigger value="media" className={tabTriggerClass}>
-              Медиа
+              {t('chat.mediaPanel.media')}
             </TabsTrigger>
             <TabsTrigger value="circles" className={tabTriggerClass}>
-              Кружки
+              {t('chat.mediaPanel.circles')}
             </TabsTrigger>
             <TabsTrigger value="files" className={tabTriggerClass}>
-              Файлы
+              {t('chat.mediaPanel.files')}
             </TabsTrigger>
             <TabsTrigger value="links" className={tabTriggerClass}>
-              Ссылки
+              {t('chat.mediaPanel.links')}
             </TabsTrigger>
             <TabsTrigger value="audios" className={tabTriggerClass}>
-              Аудио
+              {t('chat.mediaPanel.audio')}
             </TabsTrigger>
           </TabsList>
           <TabsContent value="media">
@@ -192,7 +194,7 @@ export function ConversationMediaPanel({
                 )}
               </div>
             ) : (
-              <Empty Icon={ImageIcon} label="Нет медиа" />
+              <Empty Icon={ImageIcon} label={t('chat.mediaPanel.emptyMedia')} />
             )}
           </TabsContent>
           <TabsContent value="circles">
@@ -223,7 +225,7 @@ export function ConversationMediaPanel({
                 })}
               </div>
             ) : (
-              <Empty Icon={Video} label="Нет кружков" />
+              <Empty Icon={Video} label={t('chat.mediaPanel.emptyCircles')} />
             )}
           </TabsContent>
           <TabsContent value="files">
@@ -252,7 +254,7 @@ export function ConversationMediaPanel({
                           if (!allowSave) e.preventDefault();
                         }}
                       >
-                        <span className="sr-only">Открыть</span>
+                        <span className="sr-only">{t('chat.mediaPanel.openFile')}</span>
                         <FileIcon className="h-4 w-4" />
                       </a>
                     </Button>
@@ -260,7 +262,7 @@ export function ConversationMediaPanel({
                 ))}
               </div>
             ) : (
-              <Empty Icon={FileIcon} label="Нет файлов" />
+              <Empty Icon={FileIcon} label={t('chat.mediaPanel.emptyFiles')} />
             )}
           </TabsContent>
           <TabsContent value="links">
@@ -285,7 +287,7 @@ export function ConversationMediaPanel({
                 ))}
               </div>
             ) : (
-              <Empty Icon={LinkIcon} label="Нет ссылок" />
+              <Empty Icon={LinkIcon} label={t('chat.mediaPanel.emptyLinks')} />
             )}
           </TabsContent>
           <TabsContent value="audios">
@@ -303,7 +305,7 @@ export function ConversationMediaPanel({
                 ))}
               </div>
             ) : (
-              <Empty Icon={Mic} label="Нет аудио" />
+              <Empty Icon={Mic} label={t('chat.mediaPanel.emptyAudio')} />
             )}
           </TabsContent>
         </Tabs>

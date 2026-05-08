@@ -4,6 +4,7 @@ import React, { useState, useMemo, useRef, useLayoutEffect } from 'react';
 
 import type { User, Conversation, ChatMessage, ChatAttachment, ReplyContext, ChatSettings, UserContactLocalProfile } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 import {
   isOnlyEmojis,
   getReplyPreview,
@@ -157,6 +158,7 @@ const ChatMessageItemComponent = ({
     onToggleStar,
     onRetryMediaNorm,
 }: ChatMessageItemProps) => {
+    const { t } = useI18n();
     const isCurrentUser = message.senderId === currentUser.id;
     const isDeleted = !!message.isDeleted;
 
@@ -520,7 +522,7 @@ const ChatMessageItemComponent = ({
 
     const senderName =
       conversation.isGroup && !isCurrentUser
-        ? liveGroupSender?.name || conversation.participantInfo[message.senderId]?.name || 'Неизвестный'
+        ? liveGroupSender?.name || conversation.participantInfo[message.senderId]?.name || t('common.unknown')
         : null;
     const groupSenderAvatar =
       conversation.isGroup && !isCurrentUser
@@ -606,7 +608,7 @@ const ChatMessageItemComponent = ({
                             <button
                                 type="button"
                                 className="rounded-full shrink-0 mb-1 border-0 bg-transparent p-0 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                aria-label={`Действия: ${senderName ?? 'отправитель'}`}
+                                aria-label={`${t('chat.messageItem.actionsAria')}: ${senderName ?? t('chat.messageItem.sender')}`}
                                 onPointerDown={(e) => e.stopPropagation()}
                                 onClick={(e) => e.stopPropagation()}
                             >
@@ -666,7 +668,7 @@ const ChatMessageItemComponent = ({
                                 )}
                             >
                                 <Trash2 className="h-3.5 w-3.5" />
-                                Сообщение удалено
+                                {t('chat.messageItem.deleted')}
                             </div>
                         ) : (
                             <div className={cn('flex flex-col select-none gap-1', hasGridVisualMedia ? 'min-w-full w-full' : 'min-w-0')}>
@@ -897,7 +899,7 @@ const ChatMessageItemComponent = ({
                                                                 </span>
                                                                 <span className="min-w-0 flex-1">
                                                                     <span className="block truncate text-sm font-semibold text-white/90">
-                                                                        {att.name?.trim() || 'Файл'}
+                                                                        {att.name?.trim() || t('chat.messageItem.file')}
                                                                     </span>
                                                                     {att.size > 0 ? (
                                                                         <span className="block text-[11px] font-semibold uppercase tracking-wide text-white/55">
@@ -912,12 +914,12 @@ const ChatMessageItemComponent = ({
                                                     {hasNeedsMediaNorm && (mediaNormPending || mediaNormFailed) && (
                                                         <div className="mx-2 my-1 rounded-xl border border-white/15 bg-black/25 px-3 py-2 text-xs">
                                                             <div className="font-semibold text-white/90">
-                                                                {mediaNormPending ? 'Медиа обрабатывается…' : 'Не удалось обработать медиа'}
+                                                                {mediaNormPending ? t('chat.messageItem.mediaProcessing') : t('chat.messageItem.mediaFailed')}
                                                             </div>
                                                             <div className="mt-0.5 text-white/65">
                                                                 {mediaNormPending
-                                                                    ? 'Файл станет доступен после серверной нормализации.'
-                                                                    : 'Нажмите, чтобы запустить обработку повторно.'}
+                                                                    ? t('chat.messageItem.mediaProcessingHint')
+                                                                    : t('chat.messageItem.mediaRetryHint')}
                                                             </div>
                                                             {mediaNormFailed && onRetryMediaNorm && (
                                                                 <button
@@ -928,7 +930,7 @@ const ChatMessageItemComponent = ({
                                                                     }}
                                                                     className="mt-2 rounded-md border border-white/20 px-2 py-1 text-[11px] font-semibold text-cyan-300 hover:bg-white/10"
                                                                 >
-                                                                    Повторить
+                                                                    {t('chat.messageItem.retry')}
                                                                 </button>
                                                             )}
                                                         </div>
@@ -938,7 +940,7 @@ const ChatMessageItemComponent = ({
                                                             <MessageText
                                                                 text={
                                                                     isE2eePending
-                                                                        ? '<p class="text-muted-foreground italic">Расшифровка…</p>'
+                                                                        ? `<p class="text-muted-foreground italic">${t('chat.messageItem.decrypting')}</p>`
                                                                         : displayTextHtml
                                                                 }
                                                                 isCurrentUser={isCurrentUser}

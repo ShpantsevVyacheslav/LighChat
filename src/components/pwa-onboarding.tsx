@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { ShieldCheck, Bell, Camera, Mic, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 
 export function PwaOnboarding() {
+  const { t } = useI18n();
   const [isVisible, setIsVisible] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const { permission: notificationPermission, subscribe } = useNotifications();
@@ -65,9 +67,9 @@ export function PwaOnboarding() {
           <div className="mx-auto w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center mb-4">
             <ShieldCheck className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold">Настройка доступа</CardTitle>
+          <CardTitle className="text-2xl font-bold">{t('pwaOnboarding.title')}</CardTitle>
           <CardDescription>
-            Для полноценной работы LighChat нам нужно ваше разрешение на уведомления и медиа.
+            {t('pwaOnboarding.description')}
           </CardDescription>
         </CardHeader>
         
@@ -77,9 +79,9 @@ export function PwaOnboarding() {
                 <Bell className="h-5 w-5 text-blue-500" />
             </div>
             <div className="flex-1">
-                <p className="text-sm font-bold leading-tight">Уведомления</p>
+                <p className="text-sm font-bold leading-tight">{t('pwaOnboarding.notificationsTitle')}</p>
                 <p className="text-xs text-muted-foreground">
-                  О новых сообщениях, входящих звонках и активности в чатах.
+                  {t('pwaOnboarding.notificationsHint')}
                 </p>
             </div>
           </div>
@@ -89,13 +91,13 @@ export function PwaOnboarding() {
                 <Camera className="h-5 w-5 text-green-500" />
             </div>
             <div className="flex-1">
-                <p className="text-sm font-bold leading-tight">Камера и Микрофон</p>
-                <p className="text-xs text-muted-foreground">Для видеовстреч и записи аудиосообщений.</p>
+                <p className="text-sm font-bold leading-tight">{t('pwaOnboarding.cameraTitle')}</p>
+                <p className="text-xs text-muted-foreground">{t('pwaOnboarding.cameraHint')}</p>
             </div>
           </div>
           
           <p className="text-[10px] text-center text-muted-foreground px-4 italic leading-tight">
-            * Браузер запросит доступ по очереди. Нажмите «Разрешить» в каждом системном окне.
+            {t('pwaOnboarding.browserPromptHint')}
           </p>
         </CardContent>
 
@@ -108,9 +110,9 @@ export function PwaOnboarding() {
             {isProcessing ? (
                 <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Настройка...
+                    {t('pwaOnboarding.processing')}
                 </>
-            ) : "Настроить доступ"}
+            ) : t('pwaOnboarding.enableButton')}
           </Button>
           <Button 
             variant="ghost" 
@@ -120,7 +122,7 @@ export function PwaOnboarding() {
             }} 
             className="text-muted-foreground hover:bg-transparent"
           >
-            Позже
+            {t('pwaOnboarding.later')}
           </Button>
         </CardFooter>
       </Card>

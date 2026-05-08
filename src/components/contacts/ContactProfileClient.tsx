@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
@@ -13,8 +13,8 @@ import { useSettings } from '@/hooks/use-settings';
 import type { PlatformSettingsDoc, User } from '@/lib/types';
 import { canStartDirectChat } from '@/lib/user-chat-policy';
 import { buildDashboardChatOpenUrl } from '@/lib/dashboard-conversation-url';
-import { registrationUsernameKey } from '@/lib/registration-index-keys';
 
+import { useI18n } from '@/hooks/use-i18n';
 import { Button } from '@/components/ui/button';
 
 export function ContactProfileClient({ contactUserId }: { contactUserId: string }) {
@@ -22,109 +22,31 @@ export function ContactProfileClient({ contactUserId }: { contactUserId: string 
   const firestore = useFirestore();
   const { user: currentUser } = useAuth();
   const { privacySettings } = useSettings();
+  const { t } = useI18n();
   const [failed, setFailed] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
-  const [resolvedUserId, setResolvedUserId] = useState<string>(contactUserId);
-  const [resolvingTarget, setResolvingTarget] = useState(true);
   const startedRef = useRef(false);
-
-  useEffect(() => {
-    startedRef.current = false;
-  }, [contactUserId]);
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      if (!firestore) return;
-      const token = contactUserId.trim();
-      if (!token) {
-        if (!active) return;
-        setResolvedUserId('');
-        setResolvingTarget(false);
-        return;
-      }
-      setResolvingTarget(true);
-      setFailed(null);
-      let resolved = '';
-      try {
-        const directSnap = await getDoc(doc(firestore, 'users', token));
-        if (!active) return;
-        if (directSnap.exists()) {
-          resolved = token;
-        }
-      } catch {
-        // `users/{username}` может вернуть permission-denied для несуществующего
-        // документа при строгих правилах чтения. Это не финальная ошибка:
-        // ниже пробуем lookup через registrationIndex.
-      }
-
-      if (!resolved) {
-        const regKey = registrationUsernameKey(token);
-        if (regKey) {
-          try {
-            const regSnap = await getDoc(doc(firestore, 'registrationIndex', regKey));
-            if (!active) return;
-            const uid = typeof regSnap.data()?.uid === 'string' ? regSnap.data()?.uid.trim() : '';
-            if (uid) resolved = uid;
-          } catch {
-            // ignore
-          }
-        }
-      }
-
-      if (!resolved) {
-        const normalized = token.replace(/^@/, '').trim().toLowerCase();
-        if (normalized) {
-          try {
-            const q = query(
-              collection(firestore, 'users'),
-              where('username', '==', normalized),
-              limit(1)
-            );
-            const snap = await getDocs(q);
-            if (!active) return;
-            const hit = snap.docs[0];
-            if (hit?.id) resolved = hit.id;
-          } catch {
-            // ignore
-          }
-        }
-      }
-
-      if (!resolved && token && !registrationUsernameKey(token)) {
-        // Для старых deep-link'ов с uid сохраняем fallback поведение.
-        resolved = token;
-      }
-
-      if (!active) return;
-      setResolvedUserId(resolved);
-      setResolvingTarget(false);
-    })();
-    return () => {
-      active = false;
-    };
-  }, [firestore, contactUserId]);
 
   const contactRef = useMemoFirebase(
     () =>
-      firestore && resolvedUserId
-        ? doc(firestore, 'users', resolvedUserId)
+      firestore && contactUserId
+        ? doc(firestore, 'users', contactUserId)
         : null,
-    [firestore, resolvedUserId]
+    [firestore, contactUserId]
   );
   const { data: contactUser, isLoading } = useDoc<User>(contactRef);
 
   useEffect(() => {
-    if (!resolvingTarget && !isLoading && !contactUser) {
-      setFailed('Контакт не найден или недоступен.');
+    if (!isLoading && !contactUser) {
+      setFailed(t('contacts.profile.notFound'));
     }
-  }, [resolvingTarget, isLoading, contactUser]);
+  }, [isLoading, contactUser]);
 
   useEffect(() => {
     if (startedRef.current) return;
-    if (!firestore || !currentUser || !contactUser || isLoading || resolvingTarget) return;
+    if (!firestore || !currentUser || !contactUser || isLoading) return;
     if (!canStartDirectChat(currentUser, contactUser)) {
-      setFailed('Нельзя открыть чат с этим пользователем.');
+      setFailed(t('contacts.profile.cannotOpenChat'));
       return;
     }
 
@@ -149,14 +71,14 @@ export function ContactProfileClient({ contactUserId }: { contactUserId: string 
         router.replace(
           buildDashboardChatOpenUrl(id, {
             openProfile: true,
-            profileUserId: resolvedUserId,
+            profileUserId: contactUserId,
             profileSource: 'contacts',
           })
         );
       } catch (e) {
         console.error('[ContactProfileClient] open chat/profile failed', e);
         startedRef.current = false;
-        setFailed('Не удалось открыть профиль контакта.');
+        setFailed(t('contacts.profile.openFailed'));
       } finally {
         setOpening(false);
       }
@@ -166,10 +88,9 @@ export function ContactProfileClient({ contactUserId }: { contactUserId: string 
     currentUser,
     contactUser,
     isLoading,
-    resolvedUserId,
+    contactUserId,
     privacySettings.e2eeForNewDirectChats,
     router,
-    resolvingTarget,
   ]);
 
   if (!currentUser) return null;
@@ -186,15 +107,15 @@ export function ContactProfileClient({ contactUserId }: { contactUserId: string 
                 variant="ghost"
                 onClick={() => router.push('/dashboard/contacts')}
               >
-                К контактам
+                {t('contacts.profile.toContacts')}
               </Button>
               <Button
                 type="button"
                 onClick={() =>
-                  router.push(`/dashboard/contacts/${encodeURIComponent(resolvedUserId || contactUserId)}/edit`)
+                  router.push(`/dashboard/contacts/${encodeURIComponent(contactUserId)}/edit`)
                 }
               >
-                Изм. контакт
+                {t('contacts.profile.editContact')}
               </Button>
             </div>
           </div>
@@ -202,7 +123,7 @@ export function ContactProfileClient({ contactUserId }: { contactUserId: string 
           <div className="flex min-h-[180px] flex-col items-center justify-center gap-3">
             <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              {opening || isLoading ? 'Открываем профиль контакта…' : 'Подготовка…'}
+              {opening || isLoading ? t('contacts.profile.openingProfile') : t('contacts.profile.preparing')}
             </p>
           </div>
         )}

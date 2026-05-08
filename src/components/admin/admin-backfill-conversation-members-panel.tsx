@@ -7,6 +7,7 @@ import { getFunctions, httpsCallable, type HttpsCallableResult } from 'firebase/
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 
 type BackfillResponse = {
   ok: boolean;
@@ -22,6 +23,7 @@ type BackfillResponse = {
  * Только для пользователя с role === 'admin' (проверка на сервере).
  */
 export function AdminBackfillConversationMembersPanel() {
+  const { t } = useI18n();
   const firebaseApp = useFirebaseApp();
   const { toast } = useToast();
   const [isRunning, setIsRunning] = useState(false);
@@ -29,7 +31,7 @@ export function AdminBackfillConversationMembersPanel() {
 
   const runBackfill = useCallback(async () => {
     if (!firebaseApp) {
-      toast({ variant: 'destructive', title: 'Firebase не готов', description: 'Перезагрузите страницу.' });
+      toast({ variant: 'destructive', title: t('admin.backfill.firebaseNotReady'), description: t('admin.backfill.firebaseNotReadyDesc') });
       return;
     }
 
@@ -52,7 +54,7 @@ export function AdminBackfillConversationMembersPanel() {
         batches += 1;
         totalSynced += d.syncedConversations ?? 0;
         setLastLog(
-          `Пакет ${batches}: обработано чатов с members ${d.syncedConversations ?? 0}, просмотрено документов ${d.scanned ?? 0}, done=${d.done}`,
+          t('admin.backfill.batchLog').replace('{batch}', String(batches)).replace('{synced}', String(d.syncedConversations ?? 0)).replace('{scanned}', String(d.scanned ?? 0)).replace('{done}', String(d.done)),
         );
         console.info('[backfillConversationMembers]', d);
 
@@ -62,15 +64,15 @@ export function AdminBackfillConversationMembersPanel() {
       }
 
       toast({
-        title: 'Готово',
-        description: `Синхронизация members завершена. Всего пакетов: ${batches}, чатов с обновлённым индексом (сумма по пакетам): ${totalSynced}.`,
+        title: t('admin.backfill.done'),
+        description: t('admin.backfill.doneDesc').replace('{batches}', String(batches)).replace('{synced}', String(totalSynced)),
       });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error('[backfillConversationMembers]', e);
       toast({
         variant: 'destructive',
-        title: 'Ошибка backfill',
+        title: t('admin.backfill.backfillError'),
         description: msg,
       });
     } finally {
@@ -83,13 +85,10 @@ export function AdminBackfillConversationMembersPanel() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Database className="h-5 w-5 text-primary" />
-          Индекс участников чатов (Firestore)
+          {t('admin.backfill.title')}
         </CardTitle>
         <CardDescription>
-          Однократно или после смены правил: создаёт документы{' '}
-          <code className="text-xs">conversations/&lt;id&gt;/members/&lt;uid&gt;</code> по полю{' '}
-          <code className="text-xs">participantIds</code> для всех чатов (пакетами). Нужны задеплоенные
-          Cloud Functions и роль администратора.
+          {t('admin.backfill.description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -102,10 +101,10 @@ export function AdminBackfillConversationMembersPanel() {
           {isRunning ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
-              Синхронизация…
+              {t('admin.backfill.syncing')}
             </>
           ) : (
-            'Заполнить members для всех чатов'
+            t('admin.backfill.runBtn')
           )}
         </Button>
         {lastLog ? <p className="text-xs text-muted-foreground font-mono break-all">{lastLog}</p> : null}

@@ -1,5 +1,4 @@
 'use client';
-import { useI18n } from '@/hooks/use-i18n';
 
 import React, { useMemo, useState } from 'react';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
@@ -23,6 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 import {
   CalendarClock,
   Loader2,
@@ -35,17 +35,19 @@ import {
 import type { ScheduledChatMessage } from '@/lib/types';
 import { ChatScheduleMessageDialog } from '@/components/chat/ChatScheduleMessageDialog';
 
-function previewText(msg: ScheduledChatMessage): string {
-  if (msg.pendingPoll) return '📊 Опрос: ' + msg.pendingPoll.question;
-  if (msg.locationShare) return '📍 Локация';
+function previewText(msg: ScheduledChatMessage, t: (key: string) => string): string {
+  if (msg.pendingPoll) return '📊 ' + t('chat.scheduled.pollPreview') + msg.pendingPoll.question;
+  if (msg.locationShare) return '📍 ' + t('chat.scheduled.locationPreview');
   if (msg.text) {
     const stripped = msg.text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
     if (stripped.length > 0) return stripped;
   }
   if (msg.attachments && msg.attachments.length > 0) {
-    return `📎 Вложение${msg.attachments.length > 1 ? ` (×${msg.attachments.length})` : ''}`;
+    return msg.attachments.length > 1
+      ? '📎 ' + t('chat.scheduled.attachmentMultiplePreview').replace('{count}', String(msg.attachments.length))
+      : '📎 ' + t('chat.scheduled.attachmentPreview');
   }
-  return 'Сообщение';
+  return t('chat.scheduled.messagePreview');
 }
 
 interface Props {
@@ -63,9 +65,9 @@ export function ScheduledMessagesSheet({
   currentUserId,
   e2eeEnabled,
 }: Props) {
-  const { t } = useI18n();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [editing, setEditing] = useState<ScheduledChatMessage | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
@@ -97,11 +99,11 @@ export function ScheduledMessagesSheet({
     setPendingDeleteId(id);
     try {
       await deleteDoc(doc(firestore, `conversations/${conversationId}/scheduledMessages`, id));
-      toast({ title: 'Запланированное сообщение отменено' });
+      toast({ title: t('chat.scheduled.cancelled') });
     } catch (e) {
       toast({
         variant: 'destructive',
-        title: 'Не удалось отменить',
+        title: t('chat.scheduled.cancelError'),
         description: e instanceof Error ? e.message : String(e),
       });
     } finally {
@@ -117,13 +119,13 @@ export function ScheduledMessagesSheet({
         updatedAt: new Date().toISOString(),
       });
       toast({
-        title: 'Время отправки изменено',
+        title: t('chat.scheduled.rescheduled'),
         description: format(sendAt, 'd MMMM yyyy, HH:mm', { locale: ru }),
       });
     } catch (e) {
       toast({
         variant: 'destructive',
-        title: 'Не удалось перенести',
+        title: t('chat.scheduled.rescheduleError'),
         description: e instanceof Error ? e.message : String(e),
       });
     }
@@ -136,7 +138,7 @@ export function ScheduledMessagesSheet({
           <SheetHeader className="px-4 py-3 border-b">
             <SheetTitle className="flex items-center gap-2">
               <CalendarClock className="h-5 w-5 text-primary" />
-              Запланированные сообщения
+              {t('chat.scheduled.title')}
               {items.length > 0 && (
                 <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/15 px-1.5 text-xs font-semibold text-primary">
                   {items.length}
@@ -153,10 +155,10 @@ export function ScheduledMessagesSheet({
             )}
             {!isLoading && items.length === 0 && (
               <div className="text-center text-sm text-muted-foreground py-10">
-                Нет запланированных сообщений в этом чате.
+                {t('chat.scheduled.emptyText')}
                 <br />
                 <span className="text-xs">
-                  Удерживайте кнопку «Отправить», чтобы запланировать.
+                  {t('chat.scheduled.emptyHint')}
                 </span>
               </div>
             )}
@@ -191,13 +193,13 @@ export function ScheduledMessagesSheet({
                           </span>
                         </div>
                         <div className="mt-1.5 text-sm text-foreground line-clamp-3 break-words">
-                          {previewText(m)}
+                          {previewText(m, t)}
                         </div>
                         <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                           {m.replyTo && (
                             <span className="inline-flex items-center gap-1">
                               <Reply className="h-3 w-3" />
-                              ответ {m.replyTo.senderName ? `«${m.replyTo.senderName}»` : ''}
+                              {t('chat.scheduled.replyLabel')} {m.replyTo.senderName ? `«${m.replyTo.senderName}»` : ''}
                             </span>
                           )}
                           {m.attachments && m.attachments.length > 0 && (
@@ -214,7 +216,7 @@ export function ScheduledMessagesSheet({
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => setEditing(m)}
-                          title="Изменить время"
+                          title={t('chat.scheduled.editTimeTitle')}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -224,7 +226,7 @@ export function ScheduledMessagesSheet({
                           className="h-8 w-8 text-destructive hover:text-destructive"
                           onClick={() => handleDelete(m.id)}
                           disabled={pendingDeleteId === m.id}
-                          title="Отменить"
+                          title={t('chat.scheduled.cancelTitle')}
                         >
                           {pendingDeleteId === m.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -243,8 +245,7 @@ export function ScheduledMessagesSheet({
               <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-[11px] text-amber-900 dark:text-amber-200 flex gap-2">
                 <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
                 <span>
-                  В E2EE-чате запланированные сообщения хранятся и публикуются
-                  в открытом виде.
+                  {t('chat.scheduled.e2eeWarning')}
                 </span>
               </div>
             )}
@@ -264,7 +265,7 @@ export function ScheduledMessagesSheet({
             }
           })()}
           showE2eeWarning={e2eeEnabled}
-          confirmLabel="Сохранить"
+          confirmLabel={t('chat.scheduled.saveLabel')}
           onConfirm={handleReschedule}
         />
       )}

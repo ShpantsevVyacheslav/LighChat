@@ -6,6 +6,7 @@ import { Info, AlertTriangle, Wrench, Sparkles, X } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import type { Announcement, AnnouncementType } from '@/lib/types';
+import { useI18n } from '@/hooks/use-i18n';
 
 const ICONS: Record<AnnouncementType, React.ElementType> = {
   info: Info,
@@ -42,6 +43,7 @@ function addDismissed(id: string) {
 export function AnnouncementBanner() {
   const firestore = useFirestore();
   const { user } = useAuth();
+  const { t } = useI18n();
   const [items, setItems] = useState<Announcement[]>([]);
   const [dismissed, setDismissed] = useState<string[]>([]);
 
@@ -89,7 +91,7 @@ export function AnnouncementBanner() {
               <button
                 onClick={() => dismiss(a.id)}
                 className="rounded-lg p-1 hover:bg-black/5 dark:hover:bg-white/5"
-                aria-label="Закрыть"
+                aria-label={t('common.close')}
               >
                 <X className="h-4 w-4" />
               </button>

@@ -17,15 +17,16 @@ import { doc, updateDoc } from 'firebase/firestore';
 import type { Firestore } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 
 export type BlockDurationPreset = 'forever' | '1h' | '24h' | '7d' | '30d' | 'custom';
 
-const PRESETS: { id: Exclude<BlockDurationPreset, 'custom'>; label: string; ms: number | null }[] = [
-  { id: 'forever', label: 'Навсегда (до разблокировки админом)', ms: null },
-  { id: '1h', label: '1 час', ms: 60 * 60 * 1000 },
-  { id: '24h', label: '24 часа', ms: 24 * 60 * 60 * 1000 },
-  { id: '7d', label: '7 дней', ms: 7 * 24 * 60 * 60 * 1000 },
-  { id: '30d', label: '30 дней', ms: 30 * 24 * 60 * 60 * 1000 },
+const PRESET_KEYS: { id: Exclude<BlockDurationPreset, 'custom'>; labelKey: string; ms: number | null }[] = [
+  { id: 'forever', labelKey: 'admin.blockDialog.forever', ms: null },
+  { id: '1h', labelKey: 'admin.blockDialog.oneHour', ms: 60 * 60 * 1000 },
+  { id: '24h', labelKey: 'admin.blockDialog.twentyFourHours', ms: 24 * 60 * 60 * 1000 },
+  { id: '7d', labelKey: 'admin.blockDialog.sevenDays', ms: 7 * 24 * 60 * 60 * 1000 },
+  { id: '30d', labelKey: 'admin.blockDialog.thirtyDays', ms: 30 * 24 * 60 * 60 * 1000 },
 ];
 
 interface UserBlockDialogProps {
@@ -48,6 +49,7 @@ export function UserBlockDialog({
   const [preset, setPreset] = useState<BlockDurationPreset>('24h');
   const [customDays, setCustomDays] = useState('3');
   const [loading, setLoading] = useState(false);
+  const { t } = useI18n();
   const { toast } = useToast();
 
   const computeUntilIso = (): string | null => {
@@ -56,7 +58,7 @@ export function UserBlockDialog({
       const d = Math.max(1, parseInt(customDays, 10) || 1);
       return new Date(Date.now() + d * 24 * 60 * 60 * 1000).toISOString();
     }
-    const p = PRESETS.find((x) => x.id === preset);
+    const p = PRESET_KEYS.find((x) => x.id === preset);
     if (!p || p.ms == null) return null;
     return new Date(Date.now() + p.ms).toISOString();
   };
@@ -74,12 +76,12 @@ export function UserBlockDialog({
           blockedBy: blockedById,
         },
       });
-      toast({ title: 'Пользователь заблокирован' });
+      toast({ title: t('admin.blockDialog.blocked') });
       onOpenChange(false);
       onDone?.();
     } catch (e) {
       console.error(e);
-      toast({ variant: 'destructive', title: 'Не удалось заблокировать' });
+      toast({ variant: 'destructive', title: t('admin.blockDialog.blockError') });
     } finally {
       setLoading(false);
     }
@@ -89,37 +91,32 @@ export function UserBlockDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-2xl sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Заблокировать пользователя</DialogTitle>
+          <DialogTitle>{t('admin.blockDialog.title')}</DialogTitle>
           <DialogDescription>
-            {target ? (
-              <>
-                Учётная запись <strong>{target.name}</strong> не сможет войти в приложение до истечения срока или
-                разблокировки.
-              </>
-            ) : null}
+            {target ? t('admin.blockDialog.description').replace('{name}', target.name) : null}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          <Label>Срок</Label>
+          <Label>{t('admin.blockDialog.durationLabel')}</Label>
           <RadioGroup
             value={preset}
             onValueChange={(v) => setPreset(v as BlockDurationPreset)}
             className="grid gap-2"
             disabled={loading}
           >
-            {PRESETS.map((p) => (
+            {PRESET_KEYS.map((p) => (
               <label
                 key={p.id}
                 className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/70 p-3 has-[[data-state=checked]]:border-primary/50"
               >
                 <RadioGroupItem value={p.id} id={`block-${p.id}`} />
-                <span className="text-sm">{p.label}</span>
+                <span className="text-sm">{t(p.labelKey)}</span>
               </label>
             ))}
             <label className="flex flex-col gap-2 rounded-xl border border-border/70 p-3 has-[[data-state=checked]]:border-primary/50">
               <div className="flex items-center gap-3">
                 <RadioGroupItem value="custom" id="block-custom" />
-                <span className="text-sm">Свой срок (дней)</span>
+                <span className="text-sm">{t('admin.blockDialog.customDays')}</span>
               </div>
               {preset === 'custom' && (
                 <Input
@@ -136,10 +133,10 @@ export function UserBlockDialog({
         </div>
         <DialogFooter className="gap-2">
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={loading}>
-            Отмена
+            {t('admin.blockDialog.cancel')}
           </Button>
           <Button type="button" variant="destructive" onClick={() => void handleSubmit()} disabled={loading || !target}>
-            Заблокировать
+            {t('admin.blockDialog.block')}
           </Button>
         </DialogFooter>
       </DialogContent>

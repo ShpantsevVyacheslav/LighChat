@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
+import { useI18n } from '@/hooks/use-i18n';
 
 type BlockedUsersPageClientProps = {
   currentUserId: string;
@@ -20,6 +21,7 @@ export function BlockedUsersPageClient({ currentUserId }: BlockedUsersPageClient
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const selfRef = useMemoFirebase(
@@ -50,10 +52,10 @@ export function BlockedUsersPageClient({ currentUserId }: BlockedUsersPageClient
         await updateDoc(doc(firestore, 'users', currentUserId), {
           blockedUserIds: arrayRemove(targetId),
         });
-        toast({ title: 'Пользователь разблокирован' });
+        toast({ title: t('profile.blockedPage.unblocked') });
       } catch (e) {
         console.error('[BlockedUsersPageClient] unblock', e);
-        toast({ variant: 'destructive', title: 'Не удалось разблокировать' });
+        toast({ variant: 'destructive', title: t('profile.blockedPage.unblockError') });
       } finally {
         setBusyId(null);
       }
@@ -68,12 +70,12 @@ export function BlockedUsersPageClient({ currentUserId }: BlockedUsersPageClient
       <div className="flex items-center gap-3">
         <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => router.back()}>
           <ArrowLeft className="h-5 w-5" />
-          <span className="sr-only">Назад</span>
+          <span className="sr-only">{t('profile.blockedPage.backSr')}</span>
         </Button>
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight">Заблокированные</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t('profile.blockedPage.title')}</h1>
           <p className="text-sm text-muted-foreground">
-            Учётные записи, с которыми недоступны личные сообщения и звонки, пока они в списке.
+            {t('profile.blockedPage.description')}
           </p>
         </div>
       </div>
@@ -84,12 +86,12 @@ export function BlockedUsersPageClient({ currentUserId }: BlockedUsersPageClient
         </div>
       ) : rows.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-muted-foreground/30 p-8 text-center text-sm text-muted-foreground">
-          Список пуст. Заблокировать пользователя можно из профиля чата (меню «Заблокировать»).
+          {t('profile.blockedPage.emptyHint')}
         </div>
       ) : (
         <ul className="divide-y rounded-2xl border bg-card">
           {rows.map(({ id, user }) => {
-            const name = user?.name?.trim() || 'Пользователь';
+            const name = user?.name?.trim() || t('profile.blockedPage.fallbackName');
             const avatarUrl = user ? userAvatarListUrl(user) : '';
             const initial = name.slice(0, 1).toUpperCase();
             return (
@@ -101,7 +103,7 @@ export function BlockedUsersPageClient({ currentUserId }: BlockedUsersPageClient
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{name}</p>
                   {!user ? (
-                    <p className="text-xs text-muted-foreground">Профиль недоступен для просмотра</p>
+                    <p className="text-xs text-muted-foreground">{t('profile.blockedPage.profileUnavailable')}</p>
                   ) : null}
                 </div>
                 <Button
@@ -117,7 +119,7 @@ export function BlockedUsersPageClient({ currentUserId }: BlockedUsersPageClient
                   ) : (
                     <UserX className="h-4 w-4" aria-hidden />
                   )}
-                  Разблокировать
+                  {t('profile.blockedPage.unblock')}
                 </Button>
               </li>
             );

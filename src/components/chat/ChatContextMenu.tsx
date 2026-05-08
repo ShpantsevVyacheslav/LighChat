@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/hooks/use-i18n';
 import { Eraser, Trash2, FolderEdit, Pin, PinOff, CheckCheck } from 'lucide-react';
 import type { Conversation, User } from '@/lib/types';
 import { isSavedMessagesChat } from '@/lib/saved-messages-chat';
@@ -30,6 +31,7 @@ export function ChatContextMenu({
     onMarkAllRead,
 }: ChatContextMenuProps) {
     const router = useRouter();
+    const { t } = useI18n();
 
     const isAlreadyCleared = conv.clearedAt?.[currentUser.id] && 
         (!conv.lastMessageTimestamp || new Date(conv.clearedAt[currentUser.id]) >= new Date(conv.lastMessageTimestamp));
@@ -58,7 +60,7 @@ export function ChatContextMenu({
                         }}
                         className="w-full flex items-center px-3 py-2 text-sm hover:bg-white/10 rounded-xl transition-colors text-left font-medium"
                     >
-                        <FolderEdit className="mr-3 h-4 w-4 opacity-60 text-primary" /> Папки
+                        <FolderEdit className="mr-3 h-4 w-4 opacity-60 text-primary" /> {t('chat.chatContextMenu.folders')}
                     </button>
                 )}
 
@@ -73,11 +75,11 @@ export function ChatContextMenu({
                 >
                     {isPinnedInFolder ? (
                         <>
-                            <PinOff className="mr-3 h-4 w-4 opacity-60 text-amber-500" /> Открепить в этой папке
+                            <PinOff className="mr-3 h-4 w-4 opacity-60 text-amber-500" /> {t('chat.chatContextMenu.unpinInFolder')}
                         </>
                     ) : (
                         <>
-                            <Pin className="mr-3 h-4 w-4 opacity-60 text-amber-500" /> Закрепить в этой папке
+                            <Pin className="mr-3 h-4 w-4 opacity-60 text-amber-500" /> {t('chat.chatContextMenu.pinInFolder')}
                         </>
                     )}
                 </button>
@@ -87,7 +89,7 @@ export function ChatContextMenu({
                     onClick={() => { router.push(`/dashboard/chat/${conv.id}/clear`); onClose(); }}
                     className="w-full flex items-center px-3 py-2 text-sm hover:bg-white/10 rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-left"
                 >
-                    <Eraser className="mr-3 h-4 w-4 opacity-60" /> Очистить историю
+                    <Eraser className="mr-3 h-4 w-4 opacity-60" /> {t('chat.chatContextMenu.clearHistory')}
                 </button>
                 <button
                     disabled={!canMarkAllRead}
@@ -97,14 +99,14 @@ export function ChatContextMenu({
                     }}
                     className="w-full flex items-center px-3 py-2 text-sm hover:bg-white/10 rounded-xl transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-left"
                 >
-                    <CheckCheck className="mr-3 h-4 w-4 opacity-60 text-emerald-500" /> Прочитать все
+                    <CheckCheck className="mr-3 h-4 w-4 opacity-60 text-emerald-500" /> {t('chat.chatContextMenu.markAllRead')}
                 </button>
                 {!conv.isGroup && !isSavedMessagesChat(conv, currentUser.id) && (
                     <button 
                         onClick={() => { router.push(`/dashboard/chat/${conv.id}/delete`); onClose(); }}
                         className="w-full flex items-center px-3 py-2 text-sm hover:bg-red-500/20 text-destructive rounded-xl transition-colors font-bold text-left"
                     >
-                        <Trash2 className="mr-3 h-4 w-4" /> Удалить чат
+                        <Trash2 className="mr-3 h-4 w-4" /> {t('chat.chatContextMenu.deleteChat')}
                     </button>
                 )}
             </div>

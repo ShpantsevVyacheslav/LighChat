@@ -16,6 +16,7 @@ import {
   tryOpenAndroidBrowserApplicationSettings,
 } from '@/lib/contact-permission-settings';
 import { isPwaDisplayMode } from '@/lib/pwa-display-mode';
+import { useI18n } from '@/hooks/use-i18n';
 
 export type ContactsPermissionGuideDialogProps = {
   open: boolean;
@@ -37,6 +38,7 @@ export function ContactsPermissionGuideDialog({
   onImportNow,
   syncBusy,
 }: ContactsPermissionGuideDialogProps) {
+  const { t } = useI18n();
   const standalone = typeof window !== 'undefined' && isPwaDisplayMode();
   const showAndroidOpenSettings = shouldOfferAndroidSettingsButton();
 
@@ -48,35 +50,29 @@ export function ContactsPermissionGuideDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[min(100%,400px)] rounded-2xl border border-border/60 sm:rounded-2xl" showCloseButton>
         <DialogHeader>
-          <DialogTitle className="text-lg">Доступ к контактам</DialogTitle>
+          <DialogTitle className="text-lg">{t('contacts.permissionGuide.title')}</DialogTitle>
           <DialogDescription>
-            В веб-приложении нельзя принудительно открыть экран контактов в «Настройках» на iPhone — это
-            ограничение Safari и PWA. Ниже — пошагово, что сделать вручную; на Android можно открыть настройки
-            браузера.
+            {t('contacts.permissionGuide.description')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 text-sm text-muted-foreground">
           {standalone ? (
             <ol className="list-decimal space-y-1.5 pl-4 text-foreground/90">
-              <li>Откройте приложение «Настройки» на устройстве.</li>
-              <li>Прокрутите список приложений и выберите «LighChat» (как у ярлыка на экране «Домой»).</li>
-              <li>Нажмите «Контакты» и включите доступ (или «Полный доступ», если доступно).</li>
-              <li>Вернитесь в LighChat и снова нажмите синюю кнопку или «Импортировать контакты сейчас».</li>
+              <li>{t('contacts.permissionGuide.pwaStep1')}</li>
+              <li>{t('contacts.permissionGuide.pwaStep2')}</li>
+              <li>{t('contacts.permissionGuide.pwaStep3')}</li>
+              <li>{t('contacts.permissionGuide.pwaStep4')}</li>
             </ol>
           ) : (
             <ol className="list-decimal space-y-1.5 pl-4 text-foreground/90">
-              <li>Откройте «Настройки» на iPhone.</li>
-              <li>
-                Если LighChat на экране «Домой», найдите в списке приложений пункт «LighChat». В Safari — при
-                открытии только в браузере настройки контактов могут быть у приложения браузера или сайта.
-              </li>
-              <li>Включите доступ к контактам и вернитесь в LighChat.</li>
+              <li>{t('contacts.permissionGuide.browserStep1')}</li>
+              <li>{t('contacts.permissionGuide.browserStep2')}</li>
+              <li>{t('contacts.permissionGuide.browserStep3')}</li>
             </ol>
           )}
           {showAndroidOpenSettings && (
             <p className="rounded-lg bg-muted/60 px-3 py-2 text-foreground/90">
-              На Android кнопка ниже открывает карточку приложения <strong>браузера</strong>. Далее: «Разрешения»
-              → «Контакты».
+              {t('contacts.permissionGuide.androidHint')}
             </p>
           )}
         </div>
@@ -88,7 +84,7 @@ export function ContactsPermissionGuideDialog({
               variant="default"
               onClick={handleOpenAndroidSettings}
             >
-              Открыть настройки браузера
+              {t('contacts.permissionGuide.openBrowserSettings')}
             </Button>
           )}
           {hasConsent ? (
@@ -103,7 +99,7 @@ export function ContactsPermissionGuideDialog({
               }}
             >
               {syncBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Импортировать контакты сейчас
+              {t('contacts.permissionGuide.importNow')}
             </Button>
           ) : (
             <Button
@@ -115,11 +111,11 @@ export function ContactsPermissionGuideDialog({
                 onRequestConsent();
               }}
             >
-              Запросить доступ к контактам
+              {t('contacts.permissionGuide.requestAccess')}
             </Button>
           )}
           <Button type="button" variant="outline" className="h-11 w-full rounded-xl" onClick={() => onOpenChange(false)}>
-            Закрыть
+            {t('common.close')}
           </Button>
         </DialogFooter>
       </DialogContent>

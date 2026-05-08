@@ -1,5 +1,4 @@
 'use client';
-import { useI18n } from '@/hooks/use-i18n';
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,19 +20,20 @@ import {
   hideMessageAction,
 } from '@/actions/moderation-actions';
 import type { MessageReport, ReportStatus } from '@/lib/types';
+import { useI18n } from '@/hooks/use-i18n';
 
-const REASON_LABELS: Record<string, string> = {
-  spam: 'Спам',
-  harassment: 'Оскорбление',
-  inappropriate: 'Неприемлемый контент',
-  other: 'Другое',
+const REASON_LABEL_KEYS: Record<string, string> = {
+  spam: 'admin.moderation.reasonSpam',
+  harassment: 'admin.moderation.reasonHarassment',
+  inappropriate: 'admin.moderation.reasonInappropriate',
+  other: 'admin.moderation.reasonOther',
 };
 
-const STATUS_LABELS: Record<ReportStatus, string> = {
-  pending: 'Ожидает',
-  reviewed: 'Просмотрено',
-  action_taken: 'Приняты меры',
-  dismissed: 'Отклонено',
+const STATUS_LABEL_KEYS: Record<ReportStatus, string> = {
+  pending: 'admin.moderation.statusPending',
+  reviewed: 'admin.moderation.statusReviewed',
+  action_taken: 'admin.moderation.statusActionTaken',
+  dismissed: 'admin.moderation.statusDismissed',
 };
 
 const STATUS_COLORS: Record<ReportStatus, string> = {
@@ -85,7 +85,7 @@ export function AdminModerationPanel() {
         status: 'action_taken',
         actionTaken: 'hidden',
       });
-      toast({ title: t('chat.moderationHidden') });
+      toast({ title: t('admin.moderation.messageHiddenToast') });
       load();
     } else {
       toast({ variant: 'destructive', title: hideRes.error });
@@ -104,7 +104,7 @@ export function AdminModerationPanel() {
       actionTaken: 'none',
     });
     if (res.ok) {
-      toast({ title: 'Жалоба отклонена' });
+      toast({ title: t('admin.moderation.reportDismissed') });
       load();
     }
     setActing(null);
@@ -120,37 +120,37 @@ export function AdminModerationPanel() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <ShieldAlert className="h-5 w-5 text-primary" />
-          Модерация контента
+          {t('admin.moderation.title')}
         </CardTitle>
-        <CardDescription>Жалобы пользователей на сообщения в чатах.</CardDescription>
+        <CardDescription>{t('admin.moderation.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ReportStatus | 'all')}>
           <SelectTrigger className="w-[180px] rounded-xl">
-            <SelectValue placeholder="Статус" />
+            <SelectValue placeholder={t('admin.moderation.statusPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все</SelectItem>
-            <SelectItem value="pending">Ожидают</SelectItem>
-            <SelectItem value="action_taken">Приняты меры</SelectItem>
-            <SelectItem value="dismissed">Отклонено</SelectItem>
+            <SelectItem value="all">{t('admin.moderation.statusAll')}</SelectItem>
+            <SelectItem value="pending">{t('admin.moderation.statusPending')}</SelectItem>
+            <SelectItem value="action_taken">{t('admin.moderation.statusActionTaken')}</SelectItem>
+            <SelectItem value="dismissed">{t('admin.moderation.statusDismissed')}</SelectItem>
           </SelectContent>
         </Select>
 
         {loading ? (
           <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : reports.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-8">Жалоб нет.</p>
+          <p className="text-center text-sm text-muted-foreground py-8">{t('admin.moderation.noReports')}</p>
         ) : (
           <div className="space-y-3">
             {reports.map((r) => (
               <div key={r.id} className="rounded-2xl border p-4 space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary" className={`text-[10px] ${STATUS_COLORS[r.status]}`}>
-                    {STATUS_LABELS[r.status]}
+                    {t(STATUS_LABEL_KEYS[r.status])}
                   </Badge>
                   <Badge variant="outline" className="text-[10px]">
-                    {REASON_LABELS[r.reason] ?? r.reason}
+                    {REASON_LABEL_KEYS[r.reason] ? t(REASON_LABEL_KEYS[r.reason]) : r.reason}
                   </Badge>
                   <span className="text-xs text-muted-foreground ml-auto">{formatDate(r.createdAt)}</span>
                 </div>
@@ -162,9 +162,9 @@ export function AdminModerationPanel() {
                 )}
 
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>Автор: <strong>{r.messageSenderName ?? r.messageSenderId}</strong></span>
+                  <span>{t('admin.moderation.authorLabel')} <strong>{r.messageSenderName ?? r.messageSenderId}</strong></span>
                   <span>&middot;</span>
-                  <span>Жалоба от: {r.reporterName}</span>
+                  <span>{t('admin.moderation.reportedByLabel')} {r.reporterName}</span>
                 </div>
 
                 {r.description && (
@@ -181,7 +181,7 @@ export function AdminModerationPanel() {
                       disabled={acting === r.id}
                     >
                       {acting === r.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
-                      Скрыть сообщение
+                      {t('admin.moderation.hideMessage')}
                     </Button>
                     <Button
                       size="sm"
@@ -190,14 +190,14 @@ export function AdminModerationPanel() {
                       onClick={() => handleDismiss(r)}
                       disabled={acting === r.id}
                     >
-                      <X className="h-3 w-3 mr-1" /> Отклонить
+                      <X className="h-3 w-3 mr-1" /> {t('admin.moderation.dismiss')}
                     </Button>
                   </div>
                 )}
 
                 {r.status === 'action_taken' && (
                   <div className="flex items-center gap-1 text-xs text-green-600">
-                    <Check className="h-3 w-3" /> Меры приняты
+                    <Check className="h-3 w-3" /> {t('admin.moderation.actionTakenLabel')}
                   </div>
                 )}
               </div>

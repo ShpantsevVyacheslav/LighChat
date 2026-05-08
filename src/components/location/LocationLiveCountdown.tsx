@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 
 function formatRemaining(ms: number): string {
   if (ms <= 0) return '0:00';
@@ -32,6 +33,7 @@ export function LocationLiveCountdown({
   compact = false,
   className,
 }: LocationLiveCountdownProps) {
+  const { t } = useI18n();
   const [remainingMs, setRemainingMs] = useState<number | null>(null);
 
   useEffect(() => {
@@ -65,7 +67,7 @@ export function LocationLiveCountdown({
         <span className="tabular-nums">{formatRemaining(remainingMs)}</span>
       ) : (
         <span>
-          <span className="text-muted-foreground">Осталось </span>
+          <span className="text-muted-foreground">{t('liveLocation.remaining')}</span>
           <span className="tabular-nums">{formatRemaining(remainingMs)}</span>
         </span>
       )}

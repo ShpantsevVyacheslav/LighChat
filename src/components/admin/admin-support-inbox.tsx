@@ -21,12 +21,13 @@ import {
   updateTicketStatusAction,
 } from '@/actions/support-ticket-actions';
 import type { SupportTicket, SupportTicketMessage, TicketStatus } from '@/lib/types';
+import { useI18n } from '@/hooks/use-i18n';
 
-const STATUS_LABELS: Record<TicketStatus, string> = {
-  open: 'Открыто',
-  in_progress: 'В работе',
-  resolved: 'Решено',
-  closed: 'Закрыто',
+const STATUS_LABEL_KEYS: Record<TicketStatus, string> = {
+  open: 'adminPage.supportStatusLabels.open',
+  in_progress: 'adminPage.supportStatusLabels.in_progress',
+  resolved: 'adminPage.supportStatusLabels.resolved',
+  closed: 'adminPage.supportStatusLabels.closed',
 };
 
 const STATUS_COLORS: Record<TicketStatus, string> = {
@@ -36,20 +37,21 @@ const STATUS_COLORS: Record<TicketStatus, string> = {
   closed: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
 };
 
-const PRIORITY_LABELS: Record<string, string> = {
-  low: 'Низкий',
-  medium: 'Средний',
-  high: 'Высокий',
+const PRIORITY_LABEL_KEYS: Record<string, string> = {
+  low: 'adminPage.supportPriorityLabels.low',
+  medium: 'adminPage.supportPriorityLabels.medium',
+  high: 'adminPage.supportPriorityLabels.high',
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  bug: 'Баг',
-  account: 'Аккаунт',
-  feature: 'Предложение',
-  other: 'Другое',
+const CATEGORY_LABEL_KEYS: Record<string, string> = {
+  bug: 'adminPage.supportCategoryLabels.bug',
+  account: 'adminPage.supportCategoryLabels.account',
+  feature: 'adminPage.supportCategoryLabels.feature',
+  other: 'adminPage.supportCategoryLabels.other',
 };
 
 export function AdminSupportInbox() {
+  const { t } = useI18n();
   const firebaseAuth = useFirebaseAuth();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -122,7 +124,7 @@ export function AdminSupportInbox() {
             <div className="min-w-0 flex-1">
               <CardTitle className="text-lg truncate">{selectedTicket.subject}</CardTitle>
               <CardDescription>
-                {selectedTicket.userName} &middot; {CATEGORY_LABELS[selectedTicket.category]} &middot; {formatDate(selectedTicket.createdAt)}
+                {selectedTicket.userName} &middot; {t(CATEGORY_LABEL_KEYS[selectedTicket.category])} &middot; {formatDate(selectedTicket.createdAt)}
               </CardDescription>
             </div>
             <Select value={selectedTicket.status} onValueChange={(v) => changeStatus(v as TicketStatus)}>
@@ -130,8 +132,8 @@ export function AdminSupportInbox() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(STATUS_LABELS) as TicketStatus[]).map((s) => (
-                  <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+                {(Object.keys(STATUS_LABEL_KEYS) as TicketStatus[]).map((s) => (
+                  <SelectItem key={s} value={s}>{t(STATUS_LABEL_KEYS[s])}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -147,7 +149,7 @@ export function AdminSupportInbox() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-medium text-xs">{m.senderName}</span>
                     <span className="text-xs text-muted-foreground">{formatDate(m.createdAt)}</span>
-                    {m.senderRole === 'admin' && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Админ</Badge>}
+                    {m.senderRole === 'admin' && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{t('adminPage.support.adminLabel')}</Badge>}
                   </div>
                   <p className="whitespace-pre-wrap">{m.text}</p>
                 </div>
@@ -159,7 +161,7 @@ export function AdminSupportInbox() {
             <Textarea
               value={reply}
               onChange={(e) => setReply(e.target.value)}
-              placeholder="Ответ..."
+              placeholder={t('adminPage.support.replyPlaceholder')}
               className="rounded-xl min-h-[60px] resize-none"
             />
             <Button
@@ -181,19 +183,19 @@ export function AdminSupportInbox() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <MessageSquare className="h-5 w-5 text-primary" />
-          Обращения пользователей
+          {t('adminPage.support.title')}
         </CardTitle>
-        <CardDescription>Тикеты поступают от пользователей из раздела «Помощь».</CardDescription>
+        <CardDescription>{t('adminPage.support.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as TicketStatus | 'all')}>
           <SelectTrigger className="w-[180px] rounded-xl">
-            <SelectValue placeholder="Все статусы" />
+            <SelectValue placeholder={t('adminPage.support.allStatuses')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все статусы</SelectItem>
-            {(Object.keys(STATUS_LABELS) as TicketStatus[]).map((s) => (
-              <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+            <SelectItem value="all">{t('adminPage.support.allStatuses')}</SelectItem>
+            {(Object.keys(STATUS_LABEL_KEYS) as TicketStatus[]).map((s) => (
+              <SelectItem key={s} value={s}>{t(STATUS_LABEL_KEYS[s])}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -201,28 +203,28 @@ export function AdminSupportInbox() {
         {loading ? (
           <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : tickets.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-8">Обращений пока нет.</p>
+          <p className="text-center text-sm text-muted-foreground py-8">{t('adminPage.support.noTickets')}</p>
         ) : (
           <div className="space-y-2">
-            {tickets.map((t) => (
+            {tickets.map((ticket) => (
               <button
-                key={t.id}
-                onClick={() => openTicket(t)}
+                key={ticket.id}
+                onClick={() => openTicket(ticket)}
                 className="w-full text-left rounded-2xl border p-3 hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium text-sm truncate flex-1">{t.subject}</span>
-                  <Badge variant="secondary" className={`text-[10px] ${STATUS_COLORS[t.status]}`}>
-                    {STATUS_LABELS[t.status]}
+                  <span className="font-medium text-sm truncate flex-1">{ticket.subject}</span>
+                  <Badge variant="secondary" className={`text-[10px] ${STATUS_COLORS[ticket.status]}`}>
+                    {t(STATUS_LABEL_KEYS[ticket.status])}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{t.userName}</span>
+                  <span>{ticket.userName}</span>
                   <span>&middot;</span>
-                  <span>{CATEGORY_LABELS[t.category]}</span>
+                  <span>{t(CATEGORY_LABEL_KEYS[ticket.category])}</span>
                   <span>&middot;</span>
-                  <span>{PRIORITY_LABELS[t.priority]}</span>
-                  <span className="ml-auto">{formatDate(t.createdAt)}</span>
+                  <span>{t(PRIORITY_LABEL_KEYS[ticket.priority])}</span>
+                  <span className="ml-auto">{formatDate(ticket.createdAt)}</span>
                 </div>
               </button>
             ))}

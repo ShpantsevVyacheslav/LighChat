@@ -17,6 +17,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import type { UserStickerPackDoc } from '@/lib/user-sticker-packs';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 
 type StickerPackPickerDialogProps = {
   open: boolean;
@@ -43,6 +44,7 @@ export function StickerPackPickerDialog({
   onConfirmPack,
   createPack,
 }: StickerPackPickerDialogProps) {
+  const { t } = useI18n();
   const firestore = useFirestore();
   const packsQuery = useMemoFirebase(() => {
     if (!firestore || !userId) return null;
@@ -119,7 +121,7 @@ export function StickerPackPickerDialog({
               disabled={combinedBusy}
               onClick={() => setNewPackOpen(true)}
             >
-              Новый пак
+              {t('chat.stickerPicker.newPack')}
             </Button>
           </div>
           <ScrollArea className="max-h-[220px] pr-2">
@@ -129,7 +131,7 @@ export function StickerPackPickerDialog({
               </div>
             ) : !packs?.length ? (
               <p className="py-6 text-center text-xs text-muted-foreground">
-                Нет паков. Создайте первый кнопкой «Новый пак».
+                {t('chat.stickerPicker.noPacks')}
               </p>
             ) : (
               <div className="flex flex-col gap-1">
@@ -159,7 +161,7 @@ export function StickerPackPickerDialog({
               disabled={combinedBusy}
               onClick={() => onOpenChange(false)}
             >
-              Отмена
+              {t('common.cancel')}
             </Button>
             <Button
               type="button"
@@ -167,7 +169,7 @@ export function StickerPackPickerDialog({
               disabled={combinedBusy || !selectedPackId || !packs?.length}
               onClick={() => void handleSave()}
             >
-              {combinedBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Сохранить'}
+              {combinedBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : t('common.save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -180,22 +182,22 @@ export function StickerPackPickerDialog({
           onMouseDown={(e) => e.stopPropagation()}
         >
           <DialogHeader>
-            <DialogTitle>Новый стикерпак</DialogTitle>
+            <DialogTitle>{t('chat.stickerPicker.newStickerPack')}</DialogTitle>
           </DialogHeader>
           <Input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="Название"
+            placeholder={t('chat.stickerPicker.namePlaceholder')}
             className="rounded-xl"
             maxLength={80}
             onKeyDown={(e) => e.key === 'Enter' && void handleCreate()}
           />
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" className="rounded-xl" onClick={() => setNewPackOpen(false)}>
-              Назад
+              {t('common.back')}
             </Button>
             <Button type="button" className="rounded-xl" disabled={combinedBusy} onClick={() => void handleCreate()}>
-              {combinedBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Создать и сохранить'}
+              {combinedBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : t('chat.stickerPicker.createAndSave')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ArrowLeft, Crown, MessageCircle, MoreVertical, ShieldOff, UserX } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 import { canShowOnlineStatus } from '@/lib/presence-visibility';
 
 function resolveGroupMemberUser(
@@ -45,7 +46,7 @@ function resolveGroupMemberUser(
   const info = participantInfo[id];
   return {
     id,
-    name: info?.name ?? 'Участник',
+    name: info?.name ?? 'Member',
     username: '',
     email: '',
     avatar: info?.avatar ?? '',
@@ -80,6 +81,7 @@ export function GroupChatParticipantsManageView({
 }: GroupChatParticipantsManageViewProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const rows = useMemo(() => {
@@ -94,8 +96,8 @@ export function GroupChatParticipantsManageView({
       try {
         await fn();
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : 'Не удалось выполнить действие';
-        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+        const msg = e instanceof Error ? e.message : t('chat.groupMembers.actionFailed');
+        toast({ variant: 'destructive', title: t('common.error'), description: msg });
       } finally {
         setBusyId(null);
       }
@@ -107,8 +109,8 @@ export function GroupChatParticipantsManageView({
     if (memberId === conversation.createdByUserId) {
       toast({
         variant: 'destructive',
-        title: 'Невозможно удалить создателя',
-        description: 'Создателя группы нельзя исключить.',
+        title: t('chat.groupMembers.cannotRemoveCreatorTitle'),
+        description: t('chat.groupMembers.cannotRemoveCreatorDesc'),
       });
       return;
     }
@@ -145,7 +147,7 @@ export function GroupChatParticipantsManageView({
         );
       }
       await updateDoc(doc(firestore, 'conversations', conversation.id), payload);
-      toast({ title: 'Участник исключён' });
+      toast({ title: t('chat.groupMembers.memberRemoved') });
     });
   };
 
@@ -153,8 +155,8 @@ export function GroupChatParticipantsManageView({
     if (targetId === conversation.createdByUserId) {
       toast({
         variant: 'destructive',
-        title: 'Действие запрещено',
-        description: 'Права создателя группы нельзя изменить.',
+        title: t('chat.groupMembers.actionForbiddenTitle'),
+        description: t('chat.groupMembers.actionForbiddenDesc'),
       });
       return;
     }
@@ -163,8 +165,8 @@ export function GroupChatParticipantsManageView({
     if (wasAdmin && eff.size <= 1) {
       toast({
         variant: 'destructive',
-        title: 'Нужен администратор',
-        description: 'Должен остаться хотя бы один администратор.',
+        title: t('chat.groupMembers.needAdminTitle'),
+        description: t('chat.groupMembers.needAdminDesc'),
       });
       return;
     }
@@ -174,7 +176,7 @@ export function GroupChatParticipantsManageView({
     void runWithBusy(targetId, async () => {
       if (!firestore) return;
       await updateDoc(doc(firestore, 'conversations', conversation.id), { adminIds: toWrite });
-      toast({ title: wasAdmin ? 'Права админа сняты' : 'Назначен администратор' });
+      toast({ title: wasAdmin ? t('chat.groupMembers.adminDemoted') : t('chat.groupMembers.adminPromoted') });
     });
   };
 
@@ -187,7 +189,7 @@ export function GroupChatParticipantsManageView({
         onCloseProfileSheet();
       } catch (e) {
         console.error(e);
-        toast({ variant: 'destructive', title: 'Не удалось открыть чат' });
+        toast({ variant: 'destructive', title: t('chat.groupMembers.chatOpenError') });
       }
     })();
   };
@@ -201,13 +203,13 @@ export function GroupChatParticipantsManageView({
           size="icon"
           className="shrink-0 rounded-full"
           onClick={onBack}
-          aria-label="Назад к профилю группы"
+          aria-label={t('chat.groupMembers.backAria')}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-lg font-bold">Участники ({rows.length})</h2>
-          <p className="truncate text-xs text-muted-foreground">Все, кто в этой группе</p>
+          <h2 className="truncate text-lg font-bold">{t('chat.groupMembers.title')} ({rows.length})</h2>
+          <p className="truncate text-xs text-muted-foreground">{t('chat.groupMembers.subtitle')}</p>
         </div>
       </div>
       <ScrollArea className="min-h-0 flex-1">
@@ -263,11 +265,11 @@ export function GroupChatParticipantsManageView({
                       variant="secondary"
                       className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold uppercase text-amber-700 dark:text-amber-400"
                     >
-                      Создатель
+                      {t('chat.groupMembers.creator')}
                     </Badge>
                   ) : isElevatedAdmin && !isCreator ? (
                     <Badge variant="outline" className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase">
-                      Админ
+                      {t('chat.groupMembers.admin')}
                     </Badge>
                   ) : null}
                   {showAdminMenu ? (
@@ -279,7 +281,7 @@ export function GroupChatParticipantsManageView({
                           size="icon"
                           disabled={loading}
                           className="h-9 w-9 shrink-0 rounded-full"
-                          aria-label="Действия с участником"
+                          aria-label={t('chat.groupMembers.actionsAria')}
                           onClick={(e) => e.stopPropagation()}
                         >
                           <MoreVertical className="h-4 w-4" />
@@ -291,7 +293,7 @@ export function GroupChatParticipantsManageView({
                           className="cursor-pointer rounded-lg"
                         >
                           <MessageCircle className="mr-2 h-4 w-4" />
-                          Написать лично
+                          {t('chat.groupMembers.writePrivate')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onSelect={() => handleToggleAdminRole(p.id)}
@@ -301,12 +303,12 @@ export function GroupChatParticipantsManageView({
                           {isTargetAdmin ? (
                             <>
                               <ShieldOff className="mr-2 h-4 w-4" />
-                              Снять админа
+                              {t('chat.groupMembers.demoteAdmin')}
                             </>
                           ) : (
                             <>
                               <Crown className="mr-2 h-4 w-4" />
-                              Сделать админом
+                              {t('chat.groupMembers.promoteAdmin')}
                             </>
                           )}
                         </DropdownMenuItem>
@@ -316,7 +318,7 @@ export function GroupChatParticipantsManageView({
                           className="cursor-pointer rounded-lg text-destructive focus:text-destructive"
                         >
                           <UserX className="mr-2 h-4 w-4" />
-                          Исключить из группы
+                          {t('chat.groupMembers.removeFromGroup')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { UserPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 
 type ContactsSyncPromoBannerProps = {
   onClick: () => void;
@@ -14,6 +15,7 @@ type ContactsSyncPromoBannerProps = {
  * CTA в духе «Связать все контакты»: синий блок с водяным знаком и круглой кнопкой.
  */
 export function ContactsSyncPromoBanner({ onClick, disabled, className }: ContactsSyncPromoBannerProps) {
+  const { t } = useI18n();
   return (
     <button
       type="button"
@@ -24,7 +26,7 @@ export function ContactsSyncPromoBanner({ onClick, disabled, className }: Contac
         'bg-[#007AFF] text-white ring-1 ring-white/10',
         className
       )}
-      aria-label="Доступ к контактам и синхронизация"
+      aria-label={t('contacts.syncPromo.ariaLabel')}
     >
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.14]"
@@ -36,9 +38,9 @@ export function ContactsSyncPromoBanner({ onClick, disabled, className }: Contac
       />
       <div className="relative flex items-center gap-3">
         <div className="min-w-0 flex-1 pr-1">
-          <p className="text-[0.95rem] font-bold leading-snug tracking-tight">Связать все контакты</p>
+          <p className="text-[0.95rem] font-bold leading-snug tracking-tight">{t('contacts.syncPromo.title')}</p>
           <p className="mt-0.5 text-xs font-medium leading-snug text-white/90">
-            Сейчас отображаются не все контакты — откройте доступ в настройках системы
+            {t('contacts.syncPromo.subtitle')}
           </p>
         </div>
         <div

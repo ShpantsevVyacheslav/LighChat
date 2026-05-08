@@ -52,13 +52,13 @@ export function ConversationStarredPanel({
   return (
     <>
       {isLoading && !data ? (
-        <p className="text-sm text-zinc-500">Загрузка…</p>
+        <p className="text-sm text-zinc-500">{t('chat.starredPanel.loading')}</p>
       ) : sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
           <Star className="mb-2 h-10 w-10 opacity-60" />
-          <p className="text-xs font-medium">Нет избранных сообщений</p>
+          <p className="text-xs font-medium">{t('chat.starredPanel.noStarredMessages')}</p>
           <p className="mt-2 max-w-sm text-center text-[11px] leading-snug text-zinc-500">
-            Добавляйте из контекстного меню сообщения в чате.
+            {t('chat.starredPanel.addFromContextMenu')}
           </p>
         </div>
       ) : (
@@ -74,7 +74,7 @@ export function ConversationStarredPanel({
                   {row.previewText?.trim() || t('chat.messageGeneric')}
                 </p>
                 <p className="mt-1 text-[10px] font-bold uppercase text-zinc-500">
-                  Перейти к сообщению в чате
+                  {t('chat.starredPanel.goToMessage')}
                 </p>
               </button>
             </li>

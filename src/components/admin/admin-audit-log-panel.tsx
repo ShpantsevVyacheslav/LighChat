@@ -23,28 +23,30 @@ import { ScrollText, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth as useFirebaseAuth } from '@/firebase';
 import { fetchAuditLogAction } from '@/actions/audit-log-actions';
 import type { AuditAction, AuditLogEntry } from '@/lib/types';
+import { useI18n } from '@/hooks/use-i18n';
 
-const ACTION_LABELS: Record<AuditAction, string> = {
-  'user.create': 'Создание пользователя',
-  'user.delete': 'Удаление пользователя',
-  'user.block': 'Блокировка',
-  'user.unblock': 'Разблокировка',
-  'user.role.change': 'Смена роли',
-  'user.password.reset': 'Сброс пароля',
-  'user.update': 'Обновление профиля',
-  'storage.settings.update': 'Настройки хранилища',
-  'storage.quota.user': 'Квота пользователя',
-  'storage.quota.conversation': 'Квота чата',
-  'notification.broadcast': 'Рассылка уведомлений',
-  'backfill.run': 'Синхронизация участников',
-  'moderation.hide_message': 'Скрытие сообщения',
-  'moderation.unhide_message': 'Восстановление сообщения',
-  'moderation.review_report': 'Рассмотрение жалобы',
-  'ticket.status_change': 'Статус обращения',
-  'feature_flag.update': 'Feature flag',
-  'announcement.create': 'Создание объявления',
-  'announcement.update': 'Обновление объявления',
-  'session.terminate': 'Завершение сессии',
+/** i18n keys for ACTION_LABELS — translated at render via t() */
+const ACTION_LABEL_KEYS: Record<AuditAction, string> = {
+  'user.create': 'adminPage.auditActionLabels.user.create',
+  'user.delete': 'adminPage.auditActionLabels.user.delete',
+  'user.block': 'adminPage.auditActionLabels.user.block',
+  'user.unblock': 'adminPage.auditActionLabels.user.unblock',
+  'user.role.change': 'adminPage.auditActionLabels.user.role.change',
+  'user.password.reset': 'adminPage.auditActionLabels.user.password.reset',
+  'user.update': 'adminPage.auditActionLabels.user.update',
+  'storage.settings.update': 'adminPage.auditActionLabels.storage.settings.update',
+  'storage.quota.user': 'adminPage.auditActionLabels.storage.quota.user',
+  'storage.quota.conversation': 'adminPage.auditActionLabels.storage.quota.conversation',
+  'notification.broadcast': 'adminPage.auditActionLabels.notification.broadcast',
+  'backfill.run': 'adminPage.auditActionLabels.backfill.run',
+  'moderation.hide_message': 'adminPage.auditActionLabels.moderation.hide_message',
+  'moderation.unhide_message': 'adminPage.auditActionLabels.moderation.unhide_message',
+  'moderation.review_report': 'adminPage.auditActionLabels.moderation.review_report',
+  'ticket.status_change': 'adminPage.auditActionLabels.ticket.status_change',
+  'feature_flag.update': 'adminPage.auditActionLabels.feature_flag.update',
+  'announcement.create': 'adminPage.auditActionLabels.announcement.create',
+  'announcement.update': 'adminPage.auditActionLabels.announcement.update',
+  'session.terminate': 'adminPage.auditActionLabels.session.terminate',
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -58,6 +60,7 @@ const ACTION_COLORS: Record<string, string> = {
 };
 
 export function AdminAuditLogPanel() {
+  const { t } = useI18n();
   const firebaseAuth = useFirebaseAuth();
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,9 +118,9 @@ export function AdminAuditLogPanel() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <ScrollText className="h-5 w-5 text-primary" />
-          Журнал действий
+          {t('adminPage.audit.title')}
         </CardTitle>
-        <CardDescription>История административных операций на платформе.</CardDescription>
+        <CardDescription>{t('adminPage.audit.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-3">
@@ -126,13 +129,13 @@ export function AdminAuditLogPanel() {
             onValueChange={(v) => setActionFilter(v as AuditAction | 'all')}
           >
             <SelectTrigger className="w-[240px] rounded-xl">
-              <SelectValue placeholder="Все действия" />
+              <SelectValue placeholder={t('adminPage.audit.allActions')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Все действия</SelectItem>
-              {(Object.keys(ACTION_LABELS) as AuditAction[]).map((key) => (
+              <SelectItem value="all">{t('adminPage.audit.allActions')}</SelectItem>
+              {(Object.keys(ACTION_LABEL_KEYS) as AuditAction[]).map((key) => (
                 <SelectItem key={key} value={key}>
-                  {ACTION_LABELS[key]}
+                  {t(ACTION_LABEL_KEYS[key])}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -144,17 +147,17 @@ export function AdminAuditLogPanel() {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : entries.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-8">Записей пока нет.</p>
+          <p className="text-center text-sm text-muted-foreground py-8">{t('adminPage.audit.noRecords')}</p>
         ) : (
           <>
             <div className="rounded-xl border overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[140px]">Время</TableHead>
-                    <TableHead className="w-[140px]">Кто</TableHead>
-                    <TableHead>Действие</TableHead>
-                    <TableHead>Цель</TableHead>
+                    <TableHead className="w-[140px]">{t('adminPage.audit.colTime')}</TableHead>
+                    <TableHead className="w-[140px]">{t('adminPage.audit.colWho')}</TableHead>
+                    <TableHead>{t('adminPage.audit.colAction')}</TableHead>
+                    <TableHead>{t('adminPage.audit.colTarget')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -169,7 +172,7 @@ export function AdminAuditLogPanel() {
                           variant="secondary"
                           className={`text-xs ${ACTION_COLORS[entry.action] ?? ''}`}
                         >
-                          {ACTION_LABELS[entry.action] ?? entry.action}
+                          {t(ACTION_LABEL_KEYS[entry.action]) || entry.action}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
@@ -189,9 +192,9 @@ export function AdminAuditLogPanel() {
                 onClick={goPrev}
                 disabled={page === 0}
               >
-                <ChevronLeft className="h-4 w-4 mr-1" /> Назад
+                <ChevronLeft className="h-4 w-4 mr-1" /> {t('adminPage.audit.prev')}
               </Button>
-              <span className="text-xs text-muted-foreground">Стр. {page + 1}</span>
+              <span className="text-xs text-muted-foreground">{t('adminPage.audit.pageN', { n: page + 1 })}</span>
               <Button
                 variant="outline"
                 size="sm"
@@ -199,7 +202,7 @@ export function AdminAuditLogPanel() {
                 onClick={goNext}
                 disabled={!hasMore}
               >
-                Далее <ChevronRight className="h-4 w-4 ml-1" />
+                {t('adminPage.audit.next')} <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           </>

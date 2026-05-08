@@ -347,24 +347,23 @@ export function ChatStickerGifPanel({
           storage,
         );
         if (r.ok) {
-          toast({ title: 'Сохранено в стикерпак' });
+          toast({ title: t('chat.savedToStickerPack') });
           setPackPickerOpen(false);
           setPendingSave(null);
         } else if (r.error === 'file_too_large') {
           toast({
-            title: 'Файл слишком большой',
-            description: `До ${Math.round(USER_STICKER_MAX_FILE_BYTES / (1024 * 1024))} МБ.`,
+            title: t('chat.fileTooLarge'),
+            description: t('chat.fileSizeLimitMb').replace('{size}', String(Math.round(USER_STICKER_MAX_FILE_BYTES / (1024 * 1024)))),
             variant: 'destructive',
           });
         } else if (r.error === 'fetch_failed') {
           toast({
-            title: 'Не удалось скачать GIF',
-            description:
-              'Сервер или браузер заблокировал загрузку (CORS). Сохраните файл на устройство.',
+            title: t('chat.downloadFailedCors'),
+            description: t('chat.stickerGif.corsSaveHint'),
             variant: 'destructive',
           });
         } else {
-          toast({ title: 'Не удалось сохранить', variant: 'destructive' });
+          toast({ title: t('chat.saveFailed'), variant: 'destructive' });
         }
       } finally {
         setSaveBusy(false);
@@ -417,7 +416,7 @@ export function ChatStickerGifPanel({
             <div className="shrink-0">
               <div className="mb-1 flex items-center gap-1 px-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
                 <Sparkles className="h-3 w-3" />
-                Анимированные
+                {t('chat.stickerGif.animated')}
               </div>
               <div
                 onScroll={handleAnimEmojisScroll}
@@ -456,13 +455,13 @@ export function ChatStickerGifPanel({
                 width="100%"
                 height={emojiPickerHeight}
                 theme={Theme.DARK}
-                searchPlaceholder="Поиск…"
+                searchPlaceholder={t('chat.stickerGif.searchEmoji')}
                 lazyLoadEmojis
                 previewConfig={{ showPreview: false }}
               />
             ) : (
               <p className="py-6 text-center text-xs text-muted-foreground">
-                Эмодзи в текст недоступны для этого окна.
+                {t('chat.stickerGif.emojiUnavailable')}
               </p>
             )}
           </div>
@@ -485,7 +484,7 @@ export function ChatStickerGifPanel({
             <Input
               value={gifQuery}
               onChange={(e) => setGifQuery(e.target.value)}
-              placeholder="Поиск GIF…"
+              placeholder={t('chat.stickerGif.searchGif')}
               className="h-9 rounded-xl pl-8 pr-8 text-sm"
               onMouseDown={(e) => e.stopPropagation()}
             />
@@ -505,7 +504,7 @@ export function ChatStickerGifPanel({
             <ScrollArea className="w-full whitespace-nowrap">
               <div className="flex gap-1.5 px-0.5 pb-1">
                 <EmojiFilterChip
-                  label="Все"
+                  label={t('chat.stickerGif.all')}
                   active={activeEmojiFilter === null}
                   onClick={() => setActiveEmojiFilter(null)}
                 />
@@ -527,13 +526,13 @@ export function ChatStickerGifPanel({
 
           {gifMissingKey && (
             <p className="shrink-0 px-0.5 text-[10px] leading-snug text-muted-foreground">
-              Поиск GIF временно недоступен.
+              {t('chat.stickerGif.gifUnavailable')}
             </p>
           )}
 
           {translatedHint && (
             <p className="shrink-0 px-0.5 text-[10px] leading-snug text-muted-foreground">
-              Искали: {translatedHint}
+              {t('chat.stickerGif.searchedFor')} {translatedHint}
             </p>
           )}
 
@@ -553,7 +552,7 @@ export function ChatStickerGifPanel({
                   <>
                     <div className="flex items-center gap-1 px-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
                       <History className="h-3 w-3" />
-                      Недавние
+                      {t('chat.stickerGif.recent')}
                     </div>
                     <GifGrid items={recentGifs} onPick={handleGifPick} onSave={openSavePicker} />
                     <div className="flex items-center gap-1 px-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
@@ -564,7 +563,7 @@ export function ChatStickerGifPanel({
                 )}
                 {gifItems.length === 0 ? (
                   <p className="py-6 text-center text-xs text-muted-foreground">
-                    Ничего не найдено
+                    {t('chat.stickerGif.nothingFound')}
                   </p>
                 ) : (
                   <GifGrid items={gifItems} onPick={handleGifPick} onSave={openSavePicker} />
@@ -587,8 +586,8 @@ export function ChatStickerGifPanel({
           if (!o) setPendingSave(null);
         }}
         userId={userId}
-        title="Сохранить в стикерпак"
-        description="Выберите пак, нажмите «Сохранить» или создайте новый пак. Затем отправляйте из вкладки «Стикеры»."
+        title={t('chat.stickerSaveTitle')}
+        description={t('chat.stickerSaveDescription')}
         busy={saveBusy}
         onConfirmPack={handleConfirmPack}
         createPack={(name) => createPack(name)}
@@ -606,8 +605,8 @@ function EmojiFilterChip({
   active: boolean;
   onClick: () => void;
 }) {
-  // «Все» остаётся на базовом text-xs; эмодзи-чипы чуть крупнее (text-base).
-  const isEmoji = label !== 'Все' && label.length <= 3;
+  // «Все»/«All» остаётся на базовом text-xs; эмодзи-чипы чуть крупнее (text-base).
+  const isEmoji = GIF_EMOJI_FILTERS.includes(label);
   return (
     <button
       type="button"
@@ -635,6 +634,7 @@ function GifGrid({
   onPick: (item: GiphyItem) => void;
   onSave: (save: PendingSave) => void;
 }) {
+  const { t: tGif } = useI18n();
   return (
     <div className="grid grid-cols-3 gap-1.5 p-0.5">
       {items.map((item) => (
@@ -650,7 +650,7 @@ function GifGrid({
           </button>
           <button
             type="button"
-            title="Сохранить в мой пак"
+            title={tGif('chat.stickerGif.saveToMyPack')}
             className="absolute right-0.5 top-0.5 flex h-7 w-7 items-center justify-center rounded-md bg-background/90 text-muted-foreground opacity-0 shadow-sm ring-1 ring-border transition-opacity hover:text-primary group-hover:opacity-100"
             onMouseDown={(e) => e.preventDefault()}
             onClick={(e) => {
@@ -690,6 +690,7 @@ function StickersTabBody({
   className?: string;
 }) {
   const [scope, setScope] = useState<'user' | 'library'>('user');
+  const { t: tStickers } = useI18n();
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
@@ -701,7 +702,7 @@ function StickersTabBody({
           className="h-7 rounded-full px-3 text-xs"
           onClick={() => setScope('user')}
         >
-          Мои/Общие
+          {tStickers('chat.stickerGif.myShared')}
         </Button>
         <Button
           type="button"
@@ -710,7 +711,7 @@ function StickersTabBody({
           className="h-7 rounded-full px-3 text-xs"
           onClick={() => setScope('library')}
         >
-          Библиотека
+          {tStickers('chat.stickerGif.library')}
         </Button>
       </div>
       {scope === 'user' ? (
@@ -738,6 +739,7 @@ function GiphyStickerLibrary({
   const [translatedHint, setTranslatedHint] = useState<string | null>(null);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastEffectiveQuery = useRef('');
+  const { t: tLib } = useI18n();
 
   useEffect(() => {
     const cached = giphyCache.getTrending('stickers');
@@ -839,7 +841,7 @@ function GiphyStickerLibrary({
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Поиск стикеров…"
+          placeholder={tLib('chat.stickerGif.searchStickers')}
           className="h-9 rounded-xl pl-8 pr-8 text-sm"
           onMouseDown={(e) => e.stopPropagation()}
         />
@@ -859,7 +861,7 @@ function GiphyStickerLibrary({
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex gap-1.5 px-0.5 pb-1">
             <EmojiFilterChip
-              label="Все"
+              label={tLib('chat.stickerGif.all')}
               active={activeFilter === null}
               onClick={() => { setActiveFilter(null); setQuery(''); }}
             />
@@ -878,7 +880,7 @@ function GiphyStickerLibrary({
 
       {translatedHint && (
         <p className="shrink-0 px-0.5 text-[10px] leading-snug text-muted-foreground">
-          Искали: {translatedHint}
+          {tLib('chat.stickerGif.searchedFor')} {translatedHint}
         </p>
       )}
 
@@ -892,7 +894,7 @@ function GiphyStickerLibrary({
             </div>
           ) : items.length === 0 ? (
             <p className="py-6 text-center text-xs text-muted-foreground">
-              Ничего не найдено
+              {tLib('chat.stickerGif.nothingFound')}
             </p>
           ) : (
             <>

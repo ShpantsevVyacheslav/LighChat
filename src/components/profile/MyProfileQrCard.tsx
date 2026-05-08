@@ -6,8 +6,10 @@ import { Copy, QrCode } from 'lucide-react';
 
 import { buildProfileQrPayload } from '@/lib/profile-qr-link';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/hooks/use-i18n';
 
 export function MyProfileQrCard(props: { userId: string; username?: string | null }) {
+  const { t } = useI18n();
   const payload = React.useMemo(
     () => buildProfileQrPayload({ userId: props.userId, username: props.username }),
     [props.userId, props.username]
@@ -21,10 +23,10 @@ export function MyProfileQrCard(props: { userId: string; username?: string | nul
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <QrCode className="h-5 w-5 text-primary" aria-hidden />
-            <div className="text-base font-semibold">Мой QR‑код</div>
+            <div className="text-base font-semibold">{t('profile.qrCard.title')}</div>
           </div>
           <div className="mt-1 text-xs text-muted-foreground">
-            Этот QR ведёт в ваш профиль, чтобы вас могли добавить в контакты.
+            {t('profile.qrCard.description')}
           </div>
         </div>
 
@@ -40,7 +42,7 @@ export function MyProfileQrCard(props: { userId: string; username?: string | nul
           }}
         >
           <Copy className="h-4 w-4" aria-hidden />
-          Скопировать ссылку
+          {t('profile.qrCard.copyLink')}
         </Button>
       </div>
 

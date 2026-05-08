@@ -2,22 +2,25 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lightbulb } from 'lucide-react';
+import { useI18n } from '@/hooks/use-i18n';
 
 /**
  * Идеи развития админки под LighChat (мессенджер + конференции + PWA).
  */
 export function AdminCapabilitiesRoadmapCard() {
-  const items = [
-    'Модерация контента: массовое скрытие сообщений, стоп-слова, жалобы на сообщения.',
-    'Аудит: журнал действий админов (кто заблокировал, кто сменил квоту).',
-    'Аналитика: MAU, объём трафика Storage, пики нагрузки по времени.',
-    'Управление конференциями: принудительное завершение комнаты, бан в meetings.',
-    'Feature flags в platformSettings для поэтапного включения функций.',
-    'Экспорт данных пользователя (GDPR) и полное удаление (right to be forgotten).',
-    'Лимиты API / анти-спам: rate limit на создание чатов и отправку сообщений.',
-    'Резервное копирование и политика хранения логов Cloud Functions.',
-    'Кастомные роли между admin и worker (модератор, только чтение).',
-    'Интеграция биллинга при лимите Storage (уведомление до отсечения FIFO).',
+  const { t } = useI18n();
+
+  const itemKeys = [
+    'adminPage.roadmap.items.moderation',
+    'adminPage.roadmap.items.audit',
+    'adminPage.roadmap.items.analytics',
+    'adminPage.roadmap.items.meetings',
+    'adminPage.roadmap.items.featureFlags',
+    'adminPage.roadmap.items.gdpr',
+    'adminPage.roadmap.items.rateLimit',
+    'adminPage.roadmap.items.backup',
+    'adminPage.roadmap.items.customRoles',
+    'adminPage.roadmap.items.billing',
   ];
 
   return (
@@ -25,14 +28,14 @@ export function AdminCapabilitiesRoadmapCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Lightbulb className="h-5 w-5 text-amber-500" />
-          Что ещё может делать администратор
+          {t('adminPage.roadmap.title')}
         </CardTitle>
-        <CardDescription>Ориентир для следующих этапов разработки платформы.</CardDescription>
+        <CardDescription>{t('adminPage.roadmap.description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <ul className="list-disc space-y-2 pl-5 text-sm text-muted-foreground">
-          {items.map((t) => (
-            <li key={t}>{t}</li>
+          {itemKeys.map((key) => (
+            <li key={key}>{t(key)}</li>
           ))}
         </ul>
       </CardContent>

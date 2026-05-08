@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { UserCircle2, MessageCircle } from 'lucide-react';
+import { useI18n } from '@/hooks/use-i18n';
 
 export type GroupMessageSenderMenuProps = {
   senderId: string;
@@ -30,6 +31,8 @@ export function GroupMessageSenderMenu({
   onWritePrivate,
   children,
 }: GroupMessageSenderMenuProps) {
+  const { t } = useI18n();
+
   if (disabled || senderId === currentUserId) {
     return <>{children}</>;
   }
@@ -45,7 +48,7 @@ export function GroupMessageSenderMenu({
       >
         <DropdownMenuItem className="cursor-pointer" onSelect={() => onOpenProfile(senderId)}>
           <UserCircle2 className="mr-2 h-4 w-4" />
-          Открыть профиль
+          {t('chat.groupSenderMenu.openProfile')}
         </DropdownMenuItem>
         <DropdownMenuItem
           className="cursor-pointer"
@@ -56,7 +59,7 @@ export function GroupMessageSenderMenu({
           }}
         >
           <MessageCircle className="mr-2 h-4 w-4" />
-          Написать лично
+          {t('chat.groupSenderMenu.writePrivate')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

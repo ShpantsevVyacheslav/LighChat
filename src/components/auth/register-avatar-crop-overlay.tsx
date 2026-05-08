@@ -6,6 +6,7 @@ import { getCircularCroppedImageBlob } from "@/lib/circular-crop-to-blob";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/hooks/use-i18n";
 
 export type RegisterAvatarCropVariant = "fullscreen" | "compact";
 
@@ -63,6 +64,7 @@ export function RegisterAvatarCropOverlay({
   variant = "fullscreen",
   scopeWithinElement,
 }: RegisterAvatarCropOverlayProps) {
+  const { t } = useI18n();
   const isCompact = variant === "compact";
   const isScopedTarget = isCompact && typeof scopeWithinElement === "function";
   const [scopeLayoutVersion, setScopeLayoutVersion] = React.useState(0);
@@ -206,7 +208,7 @@ export function RegisterAvatarCropOverlay({
     >
       <div className={cn("mx-auto w-full space-y-2", isCompact ? "max-w-[270px]" : "max-w-[200px]")}>
         <p className="text-center text-[11px] font-medium uppercase tracking-wide text-white/50">
-          Масштаб
+          {t('avatarCrop.scaleLabel')}
         </p>
         <input
           type="range"
@@ -217,7 +219,7 @@ export function RegisterAvatarCropOverlay({
           aria-valuemin={1}
           aria-valuemax={3}
           aria-valuenow={zoom}
-          aria-label="Масштаб фото"
+          aria-label={t('avatarCrop.scaleAria')}
           onChange={(e) => setZoom(Number(e.target.value))}
           className={cn(
             "h-3 w-full cursor-pointer appearance-none rounded-full bg-white/15",
@@ -233,7 +235,7 @@ export function RegisterAvatarCropOverlay({
           isCompact ? "text-[11px] leading-snug sm:text-xs" : "px-2 text-xs"
         )}
       >
-        Перетащите и масштабируйте — так круг будет в списках и сообщениях; полный кадр остаётся для профиля.
+        {t('avatarCrop.hint')}
       </p>
       <div className={cn("grid grid-cols-3 gap-2", isCompact && "gap-2 sm:gap-2.5")}>
         <Button
@@ -247,7 +249,7 @@ export function RegisterAvatarCropOverlay({
           onPointerDown={(e) => e.stopPropagation()}
           disabled={busy}
         >
-          Отмена
+          {t('avatarCrop.cancel')}
         </Button>
         <Button
           type="button"
@@ -260,7 +262,7 @@ export function RegisterAvatarCropOverlay({
           onPointerDown={(e) => e.stopPropagation()}
           disabled={busy}
         >
-          Сбросить
+          {t('avatarCrop.reset')}
         </Button>
         <Button
           type="button"
@@ -272,7 +274,7 @@ export function RegisterAvatarCropOverlay({
           onPointerDown={(e) => e.stopPropagation()}
           disabled={busy || !croppedAreaPixels}
         >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-label="Сохранение" /> : "Сохранить"}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-label={t('avatarCrop.saving')} /> : t('avatarCrop.save')}
         </Button>
       </div>
     </div>
@@ -315,7 +317,7 @@ export function RegisterAvatarCropOverlay({
 
   const title = (
     <h2 id="register-crop-title" className="sr-only">
-      Обрезка фото для аватара
+      {t('avatarCrop.title')}
     </h2>
   );
 
@@ -324,7 +326,7 @@ export function RegisterAvatarCropOverlay({
       <button
         type="button"
         className="absolute inset-0 bg-black/40 backdrop-blur-2xl backdrop-saturate-150"
-        aria-label="Закрыть обрезку"
+        aria-label={t('avatarCrop.closeAria')}
         onClick={onCancel}
       />
       <div

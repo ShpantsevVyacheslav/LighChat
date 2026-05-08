@@ -36,31 +36,6 @@ function pickIcon(type: ChatSystemEvent['type']) {
   }
 }
 
-function renderText(event: ChatSystemEvent, t: (key: string) => string): string {
-  const actor = event.data?.actorName ?? t('chat.systemEvent.fallbackActor');
-  const device = event.data?.deviceLabel ?? t('chat.systemEvent.fallbackDevice');
-  switch (event.type) {
-    case 'e2ee.v2.enabled':
-      return t('chat.systemEvent.e2eeEnabled');
-    case 'e2ee.v2.disabled':
-      return t('chat.systemEvent.e2eeDisabled');
-    case 'e2ee.v2.epoch.rotated':
-      return t('chat.systemEvent.keyRotated');
-    case 'e2ee.v2.device.added':
-      return t('chat.systemEvent.deviceAdded').replace('{actor}', actor).replace('{device}', device);
-    case 'e2ee.v2.device.revoked':
-      return t('chat.systemEvent.deviceRevoked').replace('{actor}', actor).replace('{device}', device);
-    case 'e2ee.v2.fingerprint.changed':
-      return t('chat.systemEvent.fingerprintChanged').replace('{actor}', actor);
-    case 'gameLobbyCreated':
-      return event.data?.gameType === 'durak' ? t('chat.systemEvent.durakCreated') : t('chat.systemEvent.gameCreated');
-    case 'gameStarted':
-      return event.data?.gameType === 'durak' ? t('chat.systemEvent.durakStarted') : t('chat.systemEvent.gameStarted');
-    default:
-      return t('chat.systemEvent.fallback');
-  }
-}
-
 export function ChatSystemEventDivider({
   event,
   className,
@@ -70,7 +45,33 @@ export function ChatSystemEventDivider({
 }) {
   const { t } = useI18n();
   const Icon = pickIcon(event.type);
-  const label = renderText(event, t);
+
+  const renderLabel = (): string => {
+    const actor = event.data?.actorName ?? t('chat.systemEvent.fallbackActor');
+    const device = event.data?.deviceLabel ?? t('chat.systemEvent.fallbackDevice');
+    switch (event.type) {
+      case 'e2ee.v2.enabled':
+        return t('chat.systemEvent.e2eeEnabled');
+      case 'e2ee.v2.disabled':
+        return t('chat.systemEvent.e2eeDisabled');
+      case 'e2ee.v2.epoch.rotated':
+        return t('chat.systemEvent.epochRotated');
+      case 'e2ee.v2.device.added':
+        return actor + ' ' + t('chat.systemEvent.deviceAdded') + ' ' + device;
+      case 'e2ee.v2.device.revoked':
+        return actor + ' ' + t('chat.systemEvent.deviceRevoked') + ' ' + device;
+      case 'e2ee.v2.fingerprint.changed':
+        return t('chat.systemEvent.fingerprintChanged') + ' ' + actor;
+      case 'gameLobbyCreated':
+        return event.data?.gameType === 'durak' ? t('chat.systemEvent.gameLobbyDurak') : t('chat.systemEvent.gameLobbyGeneric');
+      case 'gameStarted':
+        return event.data?.gameType === 'durak' ? t('chat.systemEvent.gameStartedDurak') : t('chat.systemEvent.gameStartedGeneric');
+      default:
+        return t('chat.systemEvent.generic');
+    }
+  };
+
+  const label = renderLabel();
   return (
     <div
       className={cn(

@@ -25,12 +25,13 @@ import {
   deleteAnnouncementAction,
 } from '@/actions/announcements-actions';
 import type { Announcement, AnnouncementType } from '@/lib/types';
+import { useI18n } from '@/hooks/use-i18n';
 
-const TYPE_LABELS: Record<AnnouncementType, string> = {
-  info: 'Инфо',
-  warning: 'Предупреждение',
-  maintenance: 'Тех. работы',
-  update: 'Обновление',
+const TYPE_LABEL_KEYS: Record<AnnouncementType, string> = {
+  info: 'admin.announcements.typeInfo',
+  warning: 'admin.announcements.typeWarning',
+  maintenance: 'admin.announcements.typeMaintenance',
+  update: 'admin.announcements.typeUpdate',
 };
 
 const TYPE_COLORS: Record<AnnouncementType, string> = {
@@ -41,6 +42,7 @@ const TYPE_COLORS: Record<AnnouncementType, string> = {
 };
 
 export function AdminAnnouncementsPanel() {
+  const { t } = useI18n();
   const firestore = useFirestore();
   const firebaseAuth = useFirebaseAuth();
   const { toast } = useToast();
@@ -107,7 +109,7 @@ export function AdminAnnouncementsPanel() {
         },
       });
       if (res.ok) {
-        toast({ title: 'Обновлено' });
+        toast({ title: t('admin.announcements.updatedToast') });
         resetForm();
       } else {
         toast({ variant: 'destructive', title: res.error });
@@ -123,7 +125,7 @@ export function AdminAnnouncementsPanel() {
         expiresAt: expiresAt || undefined,
       });
       if (res.ok) {
-        toast({ title: 'Создано' });
+        toast({ title: t('admin.announcements.createdToast') });
         resetForm();
       } else {
         toast({ variant: 'destructive', title: res.error });
@@ -148,13 +150,13 @@ export function AdminAnnouncementsPanel() {
           <div>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Megaphone className="h-5 w-5 text-primary" />
-              Объявления
+              {t('admin.announcements.title')}
             </CardTitle>
-            <CardDescription>Баннеры, видимые всем пользователям.</CardDescription>
+            <CardDescription>{t('admin.announcements.description')}</CardDescription>
           </div>
           {!showForm && (
             <Button size="sm" className="rounded-xl" onClick={() => setShowForm(true)}>
-              <Plus className="h-4 w-4 mr-1" /> Создать
+              <Plus className="h-4 w-4 mr-1" /> {t('admin.announcements.create')}
             </Button>
           )}
         </div>
@@ -162,48 +164,48 @@ export function AdminAnnouncementsPanel() {
       <CardContent className="space-y-4">
         {showForm && (
           <div className="rounded-2xl border p-4 space-y-3 bg-muted/20">
-            <p className="text-sm font-medium">{editingId ? 'Редактировать' : 'Новое объявление'}</p>
+            <p className="text-sm font-medium">{editingId ? t('admin.announcements.editTitle') : t('admin.announcements.newTitle')}</p>
             <div className="space-y-2">
-              <Label className="text-xs">Заголовок</Label>
+              <Label className="text-xs">{t('admin.announcements.titleLabel')}</Label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} className="rounded-xl" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs">Текст</Label>
+              <Label className="text-xs">{t('admin.announcements.bodyLabel')}</Label>
               <Textarea value={body} onChange={(e) => setBody(e.target.value)} className="rounded-xl min-h-[80px]" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label className="text-xs">Тип</Label>
+                <Label className="text-xs">{t('admin.announcements.typeLabel')}</Label>
                 <Select value={type} onValueChange={(v) => setType(v as AnnouncementType)}>
                   <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {(Object.keys(TYPE_LABELS) as AnnouncementType[]).map((t) => (
-                      <SelectItem key={t} value={t}>{TYPE_LABELS[t]}</SelectItem>
+                    {(Object.keys(TYPE_LABEL_KEYS) as AnnouncementType[]).map((tp) => (
+                      <SelectItem key={tp} value={tp}>{t(TYPE_LABEL_KEYS[tp])}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs">Истекает (ISO дата, опционально)</Label>
+                <Label className="text-xs">{t('admin.announcements.expiresLabel')}</Label>
                 <Input value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} placeholder="2026-12-31" className="rounded-xl" />
               </div>
             </div>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <Switch checked={isActive} onCheckedChange={setIsActive} />
-                Активно
+                {t('admin.announcements.activeLabel')}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <Switch checked={dismissible} onCheckedChange={setDismissible} />
-                Закрываемое
+                {t('admin.announcements.dismissibleLabel')}
               </label>
             </div>
             <div className="flex gap-2 pt-1">
               <Button onClick={submit} disabled={!title.trim() || !body.trim() || busy === 'save'} className="rounded-full">
                 {busy === 'save' && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                {editingId ? 'Сохранить' : 'Создать'}
+                {editingId ? t('admin.announcements.save') : t('admin.announcements.create')}
               </Button>
-              <Button variant="outline" onClick={resetForm} className="rounded-full">Отмена</Button>
+              <Button variant="outline" onClick={resetForm} className="rounded-full">{t('admin.announcements.cancel')}</Button>
             </div>
           </div>
         )}
@@ -211,19 +213,19 @@ export function AdminAnnouncementsPanel() {
         {loading ? (
           <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin" /></div>
         ) : announcements.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">Объявлений нет.</p>
+          <p className="text-sm text-muted-foreground text-center py-4">{t('admin.announcements.noAnnouncements')}</p>
         ) : (
           <div className="space-y-2">
             {announcements.map((a) => (
               <div key={a.id} className="rounded-2xl border p-3 space-y-1.5">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary" className={`text-[10px] ${TYPE_COLORS[a.type]}`}>
-                    {TYPE_LABELS[a.type]}
+                    {t(TYPE_LABEL_KEYS[a.type])}
                   </Badge>
                   {a.isActive ? (
-                    <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-800 dark:bg-green-900/30">Активно</Badge>
+                    <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-800 dark:bg-green-900/30">{t('admin.announcements.activeBadge')}</Badge>
                   ) : (
-                    <Badge variant="outline" className="text-[10px]">Скрыто</Badge>
+                    <Badge variant="outline" className="text-[10px]">{t('admin.announcements.hiddenBadge')}</Badge>
                   )}
                   <span className="ml-auto flex gap-1">
                     <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg" onClick={() => openEdit(a)}>

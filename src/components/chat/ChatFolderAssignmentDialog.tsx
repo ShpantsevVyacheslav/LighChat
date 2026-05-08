@@ -49,14 +49,14 @@ export function ChatFolderAssignmentDialog({
       <Dialog open={open} onOpenChange={(o) => onOpenChange(o)}>
         <DialogContent className="sm:max-w-xs rounded-[2.5rem] p-6 bg-background backdrop-blur-2xl border-0 shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="font-black text-lg">Избранное</DialogTitle>
+            <DialogTitle className="font-black text-lg">{t('chat.folderAssignment.starredTitle')}</DialogTitle>
             <DialogDescription className="text-foreground/70">
-              «Избранное» всегда в списках «Все» и «Личные». Добавить его в пользовательскую папку нельзя — откройте через звёздочку в ленте папок.
+              {t('chat.folderAssignment.starredDesc')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="sm:justify-stretch pt-2">
             <Button className="w-full rounded-full font-bold" onClick={() => onOpenChange(false)}>
-              Закрыть
+              {t('chat.folderAssignment.closeBtn')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -67,7 +67,7 @@ export function ChatFolderAssignmentDialog({
   const otherId = conversation.participantIds.find((id) => id !== currentUser.id)!;
   const displayName = conversation.isGroup
     ? conversation.name || t('chat.groupFallbackName')
-    : allUsers.find((u) => u.id === otherId)?.name || conversation.participantInfo[otherId]?.name || 'Чат';
+    : allUsers.find((u) => u.id === otherId)?.name || conversation.participantInfo[otherId]?.name || t('chat.folderAssignment.chatFallback');
 
   const toggleFolder = async (folderId: string) => {
     if (!firestore || !userChatIndex?.folders) return;
@@ -91,8 +91,8 @@ export function ChatFolderAssignmentDialog({
       const folderName = customFolders.find(f => f.id === folderId)?.name;
       const isAdded = updatedFolders.find(f => f.id === folderId)?.conversationIds.includes(conversation.id);
       
-      toast({ 
-        title: isAdded ? 'Добавлено в папку' : 'Удалено из папки',
+      toast({
+        title: isAdded ? t('chat.folderAssignment.addedToFolder') : t('chat.folderAssignment.removedFromFolder'),
         description: folderName
       });
     } catch (e: unknown) {
@@ -102,8 +102,8 @@ export function ChatFolderAssignmentDialog({
         'message' in e &&
         typeof (e as { message?: unknown }).message === 'string'
           ? (e as { message: string }).message
-          : 'Не удалось обновить папки.';
-      toast({ variant: 'destructive', title: 'Ошибка обновления', description: message });
+          : t('chat.folderAssignment.updateFailed');
+      toast({ variant: 'destructive', title: t('chat.folderAssignment.updateError'), description: message });
     } finally {
       setIsSaving(false);
     }
@@ -114,10 +114,10 @@ export function ChatFolderAssignmentDialog({
       <DialogContent className="sm:max-w-xs rounded-[2.5rem] p-0 flex flex-col overflow-hidden bg-background backdrop-blur-2xl border-0 shadow-2xl ring-1 ring-foreground/5 dark:ring-white/5">
         <DialogHeader className="p-6 pb-4 bg-muted/15 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2 font-black text-xl tracking-tight">
-            <FolderHeart className="h-6 w-6 text-primary" /> Папки чата
+            <FolderHeart className="h-6 w-6 text-primary" /> {t('chat.folderAssignment.foldersTitle')}
           </DialogTitle>
           <DialogDescription className="truncate text-foreground/60 font-medium">
-            Для: <span className="font-bold text-foreground">{displayName}</span>
+            {t('chat.folderAssignment.forLabel')} <span className="font-bold text-foreground">{displayName}</span>
           </DialogDescription>
         </DialogHeader>
 
@@ -153,14 +153,14 @@ export function ChatFolderAssignmentDialog({
                 })
               ) : (
                 <div className="py-10 px-6 text-center space-y-5">
-                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest opacity-40 italic">У вас нет кастомных папок</p>
+                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest opacity-40 italic">{t('chat.folderAssignment.noCustomFolders')}</p>
                     <Button 
                         variant="ghost" 
                         size="sm" 
                         onClick={() => { onOpenChange(false); onOpenFolderManager(); }}
                         className="rounded-full h-12 w-full font-bold border-0 bg-muted/40 hover:bg-muted/60 transition-all active:scale-95"
                     >
-                        <Plus className="h-4 w-4 mr-2" /> Создать папку
+                        <Plus className="h-4 w-4 mr-2" /> {t('chat.folderAssignment.createFolder')}
                     </Button>
                 </div>
               )}
@@ -175,14 +175,14 @@ export function ChatFolderAssignmentDialog({
                     className="w-full rounded-2xl h-12 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:bg-muted/50 border-0 shadow-none transition-all active:scale-95"
                     onClick={() => { onOpenChange(false); onOpenFolderManager(); }}
                 >
-                    Управление папками
+                    {t('chat.folderAssignment.manageFolders')}
                 </Button>
             </div>
         )}
 
         <DialogFooter className="p-4 bg-muted/10 flex-shrink-0 border-0">
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isSaving} className="w-full rounded-full font-bold h-12 border-0 hover:bg-muted/50 transition-all active:scale-95">
-            Закрыть
+            {t('chat.folderAssignment.closeBtn')}
           </Button>
         </DialogFooter>
       </DialogContent>

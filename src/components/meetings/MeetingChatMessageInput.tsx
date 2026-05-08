@@ -5,6 +5,7 @@ import { Paperclip, Send, X, Loader2, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 
 interface MeetingChatMessageInputProps {
   value: string;
@@ -23,6 +24,7 @@ export function MeetingChatMessageInput({
   editingMessage,
   onCancelEdit
 }: MeetingChatMessageInputProps) {
+  const { t } = useI18n();
   const [attachments, setAttachments] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -94,7 +96,7 @@ export function MeetingChatMessageInput({
         <div className="flex items-center justify-between px-3 py-1.5 bg-primary/10 rounded-xl border border-primary/20 animate-in slide-in-from-bottom-2">
           <div className="flex items-center gap-2 overflow-hidden">
             <Edit className="h-3 w-3 text-primary shrink-0" />
-            <span className="text-[10px] font-bold uppercase text-primary">Редактирование</span>
+            <span className="text-[10px] font-bold uppercase text-primary">{t('meetingChat.editing')}</span>
           </div>
           <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full" onClick={onCancelEdit}>
             <X className="h-3 w-3" />
@@ -126,7 +128,7 @@ export function MeetingChatMessageInput({
             value={value} 
             onChange={(e) => onChange(e.target.value)} 
             onPaste={handlePaste}
-            placeholder="Напишите..." 
+            placeholder={t('meetingChat.placeholder')}
             className="border-none bg-transparent h-8 text-sm focus-visible:ring-0 shadow-none px-1" 
           />
         </div>

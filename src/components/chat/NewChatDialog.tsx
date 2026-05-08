@@ -168,7 +168,7 @@ export function NewChatDialog({
             disabled={isCreating}
           >
             <Lock className="mr-2 h-4 w-4" />
-            {secretMode ? 'Режим: секретный чат' : 'Создать секретный чат'}
+            {secretMode ? t('chat.newChat.secretModeActive') : t('chat.newChat.createSecretChat')}
           </Button>
           <ScrollArea className="h-64">
             <div className="space-y-1 pr-2">

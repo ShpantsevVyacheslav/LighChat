@@ -13,6 +13,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { LocationLiveCountdown } from '@/components/location/LocationLiveCountdown';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 
 const MAP_SHEET_Z = 'z-[10100]';
 
@@ -32,6 +33,7 @@ export function LiveLocationMapDialog({
   userId,
   displayName,
 }: LiveLocationMapDialogProps) {
+  const { t } = useI18n();
   const firestore = useFirestore();
   const ref = useMemoFirebase(
     () => (firestore && userId ? doc(firestore, 'users', userId) : null),
@@ -84,7 +86,7 @@ export function LiveLocationMapDialog({
               floatBtn,
               'absolute left-[max(0.75rem,env(safe-area-inset-left))] top-[max(0.75rem,env(safe-area-inset-top))] z-30 text-zinc-100',
             )}
-            aria-label="Закрыть"
+            aria-label={t('liveLocation.closeAria')}
             onClick={() => onOpenChange(false)}
           >
             <X className="h-6 w-6" strokeWidth={2} />
@@ -92,14 +94,14 @@ export function LiveLocationMapDialog({
 
           {!mapReady ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 bg-zinc-950 px-6 pb-24 pt-16 text-center text-sm text-zinc-400">
-              <p className="text-zinc-200">Нет актуальных данных карты</p>
+              <p className="text-zinc-200">{t('liveLocation.noMapData')}</p>
               <p className="max-w-xs text-xs">{displayName}</p>
             </div>
           ) : (
             <div className="relative min-h-0 flex-1 bg-muted">
               <iframe
                 key={`${live!.lat}-${live!.lng}-${live!.updatedAt ?? ''}`}
-                title="Карта: живая геолокация"
+                title={t('liveLocation.mapTitleLive')}
                 src={embedUrl}
                 className="absolute inset-0 h-full w-full border-0"
                 loading="lazy"
@@ -129,14 +131,14 @@ export function LiveLocationMapDialog({
                     floatBtn,
                     'absolute right-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] z-20',
                   )}
-                  aria-label="Открыть в браузере"
+                  aria-label={t('liveLocation.openInBrowser')}
                 >
                   <ExternalLink className="h-5 w-5" strokeWidth={2} />
                 </a>
               ) : null}
               {updatedLabel ? (
                 <p className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-md bg-black/45 px-2 py-1 text-[11px] text-zinc-200 backdrop-blur-[2px]">
-                  Обновлено {updatedLabel}
+                  {t('liveLocation.updatedAt', { time: updatedLabel })}
                 </p>
               ) : null}
             </div>

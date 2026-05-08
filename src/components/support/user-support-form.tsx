@@ -18,10 +18,12 @@ import { useAuth } from '@/hooks/use-auth';
 import { useUser } from '@/firebase';
 import { createSupportTicketAction } from '@/actions/support-ticket-actions';
 import type { TicketCategory, TicketPriority } from '@/lib/types';
+import { useI18n } from '@/hooks/use-i18n';
 
 export function UserSupportForm() {
   const { user } = useAuth();
   const { user: firebaseUser } = useUser();
+  const { t } = useI18n();
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [category, setCategory] = useState<TicketCategory>('other');
@@ -55,10 +57,10 @@ export function UserSupportForm() {
       <Card className="rounded-3xl">
         <CardContent className="flex flex-col items-center gap-3 py-8">
           <CheckCircle2 className="h-10 w-10 text-green-500" />
-          <p className="text-sm font-medium">Обращение отправлено!</p>
-          <p className="text-xs text-muted-foreground text-center">Мы ответим вам в ближайшее время.</p>
+          <p className="text-sm font-medium">{t('support.successTitle')}</p>
+          <p className="text-xs text-muted-foreground text-center">{t('support.successHint')}</p>
           <Button variant="outline" className="rounded-xl mt-2" onClick={() => setSuccess(false)}>
-            Создать ещё
+            {t('support.createAnother')}
           </Button>
         </CardContent>
       </Card>
@@ -70,57 +72,57 @@ export function UserSupportForm() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <HelpCircle className="h-5 w-5 text-primary" />
-          Написать в поддержку
+          {t('support.formTitle')}
         </CardTitle>
-        <CardDescription>Опишите проблему или предложение — мы свяжемся с вами.</CardDescription>
+        <CardDescription>{t('support.formDescription')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label>Тема</Label>
+          <Label>{t('support.subjectLabel')}</Label>
           <Input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            placeholder="Кратко опишите проблему"
+            placeholder={t('support.subjectPlaceholder')}
             className="rounded-xl"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label>Категория</Label>
+            <Label>{t('support.categoryLabel')}</Label>
             <Select value={category} onValueChange={(v) => setCategory(v as TicketCategory)}>
               <SelectTrigger className="rounded-xl">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="bug">Баг</SelectItem>
-                <SelectItem value="account">Аккаунт</SelectItem>
-                <SelectItem value="feature">Предложение</SelectItem>
-                <SelectItem value="other">Другое</SelectItem>
+                <SelectItem value="bug">{t('support.categoryBug')}</SelectItem>
+                <SelectItem value="account">{t('support.categoryAccount')}</SelectItem>
+                <SelectItem value="feature">{t('support.categoryFeature')}</SelectItem>
+                <SelectItem value="other">{t('support.categoryOther')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Приоритет</Label>
+            <Label>{t('support.priorityLabel')}</Label>
             <Select value={priority} onValueChange={(v) => setPriority(v as TicketPriority)}>
               <SelectTrigger className="rounded-xl">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="low">Низкий</SelectItem>
-                <SelectItem value="medium">Средний</SelectItem>
-                <SelectItem value="high">Высокий</SelectItem>
+                <SelectItem value="low">{t('support.priorityLow')}</SelectItem>
+                <SelectItem value="medium">{t('support.priorityMedium')}</SelectItem>
+                <SelectItem value="high">{t('support.priorityHigh')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label>Сообщение</Label>
+          <Label>{t('support.messageLabel')}</Label>
           <Textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Подробно опишите ситуацию..."
+            placeholder={t('support.messagePlaceholder')}
             className="rounded-xl min-h-[100px]"
           />
         </div>
@@ -131,7 +133,7 @@ export function UserSupportForm() {
           className="rounded-full w-full"
         >
           {sending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Отправить
+          {t('support.submit')}
         </Button>
       </CardContent>
     </Card>

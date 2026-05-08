@@ -180,6 +180,7 @@ function ConversationDurakGameBanner({
   conversationId: string;
   onOpenGame: (gameId: string) => void;
 }) {
+  const { t } = useI18n();
   const firestore = useFirestore();
   const q = useMemoFirebase(
     () =>
@@ -206,11 +207,11 @@ function ConversationDurakGameBanner({
       <div className="flex items-center gap-3">
         <Swords className="h-4 w-4 shrink-0 text-amber-500" />
         <div className="min-w-0 flex-1">
-          <div className="truncate font-semibold">{active ? 'Партия “Дурак” идёт' : 'Игра “Дурак” создана'}</div>
-          <div className="text-xs text-muted-foreground">{max > 0 ? `${players}/${max} игроков` : `${players} игроков`}</div>
+          <div className="truncate font-semibold">{active ? t('chat.durakGameActive') : t('chat.durakGameCreated')}</div>
+          <div className="text-xs text-muted-foreground">{max > 0 ? t('chat.durakPlayersMax', { current: String(players), max: String(max) }) : t('chat.durakPlayersCount', { count: String(players) })}</div>
         </div>
         <Button size="sm" variant="secondary" onClick={() => onOpenGame(lobby.id)}>
-          {active ? 'Открыть' : 'Присоединиться'}
+          {active ? t('chat.durakOpen') : t('chat.durakJoin')}
         </Button>
       </div>
     </div>
@@ -457,7 +458,7 @@ export function ChatWindow({
       .then((snap) => {
         if (cancelled) return;
         if (!snap.exists()) {
-          toast({ title: 'Обсуждение не найдено' });
+          toast({ title: t('chat.threadNotFound') });
           onThreadRootMessageConsumed?.();
           return;
         }
@@ -467,7 +468,7 @@ export function ChatWindow({
       .catch((e) => {
         console.warn('[LighChat] open thread from URL', e);
         if (!cancelled) {
-          toast({ title: 'Не удалось открыть обсуждение', variant: 'destructive' });
+          toast({ title: t('chat.threadOpenError'), variant: 'destructive' });
           onThreadRootMessageConsumed?.();
         }
       });
@@ -589,7 +590,7 @@ export function ChatWindow({
   }, [conversation.participantIds, currentUser.id, isSelfSavedChat]);
   const otherUser = useMemo(() => (otherId ? allUsers.find((u) => u.id === otherId) : undefined), [allUsers, otherId]);
   const otherPresenceLabel = useMemo(
-    () => (otherUser ? resolvePresenceLabel(otherUser) : 'Не в сети'),
+    () => (otherUser ? resolvePresenceLabel(otherUser) : t('chat.offline')),
     [otherUser]
   );
   const isPartnerDeleted = useMemo(
@@ -650,7 +651,7 @@ export function ChatWindow({
   const composerLockedHint = useMemo(() => {
     if (!composerLocked || isPartnerDeleted) return undefined;
     if (partnerUserError && !partnerUserLoading) {
-      return 'Пользователь ограничил с вами общение. Отправка недоступна.';
+      return t('chat.restrictedUser');
     }
     return directChatComposerBlockedHint(
       currentUser.id,
@@ -813,10 +814,10 @@ export function ChatWindow({
           createdAt: new Date().toISOString(),
           ...(previewText ? { previewText } : {}),
         });
-        toast({ title: 'Добавлено в избранное' });
+        toast({ title: t('chat.addedToFavorites') });
       } else {
         deleteDocumentNonBlocking(ref);
-        toast({ title: 'Удалено из избранного' });
+        toast({ title: t('chat.removedFromFavorites') });
       }
     },
     [firestore, currentUser.id, conversation.id, messagesForList, e2eePlaintextByMessageId, toast]
@@ -1194,7 +1195,7 @@ export function ChatWindow({
         allUsers.find((u) => u.id === userId) ??
         ({
           id: userId,
-          name: conversation.participantInfo[userId]?.name ?? 'Участник',
+          name: conversation.participantInfo[userId]?.name ?? t('chat.participant'),
           username: '',
           email: '',
           avatar: conversation.participantInfo[userId]?.avatar ?? '',
@@ -1206,8 +1207,8 @@ export function ChatWindow({
       if (!canStartDirectChat(currentUser, other)) {
         toast({
           variant: 'destructive',
-          title: 'Нельзя начать чат',
-          description: 'Политика доступа не позволяет написать этому пользователю.',
+          title: t('chat.cannotStartChat'),
+          description: t('chat.cannotStartChatPolicy'),
         });
         return;
       }
@@ -1230,7 +1231,7 @@ export function ChatWindow({
         console.error('[ChatWindow] createOrOpenDirectChat', e);
         toast({
           variant: 'destructive',
-          title: 'Не удалось открыть личный чат',
+          title: t('chat.openDirectChatError'),
         });
       }
     },
@@ -1268,16 +1269,16 @@ export function ChatWindow({
           conversationId: conversation.id,
           messageId: message.id,
         });
-        toast({ title: 'Повторная обработка запущена' });
+        toast({ title: t('chat.retryProcessingStarted') });
       } catch (error) {
         const msg =
           error instanceof Error
             ? error.message
-            : 'Не удалось запустить обработку';
-        toast({ variant: 'destructive', title: 'Ошибка', description: msg });
+            : t('chat.retryProcessingFailed');
+        toast({ variant: 'destructive', title: t('common.error'), description: msg });
       }
     },
-    [conversation.id, firestore, toast]
+    [conversation.id, firestore, toast, t]
   );
 
   const handleStickerSaveConfirmPack = useCallback(
@@ -1303,27 +1304,26 @@ export function ChatWindow({
               );
         if (r.ok) {
           toast({
-            title: 'Сохранено в стикерпак',
-            description: stickerSaveMode === 'normalize_sticker' ? 'Изображение приведено к квадрату под размер стикера.' : undefined,
+            title: t('chat.savedToStickerPack'),
+            description: stickerSaveMode === 'normalize_sticker' ? t('chat.savedToStickerPackNormalized') : undefined,
           });
           setStickerSaveOpen(false);
           setStickerSaveAttachment(null);
           setStickerSaveMode('copy');
         } else if (r.error === 'file_too_large') {
           toast({
-            title: 'Файл слишком большой',
-            description: `До ${Math.round(USER_STICKER_MAX_FILE_BYTES / (1024 * 1024))} МБ.`,
+            title: t('chat.fileTooLarge'),
+            description: t('chat.fileSizeLimitMb', { size: Math.round(USER_STICKER_MAX_FILE_BYTES / (1024 * 1024)) }),
             variant: 'destructive',
           });
         } else if (r.error === 'fetch_failed') {
           toast({
-            title: 'Не удалось скачать файл',
-            description:
-              'Сервер или браузер заблокировал загрузку (CORS). Сохраните медиа на устройство и добавьте через вкладку GIF → «В мой пак».',
+            title: t('chat.downloadFailedCors'),
+            description: t('chat.downloadFailedCorsHint'),
             variant: 'destructive',
           });
         } else {
-          toast({ title: 'Не удалось сохранить', variant: 'destructive' });
+          toast({ title: t('chat.saveFailed'), variant: 'destructive' });
         }
       } finally {
         setStickerSaveBusy(false);
@@ -1421,7 +1421,7 @@ export function ChatWindow({
           );
           e2eeAttachmentEnvelopes = res.envelopes;
         } catch (encErr) {
-          toast({ variant: 'destructive', title: 'Не удалось зашифровать вложение' });
+          toast({ variant: 'destructive', title: t('chat.encryptAttachmentError') });
           throw encErr;
         }
       }
@@ -1564,11 +1564,11 @@ export function ChatWindow({
       if (msg === 'E2EE_NO_CHAT_KEY' || msg === 'E2EE_UNWRAP_FAILED') {
         toast({
           variant: 'destructive',
-          title: 'Не удалось зашифровать сообщение',
+          title: t('chat.encryptMessageError'),
           description:
             msg === 'E2EE_UNWRAP_FAILED'
-              ? 'Этот браузер не совпадает с ключом, под который включали шифрование (часто: другое устройство/браузер или очистка данных). Откройте профиль чата → «Шифрование» и выключите/включите снова на этом устройстве.'
-              : 'Этот браузер не может открыть ключ чата. Попробуйте тот же браузер, где включали шифрование, или перевключите «Шифрование» в профиле чата.',
+              ? t('chat.encryptKeyMismatchHint')
+              : t('chat.encryptKeyGenericHint'),
         });
       }
     }
@@ -1579,8 +1579,8 @@ export function ChatWindow({
       if (e2eeConv.e2eeEnabled) {
         toast({
           variant: 'destructive',
-          title: 'Геолокация недоступна',
-          description: 'В чате со сквозным шифрованием отправка геолокации пока не поддерживается.',
+          title: t('chat.locationUnavailable'),
+          description: t('chat.locationE2eeHint'),
         });
         return;
       }
@@ -1627,7 +1627,7 @@ export function ChatWindow({
         const conversationRef = doc(firestore, 'conversations', conversation.id);
         const unreadUpdates = getUnreadIncrementUpdate(conversation.participantIds, currentUser.id, 1);
         await updateDoc(conversationRef, {
-          lastMessageText: '📍 Геолокация',
+          lastMessageText: `📍 ${t('chat.locationPreviewText')}`,
           lastMessageTimestamp: now,
           lastMessageSenderId: currentUser.id,
           lastMessageIsThread: false,
@@ -1661,7 +1661,7 @@ export function ChatWindow({
         toast({
           variant: 'destructive',
           title: t('chat.pollUnavailable'),
-          description: 'В чате со сквозным шифрованием опросы пока не поддерживаются.',
+          description: t('chat.pollUnavailableE2ee'),
         });
         return;
       }
@@ -1672,7 +1672,7 @@ export function ChatWindow({
       const newDocRef = doc(messagesCollection);
       const messageId = newDocRef.id;
       const now = new Date().toISOString();
-      const pollText = '<p>📊 Опрос</p>';
+      const pollText = `<p>📊 ${t('chat.pollPreviewText')}</p>`;
       pendingScrollToBottomAfterSendRef.current = true;
       setOptimisticMessages((prev) => [
         ...prev,
@@ -1705,7 +1705,7 @@ export function ChatWindow({
         const conversationRef = doc(firestore, 'conversations', conversation.id);
         const unreadUpdates = getUnreadIncrementUpdate(conversation.participantIds, currentUser.id, 1);
         await updateDoc(conversationRef, {
-          lastMessageText: '📊 Опрос',
+          lastMessageText: `📊 ${t('chat.pollPreviewText')}`,
           lastMessageTimestamp: now,
           lastMessageSenderId: currentUser.id,
           lastMessageIsThread: false,
@@ -1777,7 +1777,7 @@ export function ChatWindow({
         console.error('Failed to schedule message:', e);
         toast({
           variant: 'destructive',
-          title: 'Не удалось запланировать сообщение',
+          title: t('chat.scheduleMessageFailed'),
           description: e instanceof Error ? e.message : String(e),
         });
         throw e;
@@ -1837,7 +1837,7 @@ export function ChatWindow({
           }
         }
     } catch {
-        toast({ variant: 'destructive', title: 'Ошибка обновления' });
+        toast({ variant: 'destructive', title: t('chat.updateError') });
     }
   };
 
@@ -1879,7 +1879,7 @@ export function ChatWindow({
             }
         }
     } catch {
-        toast({ variant: 'destructive', title: 'Ошибка удаления' });
+        toast({ variant: 'destructive', title: t('chat.deleteError') });
     }
   };
 
@@ -1889,14 +1889,14 @@ export function ChatWindow({
     const replyPreview = getReplyPreview(msg, allUsers);
     const existing = conversationPinnedList(conversation);
     if (existing.some((p) => p.messageId === msg.id)) {
-      toast({ title: 'Уже закреплено' });
+      toast({ title: t('chat.pinAlready') });
       return;
     }
     if (existing.length >= MAX_PINNED_MESSAGES) {
       toast({
         variant: 'destructive',
-        title: 'Лимит закрепов',
-        description: `Не более ${MAX_PINNED_MESSAGES} сообщений.`,
+        title: t('chat.pinLimit'),
+        description: t('chat.pinLimitDescription', { max: MAX_PINNED_MESSAGES }),
       });
       return;
     }
@@ -1920,7 +1920,7 @@ export function ChatWindow({
         });
         toast({ title: t('chat.messagePinned') });
     } catch {
-        toast({ variant: 'destructive', title: 'Ошибка закрепления' });
+        toast({ variant: 'destructive', title: t('chat.pinError') });
     }
   };
 
@@ -1937,7 +1937,7 @@ export function ChatWindow({
       }
       toast({ title: t('chat.messageUnpinned') });
     } catch {
-      toast({ variant: 'destructive', title: 'Ошибка открепления' });
+      toast({ variant: 'destructive', title: t('chat.unpinError') });
     }
   };
 
@@ -1949,9 +1949,9 @@ export function ChatWindow({
             await handleDeleteMessage(id);
         }
         setSelection({ active: false, ids: new Set() });
-        toast({ title: 'Сообщения удалены' });
+        toast({ title: t('chat.messagesDeleted') });
     } catch {
-        toast({ variant: 'destructive', title: 'Ошибка при удалении' });
+        toast({ variant: 'destructive', title: t('chat.deleteError') });
     } finally {
         setIsBulkProcessing(false);
     }
@@ -2187,7 +2187,7 @@ export function ChatWindow({
         setThreadReactionScrollToId(target.messageId);
                 setSelectedThreadMessage({ ...parentMsgSnap.data(), id: parentMsgSnap.id } as ChatMessage);
             } else {
-                toast({ title: 'Обсуждение не найдено' });
+                toast({ title: t('chat.threadNotFound') });
             }
         } else {
       navigateToMessage(target.messageId);
@@ -2235,7 +2235,7 @@ export function ChatWindow({
       : resolveContactDisplayName(
           userContactsIndex?.contactProfiles,
           otherId,
-          (otherUser?.name ?? '').trim() || 'Чат'
+          (otherUser?.name ?? '').trim() || t('chat.chatLabel')
         );
   const chatDisplayAvatar = conversation.isGroup
     ? conversation.photoUrl
@@ -2245,8 +2245,8 @@ export function ChatWindow({
 
   const formatDateLabel = (dateStr: string) => {
     const date = parseISO(dateStr);
-    if (isToday(date)) return 'Сегодня';
-    if (isYesterday(date)) return 'Вчера';
+    if (isToday(date)) return t('chat.today');
+    if (isYesterday(date)) return t('chat.yesterday');
     return format(date, 'd MMMM', { locale: ru });
   };
 
@@ -2294,7 +2294,7 @@ export function ChatWindow({
                 <div className="flex w-full animate-in slide-in-from-right-4 items-center gap-2">
                     <Button variant="ghost" size="icon" className="rounded-full" onClick={() => { setIsSearchActive(false); setSearchQuery(''); }}><ArrowLeft className="h-5 w-5" /></Button>
                     <div className="relative flex-1">
-                        <Input autoFocus placeholder="Поиск сообщений..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-9 rounded-full border-none bg-muted/50" />
+                        <Input autoFocus placeholder={t('chat.searchMessagesPlaceholder')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-9 rounded-full border-none bg-muted/50" />
                         {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"><X className="h-4 w-4" /></button>}
                     </div>
                 </div>
@@ -2341,9 +2341,9 @@ export function ChatWindow({
                             </h2>
                             <span className="text-[11px] text-muted-foreground drop-shadow-sm">
                               {conversation.isGroup
-                                ? `${conversation.participantIds.length} участников`
+                                ? t('chat.participantsCount', { count: conversation.participantIds.length })
                                 : isSelfSavedChat
-                                  ? 'Только вы'
+                                  ? t('chat.onlyYou')
                                   : otherPresenceLabel}
                             </span>
                         </div>
@@ -2354,8 +2354,8 @@ export function ChatWindow({
                               variant="ghost"
                               size="icon"
                               className="h-9 w-9 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
-                              aria-label="Обсуждения"
-                              title="Обсуждения"
+                              aria-label={t('chat.discussionsAria')}
+                              title={t('chat.discussionsAria')}
                               onClick={handleOpenThreadsFromHeader}
                             >
                               <MessageCircle className={cn('h-[22px] w-[22px]', CHAT_HEADER_IOS.threads)} strokeWidth={2} />
@@ -2377,7 +2377,7 @@ export function ChatWindow({
                               size="icon"
                               className="h-9 w-9 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
                               onClick={() => setIsSearchActive(true)}
-                              aria-label="Поиск по сообщениям"
+                              aria-label={t('chat.searchMessagesAria')}
                             >
                               <Search
                                 className={cn(
@@ -2395,8 +2395,8 @@ export function ChatWindow({
                               size="icon"
                               className="h-9 w-9 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
                               onClick={() => setScheduledSheetOpen(true)}
-                              aria-label="Запланированные сообщения"
-                              title="Запланированные сообщения"
+                              aria-label={t('chat.scheduledMessagesAria')}
+                              title={t('chat.scheduledMessagesAria')}
                             >
                               <CalendarClock
                                 className="h-[22px] w-[22px] drop-shadow-sm dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)] text-primary"
@@ -2420,7 +2420,7 @@ export function ChatWindow({
                                     otherUser ??
                                     ({
                                       id: otherId,
-                                      name: conversation.participantInfo[otherId]?.name ?? 'Пользователь',
+                                      name: conversation.participantInfo[otherId]?.name ?? t('chat.userLabel'),
                                       blockedUserIds: partnerUserLive?.blockedUserIds,
                                     } as User);
                                   void initiateCall(firestore, callerForCalls, recv, true, toast);
@@ -2439,7 +2439,7 @@ export function ChatWindow({
                                     otherUser ??
                                     ({
                                       id: otherId,
-                                      name: conversation.participantInfo[otherId]?.name ?? 'Пользователь',
+                                      name: conversation.participantInfo[otherId]?.name ?? t('chat.userLabel'),
                                       blockedUserIds: partnerUserLive?.blockedUserIds,
                                     } as User);
                                   void initiateCall(firestore, callerForCalls, recv, false, toast);
@@ -2460,16 +2460,16 @@ export function ChatWindow({
             {showSecretLockOverlay ? (
               <div className="absolute inset-0 z-[80] flex items-center justify-center bg-background/85 p-6 backdrop-blur-md">
                 <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card/90 p-5 text-center shadow-xl">
-                  <h3 className="text-lg font-bold">Секретный чат заблокирован</h3>
+                  <h3 className="text-lg font-bold">{t('chat.secretChatLocked')}</h3>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Для чтения сообщений нужен PIN секретного хранилища.
+                    {t('chat.secretChatLockedHint')}
                   </p>
                   <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
                     <Button type="button" onClick={() => setSecretUnlockOpen(true)}>
-                      Разблокировать
+                      {t('chat.unlock')}
                     </Button>
                     <Button type="button" variant="outline" onClick={() => setSecretSettingsOpen(true)}>
-                      Настройки секретного чата
+                      {t('chat.secretChatSettingsButton')}
                     </Button>
                   </div>
                 </div>
@@ -2498,7 +2498,7 @@ export function ChatWindow({
             <div className="flex-1 min-h-0 relative min-w-0 overflow-hidden">
                 {!isFullyReady && (
                     <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-md flex flex-col items-center justify-center space-y-4">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Загрузка...</p>
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('chat.loading')}</p>
                     </div>
                 )}
                 <ChatSearchOverlay
@@ -2535,7 +2535,7 @@ export function ChatWindow({
                             Header: () => isLoadingOlder ? (
                                 <div className="p-4 flex items-center justify-center text-muted-foreground">
                                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Загрузка истории...</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest">{t('chat.loadingHistory')}</span>
                                 </div>
                             ) : null,
                             Footer: () => (
@@ -2555,7 +2555,7 @@ export function ChatWindow({
                                 />
                               );
                             }
-                            if (item.type === 'unread-separator') return (<div className="flex items-center gap-4 px-6 py-4 animate-in fade-in duration-500"><div className="h-px bg-primary/30 flex-1" /><span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-3 py-1 rounded-full border border-primary/20">Непрочитанные сообщения</span><div className="h-px bg-primary/30 flex-1" /></div>);
+                            if (item.type === 'unread-separator') return (<div className="flex items-center gap-4 px-6 py-4 animate-in fade-in duration-500"><div className="h-px bg-primary/30 flex-1" /><span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/5 px-3 py-1 rounded-full border border-primary/20">{t('chat.unreadMessages')}</span><div className="h-px bg-primary/30 flex-1" /></div>);
                             // Phase 8: system-маркер E2EE рисуется отдельным divider'ом
                             // вместо обычного bubble. Senders = '__system__'.
                             if (item.message.systemEvent && item.message.senderId === '__system__') {
@@ -2579,7 +2579,7 @@ export function ChatWindow({
                                 suppressReadReceipts={suppressReadReceipts}
                               >
                                 <div className="py-1 px-4">
-                                  <ChatMessageItem message={item.message} currentUser={currentUser} allUsers={allUsers} conversation={conversation} isSelected={selection.ids.has(item.message.id)} isSelectionActive={selection.active} editingMessage={editingMessage?.id === item.message.id ? editingMessage : null} onToggleSelection={(id) => setSelection(prev => { const next = new Set(prev.ids); if (next.has(id)) next.delete(id); else next.add(id); return { active: true, ids: next }; })} onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }} onUpdateMessage={handleUpdateMessage} onDelete={(id) => handleDeleteMessage(id)} onCopy={(txt) => { if (!allowSecretCopy) return; const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); navigator.clipboard.writeText(cleanText); toast({ title: 'Текст скопирован' }); }} onPin={handlePinMessage} onReply={(c) => { setReplyingTo(c); setEditingMessage(null); }} onForward={(m) => { if (!allowSecretForward) return; sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} allowForward={allowSecretForward} allowCopy={allowSecretCopy} onReact={(mid, emoji) => handleReactTo(mid, emoji)} onOpenImageViewer={handleOpenMediaViewer} onOpenVideoViewer={handleOpenMediaViewer} onNavigateToMessage={navigateToMessage} onOpenThread={(msg) => setSelectedThreadMessage(msg)} chatSettings={chatSettings} isLastInChat={isLastInChat} onMentionProfileOpen={handleMentionProfileOpen} onGroupSenderProfileOpen={handleGroupSenderProfileOpen} onGroupSenderWritePrivate={handleGroupSenderWritePrivate} onSaveStickerGif={handleSaveStickerFromMessage} contactProfiles={userContactsIndex?.contactProfiles} e2eeDecryptedByMessageId={e2eePlaintextByMessageId} isStarred={starredMessageIds.has(item.message.id)} onToggleStar={handleToggleStar} onRetryMediaNorm={handleRetryMediaNorm} />
+                                  <ChatMessageItem message={item.message} currentUser={currentUser} allUsers={allUsers} conversation={conversation} isSelected={selection.ids.has(item.message.id)} isSelectionActive={selection.active} editingMessage={editingMessage?.id === item.message.id ? editingMessage : null} onToggleSelection={(id) => setSelection(prev => { const next = new Set(prev.ids); if (next.has(id)) next.delete(id); else next.add(id); return { active: true, ids: next }; })} onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }} onUpdateMessage={handleUpdateMessage} onDelete={(id) => handleDeleteMessage(id)} onCopy={(txt) => { if (!allowSecretCopy) return; const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); navigator.clipboard.writeText(cleanText); toast({ title: t('chat.textCopied') }); }} onPin={handlePinMessage} onReply={(c) => { setReplyingTo(c); setEditingMessage(null); }} onForward={(m) => { if (!allowSecretForward) return; sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} allowForward={allowSecretForward} allowCopy={allowSecretCopy} onReact={(mid, emoji) => handleReactTo(mid, emoji)} onOpenImageViewer={handleOpenMediaViewer} onOpenVideoViewer={handleOpenMediaViewer} onNavigateToMessage={navigateToMessage} onOpenThread={(msg) => setSelectedThreadMessage(msg)} chatSettings={chatSettings} isLastInChat={isLastInChat} onMentionProfileOpen={handleMentionProfileOpen} onGroupSenderProfileOpen={handleGroupSenderProfileOpen} onGroupSenderWritePrivate={handleGroupSenderWritePrivate} onSaveStickerGif={handleSaveStickerFromMessage} contactProfiles={userContactsIndex?.contactProfiles} e2eeDecryptedByMessageId={e2eePlaintextByMessageId} isStarred={starredMessageIds.has(item.message.id)} onToggleStar={handleToggleStar} onRetryMediaNorm={handleRetryMediaNorm} />
                                 </div>
                               </MessageReadOnViewport>
                             );
@@ -2719,8 +2719,8 @@ export function ChatWindow({
             }
           }}
           userId={currentUser.id}
-          title="Сохранить в стикерпак"
-          description="Выберите пак и нажмите «Сохранить». Отправка из вкладки «Стикеры». Пункт «Создать стикер» делает квадратное превью под размер стикера."
+          title={t('chat.stickerSaveTitle')}
+          description={t('chat.stickerSaveDescription')}
           busy={stickerSaveBusy}
           onConfirmPack={handleStickerSaveConfirmPack}
           createPack={handleStickerPackCreate}

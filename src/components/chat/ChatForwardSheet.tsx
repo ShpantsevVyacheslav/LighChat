@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useI18n } from '@/hooks/use-i18n';
 import {
   useFirestore,
   useMemoFirebase,
@@ -35,6 +34,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { participantListAvatarUrl } from '@/lib/user-avatar-display';
@@ -81,14 +81,14 @@ function ForwardingMessagePreview({
               >
                 <div className="mb-1 flex items-center gap-2">
                   <Quote className="h-3 w-3 rotate-180 text-primary/40" />
-                  <p className="font-bold text-foreground">{sender?.name || t('calls.unknownContact')}</p>
+                  <p className="font-bold text-foreground">{sender?.name || t('common.unknown')}</p>
                 </div>
                 <p className="break-words pl-5 italic text-muted-foreground">
                   {message.e2ee?.ciphertext
-                    ? t('chat.encryptedSyncingBanner')
+                    ? t('chat.forward.encryptedMessage')
                     : message.text
                       ? stripHtml(message.text)
-                      : t('chatList.previewAttachment')}
+                      : t('chat.forward.attachment')}
                 </p>
               </div>
             );
@@ -120,7 +120,6 @@ type ForwardRecipientRow =
  * Список включает чаты из индекса и контакты без существующего личного чата; поддерживается «Выбрать всех» по отфильтрованному списку.
  */
 export function ChatForwardSheet() {
-  const { t } = useI18n();
   const [messages, setMessages] = useState<Partial<ChatMessage>[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isSending, setIsSending] = useState(false);
@@ -132,6 +131,7 @@ export function ChatForwardSheet() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const userChatIndexRef = useMemoFirebase(
     () => (firestore && currentUser ? doc(firestore, 'userChats', currentUser.id) : null),
@@ -240,10 +240,10 @@ export function ChatForwardSheet() {
       const otherParticipantId = conv.participantIds.find((id) => id !== currentUser?.id);
       const otherUser = allUsers.find((u) => u.id === otherParticipantId);
       const displayName = conv.isGroup
-        ? conv.name || t('chat.groupFallbackName')
+        ? conv.name || t('chat.forward.group')
         : otherUser?.name ||
           conv.participantInfo[otherParticipantId || '']?.name ||
-          'Неизвестный чат';
+          t('chat.forward.unknownChat');
       const avatar = conv.isGroup
         ? conv.photoUrl
         : participantListAvatarUrl(
@@ -264,7 +264,7 @@ export function ChatForwardSheet() {
         kind: 'contact',
         selectionKey: contactSelectionKey(user.id),
         user,
-        displayName: user.name || 'Контакт',
+        displayName: user.name || t('chat.forward.contact'),
         avatar: user.avatarThumb || user.avatar,
       });
     }
@@ -291,12 +291,12 @@ export function ChatForwardSheet() {
         setMessages(parsedMessages);
         setSessionReady(true);
       } else {
-        toast({ variant: 'destructive', title: 'Нет сообщений для пересылки' });
+        toast({ variant: 'destructive', title: t('chat.forward.noMessages') });
         router.back();
       }
     } catch (error) {
       console.error('Failed to parse messages from session storage', error);
-      toast({ variant: 'destructive', title: 'Ошибка загрузки сообщений' });
+      toast({ variant: 'destructive', title: t('chat.forward.loadError') });
       router.back();
     }
   }, [router, toast]);
@@ -372,8 +372,8 @@ export function ChatForwardSheet() {
     if (messages.some((m) => m.e2ee?.ciphertext)) {
       toast({
         variant: 'destructive',
-        title: 'Пересылка недоступна',
-        description: 'Сообщения со сквозным шифрованием нельзя переслать.',
+        title: t('chat.forward.e2eeForwardUnavailable'),
+        description: t('chat.forward.e2eeForwardDesc'),
       });
       return;
     }
@@ -392,8 +392,8 @@ export function ChatForwardSheet() {
       if (targets.length === 0) {
         toast({
           variant: 'destructive',
-          title: 'Не удалось подготовить чаты',
-          description: 'Проверьте подключение и попробуйте снова.',
+          title: t('chat.forward.prepareError'),
+          description: t('chat.forward.prepareErrorDesc'),
         });
         setIsSending(false);
         return;
@@ -415,7 +415,7 @@ export function ChatForwardSheet() {
             isDeleted: false,
             readAt: null,
             forwardedFrom: {
-              name: senderInfo?.name || 'Неизвестный',
+              name: senderInfo?.name || t('common.unknown'),
             },
             ...(message.text && { text: message.text }),
             ...(message.attachments && { attachments: message.attachments }),
@@ -426,14 +426,14 @@ export function ChatForwardSheet() {
         });
 
         const lastMessage = messages[messages.length - 1];
-        let lastMessageText = 'Пересланное сообщение';
+        let lastMessageText = t('chat.forward.forwardedMessage');
         if (messages.length > 1) {
-          lastMessageText = `Переслано ${messages.length} сообщений`;
+          lastMessageText = t('chat.forward.forwardedCount') + ' ' + messages.length;
         } else if (lastMessage.text) {
           const plainText = lastMessage.text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-          lastMessageText = `Переслано: ${plainText.slice(0, 50)}${plainText.length > 50 ? '...' : ''}`;
+          lastMessageText = t('chat.forward.forwarded') + ': ' + plainText.slice(0, 50) + (plainText.length > 50 ? '...' : '');
         } else if (lastMessage.attachments?.length) {
-          lastMessageText = 'Пересланное вложение';
+          lastMessageText = t('chat.forward.forwardedAttachment');
         }
 
         const conversationRef = doc(firestore, 'conversations', convId);
@@ -455,14 +455,14 @@ export function ChatForwardSheet() {
 
       await batch.commit();
       toast({
-        title: 'Сообщения пересланы',
-        description: `Отправлено в ${targets.length} чат(ов)`,
+        title: t('chat.forward.sent'),
+        description: t('chat.forward.sentToChats') + ' ' + targets.length,
       });
       handleClose();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
       console.error('Failed to bulk forward:', e);
-      toast({ variant: 'destructive', title: 'Ошибка пересылки', description: message });
+      toast({ variant: 'destructive', title: t('chat.forward.forwardError'), description: message });
       setIsSending(false);
     }
   };
@@ -473,8 +473,8 @@ export function ChatForwardSheet() {
     selectedIds.size === 0
       ? ''
       : selectedIds.size === 1
-        ? '1 чат'
-        : `${selectedIds.size} чатов`;
+        ? '1'
+        : String(selectedIds.size);
 
   return (
     <Sheet open={sheetOpen} onOpenChange={handleOpenChange}>
@@ -500,14 +500,14 @@ export function ChatForwardSheet() {
               size="icon"
               onClick={handleGoBack}
               className="shrink-0 rounded-full"
-              aria-label="Назад"
+              aria-label={t('common.back')}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-lg font-bold sm:text-xl">Переслать</h1>
+              <h1 className="truncate text-lg font-bold sm:text-xl">{t('chat.forward.title')}</h1>
               <p className="truncate text-xs text-muted-foreground">
-                Чаты и контакты · сообщений: {messages.length}
+                {t('chat.forward.subtitle')} · {messages.length}
               </p>
             </div>
           </header>
@@ -515,7 +515,7 @@ export function ChatForwardSheet() {
           <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pt-3">
             <div className="flex min-h-0 max-h-[min(42vh,320px)] shrink-0 flex-col gap-2">
               <h2 className="shrink-0 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Предпросмотр
+                {t('chat.forward.preview')}
               </h2>
               {allUsers.length > 0 && messages.length > 0 ? (
                 <ScrollArea className="min-h-[100px] flex-1 pr-2">
@@ -533,7 +533,7 @@ export function ChatForwardSheet() {
             <div className="group relative shrink-0">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
               <Input
-                placeholder="Поиск чатов и контактов…"
+                placeholder={t('chat.forward.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="h-11 rounded-full border border-border/80 bg-background pl-10 shadow-sm focus-visible:ring-2 focus-visible:ring-primary"
@@ -550,7 +550,7 @@ export function ChatForwardSheet() {
                 onClick={selectAllFiltered}
               >
                 <ListChecks className="h-4 w-4" />
-                Выбрать всех ({filteredRows.length})
+                {t('chat.forward.selectAll')} ({filteredRows.length})
               </Button>
               <Button
                 type="button"
@@ -561,7 +561,7 @@ export function ChatForwardSheet() {
                 onClick={clearSelection}
               >
                 <ListX className="h-4 w-4" />
-                Снять выделение
+                {t('chat.forward.clearSelection')}
               </Button>
             </div>
 
@@ -615,9 +615,9 @@ export function ChatForwardSheet() {
                               {row.displayName}
                             </p>
                             {row.kind === 'contact' ? (
-                              <p className="truncate text-xs text-muted-foreground">В контактах</p>
+                              <p className="truncate text-xs text-muted-foreground">{t('chat.forward.inContacts')}</p>
                             ) : row.conversation.isGroup ? (
-                              <p className="truncate text-xs text-muted-foreground">Группа</p>
+                              <p className="truncate text-xs text-muted-foreground">{t('chat.forward.group')}</p>
                             ) : null}
                           </div>
                         </div>
@@ -636,7 +636,7 @@ export function ChatForwardSheet() {
                 ) : (
                   <div className="rounded-3xl border-2 border-dashed bg-muted/20 py-16 text-center text-muted-foreground">
                     <MessageSquare className="mx-auto h-12 w-12 opacity-20" />
-                    <p className="mt-4 font-medium">Ничего не найдено</p>
+                    <p className="mt-4 font-medium">{t('chat.forward.nothingFound')}</p>
                   </div>
                 )}
               </div>
@@ -656,8 +656,8 @@ export function ChatForwardSheet() {
                 <SendHorizonal className="h-5 w-5" />
               )}
               {selectedIds.size === 0
-                ? 'Выберите получателей'
-                : `Переслать · ${recipientCountLabel}`}
+                ? t('chat.forward.selectRecipients')
+                : t('chat.forward.title') + ' · ' + recipientCountLabel}
             </Button>
           </div>
         </div>

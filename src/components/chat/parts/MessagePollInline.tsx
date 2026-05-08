@@ -127,7 +127,7 @@ export function MessagePollInline(props: MessagePollInlineProps) {
       await updateDoc(pollRef, updateData);
       setPendingMulti([]);
     } catch {
-      toast({ variant: 'destructive', title: 'Ошибка при голосовании' });
+      toast({ variant: 'destructive', title: t('chat.poll.voteError') });
     }
   };
 
@@ -138,7 +138,7 @@ export function MessagePollInline(props: MessagePollInlineProps) {
 
   const submitMulti = async () => {
     if (pendingMulti.length === 0) {
-      toast({ variant: 'destructive', title: 'Выберите хотя бы один вариант' });
+      toast({ variant: 'destructive', title: t('chat.poll.selectAtLeastOne') });
       return;
     }
     await commitVote([...pendingMulti].sort((a, b) => a - b));
@@ -174,19 +174,19 @@ export function MessagePollInline(props: MessagePollInlineProps) {
         }
       }
     } catch {
-      toast({ variant: 'destructive', title: 'Ошибка' });
+      toast({ variant: 'destructive', title: t('chat.poll.actionError') });
     }
   };
 
   const handleAddOption = async () => {
-    const t = newOptionText.trim();
-    if (!firestore || !pollRef || !poll || !t || addingOption) return;
+    const trimmed = newOptionText.trim();
+    if (!firestore || !pollRef || !poll || !trimmed || addingOption) return;
     setAddingOption(true);
     try {
-      await updateDoc(pollRef, { options: [...poll.options, t] });
+      await updateDoc(pollRef, { options: [...poll.options, trimmed] });
       setNewOptionText('');
     } catch {
-      toast({ variant: 'destructive', title: 'Не удалось добавить вариант' });
+      toast({ variant: 'destructive', title: t('chat.poll.addOptionFailed') });
     } finally {
       setAddingOption(false);
     }
@@ -235,21 +235,21 @@ export function MessagePollInline(props: MessagePollInlineProps) {
                     : 'bg-primary/15 text-primary'
               )}
             >
-              {isCancelled ? 'Отменён' : isEnded ? 'Завершён' : isDraft ? 'Черновик' : 'Активен'}
+              {isCancelled ? t('chat.poll.cancelled') : isEnded ? t('chat.poll.ended') : isDraft ? t('chat.poll.draft') : t('chat.poll.active')}
             </Badge>
             {!poll.isAnonymous && (
               <Badge variant="outline" className="h-5 rounded-full border-0 bg-primary/10 px-2 text-[9px] font-bold uppercase text-primary">
-                Публично
+                {t('chat.poll.public')}
               </Badge>
             )}
             {allowMulti && (
               <Badge variant="outline" className="h-5 rounded-full border-0 px-2 text-[9px] font-bold uppercase text-muted-foreground">
-                Несколько ответов
+                {t('chat.poll.multipleAnswers')}
               </Badge>
             )}
             {quizMode && (
               <Badge variant="outline" className="h-5 rounded-full border-0 px-2 text-[9px] font-bold uppercase text-emerald-600 dark:text-emerald-400">
-                Викторина
+                {t('chat.poll.quiz')}
               </Badge>
             )}
           </div>
@@ -264,25 +264,25 @@ export function MessagePollInline(props: MessagePollInlineProps) {
             <DropdownMenuContent align="end" className="z-[300] w-52 rounded-xl p-1">
               {isDraft && canModerate && (
                 <DropdownMenuItem onSelect={() => handleAction('start')} className="rounded-lg text-xs">
-                  Запустить
+                  {t('chat.poll.launch')}
                 </DropdownMenuItem>
               )}
               {hasVoted && !isEnded && !isDraft && allowRev && (
                 <DropdownMenuItem onSelect={() => handleAction('revote')} className="rounded-lg text-xs">
                   <RotateCcw className="mr-2 h-3.5 w-3.5" />
-                  Изменить голос
+                  {t('chat.poll.changeVote')}
                 </DropdownMenuItem>
               )}
               {isEnded && canModerate && (
                 <DropdownMenuItem onSelect={() => handleAction('restart')} className="rounded-lg text-xs">
                   <RotateCcw className="mr-2 h-3.5 w-3.5" />
-                  Перезапустить
+                  {t('chat.poll.restart')}
                 </DropdownMenuItem>
               )}
               {canModerate && !isEnded && !isDraft && (
                 <DropdownMenuItem onSelect={() => handleAction('end')} className="rounded-lg text-xs text-amber-600">
                   <StopCircle className="mr-2 h-3.5 w-3.5" />
-                  Завершить
+                  {t('chat.poll.stop')}
                 </DropdownMenuItem>
               )}
               {canModerate && (
@@ -290,7 +290,7 @@ export function MessagePollInline(props: MessagePollInlineProps) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={() => handleAction('delete')} className="rounded-lg text-xs text-destructive">
                     <Trash2 className="mr-2 h-3.5 w-3.5" />
-                    Удалить
+                    {t('chat.poll.delete')}
                   </DropdownMenuItem>
                 </>
               )}
@@ -309,7 +309,7 @@ export function MessagePollInline(props: MessagePollInlineProps) {
           const votersForOption = !poll.isAnonymous
             ? Object.entries(votes)
                 .filter(([, v]) => normalizeUserVote(v).includes(idx))
-                .map(([uId]) => allParticipants.find((p) => p.id === uId) || ({ id: uId, name: 'Участник', avatar: '' } as User))
+                .map(([uId]) => allParticipants.find((p) => p.id === uId) || ({ id: uId, name: t('chat.participant'), avatar: '' } as User))
             : [];
 
           const quizCorrect = showQuizHint && correctIdx === idx;
@@ -389,7 +389,7 @@ export function MessagePollInline(props: MessagePollInlineProps) {
 
       {allowMulti && !hasVoted && !isEnded && !isDraft && !isCancelled && (
         <Button type="button" size="sm" className="w-full rounded-xl" disabled={pendingMulti.length === 0} onClick={() => void submitMulti()}>
-          Отправить голос
+          {t('chat.poll.submitVote')}
         </Button>
       )}
 
@@ -402,14 +402,14 @@ export function MessagePollInline(props: MessagePollInlineProps) {
           <Input
             value={newOptionText}
             onChange={(e) => setNewOptionText(e.target.value)}
-            placeholder="Предложить вариант"
+            placeholder={t('chat.poll.suggestOption')}
             className="h-9 rounded-xl text-xs"
             onKeyDown={(e) => {
               if (e.key === 'Enter') void handleAddOption();
             }}
           />
           <Button type="button" size="sm" variant="secondary" className="shrink-0 rounded-xl" disabled={addingOption || !newOptionText.trim()} onClick={() => void handleAddOption()}>
-            {addingOption ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Добавить'}
+            {addingOption ? <Loader2 className="h-4 w-4 animate-spin" /> : t('chat.poll.add')}
           </Button>
         </div>
       )}
@@ -417,8 +417,8 @@ export function MessagePollInline(props: MessagePollInlineProps) {
       <div className="flex items-center justify-between px-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <Activity className="h-3 w-3" />
-          {totalVotes} голосов
-          {!isEnded && !isDraft && !isCancelled && <span className="opacity-70">· цель {participantsCount}</span>}
+          {t('chat.poll.votes').replace('{count}', String(totalVotes))}
+          {!isEnded && !isDraft && !isCancelled && <span className="opacity-70">· {t('chat.poll.target').replace('{count}', String(participantsCount))}</span>}
         </span>
         {!poll.isAnonymous && totalVotes > 0 && (
           <Button
@@ -429,7 +429,7 @@ export function MessagePollInline(props: MessagePollInlineProps) {
             onClick={() => setExpanded((e) => !e)}
           >
             {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-            Кто голосовал
+            {t('chat.poll.whoVoted')}
           </Button>
         )}
       </div>

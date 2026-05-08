@@ -15,6 +15,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search } from 'lucide-react';
 import { filterLucideIconNamesForPicker } from '@/lib/bottom-nav-icons';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 
 const MAX_PICKER_RESULTS = 240;
 
@@ -35,6 +36,7 @@ export function LucideIconPickerDialog({
   currentName,
   onSelect,
 }: LucideIconPickerDialogProps) {
+  const { t } = useI18n();
   const [query, setQuery] = useState('');
 
   React.useEffect(() => {
@@ -61,7 +63,7 @@ export function LucideIconPickerDialog({
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Поиск по названию (англ.)…"
+              placeholder={t('settings.iconPicker.searchPlaceholder')}
               className="h-10 rounded-xl pl-9"
               autoFocus
             />
@@ -94,12 +96,12 @@ export function LucideIconPickerDialog({
             })}
           </div>
           {filtered.length === 0 && (
-            <p className="py-8 text-center text-sm text-muted-foreground">Ничего не найдено</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">{t('settings.iconPicker.nothingFound')}</p>
           )}
         </ScrollArea>
         <div className="shrink-0 border-t border-border/60 px-4 py-3">
           <Button type="button" variant="ghost" className="w-full rounded-xl" onClick={() => onOpenChange(false)}>
-            Отмена
+            {t('common.cancel')}
           </Button>
         </div>
       </DialogContent>

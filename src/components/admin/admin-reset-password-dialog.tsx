@@ -16,6 +16,7 @@ import type { User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { adminSetUserPasswordAction } from '@/actions/admin-actions';
 import { RefreshCw, Copy } from 'lucide-react';
+import { useI18n } from '@/hooks/use-i18n';
 
 function generatePassword(length = 14): string {
   const chars = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%';
@@ -32,6 +33,7 @@ interface AdminResetPasswordDialogProps {
 }
 
 export function AdminResetPasswordDialog({ open, onOpenChange, target, getIdToken }: AdminResetPasswordDialogProps) {
+  const { t } = useI18n();
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -41,20 +43,20 @@ export function AdminResetPasswordDialog({ open, onOpenChange, target, getIdToke
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(password);
-      toast({ title: 'Пароль скопирован' });
+      toast({ title: t('admin.resetPassword.passwordCopied') });
     } catch {
-      toast({ variant: 'destructive', title: 'Не удалось скопировать' });
+      toast({ variant: 'destructive', title: t('admin.resetPassword.copyFailed') });
     }
   };
 
   const submit = async () => {
     if (!target || password.length < 8) {
-      toast({ variant: 'destructive', title: 'Пароль не короче 8 символов' });
+      toast({ variant: 'destructive', title: t('admin.resetPassword.passwordMin') });
       return;
     }
     const token = await getIdToken();
     if (!token) {
-      toast({ variant: 'destructive', title: 'Нет сессии администратора' });
+      toast({ variant: 'destructive', title: t('admin.resetPassword.noAdminSession') });
       return;
     }
     setLoading(true);
@@ -65,7 +67,7 @@ export function AdminResetPasswordDialog({ open, onOpenChange, target, getIdToke
         newPassword: password,
       });
       if (res.ok) {
-        toast({ title: 'Пароль обновлён', description: 'Сообщите его пользователю по безопасному каналу.' });
+        toast({ title: t('admin.resetPassword.passwordUpdated'), description: t('admin.resetPassword.passwordUpdatedDesc') });
         onOpenChange(false);
         setPassword('');
       } else {
@@ -86,13 +88,13 @@ export function AdminResetPasswordDialog({ open, onOpenChange, target, getIdToke
     >
       <DialogContent className="rounded-2xl sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Сброс пароля</DialogTitle>
+          <DialogTitle>{t('admin.resetPassword.title')}</DialogTitle>
           <DialogDescription>
-            Новый пароль для <strong>{target?.name}</strong>. После сохранения пользователь входит с ним вместо старого.
+            {t('admin.resetPassword.description').replace('{name}', target?.name ?? '')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <Label htmlFor="new-pwd">Новый пароль</Label>
+          <Label htmlFor="new-pwd">{t('admin.resetPassword.newPasswordLabel')}</Label>
           <div className="flex gap-2">
             <Input
               id="new-pwd"
@@ -100,9 +102,9 @@ export function AdminResetPasswordDialog({ open, onOpenChange, target, getIdToke
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Минимум 8 символов"
+              placeholder={t('admin.resetPassword.newPasswordPlaceholder')}
             />
-            <Button type="button" size="icon" variant="outline" onClick={fillRandom} title="Сгенерировать">
+            <Button type="button" size="icon" variant="outline" onClick={fillRandom} title={t('admin.resetPassword.generateTitle')}>
               <RefreshCw className="h-4 w-4" />
             </Button>
             <Button type="button" size="icon" variant="outline" onClick={() => void copy()} disabled={!password}>
@@ -112,10 +114,10 @@ export function AdminResetPasswordDialog({ open, onOpenChange, target, getIdToke
         </div>
         <DialogFooter className="gap-2">
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={loading}>
-            Отмена
+            {t('admin.resetPassword.cancel')}
           </Button>
           <Button type="button" onClick={() => void submit()} disabled={loading}>
-            Сохранить
+            {t('admin.resetPassword.save')}
           </Button>
         </DialogFooter>
       </DialogContent>

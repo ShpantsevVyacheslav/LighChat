@@ -15,24 +15,24 @@ import { createOrOpenSecretDirectChat } from '@/lib/secret-chat/secret-chat-crea
 import { setSecretChatPin } from '@/lib/secret-chat/secret-chat-callables';
 import type { SecretChatRestrictions, SecretChatTtlPresetSec } from '@/lib/types';
 
-const TTL_PRESETS: Array<{ value: SecretChatTtlPresetSec; label: string }> = [
-  { value: 300, label: '5 мин' },
-  { value: 900, label: '15 мин' },
-  { value: 1800, label: '30 мин' },
-  { value: 3600, label: '1 час' },
-  { value: 7200, label: '2 часа' },
-  { value: 21600, label: '6 часов' },
-  { value: 43200, label: '12 часов' },
-  { value: 86400, label: '24 часа' },
+const TTL_PRESETS: Array<{ value: SecretChatTtlPresetSec; labelKey: string }> = [
+  { value: 300, labelKey: 'chat.secretChat.ttl5m' },
+  { value: 900, labelKey: 'chat.secretChat.ttl15m' },
+  { value: 1800, labelKey: 'chat.secretChat.ttl30m' },
+  { value: 3600, labelKey: 'chat.secretChat.ttl1h' },
+  { value: 7200, labelKey: 'chat.secretChat.ttl2h' },
+  { value: 21600, labelKey: 'chat.secretChat.ttl6h' },
+  { value: 43200, labelKey: 'chat.secretChat.ttl12h' },
+  { value: 86400, labelKey: 'chat.secretChat.ttl24h' },
 ];
 
-const VIEW_LIMIT_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: '', label: 'Безлимит' },
-  { value: '1', label: '1 просмотр' },
-  { value: '2', label: '2 просмотра' },
-  { value: '3', label: '3 просмотра' },
-  { value: '5', label: '5 просмотров' },
-  { value: '10', label: '10 просмотров' },
+const VIEW_LIMIT_OPTIONS: Array<{ value: string; labelKey: string }> = [
+  { value: '', labelKey: 'chat.secretChat.viewUnlimited' },
+  { value: '1', labelKey: 'chat.secretChat.view1' },
+  { value: '2', labelKey: 'chat.secretChat.view2' },
+  { value: '3', labelKey: 'chat.secretChat.view3' },
+  { value: '5', labelKey: 'chat.secretChat.view5' },
+  { value: '10', labelKey: 'chat.secretChat.view10' },
 ];
 
 const SECRET_VAULT_PIN_KEY = 'lighchat.secretVault.pin.v1';
@@ -99,7 +99,7 @@ export function SecretChatComposeDialog({
   const handleCreate = async () => {
     const pin = vaultPin.trim();
     if (pin && !/^\d{4}$/.test(pin)) {
-      setError('PIN должен состоять из 4 цифр.');
+      setError(t('chat.secretChat.pinMustBe4Digits'));
       return;
     }
 
@@ -137,7 +137,7 @@ export function SecretChatComposeDialog({
       onCreated(conversationId);
       handleOpenChange(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось создать секретный чат.');
+      setError(e instanceof Error ? e.message : t('chat.secretChat.createFailed'));
     } finally {
       setBusy(false);
     }
@@ -158,7 +158,7 @@ export function SecretChatComposeDialog({
       >
         {VIEW_LIMIT_OPTIONS.map((opt) => (
           <option key={opt.value || 'none'} value={opt.value}>
-            {opt.label}
+            {t(opt.labelKey)}
           </option>
         ))}
       </select>
@@ -169,16 +169,16 @@ export function SecretChatComposeDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Создать секретный чат с {peerUser.name || 'пользователем'}</DialogTitle>
+          <DialogTitle>{t('chat.secretChat.createTitle', { name: peerUser.name || t('chat.secretChat.userFallback') })}</DialogTitle>
           <DialogDescription>
-            Параметры после создания фиксируются сервером. Изменить их нельзя.
+            {t('chat.secretChat.composeDescription')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-4 rounded-lg border p-3">
             <div className="space-y-2">
-              <Label>Срок жизни чата</Label>
+              <Label>{t('chat.secretChat.chatLifetime')}</Label>
               <select
                 value={String(ttl)}
                 onChange={(e) => setTtl(Number(e.target.value) as SecretChatTtlPresetSec)}
@@ -187,19 +187,19 @@ export function SecretChatComposeDialog({
               >
                 {TTL_PRESETS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
-                    {opt.label}
+                    {t(opt.labelKey)}
                   </option>
                 ))}
               </select>
             </div>
 
             <div className="space-y-3">
-              <Label className="text-sm">Ограничения</Label>
-              <SwitchRow label="Запрет пересылки" checked={noForward} onCheckedChange={setNoForward} disabled={busy} />
-              <SwitchRow label="Запрет копирования" checked={noCopy} onCheckedChange={setNoCopy} disabled={busy} />
-              <SwitchRow label="Запрет сохранения медиа" checked={noSave} onCheckedChange={setNoSave} disabled={busy} />
+              <Label className="text-sm">{t('chat.secretChat.restrictions')}</Label>
+              <SwitchRow label={t('chat.secretChat.noForwardToggle')} checked={noForward} onCheckedChange={setNoForward} disabled={busy} />
+              <SwitchRow label={t('chat.secretChat.noCopyToggle')} checked={noCopy} onCheckedChange={setNoCopy} disabled={busy} />
+              <SwitchRow label={t('chat.secretChat.noSaveToggle')} checked={noSave} onCheckedChange={setNoSave} disabled={busy} />
               <SwitchRow
-                label="Защита от скриншотов"
+                label={t('chat.secretChat.screenshotProtectionToggle')}
                 checked={screenshotProtection}
                 onCheckedChange={setScreenshotProtection}
                 disabled={busy}
@@ -209,17 +209,17 @@ export function SecretChatComposeDialog({
 
           <div className="space-y-4 rounded-lg border p-3">
             <div className="space-y-3">
-              <Label className="text-sm">Лимиты просмотров медиа</Label>
-              {mediaLimitSelect('Изображения', imageViews, setImageViews)}
-              {mediaLimitSelect('Видео', videoViews, setVideoViews)}
-              {mediaLimitSelect('Голосовые', voiceViews, setVoiceViews)}
-              {mediaLimitSelect('Файлы', fileViews, setFileViews)}
+              <Label className="text-sm">{t('chat.secretChat.mediaViewLimits')}</Label>
+              {mediaLimitSelect(t('chat.secretChat.images'), imageViews, setImageViews)}
+              {mediaLimitSelect(t('chat.secretChat.videos'), videoViews, setVideoViews)}
+              {mediaLimitSelect(t('chat.secretChat.voice'), voiceViews, setVoiceViews)}
+              {mediaLimitSelect(t('chat.secretChat.files'), fileViews, setFileViews)}
               {mediaLimitSelect(t('chat.locationLabel'), locationViews, setLocationViews)}
             </div>
 
             <div className="space-y-3 rounded-md border p-3">
               <SwitchRow
-                label="Требовать PIN для входа"
+                label={t('chat.secretChat.requirePinToggle')}
                 checked={lockRequired}
                 onCheckedChange={setLockRequired}
                 disabled={busy}
@@ -227,7 +227,7 @@ export function SecretChatComposeDialog({
               {lockRequired ? (
                 <div className="space-y-2">
                   <Label htmlFor="secret-compose-vault-pin" className="text-xs text-muted-foreground">
-                    PIN хранилища (необязательно, 4 цифры)
+                    {t('chat.secretChat.vaultPinLabel')}
                   </Label>
                   <Input
                     id="secret-compose-vault-pin"
@@ -240,7 +240,7 @@ export function SecretChatComposeDialog({
                     disabled={busy}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Если PIN уже установлен в аккаунте, можно оставить поле пустым.
+                    {t('chat.secretChat.vaultPinHint')}
                   </p>
                 </div>
               ) : null}
@@ -252,11 +252,11 @@ export function SecretChatComposeDialog({
 
         <DialogFooter className="gap-2">
           <Button type="button" variant="ghost" disabled={busy} onClick={() => handleOpenChange(false)}>
-            Отмена
+            {t('common.cancel')}
           </Button>
           <Button type="button" disabled={busy} onClick={() => void handleCreate()}>
             {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LockKeyhole className="mr-2 h-4 w-4" />}
-            Создать секретный чат
+            {t('chat.secretChat.createButton')}
           </Button>
         </DialogFooter>
       </DialogContent>

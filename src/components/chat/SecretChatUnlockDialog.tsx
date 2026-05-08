@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2, ShieldAlert } from 'lucide-react';
 
+import { useI18n } from '@/hooks/use-i18n';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,6 +52,7 @@ export function SecretChatUnlockDialog({
   onUnlocked,
 }: SecretChatUnlockDialogProps) {
   const firestore = useFirestore();
+  const { t } = useI18n();
   const app = firestore.app;
   const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
@@ -91,11 +93,11 @@ export function SecretChatUnlockDialog({
     } catch (e) {
       if (isSecretPinNotSetError(e)) {
         setPinNotSet(true);
-        setError('PIN ещё не настроен. Задайте PIN и повторите разблокировку.');
+        setError(t('chat.secretChat.pinNotSetError'));
       } else if (isSecretPinLockedError(e)) {
-        setError('Слишком много попыток. Попробуйте позже.');
+        setError(t('chat.secretChat.tooManyAttempts'));
       } else {
-        setError('Не удалось разблокировать секретный чат. Проверьте PIN и попробуйте снова.');
+        setError(t('chat.secretChat.unlockFailed'));
       }
     } finally {
       setBusy(false);
@@ -105,7 +107,7 @@ export function SecretChatUnlockDialog({
   const handleSubmit = async () => {
     const nextPin = pin.trim();
     if (!validatePin(nextPin)) {
-      setError('Введите 4-значный PIN.');
+      setError(t('chat.secretChat.enter4DigitPin'));
       return;
     }
     await runUnlock(nextPin, pinNotSet ? 'set-and-unlock' : 'unlock');
@@ -120,15 +122,15 @@ export function SecretChatUnlockDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Разблокировать секретный чат</DialogTitle>
+          <DialogTitle>{t('chat.secretChat.unlockTitle')}</DialogTitle>
           <DialogDescription>
-            Для доступа к сообщениям введите PIN от секретного хранилища.
+            {t('chat.secretChat.unlockDescription')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
           <div className="space-y-2">
-            <Label htmlFor="secret-chat-pin">PIN (4 цифры)</Label>
+            <Label htmlFor="secret-chat-pin">{t('chat.secretChat.unlockPinLabel')}</Label>
             <Input
               id="secret-chat-pin"
               type="password"
@@ -149,7 +151,7 @@ export function SecretChatUnlockDialog({
               disabled={busy}
             />
             <Label htmlFor="remember-secret-pin" className="text-sm text-muted-foreground">
-              Запомнить PIN на этом устройстве
+              {t('chat.secretChat.rememberPinOnDevice')}
             </Label>
           </div>
 
@@ -170,17 +172,17 @@ export function SecretChatUnlockDialog({
                 onClick={() => void handleUseSavedPin()}
                 disabled={busy}
               >
-                Использовать сохранённый PIN
+                {t('chat.secretChat.useSavedPinButton')}
               </Button>
             ) : null}
           </div>
           <div className="flex items-center gap-2">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={busy}>
-              Отмена
+              {t('common.cancel')}
             </Button>
             <Button type="button" onClick={() => void handleSubmit()} disabled={busy}>
               {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {pinNotSet ? 'Установить PIN и разблокировать' : 'Разблокировать'}
+              {pinNotSet ? t('chat.secretChat.setPinAndUnlock') : t('chat.secretChat.unlockButton')}
             </Button>
           </div>
         </DialogFooter>

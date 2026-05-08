@@ -383,7 +383,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
                             </DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => setSessionsTarget(user)}>
                               <Monitor className="mr-2 h-4 w-4" />
-                              Сессии
+                              {t("admin.usersList.sessions")}
                             </DropdownMenuItem>
                             {user.role !== "admin" && (
                               <DropdownMenuItem onSelect={() => void handleSetRole(user, "admin")}>

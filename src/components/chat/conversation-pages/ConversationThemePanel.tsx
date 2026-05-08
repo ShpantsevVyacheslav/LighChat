@@ -8,18 +8,19 @@ import { useFirestore, useStorage } from '@/firebase';
 import { useChatConversationPrefs } from '@/hooks/use-chat-conversation-prefs';
 import { useSettings } from '@/hooks/use-settings';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 import { compressImage } from '@/lib/image-compression';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
-const WALLPAPERS: { value: string | null; label: string }[] = [
-  { value: null, label: 'Как в общих настройках' },
-  { value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', label: 'Фиолетовый' },
-  { value: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', label: 'Розовый' },
-  { value: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', label: 'Голубой' },
-  { value: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', label: 'Зелёный' },
-  { value: 'linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 100%)', label: 'Ночь' },
+const WALLPAPERS: { value: string | null; labelKey: string }[] = [
+  { value: null, labelKey: 'chat.theme.presetAsGlobal' },
+  { value: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', labelKey: 'chat.theme.presetPurple' },
+  { value: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', labelKey: 'chat.theme.presetPink' },
+  { value: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', labelKey: 'chat.theme.presetBlue' },
+  { value: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', labelKey: 'chat.theme.presetGreen' },
+  { value: 'linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 100%)', labelKey: 'chat.theme.presetNight' },
 ];
 
 function isImageUrl(value: string | null | undefined): boolean {
@@ -36,6 +37,7 @@ export function ConversationThemePanel({
   const firestore = useFirestore();
   const storage = useStorage();
   const { toast } = useToast();
+  const { t } = useI18n();
   const globalWallpaper = useSettings().chatSettings.chatWallpaper;
   const { prefs, updatePrefs, clearChatWallpaperOverride } = useChatConversationPrefs(userId, conversationId);
   const effectiveLocal = prefs?.chatWallpaper;
@@ -48,10 +50,10 @@ export function ConversationThemePanel({
   const setGradient = (value: string | null) => {
     if (value === null) {
       clearChatWallpaperOverride();
-      toast({ title: 'Фон как в общих настройках' });
+      toast({ title: t('chat.theme.toastAsGlobal') });
     } else {
       updatePrefs({ chatWallpaper: value });
-      toast({ title: 'Фон сохранён для этого чата' });
+      toast({ title: t('chat.theme.toastSaved') });
     }
   };
 
@@ -60,7 +62,7 @@ export function ConversationThemePanel({
     if (!file || !userId || !storage || !firestore) return;
     if (fileRef.current) fileRef.current.value = '';
     if (!file.type.startsWith('image/')) {
-      toast({ variant: 'destructive', title: 'Выберите изображение' });
+      toast({ variant: 'destructive', title: t('chat.theme.selectImage') });
       return;
     }
     setUploading(true);
@@ -74,10 +76,10 @@ export function ConversationThemePanel({
       const url = await getDownloadURL(ref);
       await updateDoc(doc(firestore, 'users', userId), { customBackgrounds: arrayUnion(url) });
       updatePrefs({ chatWallpaper: url });
-      toast({ title: 'Фон загружен для этого чата' });
+      toast({ title: t('chat.theme.toastUploaded') });
     } catch (err) {
       console.error(err);
-      toast({ variant: 'destructive', title: 'Не удалось загрузить фон' });
+      toast({ variant: 'destructive', title: t('chat.theme.toastUploadError') });
     } finally {
       setUploading(false);
     }
@@ -86,11 +88,11 @@ export function ConversationThemePanel({
   return (
     <div className="text-zinc-100 [&_label]:text-zinc-300">
       <p className="mb-4 text-sm text-zinc-400">
-        Фон переписки только для этого диалога. Общие настройки оформления чатов не меняются.
+        {t('chat.theme.description')}
       </p>
 
       <div className="mb-6 rounded-2xl border border-zinc-800/80 p-4">
-        <Label className="text-xs font-bold uppercase text-zinc-500">Текущий фон</Label>
+        <Label className="text-xs font-bold uppercase text-zinc-500">{t('chat.theme.currentLabel')}</Label>
         <div
           className={cn(
             'mt-2 flex h-28 w-full items-center justify-center overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 text-xs text-zinc-500'
@@ -106,24 +108,24 @@ export function ConversationThemePanel({
           {isImageUrl(activeWallpaper) ? (
             <img src={activeWallpaper!} alt="" className="h-full w-full object-cover" />
           ) : activeWallpaper ? null : (
-            'По умолчанию (общие настройки)'
+            t('chat.theme.defaultLabel')
           )}
         </div>
       </div>
 
       <div className="space-y-3">
-        <Label>Пресеты</Label>
+        <Label>{t('chat.theme.presetsLabel')}</Label>
         <div className="flex flex-wrap gap-2">
           {WALLPAPERS.map((w) => (
             <Button
-              key={w.label}
+              key={w.labelKey}
               type="button"
               variant="outline"
               size="sm"
               className="rounded-full border-zinc-700 bg-zinc-900/50 text-xs text-zinc-200 hover:bg-zinc-800"
               onClick={() => setGradient(w.value)}
             >
-              {w.label}
+              {t(w.labelKey)}
             </Button>
           ))}
         </div>
@@ -139,7 +141,7 @@ export function ConversationThemePanel({
           onClick={() => fileRef.current?.click()}
         >
           {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-2 h-4 w-4" />}
-          Загрузить своё фото
+          {t('chat.theme.uploadPhotoBtn')}
         </Button>
       </div>
     </div>

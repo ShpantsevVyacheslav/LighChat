@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, HardDrive, Shield } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/use-auth';
+import { useI18n } from '@/hooks/use-i18n';
 import { AdminStorageStatsPanel } from '@/components/admin/admin-storage-stats-panel';
 
 const MAIN_DOC = 'main';
@@ -22,6 +23,7 @@ const defaultStorage = (): PlatformSettingsDoc['storage'] => ({
 });
 
 export function AdminStorageSettingsPanel() {
+  const { t } = useI18n();
   const firestore = useFirestore();
   const { user: firebaseAuthUser, isUserLoading: isFirebaseAuthLoading } = useUser();
   const { user } = useAuth();
@@ -65,9 +67,9 @@ export function AdminStorageSettingsPanel() {
         const isPermission = code === 'permission-denied';
         toast({
           variant: 'destructive',
-          title: 'Не удалось загрузить настройки',
+          title: t('adminPage.storageSettings.loadError'),
           description: isPermission
-            ? 'Нет прав на чтение (нужна авторизация и актуальные правила). Выполните firebase deploy --only firestore:rules. Если сохранение настроек недоступно — в Firestore в users/{ваш UID} должно быть поле role со строкой admin.'
+            ? t('adminPage.storageSettings.permissionHint')
             : undefined,
         });
       } finally {
@@ -100,16 +102,16 @@ export function AdminStorageSettingsPanel() {
       } else {
         await setDoc(ref, { storage } satisfies Partial<PlatformSettingsDoc>);
       }
-      toast({ title: 'Настройки сохранены' });
+      toast({ title: t('adminPage.storageSettings.saved') });
     } catch (e: unknown) {
       console.error(e);
       const code = e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
       toast({
         variant: 'destructive',
-        title: 'Ошибка сохранения',
+        title: t('adminPage.storageSettings.saveError'),
         description:
           code === 'permission-denied'
-            ? 'Задеплойте правила Firestore (firebase deploy --only firestore:rules).'
+            ? t('adminPage.storageSettings.deployHint')
             : undefined,
       });
     } finally {
@@ -119,7 +121,7 @@ export function AdminStorageSettingsPanel() {
 
   const saveUserQuota = async () => {
     if (!firestore || !userQuotaUserId.trim()) {
-      toast({ variant: 'destructive', title: 'Укажите ID пользователя' });
+      toast({ variant: 'destructive', title: t('adminPage.storageSettings.enterUserId') });
       return;
     }
     const gb = userQuotaGb.trim() === '' ? null : Math.max(0.001, parseFloat(userQuotaGb.replace(',', '.')) || 0);
@@ -135,12 +137,12 @@ export function AdminStorageSettingsPanel() {
           storageQuotaBytes: bytes,
         });
       }
-      toast({ title: gb != null ? 'Квота пользователя обновлена' : 'Квота пользователя сброшена' });
+      toast({ title: gb != null ? t('adminPage.storageSettings.userQuotaUpdated') : t('adminPage.storageSettings.userQuotaReset') });
       setUserQuotaUserId('');
       setUserQuotaGb('');
     } catch (e) {
       console.error(e);
-      toast({ variant: 'destructive', title: 'Не удалось записать квоту' });
+      toast({ variant: 'destructive', title: t('adminPage.storageSettings.quotaWriteError') });
     } finally {
       setSaving(false);
     }
@@ -160,10 +162,10 @@ export function AdminStorageSettingsPanel() {
         } satisfies Partial<PlatformSettingsDoc>);
       }
       setE2eeDefaultForNewDirectChats(checked);
-      toast({ title: 'Сохранено', description: 'Параметр E2E для новых личных чатов обновлён.' });
+      toast({ title: t('adminPage.storageSettings.e2eSaved'), description: t('adminPage.storageSettings.e2eDescription') });
     } catch (e) {
       console.error(e);
-      toast({ variant: 'destructive', title: 'Не удалось сохранить' });
+      toast({ variant: 'destructive', title: t('adminPage.storageSettings.e2eSaveError') });
     } finally {
       setSaving(false);
     }
@@ -171,7 +173,7 @@ export function AdminStorageSettingsPanel() {
 
   const saveConvQuota = async () => {
     if (!firestore || !convQuotaId.trim()) {
-      toast({ variant: 'destructive', title: 'Укажите ID чата' });
+      toast({ variant: 'destructive', title: t('adminPage.storageSettings.enterChatId') });
       return;
     }
     const gb = convQuotaGb.trim() === '' ? null : Math.max(0.001, parseFloat(convQuotaGb.replace(',', '.')) || 0);
@@ -187,12 +189,12 @@ export function AdminStorageSettingsPanel() {
           storageQuotaBytes: bytes,
         });
       }
-      toast({ title: gb != null ? 'Квота чата обновлена' : 'Квота чата сброшена' });
+      toast({ title: gb != null ? t('adminPage.storageSettings.chatQuotaUpdated') : t('adminPage.storageSettings.chatQuotaReset') });
       setConvQuotaId('');
       setConvQuotaGb('');
     } catch (e) {
       console.error(e);
-      toast({ variant: 'destructive', title: 'Не удалось записать квоту чата' });
+      toast({ variant: 'destructive', title: t('adminPage.storageSettings.chatQuotaWriteError') });
     } finally {
       setSaving(false);
     }
@@ -205,19 +207,17 @@ export function AdminStorageSettingsPanel() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <HardDrive className="h-5 w-5 text-primary" />
-          Хранилище (Storage)
+          {t('adminPage.storageSettings.title')}
         </CardTitle>
         <CardDescription>
-          Параметры ниже сохраняются в Firestore (<code className="text-xs">platformSettings/main</code> и поля
-          документов). Фактическое удаление файлов по сроку и FIFO при переполнении общей квоты нужно реализовать в{' '}
-          <strong>Cloud Functions</strong> (обход Storage, подсчёт размера, связь с датами сообщений).
+          {t('adminPage.storageSettings.storageDescription')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
         {loading ? (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
-            Загрузка…
+            {t('adminPage.storageSettings.loading')}
           </div>
         ) : (
           <>
@@ -226,11 +226,10 @@ export function AdminStorageSettingsPanel() {
                 <Shield className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                 <div>
                   <Label htmlFor="admin-e2ee-default" className="text-sm font-medium">
-                    E2E для новых личных чатов по умолчанию
+                    {t('adminPage.storageSettings.e2eLabel')}
                   </Label>
                   <p className="text-xs text-muted-foreground mt-1">
-                    После создания личного чата клиент попытается включить сквозное шифрование, если у обоих участников
-                    есть ключи. Поле <code className="text-xs">platformSettings/main.e2eeDefaultForNewDirectChats</code>.
+                    {t('adminPage.storageSettings.e2eeHint')}
                   </p>
                 </div>
               </div>
@@ -243,41 +242,41 @@ export function AdminStorageSettingsPanel() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="retention">Автоудаление медиа (дней после отправки)</Label>
+                <Label htmlFor="retention">{t('adminPage.storageSettings.retentionLabel')}</Label>
                 <Input
                   id="retention"
                   type="number"
                   min={1}
-                  placeholder="Пусто — не задано"
+                  placeholder={t('adminPage.storageSettings.retentionPlaceholder')}
                   value={retentionDays}
                   onChange={(e) => setRetentionDays(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">Изображения и видео в Storage старше N дней от метки в сообщении.</p>
+                <p className="text-xs text-muted-foreground">{t('adminPage.storageSettings.retentionDescription')}</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="totalgb">Общий лимит хранилища (Гб)</Label>
+                <Label htmlFor="totalgb">{t('adminPage.storageSettings.totalGbLabel')}</Label>
                 <Input
                   id="totalgb"
                   type="number"
                   min={1}
                   step="0.1"
-                  placeholder="Пусто — без лимита"
+                  placeholder={t('adminPage.storageSettings.totalGbPlaceholder')}
                   value={totalGb}
                   onChange={(e) => setTotalGb(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">При достижении — удалять самые старые объекты (FIFO).</p>
+                <p className="text-xs text-muted-foreground">{t('adminPage.storageSettings.totalGbHint')}</p>
               </div>
             </div>
             <Button type="button" onClick={() => void saveGlobal()} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Сохранить глобальные настройки
+              {t('adminPage.storageSettings.saveGlobal')}
             </Button>
 
             <div className="border-t pt-6 space-y-4">
-              <h3 className="text-sm font-semibold">Квота для конкретного пользователя</h3>
+              <h3 className="text-sm font-semibold">{t('adminPage.storageSettings.userQuotaTitle')}</h3>
               <div className="grid gap-3 sm:grid-cols-3">
                 <Input
-                  placeholder="User ID (uid)"
+                  placeholder={t('adminPage.storageSettings.userIdPlaceholder')}
                   value={userQuotaUserId}
                   onChange={(e) => setUserQuotaUserId(e.target.value)}
                 />
@@ -285,21 +284,21 @@ export function AdminStorageSettingsPanel() {
                   type="number"
                   min={0.001}
                   step="0.1"
-                  placeholder="Гб (пусто — сброс)"
+                  placeholder={t('adminPage.storageSettings.userQuotaGbPlaceholder')}
                   value={userQuotaGb}
                   onChange={(e) => setUserQuotaGb(e.target.value)}
                 />
                 <Button type="button" variant="secondary" onClick={() => void saveUserQuota()} disabled={saving}>
-                  Применить
+                  {t('adminPage.storageSettings.apply')}
                 </Button>
               </div>
             </div>
 
             <div className="border-t pt-6 space-y-4">
-              <h3 className="text-sm font-semibold">Квота для группового чата</h3>
+              <h3 className="text-sm font-semibold">{t('adminPage.storageSettings.chatQuotaTitle')}</h3>
               <div className="grid gap-3 sm:grid-cols-3">
                 <Input
-                  placeholder="Conversation ID"
+                  placeholder={t('adminPage.storageSettings.chatIdPlaceholder')}
                   value={convQuotaId}
                   onChange={(e) => setConvQuotaId(e.target.value)}
                 />
@@ -307,12 +306,12 @@ export function AdminStorageSettingsPanel() {
                   type="number"
                   min={0.001}
                   step="0.1"
-                  placeholder="Гб (пусто — сброс)"
+                  placeholder={t('adminPage.storageSettings.convQuotaGbPlaceholder')}
                   value={convQuotaGb}
                   onChange={(e) => setConvQuotaGb(e.target.value)}
                 />
                 <Button type="button" variant="secondary" onClick={() => void saveConvQuota()} disabled={saving}>
-                  Применить
+                  {t('adminPage.storageSettings.apply')}
                 </Button>
               </div>
             </div>

@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { CalendarClock, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 
 const MIN_SCHEDULE_LEAD_SECONDS = 60;
 
@@ -44,7 +45,7 @@ function pad2(n: number): string {
 
 interface Preset {
   id: string;
-  label: string;
+  labelKey: string;
   computeAt: (now: Date) => Date | null;
 }
 
@@ -63,9 +64,9 @@ function tomorrowAt(hour: number, now: Date): Date {
 }
 
 const PRESETS: Preset[] = [
-  { id: 'today-18', label: 'Сегодня в 18:00', computeAt: (now) => tonightAt(18, now) },
-  { id: 'tomorrow-09', label: 'Завтра в 09:00', computeAt: (now) => tomorrowAt(9, now) },
-  { id: 'tomorrow-18', label: 'Завтра в 18:00', computeAt: (now) => tomorrowAt(18, now) },
+  { id: 'today-18', labelKey: 'chat.schedule.presetToday18', computeAt: (now) => tonightAt(18, now) },
+  { id: 'tomorrow-09', labelKey: 'chat.schedule.presetTomorrow09', computeAt: (now) => tomorrowAt(9, now) },
+  { id: 'tomorrow-18', labelKey: 'chat.schedule.presetTomorrow18', computeAt: (now) => tomorrowAt(18, now) },
 ];
 
 export interface ChatScheduleMessageDialogProps {
@@ -88,6 +89,7 @@ export function ChatScheduleMessageDialog({
   confirmLabel,
   onConfirm,
 }: ChatScheduleMessageDialogProps) {
+  const { t } = useI18n();
   const now = useMemo(() => startOfMinute(new Date()), [open]);
   const initial = initialSendAt ?? new Date(now.getTime() + 60 * 60 * 1000);
 
@@ -162,7 +164,7 @@ export function ChatScheduleMessageDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarClock className="h-5 w-5 text-primary" />
-            Запланировать сообщение
+            {t('chat.schedule.title')}
           </DialogTitle>
         </DialogHeader>
 
@@ -179,7 +181,7 @@ export function ChatScheduleMessageDialog({
                   disabled={!at}
                   onClick={() => applyPreset(p)}
                 >
-                  {p.label}
+                  {t(p.labelKey)}
                 </Button>
               );
             })}
@@ -202,7 +204,7 @@ export function ChatScheduleMessageDialog({
 
           <div className="flex items-end gap-3">
             <div className="space-y-1 flex-1">
-              <label className="text-xs text-muted-foreground">Часы</label>
+              <label className="text-xs text-muted-foreground">{t('chat.schedule.hours')}</label>
               <Select
                 value={String(hour)}
                 onValueChange={(v) => setHour(Number(v))}
@@ -220,7 +222,7 @@ export function ChatScheduleMessageDialog({
               </Select>
             </div>
             <div className="space-y-1 flex-1">
-              <label className="text-xs text-muted-foreground">Минуты</label>
+              <label className="text-xs text-muted-foreground">{t('chat.schedule.minutes')}</label>
               <Select
                 value={String(minute)}
                 onValueChange={(v) => setMinute(Number(v))}
@@ -248,10 +250,10 @@ export function ChatScheduleMessageDialog({
             )}
           >
             {isInPast ? (
-              <span>Время должно быть в будущем (минимум через минуту).</span>
+              <span>{t('chat.schedule.mustBeFuture')}</span>
             ) : (
               <span>
-                Будет отправлено: <b>{format(computedSendAt, 'd MMMM yyyy, HH:mm', { locale: ru })}</b>
+                {t('chat.schedule.willSendAt')} <b>{format(computedSendAt, 'd MMMM yyyy, HH:mm', { locale: ru })}</b>
               </span>
             )}
           </div>
@@ -260,8 +262,7 @@ export function ChatScheduleMessageDialog({
             <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 flex gap-2">
               <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
               <span>
-                Это E2EE-чат. Отложенное сообщение будет сохранено в открытом виде на сервере
-                до момента отправки и опубликовано без шифрования.
+                {t('chat.schedule.e2eeWarning')}
               </span>
             </div>
           )}
@@ -269,10 +270,10 @@ export function ChatScheduleMessageDialog({
 
         <DialogFooter className="gap-2">
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-            Отмена
+            {t('common.cancel')}
           </Button>
           <Button type="button" onClick={handleConfirm} disabled={isInPast || submitting}>
-            {confirmLabel ?? 'Запланировать'}
+            {confirmLabel ?? t('chat.schedule.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

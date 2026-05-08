@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Trash2, SendHorizonal, Loader2, Mic, Play, Pause } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
@@ -29,6 +30,7 @@ export function AudioMessagePreviewBar({
   onSend,
   isSending,
 }: AudioMessagePreviewBarProps) {
+  const { t } = useI18n();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -92,7 +94,7 @@ export function AudioMessagePreviewBar({
         className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/10"
         onClick={onDiscard}
         disabled={isSending}
-        aria-label="Удалить запись"
+        aria-label={t('chat.audioPreview.discard')}
       >
         <Trash2 className="h-3.5 w-3.5" />
       </Button>
@@ -111,7 +113,7 @@ export function AudioMessagePreviewBar({
         className="h-8 w-8 shrink-0 rounded-full text-foreground"
         onClick={togglePlayback}
         disabled={isSending}
-        aria-label={playing ? 'Пауза' : 'Прослушать'}
+        aria-label={playing ? t('chat.audioPreview.pause') : t('chat.audioPreview.listen')}
       >
         {playing ? (
           <Pause className="h-4 w-4" />
@@ -151,7 +153,7 @@ export function AudioMessagePreviewBar({
         className="h-9 w-9 shrink-0 rounded-full"
         onClick={onSend}
         disabled={isSending}
-        aria-label="Отправить голосовое"
+        aria-label={t('chat.audioPreview.sendVoice')}
       >
         {isSending ? (
           <Loader2 className="h-4 w-4 animate-spin" />

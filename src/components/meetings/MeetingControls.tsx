@@ -10,6 +10,7 @@ import {
   Users, CircleDot, StopCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface MeetingControlsProps {
@@ -59,24 +60,25 @@ export function MeetingControls({
   onSwitchCamera,
   screenShareDisabled
 }: MeetingControlsProps) {
+  const { t } = useI18n();
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-[max(2rem,env(safe-area-inset-bottom,0px))] z-30 flex flex-col items-center gap-4 pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
         <div className="flex items-center gap-3 bg-black/30 backdrop-blur-3xl p-3 rounded-full shadow-[0_32px_64px_rgba(0,0,0,0.5)] pointer-events-auto border border-white/10 animate-in slide-in-from-bottom-10 duration-1000 max-w-full overflow-x-auto no-scrollbar">
             <TooltipProvider delayDuration={0}>
                 <ControlGroup>
-                    <ControlButton onClick={onToggleVideo} active={!isVideoOff} variant={isVideoOff ? 'danger' : 'primary'} tooltip={isVideoOff ? "Включить камеру" : "Выключить камеру"}>
+                    <ControlButton onClick={onToggleVideo} active={!isVideoOff} variant={isVideoOff ? 'danger' : 'primary'} tooltip={isVideoOff ? t('meetingControls.cameraOn') : t('meetingControls.cameraOff')}>
                         {isVideoOff ? <VideoOff className="h-5 w-5" /> : <VideoIcon className="h-5 w-5" />}
                     </ControlButton>
-                    <ControlButton onClick={onToggleMic} active={!isMicMuted} variant={isMicMuted ? 'danger' : 'primary'} tooltip={isMicMuted ? "Включить микрофон" : "Выключить микрофон"}>
+                    <ControlButton onClick={onToggleMic} active={!isMicMuted} variant={isMicMuted ? 'danger' : 'primary'} tooltip={isMicMuted ? t('meetingControls.micOn') : t('meetingControls.micOff')}>
                         {isMicMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
                     </ControlButton>
-                    <ControlButton onClick={onSwitchCamera} className="md:hidden" tooltip="Переключить камеру"><SwitchCamera className="h-5 w-5" /></ControlButton>
+                    <ControlButton onClick={onSwitchCamera} className="md:hidden" tooltip={t('meetingControls.switchCamera')}><SwitchCamera className="h-5 w-5" /></ControlButton>
                 </ControlGroup>
-                
+
                 <Separator orientation="vertical" className="h-8 bg-white/10 mx-1 shrink-0" />
-                
+
                 <ControlGroup>
-                    <ControlButton onClick={onToggleHand} active={isHandRaised} variant={isHandRaised ? 'warning' : 'ghost'} tooltip="Поднять руку"><Hand className={cn("h-5 w-5", isHandRaised && "fill-current")} /></ControlButton>
+                    <ControlButton onClick={onToggleHand} active={isHandRaised} variant={isHandRaised ? 'warning' : 'ghost'} tooltip={t('meetingControls.raiseHand')}><Hand className={cn("h-5 w-5", isHandRaised && "fill-current")} /></ControlButton>
                     <Popover>
                         <PopoverTrigger asChild>
                             <button className="h-12 w-12 shrink-0 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/15 transition-all text-white outline-none">
@@ -96,10 +98,10 @@ export function MeetingControls({
                 <Separator orientation="vertical" className="h-8 bg-white/10 mx-1 shrink-0" />
                 
                 <ControlGroup>
-                    <ControlButton onClick={onToggleParticipants} active={activeTab === 'participants'} tooltip="Участники" badge={waitingCount > 0 ? waitingCount : undefined}><Users className="h-5 w-5" /></ControlButton>
-                    <ControlButton onClick={onTogglePolls} active={activeTab === 'polls'} tooltip="Голосования" badge={activePollsCount > 0 ? activePollsCount : undefined}><BarChart2 className="h-5 w-5" /></ControlButton>
-                    <ControlButton onClick={onToggleChat} active={activeTab === 'chat'} tooltip="Чат" badge={unreadChatCount > 0 && activeTab !== 'chat' ? unreadChatCount : undefined}><MessageSquare className="h-5 w-5" /></ControlButton>
-                    {isDisplayMediaSupported && (<ControlButton onClick={onToggleScreenShare} active={isScreenSharing} disabled={screenShareDisabled} variant={isScreenSharing ? 'primary' : 'ghost'} tooltip={isScreenSharing ? "Остановить трансляцию" : "Трансляция экрана"} className="hidden md:flex">{isScreenSharing ? <MonitorOff className="h-5 w-5" /> : <MonitorUp className="h-5 w-5" />}</ControlButton>)}
+                    <ControlButton onClick={onToggleParticipants} active={activeTab === 'participants'} tooltip={t('meetingControls.participantsTab')} badge={waitingCount > 0 ? waitingCount : undefined}><Users className="h-5 w-5" /></ControlButton>
+                    <ControlButton onClick={onTogglePolls} active={activeTab === 'polls'} tooltip={t('meetingControls.pollsTab')} badge={activePollsCount > 0 ? activePollsCount : undefined}><BarChart2 className="h-5 w-5" /></ControlButton>
+                    <ControlButton onClick={onToggleChat} active={activeTab === 'chat'} tooltip={t('meetingControls.chatTab')} badge={unreadChatCount > 0 && activeTab !== 'chat' ? unreadChatCount : undefined}><MessageSquare className="h-5 w-5" /></ControlButton>
+                    {isDisplayMediaSupported && (<ControlButton onClick={onToggleScreenShare} active={isScreenSharing} disabled={screenShareDisabled} variant={isScreenSharing ? 'primary' : 'ghost'} tooltip={isScreenSharing ? t('meetingControls.screenShareStop') : t('meetingControls.screenShareStart')} className="hidden md:flex">{isScreenSharing ? <MonitorOff className="h-5 w-5" /> : <MonitorUp className="h-5 w-5" />}</ControlButton>)}
                 </ControlGroup>
             </TooltipProvider>
         </div>

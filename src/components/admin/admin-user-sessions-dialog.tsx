@@ -14,6 +14,7 @@ import { Loader2, Monitor, Smartphone, Tablet, LogOut } from 'lucide-react';
 import { useAuth as useFirebaseAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { fetchUserSessionsAction, terminateUserSessionsAction, type DeviceSession } from '@/actions/session-actions';
+import { useI18n } from '@/hooks/use-i18n';
 
 interface Props {
   open: boolean;
@@ -31,6 +32,7 @@ function getPlatformIcon(platform?: string) {
 }
 
 export function AdminUserSessionsDialog({ open, onOpenChange, targetUserId, targetUserName }: Props) {
+  const { t } = useI18n();
   const firebaseAuth = useFirebaseAuth();
   const { toast } = useToast();
   const [sessions, setSessions] = useState<DeviceSession[]>([]);
@@ -57,7 +59,7 @@ export function AdminUserSessionsDialog({ open, onOpenChange, targetUserId, targ
     const res = await terminateUserSessionsAction({ idToken: token, targetUserId, targetUserName });
     setTerminating(false);
     if (res.ok) {
-      toast({ title: 'Все сессии завершены' });
+      toast({ title: t('admin.sessions.terminated') });
       setSessions([]);
     } else {
       toast({ variant: 'destructive', title: res.error });
@@ -73,14 +75,14 @@ export function AdminUserSessionsDialog({ open, onOpenChange, targetUserId, targ
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-3xl max-w-md">
         <DialogHeader>
-          <DialogTitle>Сессии: {targetUserName}</DialogTitle>
-          <DialogDescription>Активные устройства пользователя.</DialogDescription>
+          <DialogTitle>{t('admin.sessions.title').replace('{name}', targetUserName)}</DialogTitle>
+          <DialogDescription>{t('admin.sessions.description')}</DialogDescription>
         </DialogHeader>
 
         {loading ? (
           <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin" /></div>
         ) : sessions.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">Нет активных сессий.</p>
+          <p className="text-sm text-muted-foreground text-center py-4">{t('admin.sessions.noSessions')}</p>
         ) : (
           <div className="space-y-3 max-h-[300px] overflow-y-auto">
             {sessions.map((s) => {
@@ -91,7 +93,7 @@ export function AdminUserSessionsDialog({ open, onOpenChange, targetUserId, targ
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{s.platform ?? 'Unknown'} / {s.app ?? '—'}</p>
                     <p className="text-xs text-muted-foreground">
-                      Вход: {formatDate(s.lastLoginAt)} &middot; Активность: {formatDate(s.lastSeenAt)}
+                      {t('admin.sessions.loginLabel')} {formatDate(s.lastLoginAt)} &middot; {t('admin.sessions.activityLabel')} {formatDate(s.lastSeenAt)}
                     </p>
                   </div>
                   {s.isActive && <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Online</Badge>}
@@ -109,7 +111,7 @@ export function AdminUserSessionsDialog({ open, onOpenChange, targetUserId, targ
             disabled={terminating}
           >
             {terminating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <LogOut className="h-4 w-4 mr-2" />}
-            Завершить все сессии
+            {t('admin.sessions.terminateAll')}
           </Button>
         )}
       </DialogContent>

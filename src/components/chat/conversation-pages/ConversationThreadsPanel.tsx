@@ -13,11 +13,11 @@ import { Badge } from '@/components/ui/badge';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { buildDashboardChatOpenUrl } from '@/lib/dashboard-conversation-url';
 
-function formatLastThreadTime(dateStr?: string) {
+function formatLastThreadTime(dateStr: string | undefined, yesterdayLabel: string): string {
   if (!dateStr) return '';
   const date = parseISO(dateStr);
   if (isToday(date)) return format(date, 'HH:mm');
-  if (isYesterday(date)) return 'Вчера';
+  if (isYesterday(date)) return yesterdayLabel;
   return format(date, 'dd.MM.yy');
 }
 
@@ -66,11 +66,11 @@ export function ConversationThreadsPanel({
   return (
     <>
       {isLoading && !rows ? (
-        <p className="text-sm text-zinc-500">Загрузка…</p>
+        <p className="text-sm text-zinc-500">{t('chat.threads.loading')}</p>
       ) : threadMessages.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-zinc-500">
           <MessageSquare className="mb-2 h-10 w-10 opacity-60" />
-          <p className="text-xs font-medium">Обсуждений пока нет</p>
+          <p className="text-xs font-medium">{t('chat.threads.empty')}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -79,9 +79,9 @@ export function ConversationThreadsPanel({
             const lastSender = allUsers.find((u) => u.id === msg.lastThreadMessageSenderId);
             const lastSenderName = lastSender
               ? lastSender.id === currentUser.id
-                ? 'Вы'
+                ? t('chat.you')
                 : lastSender.name.split(' ')[0]
-              : 'Участник';
+              : t('chat.participant');
 
             return (
               <button
@@ -114,10 +114,10 @@ export function ConversationThreadsPanel({
                       >
                         {msg.threadCount ?? 0}{' '}
                         {(msg.threadCount ?? 0) === 1
-                          ? 'ответ'
+                          ? t('chat.threads.reply')
                           : [2, 3, 4].includes((msg.threadCount ?? 0) % 10)
-                            ? 'ответа'
-                            : 'ответов'}
+                            ? t('chat.threads.replies24')
+                            : t('chat.threads.repliesMany')}
                       </Badge>
                       {unreadCount > 0 && (
                         <Badge className="h-5 animate-in zoom-in-50 rounded-full border-none bg-red-500 px-2 text-[10px] font-bold text-white shadow-none">
@@ -126,7 +126,7 @@ export function ConversationThreadsPanel({
                       )}
                     </div>
                     <span className="text-[10px] font-bold uppercase text-zinc-500">
-                      {formatLastThreadTime(msg.lastThreadMessageTimestamp || msg.createdAt)}
+                      {formatLastThreadTime(msg.lastThreadMessageTimestamp || msg.createdAt, t('chat.yesterday'))}
                     </span>
                   </div>
                 </div>

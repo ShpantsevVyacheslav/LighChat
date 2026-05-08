@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Loader2, Video, VideoOff, Mic, MicOff, User as UserIcon, ArrowLeft } from 'lucide-react';
+import { useI18n } from '@/hooks/use-i18n';
 
 interface JoinMeetingProps {
   meeting: Meeting;
@@ -17,6 +18,7 @@ interface JoinMeetingProps {
 }
 
 export function JoinMeeting({ meeting, currentUser, requireNameInput = false, onJoin }: JoinMeetingProps) {
+  const { t } = useI18n();
   const [name, setName] = useState(requireNameInput ? '' : (currentUser?.name || ''));
   const [isJoining, setIsJoining] = useState(false);
   const [micMuted, setMicMuted] = useState(false);
@@ -88,7 +90,7 @@ export function JoinMeeting({ meeting, currentUser, requireNameInput = false, on
     <div className="min-h-[100dvh] w-full flex flex-col bg-[#0a0e17] text-white relative">
       <div className="absolute left-[max(1.5rem,env(safe-area-inset-left,0px))] top-[max(1.5rem,env(safe-area-inset-top,0px))] z-50">
         <Button variant="ghost" onClick={() => router.push('/dashboard/meetings')} className="rounded-full bg-white/5 text-white hover:bg-white/10 border-none shadow-none">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Назад
+          <ArrowLeft className="mr-2 h-4 w-4" /> {t('meetingJoin.back')}
         </Button>
       </div>
 
@@ -99,7 +101,7 @@ export function JoinMeeting({ meeting, currentUser, requireNameInput = false, on
                   {videoOff ? (
                       <div className="flex flex-col items-center gap-4 text-white/20">
                           <UserIcon className="h-24 w-24" />
-                          <p className="text-sm font-medium uppercase tracking-widest opacity-50">Камера выключена</p>
+                          <p className="text-sm font-medium uppercase tracking-widest opacity-50">{t('meetingJoin.cameraOff')}</p>
                       </div>
                   ) : (
                       <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover -scale-x-100" />
@@ -118,19 +120,19 @@ export function JoinMeeting({ meeting, currentUser, requireNameInput = false, on
 
           <Card className="rounded-3xl bg-slate-900/50 backdrop-blur-xl text-white border-none shadow-2xl">
               <CardHeader className="pt-8 px-8">
-                  <CardTitle className="text-3xl font-bold">Готовы войти?</CardTitle>
-                  <CardDescription className="text-slate-400">Встреча: {meeting.name}</CardDescription>
+                  <CardTitle className="text-3xl font-bold">{t('meetingJoin.readyToJoin')}</CardTitle>
+                  <CardDescription className="text-slate-400">{t('meetingJoin.meetingLabel', { name: meeting.name })}</CardDescription>
               </CardHeader>
               <CardContent className="p-8">
                   <form onSubmit={handleJoinClick} className="space-y-6">
                       {(requireNameInput || !currentUser) && (
                           <div className="space-y-2">
-                              <Label className="text-[10px] font-bold uppercase tracking-widest opacity-50 ml-1">Ваше имя</Label>
-                              <Input value={name} onChange={e => setName(e.target.value)} className="h-14 rounded-2xl bg-white/5 border-white/10 focus:ring-primary" required placeholder="Введите имя..." />
+                              <Label className="text-[10px] font-bold uppercase tracking-widest opacity-50 ml-1">{t('meetingJoin.yourName')}</Label>
+                              <Input value={name} onChange={e => setName(e.target.value)} className="h-14 rounded-2xl bg-white/5 border-white/10 focus:ring-primary" required placeholder={t('meetingJoin.enterName')} />
                           </div>
                       )}
                       <Button type="submit" className="w-full h-16 rounded-2xl text-lg font-bold bg-primary hover:bg-primary/90 transition-all active:scale-[0.98] shadow-xl shadow-primary/20" disabled={isJoining}>
-                          {isJoining ? <Loader2 className="animate-spin h-6 w-6" /> : 'Присоединиться'}
+                          {isJoining ? <Loader2 className="animate-spin h-6 w-6" /> : t('meetingJoin.join')}
                       </Button>
                   </form>
               </CardContent>

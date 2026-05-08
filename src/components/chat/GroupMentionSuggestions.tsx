@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import type { User } from '@/lib/types';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { CHAT_GLASS_MENTION_LIST } from '@/lib/chat-glass-styles';
+import { useI18n } from '@/hooks/use-i18n';
 
 interface GroupMentionSuggestionsProps {
   participants: User[];
@@ -18,6 +19,7 @@ interface GroupMentionSuggestionsProps {
  * Выбор по mouseDown + preventDefault, чтобы фокус не уходил с редактора до вставки.
  */
 export function GroupMentionSuggestions({ participants, onPick, className }: GroupMentionSuggestionsProps) {
+  const { t } = useI18n();
   const visibleRows = Math.max(1, Math.min(participants.length || 1, 5));
   const rowHeightPx = 46;
   const listMaxHeightPx = visibleRows * rowHeightPx + 8;
@@ -32,14 +34,14 @@ export function GroupMentionSuggestions({ participants, onPick, className }: Gro
         className
       )}
       role="listbox"
-      aria-label="Упоминание участника"
+      aria-label={t('chat.groupMention.mentionAria')}
     >
       <div
         className="overflow-y-auto overscroll-contain p-1 [scrollbar-width:thin]"
         style={{ maxHeight: `min(${listMaxHeightPx}px, 42vh)` }}
       >
         {participants.length === 0 ? (
-          <p className="px-3 py-2.5 text-sm text-muted-foreground">Нет совпадений</p>
+          <p className="px-3 py-2.5 text-sm text-muted-foreground">{t('chat.groupMention.noMatches')}</p>
         ) : (
           participants.map((p) => (
             <button

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 import type { ChatMessage } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -127,9 +128,11 @@ function MessageFocusBackdropMasked({
  * Выпадающее меню действий сообщения.
  * Рендерится через Portal поверх всего интерфейса.
  */
-export function MessageContextMenu({ 
-  isOpen, onClose, position, message, isCurrentUser, hasText, canEdit, allowForward = true, canSaveSticker = false, canCreateSticker = false, showStarAction = false, isStarred = false, showThreadAction = true, onAction 
+export function MessageContextMenu({
+  isOpen, onClose, position, message, isCurrentUser, hasText, canEdit, allowForward = true, canSaveSticker = false, canCreateSticker = false, showStarAction = false, isStarred = false, showThreadAction = true, onAction
 }: MessageContextMenuProps) {
+  const { t } = useI18n();
+
   if (!isOpen || !position) return null;
 
   const sentDate = parseISO(message.createdAt);
@@ -163,19 +166,19 @@ export function MessageContextMenu({
           <div className="px-4 py-3 bg-white/5 border-b border-white/5 flex flex-col gap-1.5 text-white/40">
             <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-wide flex justify-between">
-                    <span>Отправлено:</span>
+                    <span>{t('chat.contextMenu.sent')}:</span>
                     <span className="text-white/80">{sentDateStr} {sentTimeStr}</span>
                 </p>
                 {message.readAt && (
                     <p className="text-[10px] font-bold uppercase tracking-wide flex justify-between">
-                        <span>Прочитано:</span>
+                        <span>{t('chat.contextMenu.read')}:</span>
                         <span className="text-blue-400">{readDateStr} {readTimeStr}</span>
                     </p>
                 )}
                 {expireDate && (
                     <>
                         <p className="text-[10px] font-bold uppercase tracking-wide flex justify-between">
-                            <span>Исчезнет:</span>
+                            <span>{t('chat.contextMenu.disappears')}:</span>
                             <span className="text-amber-300">{expireDateStr} {expireTimeStr}</span>
                         </p>
                         <p className="text-[10px] flex justify-end -mt-0.5">
@@ -205,49 +208,49 @@ export function MessageContextMenu({
 
           {/* Action List */}
           <div className="p-1 space-y-0.5">
-            <MenuButton icon={Reply} label="Ответить" onClick={() => { onAction('reply'); onClose(); }} />
+            <MenuButton icon={Reply} label={t('chat.contextMenu.reply')} onClick={() => { onAction('reply'); onClose(); }} />
             {showThreadAction && (
-              <MenuButton icon={MessageSquare} label="Обсудить" onClick={() => { onAction('thread'); onClose(); }} />
+              <MenuButton icon={MessageSquare} label={t('chat.contextMenu.discuss')} onClick={() => { onAction('thread'); onClose(); }} />
             )}
             {hasText && (
-              <MenuButton icon={Copy} label="Копировать" onClick={() => { onAction('copy'); onClose(); }} />
+              <MenuButton icon={Copy} label={t('chat.contextMenu.copy')} onClick={() => { onAction('copy'); onClose(); }} />
             )}
             {canEdit && (
-              <MenuButton icon={Edit} label="Изменить" onClick={() => { onAction('edit'); onClose(); }} />
+              <MenuButton icon={Edit} label={t('chat.contextMenu.edit')} onClick={() => { onAction('edit'); onClose(); }} />
             )}
-            <MenuButton icon={Pin} label="Закрепить" onClick={() => { onAction('pin'); onClose(); }} />
+            <MenuButton icon={Pin} label={t('chat.contextMenu.pin')} onClick={() => { onAction('pin'); onClose(); }} />
             {showStarAction && (
               <MenuButton
                 icon={Star}
-                label={isStarred ? 'Убрать из избранного' : 'Добавить в избранное'}
+                label={isStarred ? t('chat.contextMenu.removeFromFavorites') : t('chat.contextMenu.addToFavorites')}
                 onClick={() => { onAction('star'); onClose(); }}
               />
             )}
             {canSaveSticker && (
               <MenuButton
                 icon={BookmarkPlus}
-                label="Сохранить в мои стикеры"
+                label={t('chat.contextMenu.saveToStickers')}
                 onClick={() => { onAction('save_sticker'); onClose(); }}
               />
             )}
             {canCreateSticker && (
               <MenuButton
                 icon={ImagePlus}
-                label="Создать стикер"
+                label={t('chat.contextMenu.createSticker')}
                 onClick={() => { onAction('create_sticker'); onClose(); }}
               />
             )}
             {allowForward ? (
-              <MenuButton icon={Forward} label="Переслать" onClick={() => { onAction('forward'); onClose(); }} />
+              <MenuButton icon={Forward} label={t('chat.contextMenu.forward')} onClick={() => { onAction('forward'); onClose(); }} />
             ) : null}
-            <MenuButton icon={CheckSquare} label="Выбрать" onClick={() => { onAction('select'); onClose(); }} />
+            <MenuButton icon={CheckSquare} label={t('chat.contextMenu.select')} onClick={() => { onAction('select'); onClose(); }} />
             
             {isCurrentUser && (
               <>
                 <Separator className="my-1 opacity-10" />
                 <MenuButton 
                   icon={Trash2} 
-                  label="Удалить" 
+                  label={t('chat.contextMenu.delete')}
                   onClick={() => { onAction('delete'); onClose(); }} 
                   className="text-red-500 hover:bg-red-500/20"
                 />

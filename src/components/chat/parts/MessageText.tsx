@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 import { LinkPreview } from '../LinkPreview';
 import type { Conversation, User, UserContactLocalProfile } from '@/lib/types';
 import { resolveMentionLabelToUserId } from '@/lib/mention-resolve';
@@ -37,6 +38,7 @@ export function MessageText({
   contactProfiles,
   onMentionProfileOpen,
 }: MessageTextProps) {
+  const { t } = useI18n();
   const safeHtml = useMemo(() => (text ? sanitizeMessageHtml(text) : ''), [text]);
 
   const displayHtml = useMemo(() => {
@@ -63,7 +65,7 @@ export function MessageText({
         const fallback =
           (liveUser?.name || conversation.participantInfo?.[uid]?.name || '').trim() ||
           el.textContent?.replace(/^[@＠]/u, '').trim() ||
-          'Пользователь';
+          t('chat.userLabel');
         const resolved = resolveContactDisplayName(contactProfiles, uid, fallback);
         const label = `@${resolved || fallback}`;
         el.textContent = label;

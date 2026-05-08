@@ -5,6 +5,7 @@ import { doc } from 'firebase/firestore';
 import { Loader2, Lock, ShieldCheck } from 'lucide-react';
 
 import { useDoc, useFirestore, useMemoFirebase, useConversationsByDocumentIds } from '@/firebase';
+import { useI18n } from '@/hooks/use-i18n';
 import type { User, UserChatIndex } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -58,6 +59,7 @@ export function SecretChatsInboxDialog({
   onOpenConversation,
 }: SecretChatsInboxDialogProps) {
   const firestore = useFirestore();
+  const { t } = useI18n();
   const app = firestore.app;
   const [booting, setBooting] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
@@ -140,7 +142,7 @@ export function SecretChatsInboxDialog({
         }
       } catch {
         if (!cancelled) {
-          setError('Не удалось проверить настройки секретного хранилища. Попробуйте снова.');
+          setError(t('chat.secretChat.vaultCheckFailed'));
           setUnlocked(false);
         }
       } finally {
@@ -157,7 +159,7 @@ export function SecretChatsInboxDialog({
   const handleUnlock = async (pinOverride?: string) => {
     const pin = (pinOverride ?? pinInput).trim();
     if (!/^\d{4}$/.test(pin)) {
-      setError('Введите 4-значный PIN.');
+      setError(t('chat.secretChat.enter4DigitPin'));
       return;
     }
     setBusy(true);
@@ -168,9 +170,9 @@ export function SecretChatsInboxDialog({
       setUnlocked(true);
     } catch (e) {
       if (isSecretPinLockedError(e)) {
-        setError('Слишком много попыток. Попробуйте позже.');
+        setError(t('chat.secretChat.tooManyAttempts'));
       } else {
-        setError('Неверный PIN или доступ временно недоступен.');
+        setError(t('chat.secretChat.wrongPinOrUnavailable'));
       }
     } finally {
       setBusy(false);
@@ -181,11 +183,11 @@ export function SecretChatsInboxDialog({
     const first = setupPin.trim();
     const second = setupPinConfirm.trim();
     if (!/^\d{4}$/.test(first)) {
-      setError('Новый PIN должен состоять из 4 цифр.');
+      setError(t('chat.secretChat.newPinMustBe4Digits'));
       return;
     }
     if (first !== second) {
-      setError('PIN и подтверждение не совпадают.');
+      setError(t('chat.secretChat.pinsMismatch'));
       return;
     }
     setBusy(true);
@@ -197,7 +199,7 @@ export function SecretChatsInboxDialog({
       setUnlocked(true);
       setPinInput(first);
     } catch {
-      setError('Не удалось установить PIN. Попробуйте ещё раз.');
+      setError(t('chat.secretChat.pinSetFailed'));
     } finally {
       setBusy(false);
     }
@@ -208,10 +210,10 @@ export function SecretChatsInboxDialog({
       return (
         <div className="space-y-4">
           <div className="rounded-lg border p-3 text-sm text-muted-foreground">
-            Для входа в список секретных чатов нужно настроить PIN секретного хранилища.
+            {t('chat.secretChat.vaultSetupHint')}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="secret-vault-pin-new">Новый PIN (4 цифры)</Label>
+            <Label htmlFor="secret-vault-pin-new">{t('chat.secretChat.newPinLabel')}</Label>
             <Input
               id="secret-vault-pin-new"
               type="password"
@@ -224,7 +226,7 @@ export function SecretChatsInboxDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="secret-vault-pin-repeat">Повторите PIN</Label>
+            <Label htmlFor="secret-vault-pin-repeat">{t('chat.secretChat.repeatPinLabel')}</Label>
             <Input
               id="secret-vault-pin-repeat"
               type="password"
@@ -238,7 +240,7 @@ export function SecretChatsInboxDialog({
           </div>
           <Button type="button" className="w-full" onClick={() => void handleSetupPin()} disabled={busy}>
             {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
-            Установить PIN
+            {t('chat.secretChat.setPinButton')}
           </Button>
         </div>
       );
@@ -249,10 +251,10 @@ export function SecretChatsInboxDialog({
     return (
       <div className="space-y-4">
         <div className="rounded-lg border p-3 text-sm text-muted-foreground">
-          Введите PIN, чтобы открыть список секретных чатов.
+          {t('chat.secretChat.enterPinHint')}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="secret-vault-pin">PIN</Label>
+          <Label htmlFor="secret-vault-pin">{t('chat.secretChat.pinLabel')}</Label>
           <Input
             id="secret-vault-pin"
             type="password"
@@ -267,7 +269,7 @@ export function SecretChatsInboxDialog({
         <div className="flex flex-wrap gap-2">
           <Button type="button" onClick={() => void handleUnlock()} disabled={busy}>
             {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
-            Разблокировать
+            {t('chat.secretChat.unlockButton')}
           </Button>
           {savedPin ? (
             <Button
@@ -279,7 +281,7 @@ export function SecretChatsInboxDialog({
                 void handleUnlock(savedPin);
               }}
             >
-              Использовать сохранённый PIN
+              {t('chat.secretChat.useSavedPinButton')}
             </Button>
           ) : null}
         </div>
@@ -291,9 +293,9 @@ export function SecretChatsInboxDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Secret Chats</DialogTitle>
+          <DialogTitle>{t('chat.secretChat.inboxTitle')}</DialogTitle>
           <DialogDescription>
-            Отдельный список секретных диалогов с PIN-защитой.
+            {t('chat.secretChat.inboxDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -309,7 +311,7 @@ export function SecretChatsInboxDialog({
               </div>
             ) : conversations.length === 0 ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                Секретных чатов пока нет.
+                {t('chat.secretChat.noSecretChats')}
               </p>
             ) : (
               conversations.map((conv) => {
@@ -317,7 +319,7 @@ export function SecretChatsInboxDialog({
                 const otherUser = allUsers.find((u) => u.id === otherId);
                 const info = conv.participantInfo[otherId];
                 const displayName =
-                  (!conv.isGroup && (otherUser?.name || info?.name)) || conv.name || 'Секретный чат';
+                  (!conv.isGroup && (otherUser?.name || info?.name)) || conv.name || t('chat.secretChat.secretChatFallbackName');
                 const avatarUrl = conv.isGroup
                   ? conv.photoUrl
                   : participantListAvatarUrl(otherUser, info);
@@ -341,7 +343,7 @@ export function SecretChatsInboxDialog({
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{displayName}</p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {conv.lastMessageText?.trim() || 'Сообщений пока нет'}
+                        {conv.lastMessageText?.trim() || t('chat.secretChat.noMessagesYet')}
                       </p>
                     </div>
                     <div className="shrink-0 text-[10px] text-muted-foreground">

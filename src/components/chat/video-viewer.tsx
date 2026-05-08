@@ -7,6 +7,7 @@ import { X, Volume2, VolumeX, Maximize, Minimize } from 'lucide-react';
 import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
 import { useVerticalSwipeToDismiss } from '@/hooks/use-vertical-swipe-dismiss';
+import { useI18n } from '@/hooks/use-i18n';
 
 interface VideoViewerProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface VideoViewerProps {
 }
 
 export function VideoViewer({ isOpen, onOpenChange, video }: VideoViewerProps) {
+  const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -139,8 +141,8 @@ export function VideoViewer({ isOpen, onOpenChange, video }: VideoViewerProps) {
         ref={containerRef}
       >
         <DialogHeader className="sr-only">
-          <DialogTitle>Просмотр видео: {video.name}</DialogTitle>
-          <DialogDescription>Просмотр видео из чата в полноэкранном режиме.</DialogDescription>
+          <DialogTitle>{t('chat.videoViewer.title', { name: video.name })}</DialogTitle>
+          <DialogDescription>{t('chat.videoViewer.description')}</DialogDescription>
         </DialogHeader>
 
         <video
@@ -154,7 +156,7 @@ export function VideoViewer({ isOpen, onOpenChange, video }: VideoViewerProps) {
         />
 
         <DialogClose asChild>
-            <Button variant="ghost" size="icon" className={cn("absolute z-50 text-white hover:bg-white/20 hover:text-white transition-opacity top-[calc(1rem+env(safe-area-inset-top,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))]", isControlsVisible ? "opacity-100" : "opacity-0")} aria-label="Закрыть">
+            <Button variant="ghost" size="icon" className={cn("absolute z-50 text-white hover:bg-white/20 hover:text-white transition-opacity top-[calc(1rem+env(safe-area-inset-top,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))]", isControlsVisible ? "opacity-100" : "opacity-0")} aria-label={t('common.close')}>
             <X className="h-6 w-6" />
             </Button>
         </DialogClose>

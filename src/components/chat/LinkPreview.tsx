@@ -5,6 +5,7 @@ import { getLinkMetadata } from '@/actions/link-preview-actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExternalLink, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 import { useFirestore } from '@/firebase';
 import { doc, getDoc, type Firestore } from 'firebase/firestore';
 import { registrationUsernameKey } from '@/lib/registration-index-keys';
@@ -84,6 +85,7 @@ async function resolveContactProfile(
 }
 
 export function LinkPreview({ url, isLive = false }: LinkPreviewProps) {
+  const { t } = useI18n();
   const firestore = useFirestore();
   const contactTarget = useMemo(() => extractProfileTargetFromQrPayload(url), [url]);
   const isContactLink = Boolean(contactTarget.userId || contactTarget.username);
@@ -267,6 +269,7 @@ export function LinkPreview({ url, isLive = false }: LinkPreviewProps) {
 }
 
 function InlineVideoPlayer({ videoUrl, posterUrl }: { videoUrl: string; posterUrl?: string | null }) {
+  const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
@@ -322,7 +325,7 @@ function InlineVideoPlayer({ videoUrl, posterUrl }: { videoUrl: string; posterUr
         <div className="absolute inset-0 flex items-center justify-center bg-black/25">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black/55">
             {failed ? (
-              <span className="text-white text-xs">Ошибка</span>
+              <span className="text-white text-xs">{t('common.error')}</span>
             ) : (
               <Play className="h-7 w-7 text-white ml-0.5" fill="white" />
             )}

@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 
 /** Тот же ресурс, что на экране входа — квадратный PNG с альфой. */
 const BRAND_MARK_SRC = '/brand/lighchat-mark.png';
@@ -19,15 +20,17 @@ type LighChatSidebarMarkButtonProps = {
 export function LighChatSidebarMarkButton({
   onClick,
   compact = false,
-  title = 'Свернуть или развернуть боковую панель',
+  title,
 }: LighChatSidebarMarkButtonProps) {
+  const { t } = useI18n();
+  const resolvedTitle = title ?? t('chat.sidebar.togglePanel');
   const side = compact ? 26 : 34;
   return (
     <button
       type="button"
       onClick={onClick}
-      title={title}
-      aria-label={title}
+      title={resolvedTitle}
+      aria-label={resolvedTitle}
       className={cn(
         'flex shrink-0 items-center justify-center rounded-2xl transition-colors',
         'hover:bg-white/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',

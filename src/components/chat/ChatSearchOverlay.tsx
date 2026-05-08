@@ -114,7 +114,7 @@ export function ChatSearchOverlay({
             <div className="flex items-center gap-2">
               <Search className="h-4 w-4 shrink-0 text-primary" />
               <span className="text-[10px] font-black uppercase tracking-widest text-foreground">
-                Результаты поиска: {searchResults.length}
+                {t('chat.searchOverlay.results')}: {searchResults.length}
               </span>
             </div>
           </div>
@@ -150,7 +150,7 @@ export function ChatSearchOverlay({
                       <div className="min-w-0 flex-1">
                         <div className="mb-0.5 flex items-start justify-between gap-2">
                           <span className="truncate text-sm font-semibold text-foreground">
-                            {sender?.name || 'Участник'}
+                            {sender?.name || t('chat.participant')}
                           </span>
                           <span className="shrink-0 whitespace-nowrap text-[10px] font-semibold text-foreground/70">
                             {format(parseChatMessageCreatedAt(msg.createdAt), 'dd.MM.yy HH:mm', {
@@ -175,7 +175,7 @@ export function ChatSearchOverlay({
                   <div className="mb-3 rounded-full bg-background/60 p-3 dark:bg-background/50">
                     <X className="h-8 w-8 text-foreground/70" />
                   </div>
-                  <p className="text-xs font-black uppercase tracking-widest text-foreground">Ничего не найдено</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-foreground">{t('chat.searchOverlay.noResults')}</p>
                 </div>
               )}
             </div>

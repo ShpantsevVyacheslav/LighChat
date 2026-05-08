@@ -1,5 +1,4 @@
 'use client';
-import { useI18n } from '@/hooks/use-i18n';
 
 import { useCallback, useState } from 'react';
 import { useFirestore } from '@/firebase';
@@ -10,6 +9,7 @@ import { disableE2eeOnConversation } from '@/lib/e2ee/disable-conversation-e2ee'
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 import { Loader2 } from 'lucide-react';
 import { useSettings } from '@/hooks/use-settings';
 import {
@@ -34,9 +34,9 @@ type ConversationEncryptionPanelProps = {
 };
 
 export function ConversationEncryptionPanel({ conversation, currentUserId }: ConversationEncryptionPanelProps) {
-  const { t } = useI18n();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { t } = useI18n();
   const { privacySettings } = useSettings();
   const [busy, setBusy] = useState(false);
   const [disableOpen, setDisableOpen] = useState(false);
@@ -58,16 +58,16 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
     setBusy(true);
     try {
       await enableE2eeOnConversationV2(firestore, conversation, currentUserId);
-      toast({ title: 'Сквозное шифрование включено', description: 'Новые текстовые сообщения будут зашифрованы на устройствах.' });
+      toast({ title: t('chat.encryption.toastEnabled'), description: t('chat.encryption.toastEnabledDesc') });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       console.warn('[e2ee] enable from profile failed', e);
       toast({
         variant: 'destructive',
-        title: 'Не удалось включить шифрование',
+        title: t('chat.encryption.toastEnableError'),
         description:
           message.includes('E2EE_NO_DEVICE') || message.includes('E2EE_NO_PUBLIC_KEY') || message.includes('нет ключа')
-            ? 'У собеседника должен быть опубликован ключ (нужен хотя бы один вход в приложение).'
+            ? t('chat.encryption.toastEnableNoKey')
             : message.slice(0, 200),
       });
     } finally {
@@ -82,12 +82,12 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
     try {
       await disableE2eeOnConversation(firestore, conversation.id, currentUserId);
       toast({
-        title: 'Сквозное шифрование выключено',
-        description: 'Новые сообщения не шифруются. Старые зашифрованные по-прежнему читаются в этом чате.',
+        title: t('chat.encryption.toastDisabled'),
+        description: t('chat.encryption.toastDisabledDesc'),
       });
     } catch (e) {
       console.warn('[e2ee] disable from profile failed', e);
-      toast({ variant: 'destructive', title: 'Не удалось выключить шифрование' });
+      toast({ variant: 'destructive', title: t('chat.encryption.toastDisableError') });
     } finally {
       setBusy(false);
     }
@@ -108,16 +108,15 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
   return (
     <div className="text-zinc-100 [&_label]:text-zinc-100">
       <p className="mb-6 text-sm text-zinc-400">
-        Текст новых сообщений шифруется на ваших устройствах; сервер не хранит расшифрованный текст. Звонки и
-        вложения в этой версии протокола обрабатываются отдельно.
+        {t('chat.encryption.description')}
       </p>
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <Label className="text-base">Сквозное шифрование</Label>
+          <Label className="text-base">{t('chat.encryption.label')}</Label>
           <p className="text-xs text-zinc-500">
             {e2eeOn
-              ? `Включено (эпоха ключа ${conversation.e2eeKeyEpoch ?? 0}). Выключение не удаляет старые сообщения.`
-              : 'Выключено. Включение создаёт новую эпоху ключа для всех участников.'}
+              ? t('chat.encryption.enabledHint').replace('{epoch}', String(conversation.e2eeKeyEpoch ?? 0))
+              : t('chat.encryption.disabledHint')}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -127,7 +126,7 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
             disabled={busy || !firestore}
             onCheckedChange={onSwitchChecked}
             className="data-[state=checked]:bg-emerald-600"
-            aria-label="Сквозное шифрование в этом чате"
+            aria-label={t('chat.encryption.ariaLabel')}
           />
         </div>
       </div>
@@ -146,9 +145,7 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
               userId={otherId}
             />
             <p className="mt-2 text-xs text-zinc-500">
-              Сверьте отпечатки по защищённому каналу, чтобы убедиться, что
-              устройства собеседника не подменены. Отпечатки одинаковые у
-              обоих участников.
+              {t('chat.encryption.fingerprintHint')}
             </p>
           </div>
         );
@@ -157,14 +154,13 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
       <AlertDialog open={disableOpen} onOpenChange={setDisableOpen}>
         <AlertDialogContent className="rounded-2xl border-border sm:rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Выключить сквозное шифрование?</AlertDialogTitle>
+            <AlertDialogTitle>{t('chat.encryption.disableConfirmTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Новые сообщения перестанут шифроваться. Ранее отправленные зашифрованные сообщения останутся в истории и
-              смогут отображаться, если ключи на устройстве совпадают с эпохой сообщения.
+              {t('chat.encryption.disableConfirmDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Отмена</AlertDialogCancel>
+            <AlertDialogCancel disabled={busy}>{t('chat.encryption.cancelBtn')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={(ev) => {
@@ -172,22 +168,21 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
                 void runDisable();
               }}
             >
-              Выключить
+              {t('chat.encryption.disableBtn')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <div className="mt-6 border-t border-zinc-800 pt-4">
-        <p className="text-sm font-medium text-zinc-200">Типы данных</p>
+        <p className="text-sm font-medium text-zinc-200">{t('chat.encryption.dataTypesTitle')}</p>
         <p className="mt-1 text-xs text-zinc-500">
-          Это не меняет протокол — только управляет тем, что отправлять зашифрованным. Для E2EE-off чатов настройка
-          не применяется.
+          {t('chat.encryption.dataTypesDesc')}
         </p>
 
         <div className="mt-3 flex items-center justify-between gap-4">
           <div className="min-w-0">
-            <Label className="text-sm">Настройки шифрования для этого чата</Label>
+            <Label className="text-sm">{t('chat.encryption.overrideLabel')}</Label>
           </div>
           <div className="flex items-center gap-2">
             {typesBusy ? <Loader2 className="h-4 w-4 animate-spin text-zinc-400" aria-hidden /> : null}
@@ -205,7 +200,7 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
                   setTypesBusy(false);
                 }
               }}
-              aria-label="Переопределить типы данных для этого чата"
+              aria-label={t('chat.encryption.overrideAriaLabel')}
             />
           </div>
         </div>
@@ -214,16 +209,16 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
           {([
             {
               key: 'text' as const,
-              title: 'Текст сообщений',
+              titleKey: 'chat.encryption.textLabel',
             },
             {
               key: 'media' as const,
-              title: t('chat.encryption.mediaLabel'),
+              titleKey: 'chat.encryption.mediaLabel',
             },
           ] as const).map((row) => (
             <div key={row.key} className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <Label className="text-sm">{row.title}</Label>
+                <Label className="text-sm">{t(row.titleKey)}</Label>
               </div>
               <Switch
                 checked={effectiveTypes[row.key]}
@@ -241,13 +236,13 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
                     setTypesBusy(false);
                   }
                 }}
-                aria-label={`E2EE: ${row.title}`}
+                aria-label={`E2EE: ${t(row.titleKey)}`}
               />
             </div>
           ))}
           {!hasOverride ? (
             <p className="text-xs text-zinc-500">
-              Чтобы изменить для конкретного чата, включите «Переопределить».
+              {t('chat.encryption.overrideHint')}
             </p>
           ) : null}
         </div>

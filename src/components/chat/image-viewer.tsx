@@ -3,6 +3,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import { useI18n } from '@/hooks/use-i18n';
 import { Dialog, DialogContent, DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   Carousel,
@@ -26,6 +27,7 @@ interface ImageViewerProps {
 }
 
 export function ImageViewer({ isOpen, onOpenChange, images, startIndex }: ImageViewerProps) {
+  const { t } = useI18n();
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
   const [count, setCount] = React.useState(0);
@@ -75,8 +77,8 @@ export function ImageViewer({ isOpen, onOpenChange, images, startIndex }: ImageV
         >
         
         <DialogHeader className="sr-only">
-          <DialogTitle>Просмотр изображения</DialogTitle>
-          <DialogDescription>Полноэкранный просмотр фотографий из чата</DialogDescription>
+          <DialogTitle>{t('chat.imageViewer.title')}</DialogTitle>
+          <DialogDescription>{t('chat.imageViewer.description')}</DialogDescription>
         </DialogHeader>
 
         {/* Header */}
@@ -85,7 +87,7 @@ export function ImageViewer({ isOpen, onOpenChange, images, startIndex }: ImageV
             <p className="font-semibold truncate max-w-xs sm:max-w-md">{currentImageName}</p>
             {count > 1 && (
               <p className="text-sm text-white/80">
-                {current} из {count}
+                {t('chat.imageViewer.ofCount', { current, count })}
               </p>
             )}
           </div>
@@ -94,7 +96,7 @@ export function ImageViewer({ isOpen, onOpenChange, images, startIndex }: ImageV
               variant="ghost"
               size="icon"
               className="text-white hover:bg-white/20 hover:text-white"
-              aria-label="Закрыть"
+              aria-label={t('chat.imageViewer.close')}
             >
               <X className="h-6 w-6" />
             </Button>
@@ -137,7 +139,7 @@ export function ImageViewer({ isOpen, onOpenChange, images, startIndex }: ImageV
                             "h-2 w-2 rounded-full transition-all duration-300",
                             current === index + 1 ? "w-4 bg-white" : "bg-white/50 hover:bg-white/80"
                         )}
-                        aria-label={`Перейти к изображению ${index + 1}`}
+                        aria-label={t('chat.imageViewer.goToImage', { index: index + 1 })}
                     />
                 ))}
             </footer>

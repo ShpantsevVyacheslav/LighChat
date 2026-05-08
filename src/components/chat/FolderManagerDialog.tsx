@@ -13,6 +13,7 @@ import { Loader2, Search, Trash2, FolderEdit } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/hooks/use-i18n';
 import { isSavedMessagesChat } from '@/lib/saved-messages-chat';
 import { participantListAvatarUrl } from '@/lib/user-avatar-display';
 import { ruEnSubstringMatch } from '@/lib/ru-latin-search-normalize';
@@ -46,6 +47,7 @@ export function FolderManagerDialog({
   
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const savedMessagesConvId = useMemo(
     () => conversations.find((c) => isSavedMessagesChat(c, currentUser.id))?.id,
@@ -143,7 +145,7 @@ export function FolderManagerDialog({
       const indexRef = doc(firestore, 'userChats', currentUser.id);
       await updateDoc(indexRef, { folders: foldersWithoutSaved });
       
-      toast({ title: editingFolder ? 'Папка обновлена' : 'Папка создана' });
+      toast({ title: editingFolder ? t('chat.folderManager.folderUpdated') : t('chat.folderManager.folderCreated') });
       onFolderSaved(newFolder.id);
     } catch (e: unknown) {
       const message =
@@ -152,8 +154,8 @@ export function FolderManagerDialog({
         'message' in e &&
         typeof (e as { message?: unknown }).message === 'string'
           ? (e as { message: string }).message
-          : 'Не удалось сохранить папку.';
-      toast({ variant: 'destructive', title: 'Ошибка сохранения', description: message });
+          : t('chat.folderManager.saveErrorFallback');
+      toast({ variant: 'destructive', title: t('chat.folderManager.saveErrorTitle'), description: message });
     } finally {
       setIsSaving(false);
     }
@@ -170,7 +172,7 @@ export function FolderManagerDialog({
       const indexRef = doc(firestore, 'userChats', currentUser.id);
       await updateDoc(indexRef, { folders: updatedFolders });
       
-      toast({ title: 'Папка удалена' });
+      toast({ title: t('chat.folderManager.folderDeleted') });
       onFolderSaved('all');
     } catch (e: unknown) {
       const message =
@@ -179,8 +181,8 @@ export function FolderManagerDialog({
         'message' in e &&
         typeof (e as { message?: unknown }).message === 'string'
           ? (e as { message: string }).message
-          : 'Не удалось удалить папку.';
-      toast({ variant: 'destructive', title: 'Ошибка удаления', description: message });
+          : t('chat.folderManager.deleteErrorFallback');
+      toast({ variant: 'destructive', title: t('chat.folderManager.deleteErrorTitle'), description: message });
     } finally {
       setIsDeleting(false);
     }
@@ -192,18 +194,18 @@ export function FolderManagerDialog({
         <DialogHeader className="p-4 pb-2 bg-muted/20 flex-shrink-0">
           <DialogTitle className="flex items-center gap-2 font-black text-xl tracking-tight">
             <FolderEdit className="h-6 w-6 text-primary" />
-            {editingFolder ? 'Настройка папки' : 'Новая папка'}
+            {editingFolder ? t('chat.folderManager.editTitle') : t('chat.folderManager.newTitle')}
           </DialogTitle>
           <DialogDescription className="text-foreground/60 font-medium text-xs pb-2">
-            {editingFolder ? 'Измените название или список чатов в папке.' : 'Создайте папку для быстрой фильтрации чатов.'}
+            {editingFolder ? t('chat.folderManager.editDesc') : t('chat.folderManager.newDesc')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="px-4 py-2 space-y-3 flex-1 flex flex-col min-h-0">
           <div className="space-y-0.5">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 opacity-60">Название папки</Label>
+            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1 opacity-60">{t('chat.folderManager.folderNameLabel')}</Label>
             <Input
-              placeholder="Напр: Работа, Семья..."
+              placeholder={t('chat.folderManager.folderNamePlaceholder')}
               value={folderName}
               onChange={e => setFolderName(e.target.value)}
               className="h-11 rounded-2xl bg-muted border-none px-4 font-bold text-base focus-visible:ring-primary shadow-inner"
@@ -213,13 +215,13 @@ export function FolderManagerDialog({
 
           <div className="flex-1 flex flex-col min-h-0 gap-2">
             <div className="flex items-center justify-between px-1">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Чаты ({selectedConvIds.size})</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">{t('chat.folderManager.chatsCount')} ({selectedConvIds.size})</Label>
                 <div className="flex gap-1.5">
                     <Button variant="ghost" size="sm" onClick={handleSelectAllFiltered} className="h-7 px-3 text-[9px] font-black uppercase bg-muted/40 hover:bg-muted border-0 rounded-full transition-all active:scale-95 shadow-none">
-                        Выбрать все
+                        {t('chat.folderManager.selectAll')}
                     </Button>
                     <Button variant="ghost" size="sm" onClick={handleDeselectAllFiltered} className="h-7 px-3 text-[9px] font-black uppercase bg-muted/40 hover:bg-muted border-0 rounded-full transition-all active:scale-95 shadow-none">
-                        Сбросить
+                        {t('chat.folderManager.deselectAll')}
                     </Button>
                 </div>
             </div>
@@ -227,7 +229,7 @@ export function FolderManagerDialog({
             <div className="relative group">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
-                placeholder="Поиск по названию..."
+                placeholder={t('chat.folderManager.searchPlaceholder')}
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 className="h-10 rounded-2xl pl-10 bg-muted border-none text-sm font-medium focus-visible:ring-primary/50"
@@ -242,8 +244,8 @@ export function FolderManagerDialog({
                   const displayName = conv.isGroup
                     ? conv.name
                     : otherId
-                      ? allUsers.find((u) => u.id === otherId)?.name || conv.participantInfo[otherId]?.name || 'Чат'
-                      : 'Чат';
+                      ? allUsers.find((u) => u.id === otherId)?.name || conv.participantInfo[otherId]?.name || t('chat.folderManager.fallbackChat')
+                      : t('chat.folderManager.fallbackChat');
                   const liveOther = otherId ? allUsers.find((u) => u.id === otherId) : undefined;
                   const avatar = conv.isGroup
                     ? conv.photoUrl
@@ -269,7 +271,7 @@ export function FolderManagerDialog({
                             <span className={cn("text-sm font-bold truncate transition-colors", isSelected ? "text-primary" : "text-foreground")}>
                                 {displayName}
                             </span>
-                            {conv.isGroup && <span className={cn("text-[9px] font-black uppercase tracking-wider opacity-60", isSelected ? "text-primary/60" : "text-muted-foreground")}>Группа</span>}
+                            {conv.isGroup && <span className={cn("text-[9px] font-black uppercase tracking-wider opacity-60", isSelected ? "text-primary/60" : "text-muted-foreground")}>{t('chat.folderManager.groupLabel')}</span>}
                         </div>
                       </div>
                     </div>
@@ -278,7 +280,7 @@ export function FolderManagerDialog({
                 {filteredChatList.length === 0 && (
                     <div className="p-12 text-center text-muted-foreground opacity-30 flex flex-col items-center gap-3">
                         <Search className="h-10 w-10" />
-                        <p className="text-[10px] font-black uppercase tracking-widest">Ничего не найдено</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest">{t('chat.folderManager.nothingFound')}</p>
                     </div>
                 )}
               </div>
@@ -311,7 +313,7 @@ export function FolderManagerDialog({
                     disabled={isSaving || isDeleting} 
                     className="rounded-full font-bold h-9 px-4 text-xs border-none shadow-none hover:bg-muted transition-all active:scale-95"
                 >
-                    Отмена
+                    {t('common.cancel')}
                 </Button>
                 <Button 
                     onClick={handleSave} 
@@ -319,7 +321,7 @@ export function FolderManagerDialog({
                     className="rounded-full px-8 font-bold h-9 text-xs border-none transition-all active:scale-95 shadow-none bg-primary text-white hover:bg-primary/90"
                 >
                     {isSaving && <Loader2 className="h-3 w-3 animate-spin mr-2" />}
-                    {editingFolder ? 'Сохранить' : 'Создать'}
+                    {editingFolder ? t('common.save') : t('chat.folderManager.createBtn')}
                 </Button>
             </div>
           </div>

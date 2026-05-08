@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/hooks/use-i18n';
 
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -102,12 +103,12 @@ type PhoneCountryPreset = {
 };
 
 const PHONE_COUNTRY_PRESETS: PhoneCountryPreset[] = [
-  { country: 'Россия', dialCode: '+7', hint: '(999) 123-45-67', minDigits: 10, maxDigits: 10 },
-  { country: 'Казахстан', dialCode: '+7', hint: '(777) 123-45-67', minDigits: 10, maxDigits: 10 },
-  { country: 'Беларусь', dialCode: '+375', hint: '29 123 45 67', minDigits: 9, maxDigits: 9 },
-  { country: 'Украина', dialCode: '+380', hint: '50 123 45 67', minDigits: 9, maxDigits: 9 },
-  { country: 'США', dialCode: '+1', hint: '(555) 123-4567', minDigits: 10, maxDigits: 10 },
-  { country: 'Великобритания', dialCode: '+44', hint: '7400 123456', minDigits: 10, maxDigits: 10 },
+  { country: 'countryRussia', dialCode: '+7', hint: '(999) 123-45-67', minDigits: 10, maxDigits: 10 },
+  { country: 'countryKazakhstan', dialCode: '+7', hint: '(777) 123-45-67', minDigits: 10, maxDigits: 10 },
+  { country: 'countryBelarus', dialCode: '+375', hint: '29 123 45 67', minDigits: 9, maxDigits: 9 },
+  { country: 'countryUkraine', dialCode: '+380', hint: '50 123 45 67', minDigits: 9, maxDigits: 9 },
+  { country: 'countryUSA', dialCode: '+1', hint: '(555) 123-4567', minDigits: 10, maxDigits: 10 },
+  { country: 'countryUK', dialCode: '+44', hint: '7400 123456', minDigits: 10, maxDigits: 10 },
 ];
 
 function maskPhoneDigitsByHint(digits: string, hint: string): string {
@@ -129,6 +130,7 @@ function maskPhoneDigitsByHint(digits: string, hint: string): string {
 }
 
 export function ContactsClient() {
+  const { t } = useI18n();
   const { user: currentUser } = useAuth();
   const { user: firebaseUser } = useFirebaseUser();
   const ownerUid = firebaseUser?.uid ?? null;
@@ -178,7 +180,7 @@ export function ContactsClient() {
     if (contactIds.length === 0) return [];
     return contactIds.map((id) => {
       const user = usersById.get(id) ?? null;
-      const fallbackName = (user?.name ?? '').trim() || 'Пользователь';
+      const fallbackName = (user?.name ?? '').trim() || t('contacts.fallbackUserName');
       return {
         id,
         user,
@@ -239,14 +241,14 @@ export function ContactsClient() {
     async (opts?: { bypassConsentCheck?: boolean; onPermissionDenied?: () => void }) => {
       if (!firestore || !currentUser || !ownerUid) return;
       if (!opts?.bypassConsentCheck && !contactsIndex?.deviceSyncConsentAt) {
-        toast({ title: 'Нет согласия на доступ', variant: 'destructive' });
+        toast({ title: t('contacts.noConsentAccess'), variant: 'destructive' });
         return;
       }
       const nav = navigator as ContactPickerNavigator;
       if (!nav.contacts?.select) {
         toast({
-          title: 'Недоступно',
-          description: 'В этом браузере нет выбора контактов.',
+          title: t('contacts.unavailable'),
+          description: t('contacts.unavailableHint'),
         });
         return;
       }
@@ -268,21 +270,21 @@ export function ContactsClient() {
           }
         }
         toast({
-          title: 'Готово',
+          title: t('contacts.syncDone'),
           description: added
-            ? `Добавлено в контакты: ${added}`
-            : 'Совпадений по номерам в LighChat не найдено.',
+            ? t('contacts.syncAddedCount').replace('{count}', String(added))
+            : t('contacts.syncNoMatches'),
         });
       } catch (e) {
         if ((e as Error).name === 'AbortError' || (e as Error).name === 'NotAllowedError') {
           if (opts?.onPermissionDenied) {
             opts.onPermissionDenied();
           } else {
-            toast({ title: 'Доступ отменён' });
+            toast({ title: t('contacts.accessCancelled') });
           }
         } else {
           console.error(e);
-          toast({ title: 'Ошибка импорта', variant: 'destructive' });
+          toast({ title: t('contacts.importError'), variant: 'destructive' });
         }
       } finally {
         setSyncBusy(false);
@@ -306,14 +308,14 @@ export function ContactsClient() {
       if (!normalizedId) return false;
 
       if (normalizedId === ownerUid) {
-        toast({ title: 'Нельзя добавить себя', variant: 'destructive' });
+        toast({ title: t('contacts.cannotAddSelf'), variant: 'destructive' });
         return false;
       }
 
       if (!canStartDirectChat(currentUser, foundUser)) {
         toast({
-          title: 'Недоступно',
-          description: 'С этим пользователем нельзя связаться по правилам ролей.',
+          title: t('contacts.unavailable'),
+          description: t('contacts.unavailablePolicy'),
           variant: 'destructive',
         });
         return false;
@@ -325,12 +327,12 @@ export function ContactsClient() {
       setAddSheetOpen(false);
 
       if (contactIds.includes(normalizedId)) {
-        toast({ title: 'Уже в контактах', description: 'Открываю карточку контакта' });
+        toast({ title: t('contacts.alreadyInContacts'), description: t('contacts.alreadyInContactsHint') });
         router.push(`/dashboard/contacts/${encodeURIComponent(normalizedId)}`);
         return true;
       }
 
-      toast({ title: 'Пользователь найден', description: 'Заполните отображаемое имя контакта' });
+      toast({ title: t('contacts.userFound'), description: t('contacts.userFoundHint') });
       router.push(`/dashboard/contacts/${encodeURIComponent(normalizedId)}/edit`);
       return true;
     },
@@ -343,8 +345,8 @@ export function ContactsClient() {
       const target = extractProfileTargetFromQrPayload(payload);
       if (!target.userId && !target.username) {
         toast({
-          title: 'QR-код не распознан',
-          description: 'Ожидается ссылка профиля LighChat.',
+          title: t('contacts.qrNotRecognized'),
+          description: t('contacts.qrNotRecognizedHint'),
           variant: 'destructive',
         });
         return false;
@@ -360,8 +362,8 @@ export function ContactsClient() {
         }
         if (!found) {
           toast({
-            title: 'Профиль не найден',
-            description: 'Пользователь из QR-кода не найден в LighChat.',
+            title: t('contacts.profileNotFound'),
+            description: t('contacts.profileNotFoundHint'),
             variant: 'destructive',
           });
           return false;
@@ -370,8 +372,8 @@ export function ContactsClient() {
       } catch (e) {
         console.error(e);
         toast({
-          title: 'Ошибка QR',
-          description: 'Не удалось обработать QR-код.',
+          title: t('contacts.qrError'),
+          description: t('contacts.qrProcessError'),
           variant: 'destructive',
         });
         return false;
@@ -401,11 +403,11 @@ export function ContactsClient() {
   const startQrCamera = useCallback(async () => {
     const Detector = getBarcodeDetectorCtor();
     if (!Detector) {
-      setQrCameraError('Сканирование камерой недоступно в этом браузере. Вставьте ссылку из QR ниже.');
+      setQrCameraError(t('contacts.cameraUnavailableHint'));
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
-      setQrCameraError('Камера недоступна в этом браузере. Вставьте ссылку из QR ниже.');
+      setQrCameraError(t('contacts.cameraNoMediaHint'));
       return;
     }
 
@@ -422,7 +424,7 @@ export function ContactsClient() {
       const video = qrVideoRef.current;
       if (!video) {
         stopQrCamera();
-        setQrCameraError('Не удалось открыть предпросмотр камеры.');
+        setQrCameraError(t('contacts.cameraPreviewError'));
         return;
       }
 
@@ -463,7 +465,7 @@ export function ContactsClient() {
       });
     } catch (e) {
       console.error(e);
-      setQrCameraError('Не удалось открыть камеру. Разрешите доступ или вставьте QR-ссылку вручную.');
+      setQrCameraError(t('contacts.cameraOpenFailed'));
       stopQrCamera();
     }
   }, [handleAddByQrPayload, stopQrCamera]);
@@ -477,8 +479,8 @@ export function ContactsClient() {
       const Detector = getBarcodeDetectorCtor();
       if (!Detector) {
         toast({
-          title: 'Загрузка QR недоступна',
-          description: 'В этом браузере поддерживается только ручная вставка ссылки.',
+          title: t('contacts.qrUploadUnavailable'),
+          description: t('contacts.qrUploadUnavailableHint'),
           variant: 'destructive',
         });
         return;
@@ -492,8 +494,8 @@ export function ContactsClient() {
           const payload = pickRawQrValue(found);
           if (!payload) {
             toast({
-              title: 'QR не найден',
-              description: 'На изображении не удалось распознать QR-код.',
+              title: t('contacts.qrNotFoundInImage'),
+              description: t('contacts.qrNotFoundInImageHint'),
               variant: 'destructive',
             });
             return;
@@ -506,8 +508,8 @@ export function ContactsClient() {
       } catch (e) {
         console.error(e);
         toast({
-          title: 'Ошибка обработки изображения',
-          description: 'Не удалось прочитать QR-код из файла.',
+          title: t('contacts.imageProcessError'),
+          description: t('contacts.imageProcessErrorHint'),
           variant: 'destructive',
         });
       }
@@ -529,7 +531,7 @@ export function ContactsClient() {
     if (!firestore || !currentUser || !ownerUid) return;
     const digits = phoneInput.replace(/\D/g, '').slice(0, selectedPhonePreset.maxDigits);
     if (digits.length < selectedPhonePreset.minDigits) {
-      toast({ title: 'Введите номер полностью', variant: 'destructive' });
+      toast({ title: t('contacts.phoneEnterFull'), variant: 'destructive' });
       return;
     }
     const lookupPhone = `${phoneCountryCode}${digits}`;
@@ -538,15 +540,15 @@ export function ContactsClient() {
       const found = await findUserByPhoneInFirestore(firestore, lookupPhone);
       if (!found) {
         toast({
-          title: 'Пользователь не найден',
-          description: 'Проверьте номер или зарегистрирован ли он в LighChat.',
+          title: t('contacts.userNotFound'),
+          description: t('contacts.userNotFoundHint'),
         });
         return;
       }
       handleResolvedContactCandidate(found);
     } catch (e) {
       console.error(e);
-      toast({ title: 'Ошибка', description: 'Не удалось добавить контакт.', variant: 'destructive' });
+      toast({ title: t('contacts.errorGeneric'), description: t('contacts.addContactError'), variant: 'destructive' });
     } finally {
       setSearchBusy(false);
     }
@@ -557,10 +559,10 @@ export function ContactsClient() {
     setRemoveBusyId(otherId);
     try {
       await removeContactId(firestore, ownerUid, otherId);
-      toast({ title: 'Контакт удалён' });
+      toast({ title: t('contacts.contactRemoved') });
     } catch (e) {
       console.error(e);
-      toast({ title: 'Ошибка удаления', variant: 'destructive' });
+      toast({ title: t('contacts.removeError'), variant: 'destructive' });
     } finally {
       setRemoveBusyId(null);
     }
@@ -582,7 +584,7 @@ export function ContactsClient() {
       await importFromDevice({ bypassConsentCheck: true });
     } catch (e) {
       console.error(e);
-      toast({ title: 'Ошибка', description: 'Не удалось выполнить импорт.', variant: 'destructive' });
+      toast({ title: t('contacts.errorGeneric'), description: t('contacts.importExecutionError'), variant: 'destructive' });
     } finally {
       skipDismissOnCloseRef.current = false;
     }
@@ -623,27 +625,25 @@ export function ContactsClient() {
       {contactsDocError && (
         <Alert variant="destructive" className="mb-4 rounded-2xl border-red-500/30 bg-destructive/10">
           <AlertCircleIcon className="h-4 w-4" />
-          <AlertTitle>Нет доступа к контактам</AlertTitle>
+          <AlertTitle>{t('contacts.noAccessTitle')}</AlertTitle>
           <AlertDescription className="text-sm">
-            Правила Firestore не разрешают чтение <code className="text-xs">userContacts/{'{uid}'}</code>. Выполните{' '}
-            <code className="text-xs">firebase deploy --only firestore:rules</code> из корня проекта (файл{' '}
-            <code className="text-xs">firestore.rules</code>).
+            {t('contacts.noAccessDescription')}
           </AlertDescription>
         </Alert>
       )}
 
       <header className="mb-5 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">Контакты</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t('contacts.pageTitle')}</h1>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {listLoading ? 'Загрузка…' : contactRows.length === 0 ? 'Список пуст' : `${contactRows.length} в списке`}
+            {listLoading ? t('contacts.loading') : contactRows.length === 0 ? t('contacts.emptyList') : t('contacts.countInList').replace('{count}', String(contactRows.length))}
           </p>
         </div>
         <button
           type="button"
           className={glassIconButtonClass}
           onClick={() => setAddSheetOpen(true)}
-          aria-label="Добавить контакт"
+          aria-label={t('contacts.addContactAria')}
         >
           <UserPlus className="h-[1.15rem] w-[1.15rem]" strokeWidth={1.75} />
         </button>
@@ -655,13 +655,13 @@ export function ContactsClient() {
         </div>
       ) : contactRows.length === 0 ? (
         <p className="px-1 py-10 text-center text-sm leading-relaxed text-muted-foreground">
-          Добавьте контакт по номеру телефона — кнопка{' '}
-          <UserPlus className="mx-0.5 inline h-4 w-4 align-text-bottom" strokeWidth={1.75} /> сверху.
+          {t('contacts.emptyHint')}{' '}
+          <UserPlus className="mx-0.5 inline h-4 w-4 align-text-bottom" strokeWidth={1.75} />
           {isPwaDisplayMode() &&
             contactPickerSupported &&
             !hasConsent &&
             !contactsIndex?.phoneBookOfferDismissedAt && (
-              <> При первом открытии можно импортировать совпадения из телефонной книги.</>
+              <>{t('contacts.emptyPhoneBookHint')}</>
             )}
         </p>
       ) : (
@@ -673,7 +673,7 @@ export function ContactsClient() {
                   type="button"
                   className="flex min-w-0 flex-1 items-center gap-3 text-left"
                   onClick={() => router.push(`/dashboard/contacts/${encodeURIComponent(id)}`)}
-                  aria-label={`Открыть контакт ${displayName}`}
+                  aria-label={t('contacts.openContactAria').replace('{name}', displayName)}
                 >
                   <Avatar className="h-11 w-11 shrink-0 ring-1 ring-black/5 dark:ring-white/10">
                     {u ? <AvatarImage src={userAvatarListUrl(u)} alt="" /> : null}
@@ -704,11 +704,11 @@ export function ContactsClient() {
                     onClick={() =>
                       setContactPendingRemove({
                         id,
-                        name: (displayName.trim() || 'Контакт').slice(0, 120),
+                        name: (displayName.trim() || t('contacts.fallbackContactName')).slice(0, 120),
                       })
                     }
                     disabled={removeBusyId === id}
-                    aria-label="Удалить из контактов"
+                    aria-label={t('contacts.removeAria')}
                   >
                     {removeBusyId === id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -756,10 +756,9 @@ export function ContactsClient() {
             <div className="mb-0.5 flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/15 ring-1 ring-destructive/25">
               <Trash2 className="h-5 w-5 text-destructive" strokeWidth={1.75} aria-hidden />
             </div>
-            <AlertDialogTitle className="text-base font-semibold">Удалить из контактов?</AlertDialogTitle>
+            <AlertDialogTitle className="text-base font-semibold">{t('contacts.removeDialogTitle')}</AlertDialogTitle>
             <AlertDialogDescription className="text-sm leading-relaxed text-muted-foreground">
-              <span className="font-medium text-foreground/90">{contactPendingRemove?.name}</span> будет убран из вашего
-              списка. Переписки в чатах не удаляются.
+              {t('contacts.removeDialogDescription').replace('{name}', contactPendingRemove?.name ?? '')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-1 flex-col gap-2 sm:flex-col sm:space-x-0">
@@ -773,7 +772,7 @@ export function ContactsClient() {
               {contactPendingRemove && removeBusyId === contactPendingRemove.id ? (
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
               ) : (
-                'Удалить'
+                t('contacts.removeButton')
               )}
             </Button>
             <AlertDialogCancel
@@ -784,7 +783,7 @@ export function ContactsClient() {
               )}
               disabled={!!contactPendingRemove && removeBusyId === contactPendingRemove.id}
             >
-              Отмена
+              {t('contacts.cancelButton')}
             </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -796,10 +795,9 @@ export function ContactsClient() {
             <div className="mx-auto mb-1 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
               <Smartphone className="h-6 w-6 text-foreground" strokeWidth={1.75} />
             </div>
-            <AlertDialogTitle className="text-center text-base">«LighChat» запрашивает доступ к контактам</AlertDialogTitle>
+            <AlertDialogTitle className="text-center text-base">{t('contacts.phoneBookDialogTitle')}</AlertDialogTitle>
             <AlertDialogDescription className="text-center text-sm leading-relaxed">
-              Чтобы найти знакомых в приложении, мы сравним номера из вашей телефонной книги с номерами в базе LighChat.
-              Совпадения будут добавлены в список контактов автоматически. Доступ можно отозвать в настройках системы.
+              {t('contacts.phoneBookDialogDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
@@ -809,7 +807,7 @@ export function ContactsClient() {
               onClick={() => void handlePhoneBookAllow()}
             >
               {syncBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Разрешить
+              {t('contacts.phoneBookAllow')}
             </Button>
             <Button
               type="button"
@@ -818,7 +816,7 @@ export function ContactsClient() {
               disabled={syncBusy}
               onClick={() => void handlePhoneBookNotNow()}
             >
-              Не сейчас
+              {t('contacts.phoneBookNotNow')}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -827,8 +825,8 @@ export function ContactsClient() {
       <Sheet open={addSheetOpen} onOpenChange={setAddSheetOpen}>
         <SheetContent side="bottom" className={sheetSurfaceClass}>
           <SheetHeader className="text-left">
-            <SheetTitle className="text-lg font-semibold">Добавить контакт</SheetTitle>
-            <SheetDescription>Поиск по номеру телефона или QR-коду профиля LighChat.</SheetDescription>
+            <SheetTitle className="text-lg font-semibold">{t('contacts.addSheetTitle')}</SheetTitle>
+            <SheetDescription>{t('contacts.addSheetDescription')}</SheetDescription>
           </SheetHeader>
           <div className="mt-6 space-y-4">
             <div className="flex items-center gap-2">
@@ -849,7 +847,7 @@ export function ContactsClient() {
               >
                 {PHONE_COUNTRY_PRESETS.map((preset) => (
                   <option key={`${preset.country}-${preset.dialCode}`} value={preset.dialCode}>
-                    {preset.country} ({preset.dialCode})
+                    {t(`contacts.${preset.country}`)} ({preset.dialCode})
                   </option>
                 ))}
               </select>
@@ -872,7 +870,7 @@ export function ContactsClient() {
               disabled={searchBusy || phoneDigits.length < selectedPhonePreset.minDigits}
             >
               {searchBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Добавить
+              {t('contacts.addButton')}
             </Button>
             <Button
               type="button"
@@ -886,7 +884,7 @@ export function ContactsClient() {
               disabled={searchBusy || qrBusy}
             >
               <QrCode className="mr-2 h-4 w-4" />
-              Добавить по QR-коду
+              {t('contacts.addByQrButton')}
             </Button>
           </div>
         </SheetContent>
@@ -907,9 +905,9 @@ export function ContactsClient() {
           showCloseButton
         >
           <DialogHeader className="space-y-1 text-left">
-            <DialogTitle className="text-base">Сканировать QR-код контакта</DialogTitle>
+            <DialogTitle className="text-base">{t('contacts.qrDialogTitle')}</DialogTitle>
             <DialogDescription>
-              Наведите камеру на QR-код профиля LighChat или вставьте ссылку вручную.
+              {t('contacts.qrDialogDescription')}
             </DialogDescription>
           </DialogHeader>
 
@@ -924,7 +922,7 @@ export function ContactsClient() {
               />
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
                 <div className="rounded-full border border-white/30 bg-black/35 px-3 py-1 text-xs font-medium text-white/90">
-                  {qrCameraError ? 'Камера недоступна' : 'Сканирование...'}
+                  {qrCameraError ? t('contacts.qrCameraUnavailable') : t('contacts.qrScanning')}
                 </div>
               </div>
             </div>
@@ -933,7 +931,7 @@ export function ContactsClient() {
               <p className="text-xs text-muted-foreground">{qrCameraError}</p>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Если камера не видит QR, загрузите изображение или вставьте QR-ссылку.
+                {t('contacts.qrCameraHint')}
               </p>
             )}
 
@@ -946,7 +944,7 @@ export function ContactsClient() {
                 disabled={qrBusy}
               >
                 <Upload className="mr-2 h-4 w-4" />
-                Загрузить QR
+                {t('contacts.uploadQr')}
               </Button>
               <Button
                 type="button"
@@ -958,7 +956,7 @@ export function ContactsClient() {
                 disabled={qrBusy}
               >
                 <Camera className="mr-2 h-4 w-4" />
-                Перезапустить
+                {t('contacts.restartCamera')}
               </Button>
             </div>
 
@@ -978,7 +976,7 @@ export function ContactsClient() {
               }}
             >
               {qrBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Найти контакт
+              {t('contacts.findContact')}
             </Button>
           </div>
         </DialogContent>

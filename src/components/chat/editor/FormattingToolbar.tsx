@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/hooks/use-i18n';
 
 interface FormattingToolbarProps {
   editor: Editor | null;
@@ -17,6 +18,7 @@ interface FormattingToolbarProps {
 }
 
 export function FormattingToolbar({ editor, onBack }: FormattingToolbarProps) {
+  const { t } = useI18n();
   const [linkUrl, setLinkUrl] = React.useState('');
   const [isLinkOpen, setIsLinkOpen] = React.useState(false);
 
@@ -46,7 +48,7 @@ export function FormattingToolbar({ editor, onBack }: FormattingToolbarProps) {
   return (
     <div className="space-y-1 animate-in slide-in-from-left-2 duration-200">
       <div className="flex items-center justify-between px-2 py-1 mb-1">
-        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Форматирование</span>
+        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('chat.formatting.title')}</span>
         <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full" onClick={onBack}>
           <ArrowLeft className="h-3.5 w-3.5" />
         </Button>
@@ -66,9 +68,9 @@ export function FormattingToolbar({ editor, onBack }: FormattingToolbarProps) {
           </PopoverTrigger>
           <PopoverContent className="w-72 p-4 rounded-2xl shadow-2xl border-none bg-popover/90 backdrop-blur-xl mb-2" side="right">
             <div className="space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider">Ссылка</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider">{t('chat.formatting.link')}</h4>
               <Input placeholder="https://..." value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} className="h-9 rounded-xl text-xs" autoFocus onKeyDown={(e) => e.key === 'Enter' && handleLinkSubmit()} />
-              <Button size="sm" onClick={handleLinkSubmit} className="w-full rounded-xl font-bold">Применить</Button>
+              <Button size="sm" onClick={handleLinkSubmit} className="w-full rounded-xl font-bold">{t('chat.formatting.apply')}</Button>
             </div>
           </PopoverContent>
         </Popover>

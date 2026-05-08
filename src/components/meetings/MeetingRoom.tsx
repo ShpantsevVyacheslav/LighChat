@@ -25,6 +25,7 @@ import { useMeetingWebRTC, type BackgroundConfig } from '@/hooks/use-meeting-web
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { Button } from '../ui/button';
+import { useI18n } from '@/hooks/use-i18n';
 
 interface MeetingRoomProps {
   meeting: Meeting;
@@ -45,10 +46,10 @@ interface FlyingEmoji {
 }
 
 const STANDARD_BG_LIST = [
-    { id: 'office', name: 'Офис', filename: 'office.jpg' },
-    { id: 'home', name: 'Дом', filename: 'home.jpg' },
-    { id: 'studio', name: 'Студия', filename: 'studio.jpg' },
-    { id: 'nature', name: 'Природа', filename: 'nature.jpg' }
+    { id: 'office', nameKey: 'meetingRoom.bgOffice' as const, filename: 'office.jpg' },
+    { id: 'home', nameKey: 'meetingRoom.bgHome' as const, filename: 'home.jpg' },
+    { id: 'studio', nameKey: 'meetingRoom.bgStudio' as const, filename: 'studio.jpg' },
+    { id: 'nature', nameKey: 'meetingRoom.bgNature' as const, filename: 'nature.jpg' },
 ];
 
 export function MeetingRoom({ 
@@ -59,6 +60,7 @@ export function MeetingRoom({
   initialName = '',
   initialStream = null
 }: MeetingRoomProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const firestore = useFirestore();
   const storage = useStorage();
@@ -138,7 +140,7 @@ export function MeetingRoom({
         for (const item of STANDARD_BG_LIST) {
             try {
                 const url = await getDownloadURL(storageRef(storage, `meeting-assets/backgrounds/${item.filename}`));
-                loaded.push({ ...item, url });
+                loaded.push({ id: item.id, url, name: t(item.nameKey) });
             } catch (e) {}
         }
         setStandardBackgrounds(loaded);
@@ -456,9 +458,9 @@ export function MeetingRoom({
         if (firestore) {
           await updateDoc(doc(firestore, 'meetings', meeting.id), { isRecording: true });
         }
-        toast({ title: 'Запись конференции начата' });
-    } catch (e) { 
-        toast({ variant: 'destructive', title: 'Ошибка записи' }); 
+        toast({ title: t('meetingRoom.recordingStarted') });
+    } catch (e) {
+        toast({ variant: 'destructive', title: t('meetingRoom.recordingError') });
     }
   };
 
@@ -509,7 +511,7 @@ export function MeetingRoom({
           const origin = typeof window !== 'undefined' ? window.location.origin : '';
           const url = `${origin}/meetings/${meeting.id}`;
           void navigator.clipboard.writeText(url);
-          toast({ title: 'Ссылка скопирована' });
+          toast({ title: t('meetingRoom.linkCopied') });
         }}
       />
 
@@ -577,7 +579,7 @@ export function MeetingRoom({
                               variant="secondary"
                               size="icon"
                               className="absolute left-2 top-1/2 z-20 h-11 w-11 -translate-y-1/2 rounded-full border border-white/15 bg-black/55 text-white shadow-lg backdrop-blur-md hover:bg-black/70"
-                              aria-label="Предыдущая страница участников"
+                              aria-label={t('meetingRoom.prevParticipantsAria')}
                               onClick={() => scrollTilePage(-1)}
                             >
                               <ChevronLeft className="h-6 w-6" />
@@ -589,7 +591,7 @@ export function MeetingRoom({
                               variant="secondary"
                               size="icon"
                               className="absolute right-2 top-1/2 z-20 h-11 w-11 -translate-y-1/2 rounded-full border border-white/15 bg-black/55 text-white shadow-lg backdrop-blur-md hover:bg-black/70"
-                              aria-label="Следующие участники"
+                              aria-label={t('meetingRoom.nextParticipantsAria')}
                               onClick={() => scrollTilePage(1)}
                             >
                               <ChevronRight className="h-6 w-6" />
@@ -639,7 +641,7 @@ export function MeetingRoom({
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-semibold text-white/80 truncate">{m.senderName || 'Гость'}</div>
+                <div className="text-[11px] font-semibold text-white/80 truncate">{m.senderName || t('meetingRoom.guest')}</div>
                 <div className="text-sm leading-snug break-words line-clamp-2">{m.text}</div>
               </div>
             </div>
@@ -666,6 +668,7 @@ export function MeetingRoom({
 }
 
 function MeetingRequests({ meetingId }: { meetingId: string }) {
+    const { t } = useI18n();
     const firestore = useFirestore();
     const [requests, setRequests] = useState<any[]>([]);
     const { toast } = useToast();
@@ -680,9 +683,9 @@ function MeetingRequests({ meetingId }: { meetingId: string }) {
     const respond = async (uid: string, approve: boolean) => {
         try { 
             await updateDoc(doc(firestore!, `meetings/${meetingId}/requests`, uid), { status: approve ? 'approved' : 'denied' }); 
-            toast({ title: approve ? 'Доступ разрешен' : 'Вход отклонен' });
-        } catch (e) { 
-            toast({ variant: 'destructive', title: 'Ошибка' }); 
+            toast({ title: approve ? t('meetingRoom.accessGranted') : t('meetingRoom.accessDenied') });
+        } catch (e) {
+            toast({ variant: 'destructive', title: t('meetingRoom.error') });
         }
     };
 
@@ -695,7 +698,7 @@ function MeetingRequests({ meetingId }: { meetingId: string }) {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                 </span>
-                Зал ожидания ({requests.length})
+                {t('meetingRoom.waitingRoomCount', { count: String(requests.length) })}
             </h4>
             <div className="space-y-2">
                 {requests.map(req => (
@@ -714,7 +717,7 @@ function MeetingRequests({ meetingId }: { meetingId: string }) {
                                 className="h-9 rounded-xl bg-green-500/20 text-green-500 hover:bg-green-500 hover:text-white border-none shadow-none font-bold text-xs" 
                                 onClick={() => respond(req.userId, true)}
                             >
-                                <Check className="h-4 w-4 mr-1.5" /> Принять
+                                <Check className="h-4 w-4 mr-1.5" /> {t('meetingRoom.accept')}
                             </Button>
                             <Button 
                                 size="sm" 
@@ -722,7 +725,7 @@ function MeetingRequests({ meetingId }: { meetingId: string }) {
                                 className="h-9 rounded-xl bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white border-none shadow-none font-bold text-xs" 
                                 onClick={() => respond(req.userId, false)}
                             >
-                                <XCircle className="h-4 w-4 mr-1.5" /> Отказать
+                                <XCircle className="h-4 w-4 mr-1.5" /> {t('meetingRoom.reject')}
                             </Button>
                         </div>
                     </div>

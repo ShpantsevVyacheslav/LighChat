@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
+import { useI18n } from '@/hooks/use-i18n';
 import { useAuth } from '@/hooks/use-auth';
 import { useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -47,6 +48,7 @@ export function ReportMessageDialog({
   const { user } = useAuth();
   const { user: firebaseUser } = useUser();
   const { toast } = useToast();
+  const { t } = useI18n();
   const [reason, setReason] = useState<ReportReason>('inappropriate');
   const [description, setDescription] = useState('');
   const [sending, setSending] = useState(false);
@@ -69,7 +71,7 @@ export function ReportMessageDialog({
     });
     setSending(false);
     if (res.ok) {
-      toast({ title: 'Жалоба отправлена' });
+      toast({ title: t('chat.report.submitted') });
       onOpenChange(false);
       setDescription('');
     } else {
@@ -81,31 +83,31 @@ export function ReportMessageDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-3xl max-w-sm">
         <DialogHeader>
-          <DialogTitle>Пожаловаться</DialogTitle>
-          <DialogDescription>Сообщение будет рассмотрено администратором.</DialogDescription>
+          <DialogTitle>{t('chat.report.title')}</DialogTitle>
+          <DialogDescription>{t('chat.report.description')}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 pt-2">
           <div className="space-y-2">
-            <Label>Причина</Label>
+            <Label>{t('chat.report.reason')}</Label>
             <Select value={reason} onValueChange={(v) => setReason(v as ReportReason)}>
               <SelectTrigger className="rounded-xl">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="spam">Спам</SelectItem>
-                <SelectItem value="harassment">Оскорбление</SelectItem>
-                <SelectItem value="inappropriate">Неприемлемый контент</SelectItem>
-                <SelectItem value="other">Другое</SelectItem>
+                <SelectItem value="spam">{t('chat.moderation.reasonSpam')}</SelectItem>
+                <SelectItem value="harassment">{t('chat.moderation.reasonHarassment')}</SelectItem>
+                <SelectItem value="inappropriate">{t('chat.moderation.reasonInappropriate')}</SelectItem>
+                <SelectItem value="other">{t('chat.moderation.reasonOther')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label>Комментарий (необязательно)</Label>
+            <Label>{t('chat.report.commentOptional')}</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Дополнительные детали..."
+              placeholder={t('chat.report.detailsPlaceholder')}
               className="rounded-xl min-h-[60px] resize-none"
             />
           </div>
@@ -116,7 +118,7 @@ export function ReportMessageDialog({
             className="w-full rounded-full"
           >
             {sending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-            Отправить жалобу
+            {t('chat.report.submit')}
           </Button>
         </div>
       </DialogContent>

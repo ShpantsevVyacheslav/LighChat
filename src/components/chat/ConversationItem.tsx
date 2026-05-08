@@ -62,7 +62,7 @@ export function ConversationItem({
     /** Применяем кеш только если он относится к текущему «последнему сообщению»
      *  (ts совпадает) и Firestore сейчас показывает E2EE-плейсхолдер. */
     const lastMessageDisplay = useMemo(() => {
-        const fallback = conv.lastMessageText || 'Нет сообщений';
+        const fallback = conv.lastMessageText || t('chat.noMessages');
         if (conv.lastMessageText !== E2EE_LAST_MESSAGE_PREVIEW) return fallback;
         if (!cachedPreview || !conv.lastMessageTimestamp) return fallback;
         if (cachedPreview.ts !== conv.lastMessageTimestamp) return fallback;
@@ -97,7 +97,7 @@ export function ConversationItem({
         ? (conv.name || t('chat.groupFallbackName'))
         : isSavedMessages
             ? (conv.name || t('chatList.previewSavedMessages'))
-            : (resolveDisplayNameById(otherId) || 'Чат');
+            : (resolveDisplayNameById(otherId) || t('chat.chatLabel'));
     const avatar = conv.isGroup
         ? conv.photoUrl
         : isSavedMessages
@@ -119,7 +119,7 @@ export function ConversationItem({
     let dateDisplay = '';
     if(lastEventDate) {
         if (isToday(lastEventDate)) dateDisplay = format(lastEventDate, 'HH:mm');
-        else if (isYesterday(lastEventDate)) dateDisplay = 'Вчера';
+        else if (isYesterday(lastEventDate)) dateDisplay = t('chat.yesterday');
         else dateDisplay = format(lastEventDate, 'dd.MM.yy');
     }
     
@@ -223,7 +223,7 @@ export function ConversationItem({
                     className="h-full w-20 flex flex-col items-center justify-center bg-primary text-white border-r border-white/10"
                 >
                     <FolderEdit className="h-5 w-5 mb-1" />
-                    <span className="text-[10px] font-bold uppercase">Папки</span>
+                    <span className="text-[10px] font-bold uppercase">{t('chat.conversationItem.folders')}</span>
                 </button>
                 <button 
                     disabled={!!isAlreadyCleared}
@@ -234,7 +234,7 @@ export function ConversationItem({
                     )}
                 >
                     <Eraser className="h-5 w-5 mb-1" />
-                    <span className="text-[10px] font-bold uppercase">Очистить</span>
+                    <span className="text-[10px] font-bold uppercase">{t('chat.conversationItem.clear')}</span>
                 </button>
                 {!conv.isGroup && !isSavedMessages && (
                     <button 
@@ -242,7 +242,7 @@ export function ConversationItem({
                         className="h-full w-20 flex flex-col items-center justify-center bg-red-500 text-white"
                     >
                         <Trash2 className="h-5 w-5 mb-1" />
-                        <span className="text-[10px] font-bold uppercase">Удалить</span>
+                        <span className="text-[10px] font-bold uppercase">{t('chat.conversationItem.delete')}</span>
                     </button>
                 )}
             </div>
@@ -288,8 +288,8 @@ export function ConversationItem({
                             {hasPendingGroupMention && (
                                 <span
                                     className="inline-flex shrink-0 items-center justify-center rounded-md bg-primary/15 px-1 py-px text-primary ring-1 ring-primary/30"
-                                    title="Вас упомянули"
-                                    aria-label="Вас упомянули в группе"
+                                    title={t('chat.conversationItem.mentionedTitle')}
+                                    aria-label={t('chat.conversationItem.mentionedAria')}
                                 >
                                     <AtSign className="h-3.5 w-3.5" aria-hidden />
                                 </span>
@@ -306,26 +306,26 @@ export function ConversationItem({
                             )}
                         >
                             {isSomeoneTyping ? (
-                                <span className="text-primary font-bold animate-pulse">Печатает...</span>
+                                <span className="text-primary font-bold animate-pulse">{t('chat.conversationItem.typing')}</span>
                             ) : mainDraft.hasDraft ? (
                                 <>
                                     <span className="shrink-0 rounded-md bg-amber-500/15 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-amber-700 ring-1 ring-amber-500/25 dark:text-amber-400 dark:ring-amber-400/30">
-                                        Черновик
+                                        {t('chat.conversationItem.draft')}
                                     </span>
                                     <span className="min-w-0 flex-1 truncate italic text-foreground/85">
                                         {mainDraft.preview}
                                     </span>
                                 </>
                             ) : isLastMessageHiddenByClear ? (
-                                <span className="italic opacity-60">История очищена</span>
+                                <span className="italic opacity-60">{t('chat.conversationItem.historyCleared')}</span>
                             ) : isReactionNewer ? (
                                 <>
                                     <span className="shrink-0 text-base leading-none">{conv.lastReactionEmoji}</span>
                                     <span className="min-w-0 flex-1 truncate">
                                         {conv.lastReactionSenderId === currentUser.id
-                                            ? 'Вы'
-                                            : resolveDisplayNameById(conv.lastReactionSenderId).split(' ')[0] || 'Кто-то'}{' '}
-                                        поставил(а) реакцию
+                                            ? t('chat.you')
+                                            : resolveDisplayNameById(conv.lastReactionSenderId).split(' ')[0] || t('chat.someone')}{' '}
+                                        {t('chat.conversationItem.reacted')}
                                     </span>
                                 </>
                             ) : (
@@ -333,15 +333,15 @@ export function ConversationItem({
                                     {conv.lastMessageIsThread && (
                                         <span
                                             className="inline-flex shrink-0 items-center gap-0.5 rounded-md border border-primary/20 bg-primary/10 px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-primary dark:bg-primary/15 dark:border-primary/25"
-                                            title="Последнее сообщение в обсуждении"
+                                            title={t('chat.conversationItem.threadLastMessage')}
                                         >
                                             <MessageSquare className="h-2.5 w-2.5 opacity-90" aria-hidden />
-                                            Обсуждение
+                                            {t('chat.conversationItem.discussion')}
                                         </span>
                                     )}
                                     <span className="min-w-0 flex-1 truncate">
                                         {conv.lastMessageSenderId === currentUser.id && (
-                                            <span className="font-medium">Вы: </span>
+                                            <span className="font-medium">{t('chat.you')}: </span>
                                         )}
                                         {lastMessageDisplay}
                                     </span>
