@@ -2475,11 +2475,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                               chatRepo == null) {
                                             return const SizedBox.shrink();
                                           }
+                                          // Высота шторки = 42% экрана + нижний
+                                          // safe-area inset, чтобы шторка
+                                          // доходила до самого низа экрана
+                                          // (composer отключает свой bottom
+                                          // safe-area когда шторка открыта).
+                                          final mq = MediaQuery.of(context);
                                           final h =
-                                              MediaQuery.sizeOf(
-                                                context,
-                                              ).height *
-                                              0.42;
+                                              mq.size.height * 0.42 +
+                                              mq.padding.bottom;
                                           return SizedBox(
                                             height: h,
                                             child: ComposerStickerGifPanel(

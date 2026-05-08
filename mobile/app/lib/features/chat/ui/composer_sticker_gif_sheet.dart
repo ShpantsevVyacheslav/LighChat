@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../l10n/app_localizations.dart';
@@ -144,6 +145,29 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
   String? _libraryTranslatedHint;
 
   bool _deviceDirectBusy = false;
+
+  // Видимость верхних строк каждой вкладки. Скрываются при скролле контента
+  // вниз (UserScroll.reverse) и возвращаются при скролле вверх (forward),
+  // как стандартное поведение «collapsing header» в Telegram/iOS.
+  bool _emojiHeaderVisible = true;
+  bool _stickersHeaderVisible = true;
+  bool _gifHeaderVisible = true;
+
+  // Режим менеджера паков (Telegram-style список паков с возможностью
+  // удаления/переименования). Активен только для scope=My и переключается
+  // sub-toggle'ом «Stickers / Packs» под scope-toggle'ом.
+  bool _showPackManager = false;
+
+  bool _onTabScroll(ScrollNotification n, ValueChanged<bool> setVisible) {
+    if (n is UserScrollNotification && n.metrics.axis == Axis.vertical) {
+      if (n.direction == ScrollDirection.reverse) {
+        setVisible(false);
+      } else if (n.direction == ScrollDirection.forward) {
+        setVisible(true);
+      }
+    }
+    return false;
+  }
 
   @override
   void initState() {
@@ -393,7 +417,13 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
   Future<void> _bootstrapTrendingGifs() async {
     final cached = await GiphyCacheStore.instance.getTrending(GiphyType.gifs);
     if (cached != null && cached.isNotEmpty) {
-      if (mounted) setState(() => _gifItems = cached);
+      if (mounted) {
+        setState(() {
+          _gifItems = cached;
+          _gifTotal = cached.length;
+          _gifHasMore = true;
+        });
+      }
       return;
     }
     if (!mounted) return;
@@ -404,6 +434,8 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
       _gifLoading = false;
       _gifItems = r.items;
       _gifMissingKey = r.missingKey;
+      _gifTotal = r.total;
+      _gifHasMore = r.hasMore;
     });
     if (r.items.isNotEmpty) {
       unawaited(GiphyCacheStore.instance.saveTrending(GiphyType.gifs, r.items));
@@ -1031,35 +1063,18 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     return _glassCard(
       child: Column(
         children: [
-          const SizedBox(height: 8),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Positioned(
-                right: 4,
-                child: IconButton(
-                  onPressed: widget.onClose,
-                  icon: const Icon(Icons.close, size: 20),
-                  color: Colors.white.withValues(alpha: 0.6),
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
-                  padding: EdgeInsets.zero,
-                ),
-              ),
-            ],
+          const SizedBox(height: 6),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
           Expanded(
             child: TabBarView(
@@ -1068,6 +1083,7 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
             ),
           ),
           _buildBottomTabs(),
+          SizedBox(height: bottomInset),
         ],
       ),
     );
@@ -1483,41 +1499,168 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
   }
 
   Widget _stickersTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SizedBox(height: 4),
-        if (widget.directUploadConversationId != null) ...[
-          _deviceDirectSection(),
-          Divider(height: 1, color: Colors.white.withValues(alpha: 0.08)),
-        ],
-        _scopeToggle(),
-        if (_scope == _StickerScope.my)
-          StreamBuilder<List<UserStickerPackRow>>(
-            stream: widget.repo.watchMyPacks(widget.userId),
-            builder: (context, snap) {
-              final packs = snap.data ?? [];
-              return _packChipsMy(packs);
-            },
-          )
-        else if (_scope == _StickerScope.public)
-          StreamBuilder<List<PublicStickerPackRow>>(
-            stream: widget.repo.watchPublicPacks(),
-            builder: (context, snap) {
-              final packs = snap.data ?? [];
-              return _packChipsPublic(packs);
-            },
+    final inMyManager =
+        _scope == _StickerScope.my && _showPackManager;
+    return NotificationListener<ScrollNotification>(
+      onNotification: (n) => _onTabScroll(n, (v) {
+        if (_stickersHeaderVisible != v) {
+          setState(() => _stickersHeaderVisible = v);
+        }
+      }),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            alignment: Alignment.topCenter,
+            child: _stickersHeaderVisible
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 4),
+                      if (widget.directUploadConversationId != null) ...[
+                        _deviceDirectSection(),
+                        Divider(
+                          height: 1,
+                          color: Colors.white.withValues(alpha: 0.08),
+                        ),
+                      ],
+                      _scopeToggle(),
+                      // Sub-toggle «Stickers / Packs» — только в My scope.
+                      if (_scope == _StickerScope.my) _stickersSubToggle(),
+                      if (_scope == _StickerScope.my && !_showPackManager)
+                        StreamBuilder<List<UserStickerPackRow>>(
+                          stream: widget.repo.watchMyPacks(widget.userId),
+                          builder: (context, snap) {
+                            final packs = snap.data ?? [];
+                            return _packChipsMy(packs);
+                          },
+                        )
+                      else if (_scope == _StickerScope.public)
+                        StreamBuilder<List<PublicStickerPackRow>>(
+                          stream: widget.repo.watchPublicPacks(),
+                          builder: (context, snap) {
+                            final packs = snap.data ?? [];
+                            return _packChipsPublic(packs);
+                          },
+                        ),
+                      if (_scope == _StickerScope.my &&
+                          !_showPackManager &&
+                          _recentStickers.isNotEmpty)
+                        _recentStickersStrip(),
+                    ],
+                  )
+                : const SizedBox.shrink(),
           ),
-        if (_scope == _StickerScope.my && _recentStickers.isNotEmpty)
-          _recentStickersStrip(),
-        Expanded(
-          child: switch (_scope) {
-            _StickerScope.my => _myStickersBody(),
-            _StickerScope.public => _publicStickersBody(),
-            _StickerScope.library => _libraryStickersBody(),
-          },
+          Expanded(
+            child: inMyManager
+                ? _packManagerView()
+                : switch (_scope) {
+                    _StickerScope.my => _myStickersBody(),
+                    _StickerScope.public => _publicStickersBody(),
+                    _StickerScope.library => _libraryStickersBody(),
+                  },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stickersSubToggle() {
+    Widget pill({
+      required String label,
+      required bool active,
+      required VoidCallback onTap,
+    }) {
+      return GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+          decoration: BoxDecoration(
+            color: active
+                ? Colors.white.withValues(alpha: 0.14)
+                : Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.6,
+              color: Colors.white.withValues(alpha: active ? 1.0 : 0.72),
+            ),
+          ),
         ),
-      ],
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          pill(
+            label: AppLocalizations.of(context)!.sticker_tab_stickers,
+            active: !_showPackManager,
+            onTap: () => setState(() => _showPackManager = false),
+          ),
+          const SizedBox(width: 12),
+          pill(
+            label: 'Packs',
+            active: _showPackManager,
+            onTap: () => setState(() => _showPackManager = true),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Telegram-style список моих стикерпаков с возможностью удалить/создать.
+  /// Каждая строка: квадратная превью (первый стикер), название, количество
+  /// стикеров, кнопка-корзина справа. Сверху — кнопка «+ New pack».
+  Widget _packManagerView() {
+    final l10n = AppLocalizations.of(context)!;
+    return StreamBuilder<List<UserStickerPackRow>>(
+      stream: widget.repo.watchMyPacks(widget.userId),
+      builder: (context, snap) {
+        final packs = snap.data ?? const <UserStickerPackRow>[];
+        return ListView.separated(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+          itemCount: packs.length + 1,
+          separatorBuilder: (_, _) => const SizedBox(height: 6),
+          itemBuilder: (context, i) {
+            if (i == 0) {
+              return _PackManagerNewRow(
+                label: l10n.sticker_new_pack_option,
+                onTap: () async {
+                  final id = await _promptNewPackName();
+                  if (id != null && mounted) {
+                    setState(() {
+                      _myPackId = id;
+                      _showPackManager = false;
+                    });
+                  }
+                },
+              );
+            }
+            final p = packs[i - 1];
+            return _PackManagerRow(
+              pack: p,
+              itemsStream: widget.repo.watchMyPackItems(widget.userId, p.id),
+              onTap: () => setState(() {
+                _myPackId = p.id;
+                _showPackManager = false;
+              }),
+              onDelete: () => _confirmDeletePack(p.id, p.name),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -1534,8 +1677,11 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
             ),
           );
         }
-        final pid = _myPackId ?? (packs.isNotEmpty ? packs.first.id : null);
-        if (pid == null) return const SizedBox.shrink();
+        // Защита от устаревшего `_myPackId`: если ID указывает на удалённый пак,
+        // фолбэк на packs.first вместо показа «Pack is empty».
+        final selValid =
+            _myPackId != null && packs.any((p) => p.id == _myPackId);
+        final pid = selValid ? _myPackId! : packs.first.id;
         return StreamBuilder<List<StickerItemRow>>(
           stream: widget.repo.watchMyPackItems(widget.userId, pid),
           builder: (context, itemSnap) {
@@ -1560,7 +1706,9 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
             ),
           );
         }
-        final pid = _publicPackId ?? packs.first.id;
+        final selValid =
+            _publicPackId != null && packs.any((p) => p.id == _publicPackId);
+        final pid = selValid ? _publicPackId! : packs.first.id;
         return StreamBuilder<List<StickerItemRow>>(
           stream: widget.repo.watchPublicPackItems(pid),
           builder: (context, itemSnap) {
@@ -1603,28 +1751,31 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
             ),
           ),
         // Эмодзи-фильтры (паритет с GIF-вкладкой).
-        SizedBox(
-          height: 44,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: _kGifEmojiFilters.length + 1,
-            separatorBuilder: (_, _) => const SizedBox(width: 6),
-            itemBuilder: (context, i) {
-              if (i == 0) {
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: SizedBox(
+            height: 34,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: _kGifEmojiFilters.length + 1,
+              separatorBuilder: (_, _) => const SizedBox(width: 6),
+              itemBuilder: (context, i) {
+                if (i == 0) {
+                  return _emojiFilterChip(
+                    label: AppLocalizations.of(context)!.gif_filter_all,
+                    active: _libraryActiveFilter == null,
+                    onTap: () => _selectLibraryEmojiFilter(null),
+                  );
+                }
+                final emoji = _kGifEmojiFilters[i - 1];
                 return _emojiFilterChip(
-                  label: AppLocalizations.of(context)!.gif_filter_all,
-                  active: _libraryActiveFilter == null,
-                  onTap: () => _selectLibraryEmojiFilter(null),
+                  label: emoji,
+                  active: _libraryActiveFilter == emoji,
+                  onTap: () => _selectLibraryEmojiFilter(emoji),
                 );
-              }
-              final emoji = _kGifEmojiFilters[i - 1];
-              return _emojiFilterChip(
-                label: emoji,
-                active: _libraryActiveFilter == emoji,
-                onTap: () => _selectLibraryEmojiFilter(emoji),
-              );
-            },
+              },
+            ),
           ),
         ),
         Expanded(
@@ -1710,47 +1861,66 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
         hasRecent &&
         _gifQueryController.text.trim().isEmpty &&
         _activeEmojiFilter == null;
-    return Column(
-      children: [
-        if (_gifTranslatedHint != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.translate_rounded,
-                  size: 12,
-                  color: Colors.white.withValues(alpha: 0.45),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    AppLocalizations.of(
-                      context,
-                    )!.gif_translated_hint(_gifTranslatedHint!),
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.white.withValues(alpha: 0.55),
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
+    return NotificationListener<ScrollNotification>(
+      onNotification: (n) => _onTabScroll(n, (v) {
+        if (_gifHeaderVisible != v) setState(() => _gifHeaderVisible = v);
+      }),
+      child: Column(
+        children: [
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            alignment: Alignment.topCenter,
+            child: _gifHeaderVisible
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_gifTranslatedHint != null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 6),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.translate_rounded,
+                                size: 12,
+                                color: Colors.white.withValues(alpha: 0.45),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.gif_translated_hint(_gifTranslatedHint!),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white.withValues(alpha: 0.55),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      _gifEmojiFiltersRow(),
+                      if (_gifMissingKey)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          child: Text(
+                            AppLocalizations.of(context)!.gif_search_unavailable,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.white.withValues(alpha: 0.55),
+                            ),
+                          ),
+                        ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
           ),
-        _gifEmojiFiltersRow(),
-        if (_gifMissingKey)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Text(
-              AppLocalizations.of(context)!.gif_search_unavailable,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.white.withValues(alpha: 0.55),
-              ),
-            ),
-          ),
-        Expanded(
+          Expanded(
           child: _gifLoading
               ? const Center(child: CircularProgressIndicator())
               : CustomScrollView(
@@ -1813,8 +1983,9 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
                     ],
                   ],
                 ),
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -1843,7 +2014,7 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
   Widget _gifGridSliver(List<GiphyGifItem> items) {
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
+        crossAxisCount: 5,
         mainAxisSpacing: 4,
         crossAxisSpacing: 4,
       ),
@@ -1893,30 +2064,33 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
   }
 
   Widget _gifEmojiFiltersRow() {
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        itemCount: _kGifEmojiFilters.length + 1,
-        separatorBuilder: (_, _) => const SizedBox(width: 6),
-        itemBuilder: (context, i) {
-          if (i == 0) {
-            final active = _activeEmojiFilter == null;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: SizedBox(
+        height: 34,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          itemCount: _kGifEmojiFilters.length + 1,
+          separatorBuilder: (_, _) => const SizedBox(width: 6),
+          itemBuilder: (context, i) {
+            if (i == 0) {
+              final active = _activeEmojiFilter == null;
+              return _emojiFilterChip(
+                label: AppLocalizations.of(context)!.gif_filter_all,
+                active: active,
+                onTap: () => _selectEmojiFilter(null),
+              );
+            }
+            final emoji = _kGifEmojiFilters[i - 1];
+            final active = _activeEmojiFilter == emoji;
             return _emojiFilterChip(
-              label: AppLocalizations.of(context)!.gif_filter_all,
+              label: emoji,
               active: active,
-              onTap: () => _selectEmojiFilter(null),
+              onTap: () => _selectEmojiFilter(emoji),
             );
-          }
-          final emoji = _kGifEmojiFilters[i - 1];
-          final active = _activeEmojiFilter == emoji;
-          return _emojiFilterChip(
-            label: emoji,
-            active: active,
-            onTap: () => _selectEmojiFilter(emoji),
-          );
-        },
+          },
+        ),
       ),
     );
   }
@@ -1926,17 +2100,25 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
     required bool active,
     required VoidCallback onTap,
   }) {
+    // «All»/текст — узкий pill с мелким шрифтом; эмодзи — кружок с крупным
+    // эмодзи, ровно центрированным по вертикали (height: 1.0 на Text).
+    final isText = label.length > 2;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        height: 30,
+        width: isText ? null : 30,
         alignment: Alignment.center,
+        padding: isText
+            ? const EdgeInsets.symmetric(horizontal: 10)
+            : EdgeInsets.zero,
         decoration: BoxDecoration(
           color: active
               ? const Color(0xFF2A79FF).withValues(alpha: 0.28)
               : Colors.white.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(20),
+          shape: isText ? BoxShape.rectangle : BoxShape.circle,
+          borderRadius: isText ? BorderRadius.circular(15) : null,
           border: active
               ? Border.all(
                   color: const Color(0xFF2A79FF).withValues(alpha: 0.6),
@@ -1946,8 +2128,11 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
         ),
         child: Text(
           label,
+          textAlign: TextAlign.center,
+          maxLines: 1,
           style: TextStyle(
-            fontSize: label.length > 3 ? 13 : 18,
+            fontSize: isText ? 11 : 17,
+            height: 1.0,
             fontWeight: FontWeight.w700,
             color: Colors.white.withValues(alpha: active ? 1.0 : 0.85),
           ),
@@ -1959,77 +2144,99 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
   // ============ ВКЛАДКА «ЭМОДЗИ» ============
 
   Widget _emojiTab() {
-    return Column(
-      children: [
-        // Анимированные эмодзи (GIPHY stickers).
-        if (_animEmojisLoading)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: SizedBox(
-              height: 64,
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          )
-        else if (_animEmojis.isNotEmpty) ...[
-          _gifSectionHeader(
-            Icons.auto_awesome_rounded,
-            AppLocalizations.of(context)!.sticker_section_animated,
-          ),
-          SizedBox(
-            height: 48,
-            child: ListView.builder(
-              controller: _animEmojisScrollController,
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              // +1 cell в конце под спиннер пагинации (если ещё есть страницы).
-              itemCount:
-                  _animEmojis.length +
-                  ((_animEmojisHasMore || _animEmojisLoadingMore) ? 1 : 0),
-              itemBuilder: (context, i) {
-                if (i >= _animEmojis.length) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Center(
-                      child: SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
-                  );
-                }
-                final item = _animEmojis[i];
-                return Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => _onPickAnimEmoji(item),
-                      borderRadius: BorderRadius.circular(10),
-                      child: SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: CachedNetworkImage(
-                            imageUrl: item.url,
-                            fit: BoxFit.contain,
-                            placeholder: (_, _) => const SizedBox.shrink(),
-                            errorWidget: (_, _, _) => const SizedBox.shrink(),
+    final headerVisible = _emojiHeaderVisible;
+    final showAnimRow = _animEmojisLoading || _animEmojis.isNotEmpty;
+    return NotificationListener<ScrollNotification>(
+      onNotification: (n) => _onTabScroll(n, (v) {
+        if (_emojiHeaderVisible != v) setState(() => _emojiHeaderVisible = v);
+      }),
+      child: Column(
+        children: [
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            alignment: Alignment.topCenter,
+            child: (headerVisible && showAnimRow)
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_animEmojisLoading)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: SizedBox(
+                            height: 64,
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                        )
+                      else ...[
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          height: 48,
+                          child: ListView.builder(
+                            controller: _animEmojisScrollController,
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            itemCount:
+                                _animEmojis.length +
+                                ((_animEmojisHasMore || _animEmojisLoadingMore)
+                                    ? 1
+                                    : 0),
+                            itemBuilder: (context, i) {
+                              if (i >= _animEmojis.length) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 12),
+                                  child: Center(
+                                    child: SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                              final item = _animEmojis[i];
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: () => _onPickAnimEmoji(item),
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: SizedBox(
+                                      width: 40,
+                                      height: 40,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(4),
+                                        child: CachedNetworkImage(
+                                          imageUrl: item.url,
+                                          fit: BoxFit.contain,
+                                          placeholder: (_, _) =>
+                                              const SizedBox.shrink(),
+                                          errorWidget: (_, _, _) =>
+                                              const SizedBox.shrink(),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+                        const SizedBox(height: 4),
+                        Divider(
+                          height: 1,
+                          color: Colors.white.withValues(alpha: 0.06),
+                        ),
+                      ],
+                    ],
+                  )
+                : const SizedBox.shrink(),
           ),
-          const SizedBox(height: 4),
-          Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
-        ],
-        // Обычные unicode-эмодзи.
-        Expanded(
+          // Обычные unicode-эмодзи.
+          Expanded(
           child: widget.onEmojiTapped == null
               ? Center(
                   child: Padding(
@@ -2066,8 +2273,9 @@ class _ComposerStickerGifPanelState extends State<ComposerStickerGifPanel>
                     ),
                   ),
                 ),
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -2166,6 +2374,170 @@ class _PackAddButton extends StatelessWidget {
             Icons.add_rounded,
             color: Colors.white.withValues(alpha: 0.55),
             size: 22,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Telegram-style строка пака в менеджере: thumbnail + name + count + delete.
+class _PackManagerRow extends StatelessWidget {
+  const _PackManagerRow({
+    required this.pack,
+    required this.itemsStream,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  final UserStickerPackRow pack;
+  final Stream<List<StickerItemRow>> itemsStream;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<StickerItemRow>>(
+      stream: itemsStream,
+      builder: (context, snap) {
+        final items = snap.data ?? const <StickerItemRow>[];
+        final thumbUrl = items.isNotEmpty ? items.first.downloadUrl : null;
+        return Material(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(14),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: thumbUrl != null
+                        ? Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: CachedNetworkImage(
+                              imageUrl: thumbUrl,
+                              fit: BoxFit.contain,
+                              placeholder: (_, _) => const SizedBox.shrink(),
+                              errorWidget: (_, _, _) => Icon(
+                                Icons.broken_image_outlined,
+                                color: Colors.white.withValues(alpha: 0.4),
+                                size: 22,
+                              ),
+                            ),
+                          )
+                        : Icon(
+                            Icons.layers_rounded,
+                            color: Colors.white.withValues(alpha: 0.5),
+                            size: 22,
+                          ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          pack.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${items.length}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.55),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_outline_rounded),
+                    color: const Color(0xFFE24D59),
+                    iconSize: 22,
+                    tooltip:
+                        AppLocalizations.of(context)!.sticker_delete_pack_title,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// «+ New pack» строка в начале менеджера паков.
+class _PackManagerNewRow extends StatelessWidget {
+  const _PackManagerNewRow({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFF2A79FF).withValues(alpha: 0.16),
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 12,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A79FF).withValues(alpha: 0.22),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.add_rounded,
+                  color: Color(0xFF2A79FF),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF2A79FF),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14.5,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

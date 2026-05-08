@@ -571,6 +571,10 @@ class _ChatComposerState extends State<ChatComposer> {
         (_hasTypedText || widget.pendingAttachments.isNotEmpty);
     return SafeArea(
       top: false,
+      // Когда открыта шторка стикеров — она занимает всю нижнюю область
+      // включая home-indicator. Чтобы между composer'ом и шторкой не было
+      // пустой полосы safe-area, отключаем нижний inset на composer'е.
+      bottom: !widget.stickersPanelOpen,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
         child: Column(

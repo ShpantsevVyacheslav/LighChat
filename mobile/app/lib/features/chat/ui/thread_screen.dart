@@ -2649,9 +2649,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                     if (repo == null || chatRepo == null) {
                                       return const SizedBox.shrink();
                                     }
+                                    // Шторка занимает всю нижнюю область
+                                    // включая safe-area home-indicator.
+                                    final mq = MediaQuery.of(context);
                                     final h =
-                                        MediaQuery.sizeOf(context).height *
-                                        0.42;
+                                        mq.size.height * 0.42 +
+                                        mq.padding.bottom;
                                     return SizedBox(
                                       height: h,
                                       child: ComposerStickerGifPanel(
