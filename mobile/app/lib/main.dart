@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -40,6 +41,21 @@ Future<void> main() async {
   PaintingBinding.instance.imageCache.maximumSize = 300;
   PaintingBinding.instance.imageCache.maximumSizeBytes = 250 << 20;
   await bootstrap();
+  // [audit L-005] Подключаем Crashlytics: SDK был в pubspec.yaml, но не
+  // инициализирован — крэши уходили в системный лог без stack-traces в
+  // Firebase Console. Web Crashlytics не поддерживает (`flutter_crashlytics`
+  // throws), поэтому только на native.
+  if (!kIsWeb) {
+    try {
+      FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+      PlatformDispatcher.instance.onError = (error, stack) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        return true; // обработали — не передаём дальше в crash-loop runtime
+      };
+    } catch (e, st) {
+      logger.w('Crashlytics wiring failed', error: e, stackTrace: st);
+    }
+  }
   if (!kIsWeb && iosPushRuntimeEnabled) {
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     await PushNativeCallService.instance.ensureInitialized();
