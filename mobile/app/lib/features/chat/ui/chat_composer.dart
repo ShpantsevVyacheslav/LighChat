@@ -2,7 +2,7 @@ import 'dart:async' show unawaited;
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show HapticFeedback;
+import 'package:flutter/services.dart' show HapticFeedback, SystemChannels;
 import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
@@ -495,6 +495,14 @@ class _ChatComposerState extends State<ChatComposer> {
       textAlignVertical: TextAlignVertical.center,
       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: fg),
       onChanged: inStickerSearchMode ? widget.onStickersSearchChanged : null,
+      // В режиме поиска стикеров — кнопка Search на клавиатуре закрывает
+      // клавиатуру и сворачивает раскрытую шторку обратно в обычный режим.
+      onSubmitted: inStickerSearchMode
+          ? (_) {
+              widget.focusNode.unfocus();
+              SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+            }
+          : null,
       decoration: InputDecoration(
         hintText: inStickerSearchMode
             ? (widget.stickersSearchHint ?? l10n.common_search)
@@ -535,7 +543,9 @@ class _ChatComposerState extends State<ChatComposer> {
           minHeight: 34,
         ),
       ),
-      textInputAction: TextInputAction.newline,
+      textInputAction: inStickerSearchMode
+          ? TextInputAction.search
+          : TextInputAction.newline,
     );
     if (paste == null) return tf;
     return Actions(
@@ -576,7 +586,14 @@ class _ChatComposerState extends State<ChatComposer> {
       // пустой полосы safe-area, отключаем нижний inset на composer'е.
       bottom: !widget.stickersPanelOpen,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+        // Когда шторка открыта — половиним нижний отступ (10 → 4), чтобы
+        // визуально приблизить шторку к input'у в стиле Telegram.
+        padding: EdgeInsets.fromLTRB(
+          10,
+          8,
+          10,
+          widget.stickersPanelOpen ? 4 : 10,
+        ),
         child: Column(
           key: _composerColumnKey,
           mainAxisSize: MainAxisSize.min,

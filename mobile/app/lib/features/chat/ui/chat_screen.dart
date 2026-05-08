@@ -179,6 +179,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   String _stickersSearchQuery = '';
   String _stickersSearchHint = '';
   String? _composerTextBeforeStickerSearch;
+  // Шторка стикеров раскрыта на весь экран (фуллскрин-режим). Включается
+  // когда пользователь поставил курсор в composer'е во время открытой шторки
+  // (поиск стикеров) ИЛИ когда внутри шторки активирован менеджер паков —
+  // Telegram-like UX.
+  bool _stickersSheetExpanded = false;
+  // Внутри шторки активирован Telegram-style фуллскрин менеджер паков.
+  bool _stickersPackManagerOpen = false;
 
   /// Поиск по сообщениям в открытом чате (паритет веб `ChatSearchOverlay`).
   bool _inChatSearch = false;
@@ -374,6 +381,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.initState();
     _scrollController.addListener(_onPinnedBarScrollSync);
     _controller.addListener(_scheduleChatDraftSave);
+    _composerFocusNode.addListener(_onComposerFocusChanged);
+  }
+
+  void _onComposerFocusChanged() {
+    if (!mounted) return;
+    _recomputeStickersExpanded();
+  }
+
+  void _recomputeStickersExpanded() {
+    final shouldExpand =
+        _stickersPanelOpen &&
+        (_composerFocusNode.hasFocus || _stickersPackManagerOpen);
+    if (_stickersSheetExpanded != shouldExpand) {
+      setState(() => _stickersSheetExpanded = shouldExpand);
+    }
   }
 
   void _scheduleChatDraftSave() {
@@ -877,6 +899,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _hideUnreadSeparatorTimer?.cancel();
     _scrollController.removeListener(_onPinnedBarScrollSync);
     _controller.removeListener(_scheduleChatDraftSave);
+    _composerFocusNode.removeListener(_onComposerFocusChanged);
     _composerFocusNode.dispose();
     _scrollController.dispose();
     _controller.dispose();
@@ -1619,6 +1642,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           children: [
                             SafeArea(
                               top: false,
+                              // При открытой шторке стикеров — отключаем
+                              // bottom safe-area, чтобы шторка занимала всю
+                              // нижнюю часть экрана, включая зону home-
+                              // indicator. Сама шторка добавляет внутри
+                              // padding'ом эквивалент bottom-inset, чтобы
+                              // tab-bar не уезжал под home-indicator.
+                              bottom: !_stickersPanelOpen,
                               child: Column(
                                 children: [
                                   SizedBox(height: belowHeaderGap),
@@ -1648,7 +1678,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         });
                                       },
                                     ),
+                                  // Когда шторка стикеров раскрыта на фуллскрин —
+                                  // сжимаем messages-area до 0, чтобы шторка
+                                  // могла занять её место (Telegram-style).
                                   Expanded(
+                                    flex: _stickersSheetExpanded ? 0 : 1,
                                     child: GestureDetector(
                                       behavior: HitTestBehavior.translucent,
                                       onTap: () {
@@ -2483,62 +2517,71 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                               chatRepo == null) {
                                             return const SizedBox.shrink();
                                           }
-                                          // Высота шторки = 42% экрана + нижний
-                                          // safe-area inset, чтобы шторка
-                                          // доходила до самого низа экрана
-                                          // (composer отключает свой bottom
-                                          // safe-area когда шторка открыта).
+                                          // В expanded-режиме шторка занимает
+                                          // всё свободное место (Expanded);
+                                          // в обычном — фиксированные 42%
+                                          // экрана + bottom safe-area inset.
                                           final mq = MediaQuery.of(context);
-                                          final h =
+                                          final defaultH =
                                               mq.size.height * 0.42 +
                                               mq.padding.bottom;
-                                          return SizedBox(
-                                            height: h,
-                                            child: ComposerStickerGifPanel(
-                                              userId: user.uid,
-                                              repo: stickerRepo,
-                                              directUploadConversationId:
-                                                  widget.conversationId,
-                                              sharedSearchQuery:
-                                                  _stickersSearchQuery,
-                                              onSearchHintChanged: (hint) {
-                                                if (!mounted) return;
-                                                setState(
-                                                  () => _stickersSearchHint =
-                                                      hint,
-                                                );
-                                              },
-                                              onPickAttachment: (att) {
-                                                unawaited(
-                                                  _sendStickerOrGifAttachment(
-                                                    user.uid,
-                                                    chatRepo,
-                                                    att,
-                                                  ),
-                                                );
-                                              },
-                                              onEmojiTapped:
-                                                  _insertEmojiIntoComposer,
-                                              onClose: () {
-                                                if (!mounted) return;
-                                                setState(() {
-                                                  _stickersPanelOpen = false;
-                                                  _controller.text =
-                                                      _composerTextBeforeStickerSearch ??
-                                                      _controller.text;
-                                                  _controller.selection =
-                                                      TextSelection.collapsed(
-                                                        offset: _controller
-                                                            .text
-                                                            .length,
-                                                      );
-                                                  _composerTextBeforeStickerSearch =
-                                                      null;
-                                                  _stickersSearchQuery = '';
-                                                });
-                                              },
-                                            ),
+                                          final panel = ComposerStickerGifPanel(
+                                            userId: user.uid,
+                                            repo: stickerRepo,
+                                            directUploadConversationId:
+                                                widget.conversationId,
+                                            sharedSearchQuery:
+                                                _stickersSearchQuery,
+                                            onPackManagerChanged: (v) {
+                                              if (!mounted) return;
+                                              _stickersPackManagerOpen = v;
+                                              _recomputeStickersExpanded();
+                                            },
+                                            onSearchHintChanged: (hint) {
+                                              if (!mounted) return;
+                                              setState(
+                                                () => _stickersSearchHint =
+                                                    hint,
+                                              );
+                                            },
+                                            onPickAttachment: (att) {
+                                              unawaited(
+                                                _sendStickerOrGifAttachment(
+                                                  user.uid,
+                                                  chatRepo,
+                                                  att,
+                                                ),
+                                              );
+                                            },
+                                            onEmojiTapped:
+                                                _insertEmojiIntoComposer,
+                                            onClose: () {
+                                              if (!mounted) return;
+                                              setState(() {
+                                                _stickersPanelOpen = false;
+                                                _controller.text =
+                                                    _composerTextBeforeStickerSearch ??
+                                                    _controller.text;
+                                                _controller.selection =
+                                                    TextSelection.collapsed(
+                                                      offset: _controller
+                                                          .text
+                                                          .length,
+                                                    );
+                                                _composerTextBeforeStickerSearch =
+                                                    null;
+                                                _stickersSearchQuery = '';
+                                                _stickersSheetExpanded = false;
+                                                _stickersPackManagerOpen = false;
+                                              });
+                                            },
                                           );
+                                          return _stickersSheetExpanded
+                                              ? Expanded(child: panel)
+                                              : SizedBox(
+                                                  height: defaultH,
+                                                  child: panel,
+                                                );
                                         },
                                       ),
                                   ],

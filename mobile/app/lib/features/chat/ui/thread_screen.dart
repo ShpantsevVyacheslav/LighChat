@@ -163,6 +163,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   String _stickersSearchQuery = '';
   String _stickersSearchHint = '';
   String? _composerTextBeforeStickerSearch;
+  bool _stickersSheetExpanded = false;
+  bool _stickersPackManagerOpen = false;
   String? _pendingFocusMessageId;
   bool _inThreadSearch = false;
   bool _composerFormattingOpen = false;
@@ -210,6 +212,21 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     if (_pendingFocusMessageId != null && _pendingFocusMessageId!.isEmpty) {
       _pendingFocusMessageId = null;
     }
+    _composerFocus.addListener(_onComposerFocusChanged);
+  }
+
+  void _onComposerFocusChanged() {
+    if (!mounted) return;
+    _recomputeStickersExpanded();
+  }
+
+  void _recomputeStickersExpanded() {
+    final shouldExpand =
+        _stickersPanelOpen &&
+        (_composerFocus.hasFocus || _stickersPackManagerOpen);
+    if (_stickersSheetExpanded != shouldExpand) {
+      setState(() => _stickersSheetExpanded = shouldExpand);
+    }
   }
 
   @override
@@ -219,6 +236,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     _hideUnreadSeparatorTimer?.cancel();
     _scrollController.dispose();
     _composerController.dispose();
+    _composerFocus.removeListener(_onComposerFocusChanged);
     _composerFocus.dispose();
     _searchController.dispose();
     _searchFocus.dispose();
@@ -2272,6 +2290,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                     },
                               ),
                               Expanded(
+                                flex: _stickersSheetExpanded ? 0 : 1,
                                 child: Stack(
                                   children: [
                                     Positioned.fill(
@@ -2667,77 +2686,88 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                     if (repo == null || chatRepo == null) {
                                       return const SizedBox.shrink();
                                     }
-                                    // Шторка занимает всю нижнюю область
-                                    // включая safe-area home-indicator.
+                                    // В expanded-режиме шторка занимает всё
+                                    // свободное место (Expanded); иначе —
+                                    // фикс. 42% экрана + bottom safe-area.
                                     final mq = MediaQuery.of(context);
-                                    final h =
+                                    final defaultH =
                                         mq.size.height * 0.42 +
                                         mq.padding.bottom;
-                                    return SizedBox(
-                                      height: h,
-                                      child: ComposerStickerGifPanel(
-                                        userId: user.uid,
-                                        repo: repo,
-                                        directUploadConversationId:
-                                            widget.conversationId,
-                                        sharedSearchQuery: _stickersSearchQuery,
-                                        onSearchHintChanged: (hint) {
-                                          if (!mounted) return;
-                                          setState(
-                                            () => _stickersSearchHint = hint,
-                                          );
-                                        },
-                                        onPickAttachment: (att) {
-                                          unawaited(
-                                            _sendThreadStickerOrGifAttachment(
-                                              user.uid,
-                                              chatRepo,
-                                              att,
-                                            ),
-                                          );
-                                        },
-                                        onEmojiTapped: (emoji) {
-                                          final ctrl = _composerController;
-                                          final sel = ctrl.selection;
-                                          final text = ctrl.text;
-                                          final start = sel.isValid
-                                              ? sel.start
-                                              : text.length;
-                                          final end = sel.isValid
-                                              ? sel.end
-                                              : text.length;
-                                          final newText = text.replaceRange(
-                                            start,
-                                            end,
-                                            emoji,
-                                          );
-                                          ctrl.value = TextEditingValue(
-                                            text: newText,
-                                            selection: TextSelection.collapsed(
-                                              offset: start + emoji.length,
-                                            ),
-                                          );
-                                        },
-                                        onClose: () {
-                                          if (!mounted) return;
-                                          setState(() {
-                                            _stickersPanelOpen = false;
-                                            _composerController.text =
-                                                _composerTextBeforeStickerSearch ??
-                                                _composerController.text;
-                                            _composerController.selection =
-                                                TextSelection.collapsed(
-                                                  offset: _composerController
-                                                      .text
-                                                      .length,
-                                                );
-                                            _composerTextBeforeStickerSearch =
-                                                null;
-                                            _stickersSearchQuery = '';
-                                          });
-                                        },
-                                      ),
+                                    final panel = ComposerStickerGifPanel(
+                                      userId: user.uid,
+                                      repo: repo,
+                                      directUploadConversationId:
+                                          widget.conversationId,
+                                      sharedSearchQuery: _stickersSearchQuery,
+                                      onPackManagerChanged: (v) {
+                                        if (!mounted) return;
+                                        _stickersPackManagerOpen = v;
+                                        _recomputeStickersExpanded();
+                                      },
+                                      onSearchHintChanged: (hint) {
+                                        if (!mounted) return;
+                                        setState(
+                                          () => _stickersSearchHint = hint,
+                                        );
+                                      },
+                                      onPickAttachment: (att) {
+                                        unawaited(
+                                          _sendThreadStickerOrGifAttachment(
+                                            user.uid,
+                                            chatRepo,
+                                            att,
+                                          ),
+                                        );
+                                      },
+                                      onEmojiTapped: (emoji) {
+                                        final ctrl = _composerController;
+                                        final sel = ctrl.selection;
+                                        final text = ctrl.text;
+                                        final start = sel.isValid
+                                            ? sel.start
+                                            : text.length;
+                                        final end = sel.isValid
+                                            ? sel.end
+                                            : text.length;
+                                        final newText = text.replaceRange(
+                                          start,
+                                          end,
+                                          emoji,
+                                        );
+                                        ctrl.value = TextEditingValue(
+                                          text: newText,
+                                          selection: TextSelection.collapsed(
+                                            offset: start + emoji.length,
+                                          ),
+                                        );
+                                      },
+                                      onClose: () {
+                                        if (!mounted) return;
+                                        setState(() {
+                                          _stickersPanelOpen = false;
+                                          _composerController.text =
+                                              _composerTextBeforeStickerSearch ??
+                                              _composerController.text;
+                                          _composerController.selection =
+                                              TextSelection.collapsed(
+                                                offset: _composerController
+                                                    .text
+                                                    .length,
+                                              );
+                                          _composerTextBeforeStickerSearch =
+                                              null;
+                                          _stickersSearchQuery = '';
+                                          _stickersSheetExpanded = false;
+                                          _stickersPackManagerOpen = false;
+                                        });
+                                      },
                                     );
+                                    return _stickersSheetExpanded
+                                        ? Expanded(child: panel)
+                                        : SizedBox(
+                                            height: defaultH,
+                                            child: panel,
+                                          );
                                   },
                                 ),
                             ],
