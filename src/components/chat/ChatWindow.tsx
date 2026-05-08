@@ -42,12 +42,7 @@ import {
   getReplyPreview,
 } from '@/lib/chat-utils';
 import { isIncomingUnreadForViewer } from '@/lib/message-read-status';
-import {
-  addChatAttachmentToUserStickerPack,
-  addChatImageAsSquareStickerToPack,
-  createUserStickerPack,
-} from '@/lib/user-sticker-packs-client';
-import { USER_STICKER_MAX_FILE_BYTES } from '@/lib/user-sticker-packs';
+import { useStickerSaveFlow } from '@/hooks/use-sticker-save-flow';
 import { isSavedMessagesChat } from '@/lib/saved-messages-chat';
 import { CHAT_GLASS_PANEL, CHAT_HEADER_SAFE_AREA_STRIP } from '@/lib/chat-glass-styles';
 import { buildGroupMentionCandidates, extractMentionedUserIdsFromPlainText } from '@/lib/group-mention-utils';
@@ -340,10 +335,13 @@ export function ChatWindow({
   const [threadPanelExpanded, setThreadPanelExpanded] = useState(false);
   /** После открытия треда по реакции — id ответа в треде для прокрутки и подсветки. */
   const [threadReactionScrollToId, setThreadReactionScrollToId] = useState<string | null>(null);
-  const [stickerSaveOpen, setStickerSaveOpen] = useState(false);
-  const [stickerSaveAttachment, setStickerSaveAttachment] = useState<ChatAttachment | null>(null);
-  const [stickerSaveBusy, setStickerSaveBusy] = useState(false);
-  const [stickerSaveMode, setStickerSaveMode] = useState<'copy' | 'normalize_sticker'>('copy');
+  const stickerSave = useStickerSaveFlow({
+    firestore,
+    storage,
+    currentUserId: currentUser.id,
+    toast,
+    t,
+  });
   /** Якорь с z-[10050] — скрываем при оверлеях и при document fullscreen (видео). */
   const [documentFullscreen, setDocumentFullscreen] = useState(false);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
@@ -1250,14 +1248,7 @@ export function ChatWindow({
     ]
   );
 
-  const handleSaveStickerFromMessage = useCallback(
-    (att: ChatAttachment, mode: 'copy' | 'normalize_sticker' = 'copy') => {
-      setStickerSaveMode(mode);
-      setStickerSaveAttachment(att);
-      setStickerSaveOpen(true);
-    },
-    []
-  );
+  const handleSaveStickerFromMessage = stickerSave.openSaveDialog;
 
   const handleRetryMediaNorm = useCallback(
     async (message: ChatMessage) => {
@@ -1283,64 +1274,8 @@ export function ChatWindow({
     [conversation.id, firestore, toast, t]
   );
 
-  const handleStickerSaveConfirmPack = useCallback(
-    async (packId: string) => {
-      if (!stickerSaveAttachment || !firestore || !storage) return;
-      setStickerSaveBusy(true);
-      try {
-        const r =
-          stickerSaveMode === 'normalize_sticker'
-            ? await addChatImageAsSquareStickerToPack(
-                stickerSaveAttachment,
-                packId,
-                currentUser.id,
-                firestore,
-                storage
-              )
-            : await addChatAttachmentToUserStickerPack(
-                stickerSaveAttachment,
-                packId,
-                currentUser.id,
-                firestore,
-                storage
-              );
-        if (r.ok) {
-          toast({
-            title: t('chat.savedToStickerPack'),
-            description: stickerSaveMode === 'normalize_sticker' ? t('chat.savedToStickerPackNormalized') : undefined,
-          });
-          setStickerSaveOpen(false);
-          setStickerSaveAttachment(null);
-          setStickerSaveMode('copy');
-        } else if (r.error === 'file_too_large') {
-          toast({
-            title: t('chat.fileTooLarge'),
-            description: t('chat.fileSizeLimitMb', { size: Math.round(USER_STICKER_MAX_FILE_BYTES / (1024 * 1024)) }),
-            variant: 'destructive',
-          });
-        } else if (r.error === 'fetch_failed') {
-          toast({
-            title: t('chat.downloadFailedCors'),
-            description: t('chat.downloadFailedCorsHint'),
-            variant: 'destructive',
-          });
-        } else {
-          toast({ title: t('chat.saveFailed'), variant: 'destructive' });
-        }
-      } finally {
-        setStickerSaveBusy(false);
-      }
-    },
-    [stickerSaveAttachment, stickerSaveMode, firestore, storage, currentUser.id, toast]
-  );
-
-  const handleStickerPackCreate = useCallback(
-    async (name: string) => {
-      if (!firestore) return null;
-      return createUserStickerPack(firestore, currentUser.id, name);
-    },
-    [firestore, currentUser.id]
-  );
+  // [audit M-009] Логика sticker-save переехала в `useStickerSaveFlow` hook —
+  // см. `stickerSave.confirmToPack` / `.createPack` ниже в JSX.
 
   const handleSendMessage = async (
     text?: string,
@@ -2711,20 +2646,16 @@ export function ChatWindow({
           onInitialSubMenuConsumed={() => setProfileInitialSubMenu(null)}
         />
         <StickerPackPickerDialog
-          open={stickerSaveOpen}
+          open={stickerSave.open}
           onOpenChange={(o) => {
-            setStickerSaveOpen(o);
-            if (!o) {
-              setStickerSaveAttachment(null);
-              setStickerSaveMode('copy');
-            }
+            if (!o) stickerSave.closeDialog();
           }}
           userId={currentUser.id}
           title={t('chat.stickerSaveTitle')}
           description={t('chat.stickerSaveDescription')}
-          busy={stickerSaveBusy}
-          onConfirmPack={handleStickerSaveConfirmPack}
-          createPack={handleStickerPackCreate}
+          busy={stickerSave.busy}
+          onConfirmPack={stickerSave.confirmToPack}
+          createPack={stickerSave.createPack}
         />
         <MediaViewer isOpen={mediaViewerState.isOpen} onOpenChange={(open) => setMediaViewerState(prev => ({ ...prev, isOpen: open }))} media={allMediaItems} startIndex={mediaViewerState.startIndex} currentUserId={currentUser.id} allUsers={allUsers} onReply={(m) => { const replyContext = getReplyPreview(m, allUsers); setReplyingTo(replyContext); }} onForward={(m) => { if (!allowSecretForward) return; sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} onDelete={(id) => handleDeleteMessage(id)} navigateToMessage={navigateToMessage} allowForward={allowSecretForward} allowSave={allowSecretSave} />
         {isSecretChat ? (
