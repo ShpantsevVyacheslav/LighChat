@@ -38,15 +38,21 @@ target 'Runner' do
   end
 end
 
-# Phase B: Share Extension target. Объявлен через `add_share_extension_target.rb`
-# (см. ios/scripts/), здесь только подключаем pod `receive_sharing_intent` —
-# extension использует базовый `RSIShareViewController` из этого пакета.
-# Зависимость берём из ../.symlinks/plugins, которые уже сгенерил
-# `flutter_install_all_ios_pods` для Runner.
-target 'ShareExtension' do
-  use_frameworks! :linkage => :static
-  pod 'receive_sharing_intent', :path => '.symlinks/plugins/receive_sharing_intent/ios'
-end
+# Phase B: Share Extension target ВРЕМЕННО ОТКЛЮЧЁН.
+#
+# Capability App Groups (нужна для передачи файлов из extension в основное
+# app через shared container) недоступна на бесплатном Apple Developer
+# (Personal Team) — это требует paid Apple Developer Program ($99/год).
+# Чтобы проект собирался/подписывался на free аккаунте, target ShareExtension
+# убран из .pbxproj через `ios/scripts/remove_share_extension_target.rb`.
+# Файлы `ios/ShareExtension/*` оставлены — восстановить можно одной
+# командой: `ruby ios/scripts/add_share_extension_target.rb` (затем pod install).
+# Тогда же раскомментировать блок ниже.
+#
+# target 'ShareExtension' do
+#   use_frameworks! :linkage => :static
+#   pod 'receive_sharing_intent', :path => '.symlinks/plugins/receive_sharing_intent/ios'
+# end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
