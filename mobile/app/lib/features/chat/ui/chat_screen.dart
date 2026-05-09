@@ -18,6 +18,7 @@ import 'package:lighchat_models/lighchat_models.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/composer_clipboard_paste.dart';
+import '../data/share_intent_payload.dart';
 import '../data/e2ee_decryption_orchestrator.dart';
 import '../data/e2ee_data_type_policy.dart';
 import '../data/e2ee_plaintext_cache.dart';
@@ -90,9 +91,20 @@ import 'secret_chat_unlock_sheet.dart';
 import '../data/secret_chat_media_open_service.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
-  const ChatScreen({super.key, required this.conversationId});
+  const ChatScreen({
+    super.key,
+    required this.conversationId,
+    this.initialSharePayload,
+  });
 
   final String conversationId;
+
+  /// Phase B: payload системного «Поделиться → LighChat», прокидываемый из
+  /// `/share` через `state.extra`. Если задан, файлы попадают в
+  /// `_pendingAttachments`, а текст вставляется в композер при первом
+  /// `initState` (один раз — не реагирует на дальнейшие push'ы того же
+  /// route, т.к. это разные экземпляры `ChatScreen`).
+  final ShareIntentPayload? initialSharePayload;
 
   @override
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
@@ -381,6 +393,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _scrollController.addListener(_onPinnedBarScrollSync);
     _controller.addListener(_scheduleChatDraftSave);
     _composerFocusNode.addListener(_onComposerFocusChanged);
+    // Phase B: системный «Поделиться → LighChat». Применяем payload до
+    // первого build, чтобы пользователь сразу увидел готовые pending‑файлы
+    // и pre‑filled текст. Применяем один раз — повторных push'ов не
+    // ожидаем (новый share создаёт новый ChatScreen через CupertinoPage).
+    final share = widget.initialSharePayload;
+    if (share != null && share.isNotEmpty) {
+      if (share.files.isNotEmpty) {
+        _pendingAttachments.addAll(share.files);
+      }
+      final t = (share.text ?? '').trim();
+      if (t.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _insertComposerTextAtCursor(t);
+        });
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _scheduleChatDraftSave();
+      });
+    }
   }
 
   void _onComposerFocusChanged() {

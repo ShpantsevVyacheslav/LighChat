@@ -900,6 +900,17 @@
   "forward_error_profiles_load": "Сәтсіз загрузить профнемесе для открытия чаттың",
   "forward_error_send_no_permissions": "Сәтсіз переслать: жоқ прав на сізбранные чаттар немесе чат көбірек неқолжетімділікен.",
   "forward_error_send_forbidden_chat": "Сәтсіз переслать: қолжетімділік одному из чатов запрещён.",
+  "share_picker_title": "LighChat-қа бөлісу",
+  "share_picker_empty_payload": "Бөлісетін мазмұн жоқ",
+  "share_picker_summary_text_only": "Мәтін",
+  "share_picker_summary_files_count": "Файлдар: {count}",
+  "@share_picker_summary_files_count": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "share_picker_summary_files_with_text": "Файлдар: {count} + мәтін",
+  "@share_picker_summary_files_with_text": {
+    "placeholders": {"count": {"type": "int"}}
+  },
   "devices_title": "Можәне құрылғылар",
   "devices_subtitle": "Тізім құрылғылар, на которых опубликован сіздің публичный ключ шифрования. Отзыв автоматическжәне создаёт новую эпоху ключей во барлығых зашифрованных чаттыңх — отозванное құрылғы көбірек не увидит носізе хабарламалар.",
   "devices_empty": "Құрылғылар әзірге жоқ.",

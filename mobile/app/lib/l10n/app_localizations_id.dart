@@ -1901,6 +1901,25 @@ class AppLocalizationsId extends AppLocalizations {
       'Couldn’t Teruskan: access to one dari  Obrolan adalah denied.';
 
   @override
+  String get share_picker_title => 'Bagikan ke LighChat';
+
+  @override
+  String get share_picker_empty_payload => 'Tidak ada yang dibagikan';
+
+  @override
+  String get share_picker_summary_text_only => 'Teks';
+
+  @override
+  String share_picker_summary_files_count(int count) {
+    return 'Berkas: $count';
+  }
+
+  @override
+  String share_picker_summary_files_with_text(int count) {
+    return 'Berkas: $count + teks';
+  }
+
+  @override
   String get devices_title => 'My Perangkat';
 
   @override

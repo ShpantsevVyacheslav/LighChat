@@ -900,6 +900,17 @@
   "forward_error_profiles_load": "Couldn’t load profiles to Buka Obrolan",
   "forward_error_send_no_permissions": "Couldn’t Teruskan: Anda don’t have access to one dari  Dipilih Obrolan atau  Obrolan adalah Tidak longer available.",
   "forward_error_send_forbidden_chat": "Couldn’t Teruskan: access to one dari  Obrolan adalah denied.",
+  "share_picker_title": "Bagikan ke LighChat",
+  "share_picker_empty_payload": "Tidak ada yang dibagikan",
+  "share_picker_summary_text_only": "Teks",
+  "share_picker_summary_files_count": "Berkas: {count}",
+  "@share_picker_summary_files_count": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "share_picker_summary_files_with_text": "Berkas: {count} + teks",
+  "@share_picker_summary_files_with_text": {
+    "placeholders": {"count": {"type": "int"}}
+  },
   "devices_title": "My Perangkat",
   "devices_subtitle": "Perangkat where Anda Enkripsi public key adalah published. Revoking creates a Baru key epoch for Semua encrypted Obrolan —  revoked Perangkat won’t be able to Dibaca Baru Pesan.",
   "devices_empty": "Tidak Perangkat yet.",

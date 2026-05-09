@@ -920,6 +920,17 @@
   "forward_error_profiles_load": "Не удалось загрузить профили для открытия чата",
   "forward_error_send_no_permissions": "Не удалось переслать: нет прав на выбранные чаты или чат больше недоступен.",
   "forward_error_send_forbidden_chat": "Не удалось переслать: доступ к одному из чатов запрещён.",
+  "share_picker_title": "Поделиться в LighChat",
+  "share_picker_empty_payload": "Нет содержимого для отправки",
+  "share_picker_summary_text_only": "Текст",
+  "share_picker_summary_files_count": "Файлов: {count}",
+  "@share_picker_summary_files_count": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "share_picker_summary_files_with_text": "Файлов: {count} + текст",
+  "@share_picker_summary_files_with_text": {
+    "placeholders": {"count": {"type": "int"}}
+  },
   "devices_title": "Мои устройства",
   "devices_subtitle": "Список устройств, на которых опубликован ваш публичный ключ шифрования. Отзыв автоматически создаёт новую эпоху ключей во всех зашифрованных чатах — отозванное устройство больше не увидит новые сообщения.",
   "devices_empty": "Устройств пока нет.",

@@ -1908,6 +1908,25 @@ class AppLocalizationsKk extends AppLocalizations {
       'Сәтсіз переслать: қолжетімділік одному из чатов запрещён.';
 
   @override
+  String get share_picker_title => 'LighChat-қа бөлісу';
+
+  @override
+  String get share_picker_empty_payload => 'Бөлісетін мазмұн жоқ';
+
+  @override
+  String get share_picker_summary_text_only => 'Мәтін';
+
+  @override
+  String share_picker_summary_files_count(int count) {
+    return 'Файлдар: $count';
+  }
+
+  @override
+  String share_picker_summary_files_with_text(int count) {
+    return 'Файлдар: $count + мәтін';
+  }
+
+  @override
   String get devices_title => 'Можәне құрылғылар';
 
   @override

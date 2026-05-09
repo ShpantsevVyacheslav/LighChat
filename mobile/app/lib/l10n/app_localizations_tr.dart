@@ -1906,6 +1906,25 @@ class AppLocalizationsTr extends AppLocalizations {
       'İletilemedi: sohbetlerden birine erişim reddedildi.';
 
   @override
+  String get share_picker_title => 'LighChat\'a paylaş';
+
+  @override
+  String get share_picker_empty_payload => 'Paylaşılacak içerik yok';
+
+  @override
+  String get share_picker_summary_text_only => 'Metin';
+
+  @override
+  String share_picker_summary_files_count(int count) {
+    return 'Dosyalar: $count';
+  }
+
+  @override
+  String share_picker_summary_files_with_text(int count) {
+    return 'Dosyalar: $count + metin';
+  }
+
+  @override
   String get devices_title => 'Cihazlarım';
 
   @override

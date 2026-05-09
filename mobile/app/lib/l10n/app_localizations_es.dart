@@ -1923,6 +1923,25 @@ class AppLocalizationsEs extends AppLocalizations {
       'No se pudo reenviar: acceso denegado a uno de los chats.';
 
   @override
+  String get share_picker_title => 'Compartir con LighChat';
+
+  @override
+  String get share_picker_empty_payload => 'Nada que compartir';
+
+  @override
+  String get share_picker_summary_text_only => 'Texto';
+
+  @override
+  String share_picker_summary_files_count(int count) {
+    return 'Archivos: $count';
+  }
+
+  @override
+  String share_picker_summary_files_with_text(int count) {
+    return 'Archivos: $count + texto';
+  }
+
+  @override
   String get devices_title => 'Mis dispositivos';
 
   @override
@@ -9844,6 +9863,25 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   @override
   String get forward_error_send_forbidden_chat =>
       'No se pudo reenviar: acceso denegado a uno de los chats.';
+
+  @override
+  String get share_picker_title => 'Compartir con LighChat';
+
+  @override
+  String get share_picker_empty_payload => 'Nada que compartir';
+
+  @override
+  String get share_picker_summary_text_only => 'Texto';
+
+  @override
+  String share_picker_summary_files_count(int count) {
+    return 'Archivos: $count';
+  }
+
+  @override
+  String share_picker_summary_files_with_text(int count) {
+    return 'Archivos: $count + texto';
+  }
 
   @override
   String get devices_title => 'Mis dispositivos';

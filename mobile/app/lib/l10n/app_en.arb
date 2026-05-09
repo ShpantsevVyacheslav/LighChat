@@ -920,6 +920,17 @@
   "forward_error_profiles_load": "Couldn’t load profiles to open chat",
   "forward_error_send_no_permissions": "Couldn’t forward: you don’t have access to one of the selected chats or the chat is no longer available.",
   "forward_error_send_forbidden_chat": "Couldn’t forward: access to one of the chats is denied.",
+  "share_picker_title": "Share to LighChat",
+  "share_picker_empty_payload": "Nothing to share",
+  "share_picker_summary_text_only": "Text",
+  "share_picker_summary_files_count": "Files: {count}",
+  "@share_picker_summary_files_count": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "share_picker_summary_files_with_text": "Files: {count} + text",
+  "@share_picker_summary_files_with_text": {
+    "placeholders": {"count": {"type": "int"}}
+  },
   "devices_title": "My devices",
   "devices_subtitle": "Devices where your encryption public key is published. Revoking creates a new key epoch for all encrypted chats — the revoked device won’t be able to read new messages.",
   "devices_empty": "No devices yet.",

@@ -13,7 +13,9 @@ import 'features/auth/ui/auth_screen.dart';
 import 'features/auth/ui/google_complete_profile_screen.dart';
 import 'features/auth/ui/qr_login_screen.dart';
 import 'features/auth/ui/profile_screen.dart';
+import 'features/chat/data/share_intent_payload.dart';
 import 'features/chat/ui/chat_forward_screen.dart';
+import 'features/chat/ui/share_target_picker_screen.dart';
 import 'features/chat/ui/chat_account_screen.dart';
 import 'features/chat/ui/chat_contacts_screen.dart';
 import 'features/chat/ui/chat_contact_profile_screen.dart';
@@ -392,6 +394,20 @@ GoRouter createRouter() {
         path: '/chats/secret-inbox',
         builder: (context, state) => const SecretChatsInboxScreen(),
       ),
+      // Phase B: системный «Поделиться → LighChat». Открывается из
+      // [ShareIntentListener] при получении payload от iOS Share Extension /
+      // Android ACTION_SEND. После выбора чата pickerScreen делает
+      // pushReplacement на `/chats/{id}` с тем же payload в extra.
+      GoRoute(
+        path: '/share',
+        builder: (context, state) {
+          final extra = state.extra;
+          final payload = extra is ShareIntentPayload
+              ? extra
+              : const ShareIntentPayload();
+          return ShareTargetPickerScreen(payload: payload);
+        },
+      ),
       GoRoute(
         path: '/chats/forward',
         builder: (context, state) {
@@ -468,10 +484,20 @@ GoRouter createRouter() {
         path: '/chats/:conversationId',
         pageBuilder: (context, state) {
           final conversationId = state.pathParameters['conversationId'] ?? '';
+          // Phase B: при переходе через ShareTargetPickerScreen в extra
+          // приходит [ShareIntentPayload]. ChatScreen прокидывает его в
+          // _pendingAttachments + composer text при первом build, чтобы
+          // пользователь увидел готовый к отправке композер.
+          final extra = state.extra;
+          final sharePayload =
+              extra is ShareIntentPayload ? extra : null;
           return CupertinoPage<void>(
             key: state.pageKey,
             name: state.name,
-            child: ChatScreen(conversationId: conversationId),
+            child: ChatScreen(
+              conversationId: conversationId,
+              initialSharePayload: sharePayload,
+            ),
           );
         },
       ),

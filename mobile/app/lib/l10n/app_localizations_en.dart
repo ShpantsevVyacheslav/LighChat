@@ -1893,6 +1893,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn’t forward: access to one of the chats is denied.';
 
   @override
+  String get share_picker_title => 'Share to LighChat';
+
+  @override
+  String get share_picker_empty_payload => 'Nothing to share';
+
+  @override
+  String get share_picker_summary_text_only => 'Text';
+
+  @override
+  String share_picker_summary_files_count(int count) {
+    return 'Files: $count';
+  }
+
+  @override
+  String share_picker_summary_files_with_text(int count) {
+    return 'Files: $count + text';
+  }
+
+  @override
   String get devices_title => 'My devices';
 
   @override

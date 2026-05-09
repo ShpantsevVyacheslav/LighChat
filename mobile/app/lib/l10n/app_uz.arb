@@ -900,6 +900,17 @@
   "forward_error_profiles_load": "Coulkn’t loak prdaniles to open csat",
   "forward_error_send_no_permissions": "Uzatib boʻlmadi: tanlangan chatlardan biriga kirishingiz yoʻq yoki chat endi mavjud emas.",
   "forward_error_send_forbidden_chat": "Uzatib boʻlmadi: chatlardan biriga kirish rad etildi.",
+  "share_picker_title": "LighChat'ga ulashish",
+  "share_picker_empty_payload": "Ulashish uchun hech narsa yo'q",
+  "share_picker_summary_text_only": "Matn",
+  "share_picker_summary_files_count": "Fayllar: {count}",
+  "@share_picker_summary_files_count": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "share_picker_summary_files_with_text": "Fayllar: {count} + matn",
+  "@share_picker_summary_files_with_text": {
+    "placeholders": {"count": {"type": "int"}}
+  },
   "devices_title": "Mening qurilmalarim",
   "devices_subtitle": "Shifrlash ochiq kalitingiz eʼlon qilingan qurilmalar. Bekor qilish barcha shifrlangan chatlar uchun yangi kalit davrini yaratadi — bekor qilingan qurilma yangi xabarlarni oʻqiy olmaydi.",
   "devices_empty": "Hozircha qurilmalar yoʻq.",

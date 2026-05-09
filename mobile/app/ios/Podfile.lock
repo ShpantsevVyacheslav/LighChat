@@ -1549,6 +1549,8 @@ PODS:
   - PromisesSwift (2.4.0):
     - PromisesObjC (= 2.4.0)
   - RecaptchaInterop (101.0.0)
+  - receive_sharing_intent (1.8.1):
+    - Flutter
   - record_ios (1.2.0):
     - Flutter
   - SDWebImage (5.21.7):
@@ -1609,6 +1611,7 @@ DEPENDENCIES:
   - local_auth_darwin (from `.symlinks/plugins/local_auth_darwin/darwin`)
   - mobile_scanner (from `.symlinks/plugins/mobile_scanner/darwin`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
+  - receive_sharing_intent (from `.symlinks/plugins/receive_sharing_intent/ios`)
   - record_ios (from `.symlinks/plugins/record_ios/ios`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
@@ -1720,6 +1723,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/mobile_scanner/darwin"
   permission_handler_apple:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
+  receive_sharing_intent:
+    :path: ".symlinks/plugins/receive_sharing_intent/ios"
   record_ios:
     :path: ".symlinks/plugins/record_ios/ios"
   share_plus:
@@ -1803,6 +1808,7 @@ SPEC CHECKSUMS:
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   PromisesSwift: 9d77319bbe72ebf6d872900551f7eeba9bce2851
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
+  receive_sharing_intent: 222384f00ffe7e952bbfabaa9e3967cb87e5fe00
   record_ios: 412daca2350b228e698fffcd08f1f94ceb1e3844
   SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf
   share_plus: 50da8cb520a8f0f65671c6c6a99b3617ed10a58a
@@ -1817,6 +1823,6 @@ SPEC CHECKSUMS:
   WebRTC-SDK: ab9b5319e458c2bfebdc92b3600740da35d5630d
   webview_flutter_wkwebview: 8ebf4fded22593026f7dbff1fbff31ea98573c8d
 
-PODFILE CHECKSUM: f2c4f7db52d5afb497827cba71ced55328f1927f
+PODFILE CHECKSUM: af9e56ebf2ce5e47a5d20882b9147c4ad5056270
 
 COCOAPODS: 1.16.2

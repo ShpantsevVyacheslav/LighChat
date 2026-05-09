@@ -900,6 +900,17 @@
   "forward_error_profiles_load": "Sohbeti açmak için profiller yüklenemedi",
   "forward_error_send_no_permissions": "İletilemedi: seçilen sohbetlerden birine erişiminiz yok veya sohbet artık mevcut değil.",
   "forward_error_send_forbidden_chat": "İletilemedi: sohbetlerden birine erişim reddedildi.",
+  "share_picker_title": "LighChat'a paylaş",
+  "share_picker_empty_payload": "Paylaşılacak içerik yok",
+  "share_picker_summary_text_only": "Metin",
+  "share_picker_summary_files_count": "Dosyalar: {count}",
+  "@share_picker_summary_files_count": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "share_picker_summary_files_with_text": "Dosyalar: {count} + metin",
+  "@share_picker_summary_files_with_text": {
+    "placeholders": {"count": {"type": "int"}}
+  },
   "devices_title": "Cihazlarım",
   "devices_subtitle": "Şifreleme açık anahtarınızın yayınlandığı cihazlar. İptal etme, tüm şifreli sohbetler için yeni bir anahtar dönemi oluşturur — iptal edilen cihaz yeni mesajları okuyamaz.",
   "devices_empty": "Henüz cihaz yok.",

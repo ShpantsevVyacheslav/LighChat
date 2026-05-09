@@ -900,6 +900,17 @@
   "forward_error_profiles_load": "Não foi possível carregar os perfis para abrir o chat",
   "forward_error_send_no_permissions": "Não foi possível encaminhar: você não tem acesso a um dos chats selecionados ou o chat não está mais disponível.",
   "forward_error_send_forbidden_chat": "Não foi possível encaminhar: o acesso a um dos chats foi negado.",
+  "share_picker_title": "Compartilhar com o LighChat",
+  "share_picker_empty_payload": "Nada para compartilhar",
+  "share_picker_summary_text_only": "Texto",
+  "share_picker_summary_files_count": "Arquivos: {count}",
+  "@share_picker_summary_files_count": {
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "share_picker_summary_files_with_text": "Arquivos: {count} + texto",
+  "@share_picker_summary_files_with_text": {
+    "placeholders": {"count": {"type": "int"}}
+  },
   "devices_title": "Meus dispositivos",
   "devices_subtitle": "Dispositivos onde sua chave pública de criptografia está publicada. Revogar cria uma nova época de chave para todos os chats criptografados — o dispositivo revogado não poderá ler novas mensagens.",
   "devices_empty": "Nenhum dispositivo ainda.",

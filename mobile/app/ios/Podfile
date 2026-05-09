@@ -38,6 +38,16 @@ target 'Runner' do
   end
 end
 
+# Phase B: Share Extension target. Объявлен через `add_share_extension_target.rb`
+# (см. ios/scripts/), здесь только подключаем pod `receive_sharing_intent` —
+# extension использует базовый `RSIShareViewController` из этого пакета.
+# Зависимость берём из ../.symlinks/plugins, которые уже сгенерил
+# `flutter_install_all_ios_pods` для Runner.
+target 'ShareExtension' do
+  use_frameworks! :linkage => :static
+  pod 'receive_sharing_intent', :path => '.symlinks/plugins/receive_sharing_intent/ios'
+end
+
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)

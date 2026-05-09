@@ -1912,6 +1912,25 @@ class AppLocalizationsPt extends AppLocalizations {
       'Não foi possível encaminhar: o acesso a um dos chats foi negado.';
 
   @override
+  String get share_picker_title => 'Partilhar no LighChat';
+
+  @override
+  String get share_picker_empty_payload => 'Nada para partilhar';
+
+  @override
+  String get share_picker_summary_text_only => 'Texto';
+
+  @override
+  String share_picker_summary_files_count(int count) {
+    return 'Ficheiros: $count';
+  }
+
+  @override
+  String share_picker_summary_files_with_text(int count) {
+    return 'Ficheiros: $count + texto';
+  }
+
+  @override
   String get devices_title => 'Meus dispositivos';
 
   @override
@@ -9803,6 +9822,25 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get forward_error_send_forbidden_chat =>
       'Não foi possível encaminhar: o acesso a um dos chats foi negado.';
+
+  @override
+  String get share_picker_title => 'Compartilhar com o LighChat';
+
+  @override
+  String get share_picker_empty_payload => 'Nada para compartilhar';
+
+  @override
+  String get share_picker_summary_text_only => 'Texto';
+
+  @override
+  String share_picker_summary_files_count(int count) {
+    return 'Arquivos: $count';
+  }
+
+  @override
+  String share_picker_summary_files_with_text(int count) {
+    return 'Arquivos: $count + texto';
+  }
 
   @override
   String get devices_title => 'Meus dispositivos';

@@ -1914,6 +1914,25 @@ class AppLocalizationsUz extends AppLocalizations {
       'Uzatib boʻlmadi: chatlardan biriga kirish rad etildi.';
 
   @override
+  String get share_picker_title => 'LighChat\'ga ulashish';
+
+  @override
+  String get share_picker_empty_payload => 'Ulashish uchun hech narsa yo\'q';
+
+  @override
+  String get share_picker_summary_text_only => 'Matn';
+
+  @override
+  String share_picker_summary_files_count(int count) {
+    return 'Fayllar: $count';
+  }
+
+  @override
+  String share_picker_summary_files_with_text(int count) {
+    return 'Fayllar: $count + matn';
+  }
+
+  @override
   String get devices_title => 'Mening qurilmalarim';
 
   @override

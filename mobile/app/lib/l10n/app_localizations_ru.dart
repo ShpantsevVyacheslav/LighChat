@@ -1909,6 +1909,25 @@ class AppLocalizationsRu extends AppLocalizations {
       'Не удалось переслать: доступ к одному из чатов запрещён.';
 
   @override
+  String get share_picker_title => 'Поделиться в LighChat';
+
+  @override
+  String get share_picker_empty_payload => 'Нет содержимого для отправки';
+
+  @override
+  String get share_picker_summary_text_only => 'Текст';
+
+  @override
+  String share_picker_summary_files_count(int count) {
+    return 'Файлов: $count';
+  }
+
+  @override
+  String share_picker_summary_files_with_text(int count) {
+    return 'Файлов: $count + текст';
+  }
+
+  @override
   String get devices_title => 'Мои устройства';
 
   @override

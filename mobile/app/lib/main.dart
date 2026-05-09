@@ -21,6 +21,7 @@ import 'features/push/push_messaging_scope.dart';
 import 'features/push/push_native_call_service.dart';
 import 'features/push/push_runtime_flags.dart';
 import 'features/chat/data/app_theme_preference.dart';
+import 'features/chat/data/share_intent_listener.dart';
 import 'features/chat/data/chat_auto_theme_mode.dart';
 import 'features/auth/device_session_firestore_sync.dart';
 import 'features/chat/ui/live_location_firestore_sync.dart';
@@ -73,6 +74,7 @@ class MyApp extends ConsumerStatefulWidget {
 class _MyAppState extends ConsumerState<MyApp> {
   late final GoRouter _router = createRouter();
   StreamSubscription<Uri>? _meetingDeepLinksSub;
+  ShareIntentListener? _shareIntentListener;
   ThemeMode _themeMode = ThemeMode.dark;
   Color _seedColor = kDefaultAppThemeSeed;
   String _themeFingerprint = '';
@@ -90,12 +92,23 @@ class _MyAppState extends ConsumerState<MyApp> {
         }
         _meetingDeepLinksSub = sub;
       });
+      // Phase B: системный «Поделиться → LighChat» (iOS Share Extension /
+      // Android ACTION_SEND). Подписываемся после `attachAppGoRouter`,
+      // чтобы первый dispatch на `/share` точно попал в наш роутер.
+      ShareIntentListener.attach(router: _router).then((l) {
+        if (!mounted) {
+          l?.dispose();
+          return;
+        }
+        _shareIntentListener = l;
+      });
     }
   }
 
   @override
   void dispose() {
     _meetingDeepLinksSub?.cancel();
+    _shareIntentListener?.dispose();
     super.dispose();
   }
 

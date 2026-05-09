@@ -3388,6 +3388,36 @@ abstract class AppLocalizations {
   /// **'Не удалось переслать: доступ к одному из чатов запрещён.'**
   String get forward_error_send_forbidden_chat;
 
+  /// No description provided for @share_picker_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поделиться в LighChat'**
+  String get share_picker_title;
+
+  /// No description provided for @share_picker_empty_payload.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет содержимого для отправки'**
+  String get share_picker_empty_payload;
+
+  /// No description provided for @share_picker_summary_text_only.
+  ///
+  /// In ru, this message translates to:
+  /// **'Текст'**
+  String get share_picker_summary_text_only;
+
+  /// No description provided for @share_picker_summary_files_count.
+  ///
+  /// In ru, this message translates to:
+  /// **'Файлов: {count}'**
+  String share_picker_summary_files_count(int count);
+
+  /// No description provided for @share_picker_summary_files_with_text.
+  ///
+  /// In ru, this message translates to:
+  /// **'Файлов: {count} + текст'**
+  String share_picker_summary_files_with_text(int count);
+
   /// No description provided for @devices_title.
   ///
   /// In ru, this message translates to:
