@@ -2099,7 +2099,6 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
 
           return Scaffold(
             extendBodyBehindAppBar: true,
-            resizeToAvoidBottomInset: false,
             body: threadWallpaperBackdrop(
               ref: ref,
               userId: user.uid,

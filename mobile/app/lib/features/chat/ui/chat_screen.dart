@@ -1530,7 +1530,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
                     return Scaffold(
                       extendBodyBehindAppBar: true,
-                      resizeToAvoidBottomInset: false,
                       appBar: _selectedMessageIds.isEmpty
                           ? PreferredSize(
                               preferredSize: const Size.fromHeight(56),
