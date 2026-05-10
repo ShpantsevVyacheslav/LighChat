@@ -162,6 +162,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
   bool _sendBusy = false;
   bool _selectionBusy = false;
   bool _stickersPanelOpen = false;
+  bool _stickersPanelFullscreen = false;
   String _stickersSearchQuery = '';
   String _stickersSearchHint = '';
   String? _composerTextBeforeStickerSearch;
@@ -694,6 +695,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
         _composerTextBeforeStickerSearch = _composerController.text;
         _composerController.clear();
         _stickersSearchQuery = '';
+        _stickersPanelFullscreen = false;
         _stickersPanelOpen = true;
       });
     }
@@ -716,6 +718,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
         offset: _composerController.text.length,
       );
       _composerTextBeforeStickerSearch = null;
+      _stickersPanelFullscreen = false;
       _stickersSearchQuery = '';
     });
   }
@@ -2096,6 +2099,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
 
           return Scaffold(
             extendBodyBehindAppBar: true,
+            resizeToAvoidBottomInset: false,
             body: threadWallpaperBackdrop(
               ref: ref,
               userId: user.uid,
@@ -2748,18 +2752,23 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                       return const SizedBox.shrink();
                                     }
                                     final mq = MediaQuery.of(context);
-                                    final defaultH =
-                                        mq.size.height * 0.42 +
-                                        mq.padding.bottom;
+                                    final defaultH = mq.size.height * 0.42;
                                     final keyboardLikeH =
                                         (_lastKeyboardHeight > 0
-                                                ? _lastKeyboardHeight +
-                                                      mq.padding.bottom
+                                                ? _lastKeyboardHeight
                                                 : defaultH)
                                             .clamp(
                                               mq.size.height * 0.34,
                                               mq.size.height * 0.62,
                                             );
+                                    final fullScreenH = (mq.size.height * 0.92)
+                                        .clamp(
+                                          mq.size.height * 0.62,
+                                          mq.size.height - 1,
+                                        );
+                                    final panelHeight = _stickersPanelFullscreen
+                                        ? fullScreenH
+                                        : keyboardLikeH;
                                     final panel = ComposerStickerGifPanel(
                                       userId: user.uid,
                                       repo: repo,
@@ -2770,6 +2779,15 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                         if (!mounted) return;
                                         setState(
                                           () => _stickersSearchHint = hint,
+                                        );
+                                      },
+                                      onFullscreenModeChanged: (v) {
+                                        if (!mounted ||
+                                            _stickersPanelFullscreen == v) {
+                                          return;
+                                        }
+                                        setState(
+                                          () => _stickersPanelFullscreen = v,
                                         );
                                       },
                                       onPickAttachment: (att) {
@@ -2788,7 +2806,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                       },
                                     );
                                     return SizedBox(
-                                      height: keyboardLikeH,
+                                      height: panelHeight,
                                       child: panel,
                                     );
                                   },

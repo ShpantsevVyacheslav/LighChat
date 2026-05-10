@@ -189,6 +189,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   /// Панель «Форматирование» над композером (паритет `FormattingToolbar.tsx`).
   bool _composerFormattingOpen = false;
   bool _stickersPanelOpen = false;
+  bool _stickersPanelFullscreen = false;
   String _stickersSearchQuery = '';
   String _stickersSearchHint = '';
   String? _composerTextBeforeStickerSearch;
@@ -1529,6 +1530,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
                     return Scaffold(
                       extendBodyBehindAppBar: true,
+                      resizeToAvoidBottomInset: false,
                       appBar: _selectedMessageIds.isEmpty
                           ? PreferredSize(
                               preferredSize: const Size.fromHeight(56),
@@ -1677,13 +1679,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                           children: [
                             SafeArea(
                               top: false,
-                              // При открытой шторке стикеров — отключаем
-                              // bottom safe-area, чтобы шторка занимала всю
-                              // нижнюю часть экрана, включая зону home-
-                              // indicator. Сама шторка добавляет внутри
-                              // padding'ом эквивалент bottom-inset, чтобы
-                              // tab-bar не уезжал под home-indicator.
-                              bottom: !_stickersPanelOpen,
+                              bottom: false,
                               child: Column(
                                 children: [
                                   SizedBox(height: belowHeaderGap),
@@ -2523,17 +2519,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                           }
                                           final mq = MediaQuery.of(context);
                                           final defaultH =
-                                              mq.size.height * 0.42 +
-                                              mq.padding.bottom;
+                                              mq.size.height * 0.42;
                                           final keyboardLikeH =
                                               (_lastKeyboardHeight > 0
-                                                      ? _lastKeyboardHeight +
-                                                            mq.padding.bottom
+                                                      ? _lastKeyboardHeight
                                                       : defaultH)
                                                   .clamp(
                                                     mq.size.height * 0.34,
                                                     mq.size.height * 0.62,
                                                   );
+                                          final fullScreenH =
+                                              (mq.size.height * 0.92).clamp(
+                                                mq.size.height * 0.62,
+                                                mq.size.height - 1,
+                                              );
+                                          final panelHeight =
+                                              _stickersPanelFullscreen
+                                              ? fullScreenH
+                                              : keyboardLikeH;
                                           final panel = ComposerStickerGifPanel(
                                             userId: user.uid,
                                             repo: stickerRepo,
@@ -2547,6 +2550,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                 () =>
                                                     _stickersSearchHint = hint,
                                               );
+                                            },
+                                            onFullscreenModeChanged: (v) {
+                                              if (!mounted ||
+                                                  _stickersPanelFullscreen ==
+                                                      v) {
+                                                return;
+                                              }
+                                              setState(() {
+                                                _stickersPanelFullscreen = v;
+                                              });
                                             },
                                             onPickAttachment: (att) {
                                               unawaited(
@@ -2564,7 +2577,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                             },
                                           );
                                           return SizedBox(
-                                            height: keyboardLikeH,
+                                            height: panelHeight,
                                             child: panel,
                                           );
                                         },
@@ -4617,6 +4630,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         _composerTextBeforeStickerSearch = _controller.text;
         _controller.clear();
         _stickersSearchQuery = '';
+        _stickersPanelFullscreen = false;
         _stickersPanelOpen = true;
       });
     }
@@ -4638,6 +4652,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         offset: _controller.text.length,
       );
       _composerTextBeforeStickerSearch = null;
+      _stickersPanelFullscreen = false;
       _stickersSearchQuery = '';
     });
   }

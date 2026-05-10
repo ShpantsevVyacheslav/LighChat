@@ -153,6 +153,7 @@ class GiphyCacheStore {
     'id': a.id,
     'url': a.url,
     'emoji': a.emoji,
+    'label': a.label,
     'width': a.width,
     'height': a.height,
   };
@@ -166,10 +167,12 @@ class GiphyCacheStore {
     final w = m['width'];
     final h = m['height'];
     final emoji = m['emoji'];
+    final label = m['label'];
     return GiphyGifItem(
       id: id,
       url: url,
       emoji: emoji is String && emoji.trim().isNotEmpty ? emoji.trim() : null,
+      label: label is String && label.trim().isNotEmpty ? label.trim() : null,
       width: w is int ? w : (w is num ? w.toInt() : null),
       height: h is int ? h : (h is num ? h.toInt() : null),
     );

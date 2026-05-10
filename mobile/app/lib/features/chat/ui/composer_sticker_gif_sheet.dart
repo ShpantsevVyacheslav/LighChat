@@ -63,6 +63,7 @@ class ComposerStickerGifPanel extends ConsumerStatefulWidget {
     required this.onClose,
     this.sharedSearchQuery = '',
     this.onSearchHintChanged,
+    this.onFullscreenModeChanged,
     this.onEmojiTapped,
     this.directUploadConversationId,
   });
@@ -74,6 +75,7 @@ class ComposerStickerGifPanel extends ConsumerStatefulWidget {
   final void Function(String emoji)? onEmojiTapped;
   final String sharedSearchQuery;
   final ValueChanged<String>? onSearchHintChanged;
+  final ValueChanged<bool>? onFullscreenModeChanged;
   final VoidCallback onClose;
 
   @override
@@ -160,6 +162,8 @@ class _ComposerStickerGifPanelState
   bool _allowAnimatedStickers = true;
   bool _allowAnimatedEmoji = true;
   bool _allowInterfaceAnimations = true;
+  bool _lastFullscreenMode = false;
+  late final Map<String, String> _emojiKeywordIndex = _buildEmojiKeywordIndex();
 
   Duration get _uiAnimDuration => _allowInterfaceAnimations
       ? const Duration(milliseconds: 200)
@@ -168,6 +172,15 @@ class _ComposerStickerGifPanelState
   Duration get _uiAnimDurationFast => _allowInterfaceAnimations
       ? const Duration(milliseconds: 160)
       : Duration.zero;
+
+  bool get _isFullscreenMode => _tabs.index == 1 && _showPackManager;
+
+  void _syncFullscreenMode() {
+    final next = _isFullscreenMode;
+    if (_lastFullscreenMode == next) return;
+    _lastFullscreenMode = next;
+    widget.onFullscreenModeChanged?.call(next);
+  }
 
   bool _recentStickerTickerEnabled(ChatAttachment att) {
     final name = att.name.toLowerCase();
@@ -209,6 +222,7 @@ class _ComposerStickerGifPanelState
       if (!mounted) return;
       _applySharedSearchQuery(widget.sharedSearchQuery);
       _emitSearchHint();
+      _syncFullscreenMode();
     });
   }
 
@@ -216,6 +230,7 @@ class _ComposerStickerGifPanelState
     if (!mounted || _tabs.indexIsChanging) return;
     _applySharedSearchQuery(widget.sharedSearchQuery);
     _emitSearchHint();
+    _syncFullscreenMode();
     setState(() {});
   }
 
@@ -674,6 +689,65 @@ class _ComposerStickerGifPanelState
     unawaited(_loadRecentGifs());
   }
 
+  static String _normalizeEmojiKeyword(String raw) {
+    return raw
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .trim()
+        .replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  Map<String, String> _buildEmojiKeywordIndex() {
+    final out = <String, String>{};
+    for (final cat in defaultEmojiSet) {
+      for (final emoji in cat.emoji) {
+        final candidates = <String>{emoji.name, ...emoji.keywords};
+        for (final c in candidates) {
+          final key = _normalizeEmojiKeyword(c);
+          if (key.isEmpty) continue;
+          out.putIfAbsent(key, () => emoji.emoji);
+        }
+      }
+    }
+    return out;
+  }
+
+  String? _resolveEmojiFromLabel(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return null;
+    final trimmed = raw.trim();
+    final shortcode = RegExp(
+      r':([a-z0-9_+-]{2,64}):',
+      caseSensitive: false,
+    ).firstMatch(trimmed)?.group(1);
+    final byShortcode = shortcode == null
+        ? null
+        : _emojiKeywordIndex[_normalizeEmojiKeyword(
+            shortcode.replaceAll('_', ' '),
+          )];
+    if (byShortcode != null) return byShortcode;
+
+    final normalized = _normalizeEmojiKeyword(
+      trimmed.replaceAll(RegExp(r'-[a-z0-9]{8,}$', caseSensitive: false), ''),
+    );
+    if (normalized.isEmpty) return null;
+    final direct = _emojiKeywordIndex[normalized];
+    if (direct != null) return direct;
+
+    String? best;
+    var bestLen = 0;
+    for (final e in _emojiKeywordIndex.entries) {
+      final k = e.key;
+      if (k.length < 3) continue;
+      if (k.contains(normalized) || normalized.contains(k)) {
+        if (k.length > bestLen) {
+          bestLen = k.length;
+          best = e.value;
+        }
+      }
+    }
+    return best;
+  }
+
   /// Telegram-like: анимированный эмодзи не отправляется мгновенно как
   /// стикер-вложение. Вместо этого вставляем unicode-эмодзи в композер,
   /// чтобы его можно было комбинировать с текстом и отправлять одной строкой.
@@ -681,7 +755,8 @@ class _ComposerStickerGifPanelState
   /// Если символ не удалось извлечь из GIPHY-элемента — даём мягкий fallback:
   /// ничего не отправляем автоматически и показываем системную подсказку.
   void _onPickAnimEmoji(GiphyGifItem item) {
-    final emoji = giphyItemToEmojiText(item);
+    final emoji =
+        giphyItemToEmojiText(item) ?? _resolveEmojiFromLabel(item.label);
     if (emoji != null && emoji.isNotEmpty) {
       widget.onEmojiTapped?.call(emoji);
       HapticFeedback.selectionClick();
@@ -1068,34 +1143,56 @@ class _ComposerStickerGifPanelState
         onTap: () => _tabs.animateTo(i),
         child: AnimatedContainer(
           duration: _uiAnimDurationFast,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           margin: const EdgeInsets.symmetric(horizontal: 4),
-          decoration: BoxDecoration(
-            color: active
-                ? Colors.white.withValues(alpha: 0.12)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Text(
-            labels[i],
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.6,
-              color: Colors.white.withValues(alpha: active ? 1.0 : 0.65),
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                labels[i],
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.6,
+                  color: Colors.white.withValues(alpha: active ? 1.0 : 0.65),
+                ),
+              ),
+              const SizedBox(height: 3),
+              AnimatedContainer(
+                duration: _uiAnimDurationFast,
+                width: 34,
+                height: 2,
+                decoration: BoxDecoration(
+                  color: active
+                      ? Colors.white.withValues(alpha: 0.95)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+            ],
           ),
         ),
       );
     }
 
+    final bottomInset = MediaQuery.of(context).padding.bottom;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 2, 0, 4),
+      padding: EdgeInsets.fromLTRB(0, 0, 0, bottomInset + 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [pill(0), pill(1), pill(2)],
       ),
     );
+  }
+
+  double _tabBarOverlayHeight(BuildContext context) {
+    final inset = MediaQuery.of(context).padding.bottom;
+    return inset + 30 + 10;
+  }
+
+  double _contentBottomOverlayPadding(BuildContext context) {
+    if (_chromeVisible) return _tabBarOverlayHeight(context) + 6;
+    return MediaQuery.of(context).padding.bottom + 8;
   }
 
   @override
@@ -1105,27 +1202,38 @@ class _ComposerStickerGifPanelState
     _allowAnimatedStickers = energy.effectiveAnimatedStickers;
     _allowAnimatedEmoji = energy.effectiveAnimatedEmoji;
     _allowInterfaceAnimations = energy.effectiveInterfaceAnimations;
-    final bottomInset = MediaQuery.of(context).padding.bottom;
     return _glassCard(
-      child: Column(
+      child: Stack(
         children: [
-          Expanded(
-            child: TabBarView(
-              controller: _tabs,
-              children: [_emojiTab(), _stickersTab(), _gifTab()],
+          Positioned.fill(
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: _contentBottomOverlayPadding(context),
+              ),
+              child: TabBarView(
+                controller: _tabs,
+                children: [_emojiTab(), _stickersTab(), _gifTab()],
+              ),
             ),
           ),
-          // Нижние табы — «прозрачные pill'ы» в стиле Telegram. Прячутся
-          // вместе с верхним header'ом при скролле вниз.
-          AnimatedSize(
-            duration: _uiAnimDuration,
-            curve: Curves.easeOut,
-            alignment: Alignment.topCenter,
-            child: _chromeVisible
-                ? _buildBottomTabs()
-                : const SizedBox(width: double.infinity, height: 0),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: IgnorePointer(
+              ignoring: !_chromeVisible,
+              child: AnimatedSlide(
+                duration: _uiAnimDurationFast,
+                curve: Curves.easeOut,
+                offset: _chromeVisible ? Offset.zero : const Offset(0, 1),
+                child: AnimatedOpacity(
+                  duration: _uiAnimDurationFast,
+                  opacity: _chromeVisible ? 1 : 0,
+                  child: _buildBottomTabs(),
+                ),
+              ),
+            ),
           ),
-          SizedBox(height: bottomInset),
         ],
       ),
     );
@@ -1318,6 +1426,7 @@ class _ComposerStickerGifPanelState
   void _setPackManager(bool v) {
     if (_showPackManager == v) return;
     setState(() => _showPackManager = v);
+    _syncFullscreenMode();
   }
 
   /// Telegram-style список моих стикерпаков с возможностью удалить/создать.

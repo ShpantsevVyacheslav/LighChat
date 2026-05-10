@@ -11,6 +11,7 @@ type GifSearchItem = {
   width?: number;
   height?: number;
   emoji?: string;
+  label?: string;
 };
 
 function _emojiFromHexSequence(raw: string): string | null {
@@ -74,6 +75,27 @@ function _extractEmojiFromGiphyItem(
     if (typeof candidate != 'string') continue;
     const parsed = _extractEmojiFromText(candidate);
     if (parsed != null) return parsed;
+  }
+  return null;
+}
+
+function _extractLabelFromGiphyItem(
+  item: Record<string, unknown>,
+): string | null {
+  const direct = [
+    item.emoji,
+    item.character,
+    item.native,
+    item.symbol,
+    item.title,
+    item.slug,
+    item.alt_text,
+    item.id,
+  ];
+  for (const candidate of direct) {
+    if (typeof candidate != 'string') continue;
+    const v = candidate.trim();
+    if (v.length > 0) return v;
   }
   return null;
 }
@@ -222,10 +244,15 @@ export async function GET(req: NextRequest) {
         type === 'emoji'
           ? _extractEmojiFromGiphyItem(r as Record<string, unknown>)
           : null;
+      const label =
+        type === 'emoji'
+          ? _extractLabelFromGiphyItem(r as Record<string, unknown>)
+          : null;
       items.push({
         id,
         url,
         ...(emoji ? { emoji } : {}),
+        ...(label ? { label } : {}),
         ...(w && h ? { width: w, height: h } : {}),
       });
     }

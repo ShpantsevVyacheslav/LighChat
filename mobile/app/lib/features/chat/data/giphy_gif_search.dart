@@ -11,6 +11,7 @@ class GiphyGifItem {
     required this.id,
     required this.url,
     this.emoji,
+    this.label,
     this.width,
     this.height,
   });
@@ -18,6 +19,7 @@ class GiphyGifItem {
   final String id;
   final String url;
   final String? emoji;
+  final String? label;
   final int? width;
   final int? height;
 }
@@ -148,12 +150,16 @@ Future<GiphySearchOutcome> searchGifs(
       final w = e['width'];
       final h = e['height'];
       final emojiRaw = e['emoji'];
+      final labelRaw = e['label'];
       out.add(
         GiphyGifItem(
           id: id,
           url: url,
           emoji: emojiRaw is String && emojiRaw.trim().isNotEmpty
               ? emojiRaw.trim()
+              : null,
+          label: labelRaw is String && labelRaw.trim().isNotEmpty
+              ? labelRaw.trim()
               : null,
           width: w is int ? w : (w is num ? w.toInt() : null),
           height: h is int ? h : (h is num ? h.toInt() : null),
@@ -214,15 +220,25 @@ ChatAttachment giphyItemToSendAttachment(
 String? giphyItemToEmojiText(GiphyGifItem item) {
   final direct = item.emoji?.trim();
   if (direct != null && direct.isNotEmpty) return direct;
-  // Fallback: иногда id у emoji endpoint похож на hex-последовательность
-  // codepoints: "1f44d" или "1f469-200d-1f4bb".
+  // Fallback: иногда id/label у emoji endpoint похож на hex-последовательность
+  // codepoints: "1f44d", "1f469-200d-1f4bb", "u1f44d_1f3fb".
+  final fromLabel = _extractEmojiFromHexLike(item.label);
+  if (fromLabel != null && fromLabel.isNotEmpty) return fromLabel;
+  return _extractEmojiFromHexLike(item.id);
+}
+
+String? _extractEmojiFromHexLike(String? raw) {
+  if (raw == null || raw.isEmpty) return null;
   final m = RegExp(
-    r'([0-9a-fA-F]{4,6}(?:-[0-9a-fA-F]{4,6}){0,9})',
-  ).firstMatch(item.id);
+    r'(?:u\+?|U\+?)?([0-9a-fA-F]{2,6}(?:[-_](?:u\+?|U\+?)?[0-9a-fA-F]{2,6}){0,9})',
+  ).firstMatch(raw);
   if (m == null) return null;
   final seq = m.group(1);
   if (seq == null || seq.isEmpty) return null;
-  final parts = seq.split('-');
+  final parts = seq
+      .split(RegExp(r'[-_]'))
+      .map((p) => p.replaceAll(RegExp(r'^[uU]\+?'), ''))
+      .toList(growable: false);
   final cps = <int>[];
   for (final p in parts) {
     final cp = int.tryParse(p, radix: 16);
