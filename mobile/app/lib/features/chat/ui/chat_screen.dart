@@ -110,7 +110,8 @@ class ChatScreen extends ConsumerStatefulWidget {
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends ConsumerState<ChatScreen> {
+class _ChatScreenState extends ConsumerState<ChatScreen>
+    with WidgetsBindingObserver {
   static const bool _messageListReversed = true;
 
   int _limit = 100;
@@ -190,13 +191,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   String _stickersSearchQuery = '';
   String _stickersSearchHint = '';
   String? _composerTextBeforeStickerSearch;
-  // Шторка стикеров раскрыта на весь экран (фуллскрин-режим). Включается
-  // когда пользователь поставил курсор в composer'е во время открытой шторки
-  // (поиск стикеров) ИЛИ когда внутри шторки активирован менеджер паков —
-  // Telegram-like UX.
-  bool _stickersSheetExpanded = false;
-  // Внутри шторки активирован Telegram-style фуллскрин менеджер паков.
-  bool _stickersPackManagerOpen = false;
+  // Последняя известная высота системной клавиатуры. Используем для
+  // клавиатуро-эквивалентной высоты шторки стикеров без скачков.
+  double _lastKeyboardHeight = 0;
 
   /// Поиск по сообщениям в открытом чате (паритет веб `ChatSearchOverlay`).
   bool _inChatSearch = false;
@@ -390,9 +387,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _scrollController.addListener(_onPinnedBarScrollSync);
     _controller.addListener(_scheduleChatDraftSave);
-    _composerFocusNode.addListener(_onComposerFocusChanged);
+    _captureKeyboardHeight();
     // Phase B: системный «Поделиться → LighChat». Применяем payload до
     // первого build, чтобы пользователь сразу увидел готовые pending‑файлы
     // и pre‑filled текст. Применяем один раз — повторных push'ов не
@@ -416,18 +414,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
-  void _onComposerFocusChanged() {
-    if (!mounted) return;
-    _recomputeStickersExpanded();
+  @override
+  void didChangeMetrics() {
+    _captureKeyboardHeight();
   }
 
-  void _recomputeStickersExpanded() {
-    final shouldExpand =
-        _stickersPanelOpen &&
-        (_composerFocusNode.hasFocus || _stickersPackManagerOpen);
-    if (_stickersSheetExpanded != shouldExpand) {
-      setState(() => _stickersSheetExpanded = shouldExpand);
+  void _captureKeyboardHeight() {
+    final views = WidgetsBinding.instance.platformDispatcher.views;
+    if (views.isEmpty) return;
+    final view = views.first;
+    final height = view.viewInsets.bottom / view.devicePixelRatio;
+    if (height <= 0 || (height - _lastKeyboardHeight).abs() < 0.5) return;
+    if (!mounted) {
+      _lastKeyboardHeight = height;
+      return;
     }
+    setState(() => _lastKeyboardHeight = height);
   }
 
   void _scheduleChatDraftSave() {
@@ -929,9 +931,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
     _flashHighlightTimer?.cancel();
     _hideUnreadSeparatorTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _scrollController.removeListener(_onPinnedBarScrollSync);
     _controller.removeListener(_scheduleChatDraftSave);
-    _composerFocusNode.removeListener(_onComposerFocusChanged);
     _composerFocusNode.dispose();
     _scrollController.dispose();
     _controller.dispose();
@@ -1710,11 +1712,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         });
                                       },
                                     ),
-                                  // Когда шторка стикеров раскрыта на фуллскрин —
-                                  // сжимаем messages-area до 0, чтобы шторка
-                                  // могла занять её место (Telegram-style).
                                   Expanded(
-                                    flex: _stickersSheetExpanded ? 0 : 1,
+                                    flex: 1,
                                     child: GestureDetector(
                                       behavior: HitTestBehavior.translucent,
                                       onTap: () {
@@ -2521,14 +2520,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                               chatRepo == null) {
                                             return const SizedBox.shrink();
                                           }
-                                          // В expanded-режиме шторка занимает
-                                          // всё свободное место (Expanded);
-                                          // в обычном — фиксированные 42%
-                                          // экрана + bottom safe-area inset.
                                           final mq = MediaQuery.of(context);
                                           final defaultH =
                                               mq.size.height * 0.42 +
                                               mq.padding.bottom;
+                                          final keyboardLikeH =
+                                              (_lastKeyboardHeight > 0
+                                                      ? _lastKeyboardHeight +
+                                                            mq.padding.bottom
+                                                      : defaultH)
+                                                  .clamp(
+                                                    mq.size.height * 0.34,
+                                                    mq.size.height * 0.62,
+                                                  );
                                           final panel = ComposerStickerGifPanel(
                                             userId: user.uid,
                                             repo: stickerRepo,
@@ -2536,16 +2540,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                 widget.conversationId,
                                             sharedSearchQuery:
                                                 _stickersSearchQuery,
-                                            onPackManagerChanged: (v) {
-                                              if (!mounted) return;
-                                              _stickersPackManagerOpen = v;
-                                              _recomputeStickersExpanded();
-                                            },
                                             onSearchHintChanged: (hint) {
                                               if (!mounted) return;
                                               setState(
-                                                () => _stickersSearchHint =
-                                                    hint,
+                                                () =>
+                                                    _stickersSearchHint = hint,
                                               );
                                             },
                                             onPickAttachment: (att) {
@@ -2575,17 +2574,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                 _composerTextBeforeStickerSearch =
                                                     null;
                                                 _stickersSearchQuery = '';
-                                                _stickersSheetExpanded = false;
-                                                _stickersPackManagerOpen = false;
                                               });
                                             },
                                           );
-                                          return _stickersSheetExpanded
-                                              ? Expanded(child: panel)
-                                              : SizedBox(
-                                                  height: defaultH,
-                                                  child: panel,
-                                                );
+                                          return SizedBox(
+                                            height: keyboardLikeH,
+                                            child: panel,
+                                          );
                                         },
                                       ),
                                   ],
@@ -4599,6 +4594,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _toast(AppLocalizations.of(context)!.chat_service_unavailable);
       return;
     }
+    _captureKeyboardHeight();
     FocusManager.instance.primaryFocus?.unfocus();
     if (mounted) {
       setState(() {

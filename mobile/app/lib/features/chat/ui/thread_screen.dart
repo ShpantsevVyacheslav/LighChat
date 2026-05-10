@@ -128,7 +128,8 @@ class ThreadScreen extends ConsumerStatefulWidget {
   ConsumerState<ThreadScreen> createState() => _ThreadScreenState();
 }
 
-class _ThreadScreenState extends ConsumerState<ThreadScreen> {
+class _ThreadScreenState extends ConsumerState<ThreadScreen>
+    with WidgetsBindingObserver {
   /// Как в основном чате: новые ответы у нижнего края у композера.
   static const bool _threadMessageListReversed = true;
 
@@ -163,8 +164,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   String _stickersSearchQuery = '';
   String _stickersSearchHint = '';
   String? _composerTextBeforeStickerSearch;
-  bool _stickersSheetExpanded = false;
-  bool _stickersPackManagerOpen = false;
+  double _lastKeyboardHeight = 0;
   String? _pendingFocusMessageId;
   bool _inThreadSearch = false;
   bool _composerFormattingOpen = false;
@@ -208,25 +208,30 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pendingFocusMessageId = widget.focusMessageId?.trim();
     if (_pendingFocusMessageId != null && _pendingFocusMessageId!.isEmpty) {
       _pendingFocusMessageId = null;
     }
-    _composerFocus.addListener(_onComposerFocusChanged);
+    _captureKeyboardHeight();
   }
 
-  void _onComposerFocusChanged() {
-    if (!mounted) return;
-    _recomputeStickersExpanded();
+  @override
+  void didChangeMetrics() {
+    _captureKeyboardHeight();
   }
 
-  void _recomputeStickersExpanded() {
-    final shouldExpand =
-        _stickersPanelOpen &&
-        (_composerFocus.hasFocus || _stickersPackManagerOpen);
-    if (_stickersSheetExpanded != shouldExpand) {
-      setState(() => _stickersSheetExpanded = shouldExpand);
+  void _captureKeyboardHeight() {
+    final views = WidgetsBinding.instance.platformDispatcher.views;
+    if (views.isEmpty) return;
+    final view = views.first;
+    final height = view.viewInsets.bottom / view.devicePixelRatio;
+    if (height <= 0 || (height - _lastKeyboardHeight).abs() < 0.5) return;
+    if (!mounted) {
+      _lastKeyboardHeight = height;
+      return;
     }
+    setState(() => _lastKeyboardHeight = height);
   }
 
   @override
@@ -234,9 +239,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
     _messageExpiryTimer?.cancel();
     _flashHighlightTimer?.cancel();
     _hideUnreadSeparatorTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     _composerController.dispose();
-    _composerFocus.removeListener(_onComposerFocusChanged);
     _composerFocus.dispose();
     _searchController.dispose();
     _searchFocus.dispose();
@@ -681,6 +686,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
       _toast(AppLocalizations.of(context)!.chat_service_unavailable);
       return;
     }
+    _captureKeyboardHeight();
     FocusManager.instance.primaryFocus?.unfocus();
     if (mounted) {
       setState(() {
@@ -1525,8 +1531,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
 
     final isMine = message.senderId == user.uid;
     final canDelete = isMine && !message.isDeleted;
-    final menuTextSource =
-        (e2eeDecryptedText ?? message.text ?? '').trim();
+    final menuTextSource = (e2eeDecryptedText ?? message.text ?? '').trim();
     final hasMenuText =
         menuTextSource.isNotEmpty &&
         (menuTextSource.contains('<')
@@ -2290,7 +2295,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                     },
                               ),
                               Expanded(
-                                flex: _stickersSheetExpanded ? 0 : 1,
+                                flex: 1,
                                 child: Stack(
                                   children: [
                                     Positioned.fill(
@@ -2686,24 +2691,25 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                     if (repo == null || chatRepo == null) {
                                       return const SizedBox.shrink();
                                     }
-                                    // В expanded-режиме шторка занимает всё
-                                    // свободное место (Expanded); иначе —
-                                    // фикс. 42% экрана + bottom safe-area.
                                     final mq = MediaQuery.of(context);
                                     final defaultH =
                                         mq.size.height * 0.42 +
                                         mq.padding.bottom;
+                                    final keyboardLikeH =
+                                        (_lastKeyboardHeight > 0
+                                                ? _lastKeyboardHeight +
+                                                      mq.padding.bottom
+                                                : defaultH)
+                                            .clamp(
+                                              mq.size.height * 0.34,
+                                              mq.size.height * 0.62,
+                                            );
                                     final panel = ComposerStickerGifPanel(
                                       userId: user.uid,
                                       repo: repo,
                                       directUploadConversationId:
                                           widget.conversationId,
                                       sharedSearchQuery: _stickersSearchQuery,
-                                      onPackManagerChanged: (v) {
-                                        if (!mounted) return;
-                                        _stickersPackManagerOpen = v;
-                                        _recomputeStickersExpanded();
-                                      },
                                       onSearchHintChanged: (hint) {
                                         if (!mounted) return;
                                         setState(
@@ -2757,17 +2763,13 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
                                           _composerTextBeforeStickerSearch =
                                               null;
                                           _stickersSearchQuery = '';
-                                          _stickersSheetExpanded = false;
-                                          _stickersPackManagerOpen = false;
                                         });
                                       },
                                     );
-                                    return _stickersSheetExpanded
-                                        ? Expanded(child: panel)
-                                        : SizedBox(
-                                            height: defaultH,
-                                            child: panel,
-                                          );
+                                    return SizedBox(
+                                      height: keyboardLikeH,
+                                      child: panel,
+                                    );
                                   },
                                 ),
                             ],

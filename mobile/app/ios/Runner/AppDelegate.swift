@@ -6,6 +6,7 @@ import UIKit
 import FirebaseCore
 import PushKit
 import QuickLook
+import QuickLookThumbnailing
 import flutter_callkit_incoming
 
 /// Нативный PiP для iOS: отдельный AVPlayer по URL (Flutter `video_player` не отдаёт слой в PiP).
@@ -326,25 +327,31 @@ private final class LighChatIosDocumentPreviewBridge: NSObject, QLPreviewControl
         result(false)
         return
       }
-      guard call.method == "openFile" else {
-        result(FlutterMethodNotImplemented)
-        return
-      }
       guard let args = call.arguments as? [String: Any],
         let rawPath = args["path"] as? String
       else {
         result(
           FlutterError(
             code: "invalid_arguments",
-            message: "openFile expects {path, title?}",
+            message: "\(call.method) expects {path, ...}",
             details: nil
           )
         )
         return
       }
-      let title = (args["title"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-      DispatchQueue.main.async {
-        self.openFile(path: rawPath, title: title, result: result)
+      switch call.method {
+      case "openFile":
+        let title = (args["title"] as? String)?
+          .trimmingCharacters(in: .whitespacesAndNewlines)
+        DispatchQueue.main.async {
+          self.openFile(path: rawPath, title: title, result: result)
+        }
+      case "buildThumbnail":
+        let width = (args["width"] as? NSNumber)?.intValue ?? 128
+        let height = (args["height"] as? NSNumber)?.intValue ?? 128
+        self.buildThumbnail(path: rawPath, width: width, height: height, result: result)
+      default:
+        result(FlutterMethodNotImplemented)
       }
     }
   }
@@ -381,6 +388,60 @@ private final class LighChatIosDocumentPreviewBridge: NSObject, QLPreviewControl
     preview.dataSource = self
     presenter.present(preview, animated: true) {
       result(true)
+    }
+  }
+
+  private func buildThumbnail(
+    path: String,
+    width: Int,
+    height: Int,
+    result: @escaping FlutterResult
+  ) {
+    guard #available(iOS 13.0, *) else {
+      result(nil)
+      return
+    }
+    let url = URL(fileURLWithPath: path)
+    guard FileManager.default.fileExists(atPath: url.path) else {
+      result(nil)
+      return
+    }
+
+    let pxW = max(24, width)
+    let pxH = max(24, height)
+    let keySource = "\(url.path)|\(pxW)x\(pxH)"
+    let keyData = Data(keySource.utf8)
+    let digest = SHA256.hash(data: keyData)
+    let hash = digest.map { String(format: "%02x", $0) }.joined()
+
+    let tempDir = FileManager.default.temporaryDirectory
+      .appendingPathComponent("chat_document_preview/thumbs", isDirectory: true)
+    try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+    let outURL = tempDir.appendingPathComponent("\(hash).png")
+    if FileManager.default.fileExists(atPath: outURL.path) {
+      result(outURL.path)
+      return
+    }
+
+    let request = QLThumbnailGenerator.Request(
+      fileAt: url,
+      size: CGSize(width: CGFloat(pxW), height: CGFloat(pxH)),
+      scale: UIScreen.main.scale,
+      representationTypes: .thumbnail
+    )
+    QLThumbnailGenerator.shared.generateBestRepresentation(for: request) { representation, _ in
+      guard let thumb = representation?.uiImage,
+        let png = thumb.pngData()
+      else {
+        result(nil)
+        return
+      }
+      do {
+        try png.write(to: outURL, options: .atomic)
+        result(outURL.path)
+      } catch {
+        result(nil)
+      }
     }
   }
 

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
@@ -11,6 +13,7 @@ import '../data/e2ee_decryption_orchestrator.dart'
 import '../data/secret_chat_media_open_service.dart';
 import '../data/video_circle_utils.dart';
 import 'chat_cached_network_image.dart';
+import 'chat_document_open.dart';
 import 'message_video_attachment.dart';
 import 'message_video_circle_player.dart';
 import 'message_voice_attachment.dart';
@@ -860,6 +863,9 @@ class _FileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isChatDocumentPreviewCandidate(att)) {
+      return _DocumentFileRow(att: att, onTap: onTap);
+    }
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
@@ -909,6 +915,220 @@ class _FileRow extends StatelessWidget {
       ),
     );
   }
+}
+
+class _DocumentFileRow extends StatelessWidget {
+  const _DocumentFileRow({required this.att, this.onTap});
+
+  final ChatAttachment att;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final docType = _documentTypeLabel(att);
+    final sizeLabel = _formatAttachmentSize(att.size);
+    final subtitle = sizeLabel == null ? docType : '$docType · $sizeLabel';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              color: Colors.white.withValues(
+                alpha: scheme.brightness == Brightness.dark ? 0.06 : 0.18,
+              ),
+              border: Border.all(
+                color: Colors.white.withValues(
+                  alpha: scheme.brightness == Brightness.dark ? 0.12 : 0.30,
+                ),
+              ),
+            ),
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _DocumentThumbnail(att: att),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        att.name.isNotEmpty ? att.name : att.url,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: scheme.onSurface.withValues(alpha: 0.72),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DocumentThumbnail extends StatelessWidget {
+  const _DocumentThumbnail({required this.att});
+
+  final ChatAttachment att;
+
+  @override
+  Widget build(BuildContext context) {
+    final dpr = MediaQuery.maybeOf(context)?.devicePixelRatio ?? 2.0;
+    return SizedBox(
+      width: 64,
+      height: 64,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: FutureBuilder<String?>(
+          future: buildChatDocumentThumbnailPath(
+            att,
+            logicalWidth: 64,
+            logicalHeight: 64,
+            devicePixelRatio: dpr,
+          ),
+          builder: (context, snap) {
+            final path = snap.data;
+            if (path == null || path.isEmpty) {
+              return _DocumentThumbnailFallback(att: att);
+            }
+            return Image.file(
+              File(path),
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => _DocumentThumbnailFallback(att: att),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _DocumentThumbnailFallback extends StatelessWidget {
+  const _DocumentThumbnailFallback({required this.att});
+
+  final ChatAttachment att;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final badge = _documentTypeLabel(att);
+    final icon = isChatPdfPreviewCandidate(att)
+        ? Icons.picture_as_pdf_rounded
+        : Icons.description_rounded;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            scheme.primary.withValues(alpha: 0.28),
+            scheme.surfaceContainerHighest.withValues(alpha: 0.74),
+          ],
+        ),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Center(
+            child: Icon(
+              icon,
+              size: 26,
+              color: scheme.onSurface.withValues(alpha: 0.74),
+            ),
+          ),
+          Positioned(
+            left: 4,
+            bottom: 4,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.48),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Text(
+                badge,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _documentTypeLabel(ChatAttachment att) {
+  final mime = (att.type ?? '').toLowerCase();
+  if (mime == 'application/pdf') return 'PDF';
+  if (mime.startsWith('text/')) return 'TXT';
+  if (mime.contains('wordprocessingml')) {
+    return 'DOCX';
+  }
+  if (mime.contains('msword')) {
+    return 'DOC';
+  }
+  if (mime.contains('spreadsheetml')) {
+    return 'XLSX';
+  }
+  if (mime.contains('ms-excel')) {
+    return 'XLS';
+  }
+  if (mime.contains('presentationml')) {
+    return 'PPTX';
+  }
+  if (mime.contains('powerpoint')) {
+    return 'PPT';
+  }
+  if (mime.contains('rtf')) return 'RTF';
+
+  final uri = Uri.tryParse(att.url.trim());
+  final name = att.name.trim().toLowerCase();
+  String ext = '';
+  if (name.contains('.')) {
+    ext = name.split('.').last;
+  } else if (uri != null && uri.pathSegments.isNotEmpty) {
+    final tail = uri.pathSegments.last.toLowerCase();
+    if (tail.contains('.')) ext = tail.split('.').last;
+  }
+  ext = ext.replaceAll(RegExp(r'[^a-z0-9]'), '');
+  if (ext.isEmpty) return 'DOC';
+  if (ext.length > 4) return ext.substring(0, 4).toUpperCase();
+  return ext.toUpperCase();
+}
+
+String? _formatAttachmentSize(int? bytes) {
+  if (bytes == null || bytes <= 0) return null;
+  final kb = bytes / 1024.0;
+  if (kb < 1024) {
+    return '${kb.toStringAsFixed(1)} KB';
+  }
+  return '${(kb / 1024.0).toStringAsFixed(1)} MB';
 }
 
 class _E2eeMediaDecryptErrorRow extends StatelessWidget {

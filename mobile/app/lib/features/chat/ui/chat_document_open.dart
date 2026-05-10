@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
@@ -28,15 +29,18 @@ Future<bool> openChatDocumentAttachment(
     ChatPdfViewerScreen.open(
       context,
       uri: uri,
-      title: _displayName(attachment, uri),
+      title: displayNameForChatDocument(attachment, uri),
     );
     return true;
   }
 
   if (Platform.isIOS && isChatDocumentPreviewCandidate(attachment)) {
     try {
-      final localPath = await _resolveLocalPathForPreview(uri, attachment);
-      final title = _displayName(attachment, uri);
+      final localPath = await resolveLocalPathForDocumentPreview(
+        uri,
+        attachment,
+      );
+      final title = displayNameForChatDocument(attachment, uri);
       final opened = await _kDocumentPreviewChannel.invokeMethod<bool>(
         'openFile',
         <String, Object?>{'path': localPath, 'title': title},
@@ -102,7 +106,7 @@ bool _hasKnownDocExtension(String name) {
       name.endsWith('.pptx');
 }
 
-String _displayName(ChatAttachment a, Uri uri) {
+String displayNameForChatDocument(ChatAttachment a, Uri uri) {
   final named = a.name.trim();
   if (named.isNotEmpty) return named;
   if (uri.pathSegments.isNotEmpty && uri.pathSegments.last.trim().isNotEmpty) {
@@ -150,7 +154,10 @@ String _preferredExtension(ChatAttachment a, Uri uri) {
   return '.bin';
 }
 
-Future<String> _resolveLocalPathForPreview(Uri uri, ChatAttachment a) async {
+Future<String> resolveLocalPathForDocumentPreview(
+  Uri uri,
+  ChatAttachment a,
+) async {
   if (uri.isScheme('file')) return uri.toFilePath();
   if (!uri.isScheme('http') && !uri.isScheme('https')) {
     throw StateError('Unsupported URI scheme for preview: ${uri.scheme}');
@@ -175,4 +182,63 @@ Future<String> _resolveLocalPathForPreview(Uri uri, ChatAttachment a) async {
   }
   await file.writeAsBytes(response.bodyBytes, flush: true);
   return file.path;
+}
+
+final Map<String, Future<String?>> _documentThumbCache =
+    <String, Future<String?>>{};
+
+Future<String?> buildChatDocumentThumbnailPath(
+  ChatAttachment attachment, {
+  required double logicalWidth,
+  required double logicalHeight,
+  required double devicePixelRatio,
+}) {
+  if (!Platform.isIOS) {
+    return Future<String?>.value(null);
+  }
+  if (!isChatDocumentPreviewCandidate(attachment)) {
+    return Future<String?>.value(null);
+  }
+  final rawUrl = attachment.url.trim();
+  final uri = Uri.tryParse(rawUrl);
+  if (uri == null) {
+    return Future<String?>.value(null);
+  }
+
+  final pxW = math.max(1, (logicalWidth * devicePixelRatio).round());
+  final pxH = math.max(1, (logicalHeight * devicePixelRatio).round());
+  final key = '${uri.toString()}@$pxW:$pxH';
+  return _documentThumbCache.putIfAbsent(key, () async {
+    try {
+      final localPath = await resolveLocalPathForDocumentPreview(
+        uri,
+        attachment,
+      );
+      final out = await _kDocumentPreviewChannel.invokeMethod<String>(
+        'buildThumbnail',
+        <String, Object?>{'path': localPath, 'width': pxW, 'height': pxH},
+      );
+      final trimmed = out?.trim();
+      if (trimmed == null || trimmed.isEmpty) return null;
+      final file = File(trimmed);
+      if (!await file.exists()) return null;
+      return file.path;
+    } catch (_) {
+      return null;
+    }
+  });
+}
+
+Future<String?> buildChatPdfThumbnailPath(
+  ChatAttachment attachment, {
+  required double logicalWidth,
+  required double logicalHeight,
+  required double devicePixelRatio,
+}) {
+  return buildChatDocumentThumbnailPath(
+    attachment,
+    logicalWidth: logicalWidth,
+    logicalHeight: logicalHeight,
+    devicePixelRatio: devicePixelRatio,
+  );
 }
