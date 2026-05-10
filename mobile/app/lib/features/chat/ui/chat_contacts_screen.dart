@@ -93,15 +93,14 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
 
   static const double _contactRowHeight = 80;
   static const double _titleFontSize = 24;
-  static const double _searchFontSize = 16;
-  static const double _searchIconSize = 24;
+  static const double _searchFontSize = 15;
+  static const double _searchIconSize = 22;
   static const double _contactNameFontSize = 16;
   static const double _contactStatusFontSize = 13;
   static const double _alphabetRailFontSize = 13;
   static const double _emptyStateFontSize = 14;
   static const double _topActionButtonSize = 43;
   static const double _topActionIconSize = 20;
-  static const double _searchFieldHeight = 43;
   static const double _sectionHeaderHeight = 35;
   static const double _sectionHeaderFontSize = 16;
   static const double _avatarSize = 52;
@@ -380,6 +379,7 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
     final dark = scheme.brightness == Brightness.dark;
     final userAsync = ref.watch(authUserProvider);
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -744,43 +744,50 @@ class _ContactsSearchField extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final dark = scheme.brightness == Brightness.dark;
     final baseFg = dark ? Colors.white : scheme.onSurface;
-    return Container(
-      height: _ChatContactsScreenState._searchFieldHeight,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: (dark ? Colors.white : scheme.surface).withValues(
-          alpha: dark ? 0.07 : 0.82,
-        ),
-        border: Border.all(color: baseFg.withValues(alpha: dark ? 0.16 : 0.16)),
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      textCapitalization: TextCapitalization.sentences,
+      style: TextStyle(
+        color: baseFg.withValues(alpha: dark ? 1 : 0.92),
+        fontSize: _ChatContactsScreenState._searchFontSize,
+        fontWeight: FontWeight.w500,
       ),
-      child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        textCapitalization: TextCapitalization.sentences,
-        style: TextStyle(
-          color: baseFg.withValues(alpha: dark ? 1 : 0.92),
+      cursorColor: scheme.primary,
+      decoration: InputDecoration(
+        hintText: l10n.chat_contacts_search_hint,
+        hintStyle: TextStyle(
+          color: baseFg.withValues(alpha: dark ? 0.42 : 0.42),
           fontSize: _ChatContactsScreenState._searchFontSize,
           fontWeight: FontWeight.w500,
         ),
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          hintText: l10n.chat_contacts_search_hint,
-          hintStyle: TextStyle(
-            color: baseFg.withValues(alpha: dark ? 0.42 : 0.42),
-            fontSize: _ChatContactsScreenState._searchFontSize,
-            fontWeight: FontWeight.w500,
-          ),
-          prefixIcon: Icon(
-            Icons.search_rounded,
-            color: baseFg.withValues(alpha: dark ? 0.5 : 0.48),
-            size: _ChatContactsScreenState._searchIconSize,
-          ),
-          // Keep hint and input vertically centered inside the fixed-height field.
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 12,
+        prefixIcon: Icon(
+          Icons.search,
+          color: baseFg.withValues(alpha: dark ? 0.5 : 0.48),
+          size: _ChatContactsScreenState._searchIconSize,
+        ),
+        filled: true,
+        fillColor: baseFg.withValues(alpha: 0.08),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(22),
+          borderSide: BorderSide(
+            color: baseFg.withValues(alpha: dark ? 0.1 : 0.12),
           ),
         ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(22),
+          borderSide: BorderSide(
+            color: baseFg.withValues(alpha: dark ? 0.1 : 0.12),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(22),
+          borderSide: BorderSide(
+            color: scheme.primary.withValues(alpha: 0.65),
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 4),
+        isDense: true,
       ),
     );
   }

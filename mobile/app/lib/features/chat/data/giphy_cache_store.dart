@@ -73,10 +73,9 @@ class GiphyCacheStore {
     if (all.length > _kMaxKeys) {
       // Эмодзи-ключи (`emoji:*`) защищены от LRU-вытеснения — каталог
       // эмодзи строится навсегда, его нельзя терять.
-      final sorted = all.entries
-          .where((e) => !e.key.startsWith('emoji:'))
-          .toList()
-        ..sort((a, b) => a.value.ts.compareTo(b.value.ts));
+      final sorted =
+          all.entries.where((e) => !e.key.startsWith('emoji:')).toList()
+            ..sort((a, b) => a.value.ts.compareTo(b.value.ts));
       final toRemove = all.length - _kMaxKeys;
       for (var i = 0; i < toRemove && i < sorted.length; i++) {
         all.remove(sorted[i].key);
@@ -88,8 +87,7 @@ class GiphyCacheStore {
   // ---- Backward-compatible trending API ----
 
   /// Возвращает trending (`q=''`) из кеша.
-  Future<List<GiphyGifItem>?> getTrending(GiphyType type) =>
-      get(type, '');
+  Future<List<GiphyGifItem>?> getTrending(GiphyType type) => get(type, '');
 
   /// Сохраняет trending (`q=''`).
   Future<void> saveTrending(GiphyType type, List<GiphyGifItem> items) =>
@@ -152,11 +150,12 @@ class GiphyCacheStore {
   }
 
   static Map<String, Object?> _itemToMap(GiphyGifItem a) => {
-        'id': a.id,
-        'url': a.url,
-        'width': a.width,
-        'height': a.height,
-      };
+    'id': a.id,
+    'url': a.url,
+    'emoji': a.emoji,
+    'width': a.width,
+    'height': a.height,
+  };
 
   static GiphyGifItem? _itemFromMap(Map<String, dynamic> m) {
     final id = m['id'];
@@ -166,9 +165,11 @@ class GiphyCacheStore {
     }
     final w = m['width'];
     final h = m['height'];
+    final emoji = m['emoji'];
     return GiphyGifItem(
       id: id,
       url: url,
+      emoji: emoji is String && emoji.trim().isNotEmpty ? emoji.trim() : null,
       width: w is int ? w : (w is num ? w.toInt() : null),
       height: h is int ? h : (h is num ? h.toInt() : null),
     );
@@ -181,9 +182,9 @@ class _CacheEntry {
   final List<GiphyGifItem> items;
 
   Map<String, Object?> toMap() => {
-        'ts': ts,
-        'items': items.map(GiphyCacheStore._itemToMap).toList(),
-      };
+    'ts': ts,
+    'items': items.map(GiphyCacheStore._itemToMap).toList(),
+  };
 
   static _CacheEntry? fromMap(Map<String, dynamic> m) {
     final ts = m['ts'];

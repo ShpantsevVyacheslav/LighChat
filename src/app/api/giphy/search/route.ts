@@ -10,7 +10,73 @@ type GifSearchItem = {
   url: string;
   width?: number;
   height?: number;
+  emoji?: string;
 };
+
+function _emojiFromHexSequence(raw: string): string | null {
+  const parts = raw
+    .split('-')
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+  if (parts.length === 0 || parts.length > 10) return null;
+  const cps: number[] = [];
+  for (const p of parts) {
+    if (!/^[0-9a-f]{2,6}$/i.test(p)) return null;
+    const cp = Number.parseInt(p, 16);
+    if (!Number.isFinite(cp) || cp <= 0 || cp > 0x10ffff) return null;
+    cps.push(cp);
+  }
+  try {
+    return String.fromCodePoint(...cps);
+  } catch {
+    return null;
+  }
+}
+
+function _extractEmojiFromText(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const s = raw.trim();
+  if (!s) return null;
+  // Частый кейс в slug/title: "...-1f44d" или "1f469-200d-1f4bb".
+  const hexSeqMatch = s.match(/([0-9a-f]{4,6}(?:-[0-9a-f]{4,6}){0,9})/i);
+  if (hexSeqMatch != null) {
+    const decoded = _emojiFromHexSequence(hexSeqMatch[1]);
+    if (decoded != null) return decoded;
+  }
+  // Иногда API уже отдаёт "нативный" символ в строковом поле.
+  // Берём первую расширенную пиктограмму.
+  const pictMatch = s.match(/\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*/u);
+  if (pictMatch != null) return pictMatch[0];
+  return null;
+}
+
+function _extractEmojiFromGiphyItem(
+  item: Record<string, unknown>,
+): string | null {
+  const direct = [
+    item.emoji,
+    item.character,
+    item.native,
+    item.symbol,
+  ];
+  for (const candidate of direct) {
+    if (typeof candidate != 'string') continue;
+    const parsed = _extractEmojiFromText(candidate);
+    if (parsed != null) return parsed;
+  }
+  const fallback = [
+    item.slug,
+    item.title,
+    item.alt_text,
+    item.id,
+  ];
+  for (const candidate of fallback) {
+    if (typeof candidate != 'string') continue;
+    const parsed = _extractEmojiFromText(candidate);
+    if (parsed != null) return parsed;
+  }
+  return null;
+}
 
 /**
  * Поиск GIF/Stickers через GIPHY API. Ключ: `GIPHY_API_KEY` в .env.local.
@@ -123,6 +189,13 @@ export async function GET(req: NextRequest) {
     const data = (await res.json()) as {
       data?: Array<{
         id?: string;
+        slug?: string;
+        title?: string;
+        alt_text?: string;
+        emoji?: string;
+        character?: string;
+        native?: string;
+        symbol?: string;
         images?: {
           fixed_height?: { url?: string; width?: string; height?: string };
           original?: { url?: string; width?: string; height?: string };
@@ -145,9 +218,14 @@ export async function GET(req: NextRequest) {
       if (!url || !id) continue;
       const w = img?.width ? parseInt(img.width, 10) : undefined;
       const h = img?.height ? parseInt(img.height, 10) : undefined;
+      const emoji =
+        type === 'emoji'
+          ? _extractEmojiFromGiphyItem(r as Record<string, unknown>)
+          : null;
       items.push({
         id,
         url,
+        ...(emoji ? { emoji } : {}),
         ...(w && h ? { width: w, height: h } : {}),
       });
     }

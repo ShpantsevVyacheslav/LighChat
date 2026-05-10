@@ -171,6 +171,7 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
                 final meta = fg.withValues(alpha: dark ? 0.55 : 0.55);
 
                 return Scaffold(
+                  resizeToAvoidBottomInset: false,
                   backgroundColor: Colors.transparent,
                   body: Stack(
                     fit: StackFit.expand,

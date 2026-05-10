@@ -129,12 +129,16 @@ class _MessageVideoAttachmentState
             videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
           );
         } else {
-          unawaited(ChatGalleryVideoLocalCache.warmUp(
-            sourceUrl,
-            conversationId: widget.conversationId,
-            messageId: widget.messageId,
-            attachmentName: widget.attachment.name,
-          ));
+          final allowMediaPreload =
+              ref.read(energySavingProvider).effectiveMediaPreload;
+          if (allowMediaPreload) {
+            unawaited(ChatGalleryVideoLocalCache.warmUp(
+              sourceUrl,
+              conversationId: widget.conversationId,
+              messageId: widget.messageId,
+              attachmentName: widget.attachment.name,
+            ));
+          }
           c = VideoPlayerController.networkUrl(
             uri,
             videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),

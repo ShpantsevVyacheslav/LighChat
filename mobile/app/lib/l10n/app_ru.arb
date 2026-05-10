@@ -1428,6 +1428,8 @@
   "message_menu_action_pin": "Закрепить",
   "message_menu_action_star_add": "Добавить в избранное",
   "message_menu_action_star_remove": "Убрать из избранного",
+  "message_menu_action_create_sticker": "Создать стикер",
+  "message_menu_action_save_to_my_stickers": "Добавить в мои стикеры",
   "message_menu_action_forward": "Переслать",
   "message_menu_action_select": "Выбрать",
   "message_menu_action_delete": "Удалить",

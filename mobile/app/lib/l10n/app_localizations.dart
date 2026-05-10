@@ -4726,6 +4726,18 @@ abstract class AppLocalizations {
   /// **'Убрать из избранного'**
   String get message_menu_action_star_remove;
 
+  /// No description provided for @message_menu_action_create_sticker.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создать стикер'**
+  String get message_menu_action_create_sticker;
+
+  /// No description provided for @message_menu_action_save_to_my_stickers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить в мои стикеры'**
+  String get message_menu_action_save_to_my_stickers;
+
   /// No description provided for @message_menu_action_forward.
   ///
   /// In ru, this message translates to:

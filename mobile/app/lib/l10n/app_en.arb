@@ -1428,6 +1428,8 @@
   "message_menu_action_pin": "Pin",
   "message_menu_action_star_add": "Add to Starred",
   "message_menu_action_star_remove": "Remove from Starred",
+  "message_menu_action_create_sticker": "Create sticker",
+  "message_menu_action_save_to_my_stickers": "Save to my stickers",
   "message_menu_action_forward": "Forward",
   "message_menu_action_select": "Select",
   "message_menu_action_delete": "Delete",

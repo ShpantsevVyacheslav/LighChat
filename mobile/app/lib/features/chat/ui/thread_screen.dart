@@ -64,6 +64,7 @@ import 'chat_composer.dart';
 import 'chat_document_open.dart';
 import 'location_send_preview_sheet.dart';
 import 'share_location_sheet.dart';
+import 'sticker_pack_menu_actions.dart';
 import 'thread_header.dart';
 import 'video_circle_capture_page.dart';
 import 'voice_message_record_sheet.dart';
@@ -699,6 +700,13 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
   }
 
   void _switchFromStickersToKeyboard() {
+    _closeStickersPanel();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _composerFocus.requestFocus();
+    });
+  }
+
+  void _closeStickersPanel() {
     if (!mounted) return;
     setState(() {
       _stickersPanelOpen = false;
@@ -710,6 +718,24 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
       _composerTextBeforeStickerSearch = null;
       _stickersSearchQuery = '';
     });
+  }
+
+  void _insertEmojiIntoThreadComposer(String emoji) {
+    final ctrl = _composerController;
+    final sel = ctrl.selection;
+    final text = ctrl.text;
+    final start = sel.isValid ? sel.start : text.length;
+    final end = sel.isValid ? sel.end : text.length;
+    final newText = text.replaceRange(start, end, emoji);
+    ctrl.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: start + emoji.length),
+    );
+  }
+
+  void _handleEmojiPickFromStickersPanel(String emoji) {
+    _closeStickersPanel();
+    _insertEmojiIntoThreadComposer(emoji);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _composerFocus.requestFocus();
     });
@@ -1618,6 +1644,36 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
           message: message,
           currentUserId: user.uid,
           isStarredNow: starredMessageIds.contains(message.id),
+        );
+      case MessageMenuActionType.createSticker:
+        final att = messageMenuCreateStickerAttachmentCandidate(message);
+        if (att == null) return;
+        final stickerRepo = ref.read(userStickerPacksRepositoryProvider);
+        if (stickerRepo == null) {
+          _toast(AppLocalizations.of(context)!.chat_service_unavailable);
+          return;
+        }
+        await saveAttachmentToMyStickersFlow(
+          context: context,
+          repo: stickerRepo,
+          userId: user.uid,
+          attachment: att,
+          onToast: _toast,
+        );
+      case MessageMenuActionType.saveToMyStickers:
+        final att = messageMenuStickerAttachmentCandidate(message);
+        if (att == null) return;
+        final stickerRepo = ref.read(userStickerPacksRepositoryProvider);
+        if (stickerRepo == null) {
+          _toast(AppLocalizations.of(context)!.chat_service_unavailable);
+          return;
+        }
+        await saveAttachmentToMyStickersFlow(
+          context: context,
+          repo: stickerRepo,
+          userId: user.uid,
+          attachment: att,
+          onToast: _toast,
         );
       case MessageMenuActionType.forward:
         if (!allowForward) {
@@ -2725,45 +2781,10 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                           ),
                                         );
                                       },
-                                      onEmojiTapped: (emoji) {
-                                        final ctrl = _composerController;
-                                        final sel = ctrl.selection;
-                                        final text = ctrl.text;
-                                        final start = sel.isValid
-                                            ? sel.start
-                                            : text.length;
-                                        final end = sel.isValid
-                                            ? sel.end
-                                            : text.length;
-                                        final newText = text.replaceRange(
-                                          start,
-                                          end,
-                                          emoji,
-                                        );
-                                        ctrl.value = TextEditingValue(
-                                          text: newText,
-                                          selection: TextSelection.collapsed(
-                                            offset: start + emoji.length,
-                                          ),
-                                        );
-                                      },
+                                      onEmojiTapped:
+                                          _handleEmojiPickFromStickersPanel,
                                       onClose: () {
-                                        if (!mounted) return;
-                                        setState(() {
-                                          _stickersPanelOpen = false;
-                                          _composerController.text =
-                                              _composerTextBeforeStickerSearch ??
-                                              _composerController.text;
-                                          _composerController.selection =
-                                              TextSelection.collapsed(
-                                                offset: _composerController
-                                                    .text
-                                                    .length,
-                                              );
-                                          _composerTextBeforeStickerSearch =
-                                              null;
-                                          _stickersSearchQuery = '';
-                                        });
+                                        _closeStickersPanel();
                                       },
                                     );
                                     return SizedBox(

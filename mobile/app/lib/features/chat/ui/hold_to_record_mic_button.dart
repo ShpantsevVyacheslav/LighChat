@@ -218,6 +218,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
                           letterSpacing: 0.4,
                         ),
                       ),
+                      const SizedBox(width: 6),
                     ] else
                       const SizedBox(width: 10),
                     Text(
@@ -232,7 +233,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
                         ],
                       ),
                     ),
-                    const Spacer(),
+                    if (_tapMode) const Spacer() else const SizedBox(width: 10),
                     if (_tapMode) ...[
                       _RecMiniBtn(
                         icon: _paused

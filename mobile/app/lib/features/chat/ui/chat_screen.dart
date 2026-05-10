@@ -88,6 +88,7 @@ import 'chat_composer.dart';
 import 'thread_route_payload.dart';
 import 'secret_chat_secure_scope.dart';
 import 'secret_chat_unlock_sheet.dart';
+import 'sticker_pack_menu_actions.dart';
 import '../data/secret_chat_media_open_service.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -2557,24 +2558,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                               );
                                             },
                                             onEmojiTapped:
-                                                _insertEmojiIntoComposer,
+                                                _handleEmojiPickFromStickersPanel,
                                             onClose: () {
-                                              if (!mounted) return;
-                                              setState(() {
-                                                _stickersPanelOpen = false;
-                                                _controller.text =
-                                                    _composerTextBeforeStickerSearch ??
-                                                    _controller.text;
-                                                _controller.selection =
-                                                    TextSelection.collapsed(
-                                                      offset: _controller
-                                                          .text
-                                                          .length,
-                                                    );
-                                                _composerTextBeforeStickerSearch =
-                                                    null;
-                                                _stickersSearchQuery = '';
-                                              });
+                                              _closeStickersPanel();
                                             },
                                           );
                                           return SizedBox(
@@ -3730,6 +3716,36 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           currentUserId: user.uid,
           isStarredNow: starredMessageIds.contains(m.id),
         );
+      case MessageMenuActionType.createSticker:
+        final att = messageMenuCreateStickerAttachmentCandidate(m);
+        if (att == null) return;
+        final stickerRepo = ref.read(userStickerPacksRepositoryProvider);
+        if (stickerRepo == null) {
+          _toast(AppLocalizations.of(context)!.chat_service_unavailable);
+          return;
+        }
+        await saveAttachmentToMyStickersFlow(
+          context: context,
+          repo: stickerRepo,
+          userId: user.uid,
+          attachment: att,
+          onToast: _toast,
+        );
+      case MessageMenuActionType.saveToMyStickers:
+        final att = messageMenuStickerAttachmentCandidate(m);
+        if (att == null) return;
+        final stickerRepo = ref.read(userStickerPacksRepositoryProvider);
+        if (stickerRepo == null) {
+          _toast(AppLocalizations.of(context)!.chat_service_unavailable);
+          return;
+        }
+        await saveAttachmentToMyStickersFlow(
+          context: context,
+          repo: stickerRepo,
+          userId: user.uid,
+          attachment: att,
+          onToast: _toast,
+        );
       case MessageMenuActionType.forward:
         if (!allowForward) {
           if (mounted) {
@@ -4607,6 +4623,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   void _switchFromStickersToKeyboard() {
+    _closeStickersPanel();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _composerFocusNode.requestFocus();
+    });
+  }
+
+  void _closeStickersPanel() {
     if (!mounted) return;
     setState(() {
       _stickersPanelOpen = false;
@@ -4616,9 +4639,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       );
       _composerTextBeforeStickerSearch = null;
       _stickersSearchQuery = '';
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _composerFocusNode.requestFocus();
     });
   }
 
@@ -4634,6 +4654,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       text: newText,
       selection: TextSelection.collapsed(offset: newOffset),
     );
+  }
+
+  void _handleEmojiPickFromStickersPanel(String emoji) {
+    _closeStickersPanel();
+    _insertEmojiIntoComposer(emoji);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _composerFocusNode.requestFocus();
+    });
   }
 
   Future<void> _sendStickerOrGifAttachment(

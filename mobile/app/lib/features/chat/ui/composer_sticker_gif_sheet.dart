@@ -674,14 +674,20 @@ class _ComposerStickerGifPanelState
     unawaited(_loadRecentGifs());
   }
 
-  /// Анимированный эмодзи отправляется с префиксом `sticker_emoji_giphy_*`,
-  /// чтобы получатель рендерил его как unicode-эмодзи (~76px), а не как
-  /// 200px-стикер. Префикс `sticker_giphy_*` зарезервирован за GIPHY-стикерами
-  /// из библиотеки (вкладка Стикеры → GIPHY).
+  /// Telegram-like: анимированный эмодзи не отправляется мгновенно как
+  /// стикер-вложение. Вместо этого вставляем unicode-эмодзи в композер,
+  /// чтобы его можно было комбинировать с текстом и отправлять одной строкой.
+  ///
+  /// Если символ не удалось извлечь из GIPHY-элемента — даём мягкий fallback:
+  /// ничего не отправляем автоматически и показываем системную подсказку.
   void _onPickAnimEmoji(GiphyGifItem item) {
-    widget.onPickAttachment(
-      giphyItemToSendAttachment(item, asAnimatedEmoji: true),
-    );
+    final emoji = giphyItemToEmojiText(item);
+    if (emoji != null && emoji.isNotEmpty) {
+      widget.onEmojiTapped?.call(emoji);
+      HapticFeedback.selectionClick();
+      return;
+    }
+    _snack(AppLocalizations.of(context)!.sticker_emoji_unavailable);
   }
 
   void _snack(String msg) {

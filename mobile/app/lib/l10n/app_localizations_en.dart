@@ -2706,6 +2706,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get message_menu_action_star_remove => 'Remove from Starred';
 
   @override
+  String get message_menu_action_create_sticker => 'Create sticker';
+
+  @override
+  String get message_menu_action_save_to_my_stickers => 'Save to my stickers';
+
+  @override
   String get message_menu_action_forward => 'Forward';
 
   @override

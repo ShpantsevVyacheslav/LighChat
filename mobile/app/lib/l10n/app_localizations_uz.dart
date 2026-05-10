@@ -2736,6 +2736,13 @@ class AppLocalizationsUz extends AppLocalizations {
   String get message_menu_action_star_remove => 'Sevimlilardan olib tashlash';
 
   @override
+  String get message_menu_action_create_sticker => 'Создать стикер';
+
+  @override
+  String get message_menu_action_save_to_my_stickers =>
+      'Добавить в мои стикеры';
+
+  @override
   String get message_menu_action_forward => 'Uzatish';
 
   @override

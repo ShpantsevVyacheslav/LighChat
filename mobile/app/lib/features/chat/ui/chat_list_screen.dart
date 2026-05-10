@@ -16,6 +16,7 @@ import '../data/chat_message_draft_storage.dart';
 import '../data/bottom_nav_icon_settings.dart';
 import '../data/e2ee_plaintext_cache.dart';
 import '../data/new_chat_user_search.dart' show ruEnSubstringMatch;
+import '../../settings/data/energy_saving_preference.dart';
 import '../../../l10n/app_localizations.dart';
 
 import 'chat_folder_bar.dart';
@@ -347,7 +348,9 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     E2eePlaintextCache.instance.previewRevision.addListener(
       _previewRevListener,
     );
-    unawaited(E2eePlaintextCache.instance.warmUpPreviews());
+    if (ref.read(energySavingProvider).effectiveMediaPreload) {
+      unawaited(E2eePlaintextCache.instance.warmUpPreviews());
+    }
     unawaited(_reloadChatDrafts());
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _persistOfflineSnapshot(),
@@ -1499,73 +1502,82 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                   const SizedBox(height: 12),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Container(
-                      height: 40,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        color: Colors.white.withValues(
-                          alpha: dark ? 0.07 : 0.14,
-                        ),
-                        border: Border.all(
-                          color: Colors.white.withValues(
-                            alpha: dark ? 0.14 : 0.22,
-                          ),
-                        ),
+                    child: TextField(
+                      controller: _search,
+                      onChanged: (_) => setState(() {}),
+                      textCapitalization: TextCapitalization.sentences,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.search_rounded,
-                            size: 23,
+                      cursorColor: theme.colorScheme.primary,
+                      decoration: InputDecoration(
+                        hintText: AppLocalizations.of(
+                          context,
+                        )!.chat_list_search_hint,
+                        hintStyle: TextStyle(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.42,
+                          ),
+                          fontSize: 15,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.45,
+                          ),
+                          size: 22,
+                        ),
+                        suffixIcon: _search.text.trim().isNotEmpty
+                            ? IconButton(
+                                splashRadius: 18,
+                                icon: Icon(
+                                  Icons.close_rounded,
+                                  size: 18,
+                                  color: theme.colorScheme.onSurface.withValues(
+                                    alpha: 0.55,
+                                  ),
+                                ),
+                                onPressed: () {
+                                  _search.clear();
+                                  setState(() {});
+                                },
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.08,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(22),
+                          borderSide: BorderSide(
                             color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.45,
+                              alpha: dark ? 0.1 : 0.12,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: _search,
-                              onChanged: (_) => setState(() {}),
-                              textCapitalization: TextCapitalization.sentences,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              textAlignVertical: TextAlignVertical.center,
-                              decoration: InputDecoration(
-                                hintText: AppLocalizations.of(
-                                  context,
-                                )!.chat_list_search_hint,
-                                border: InputBorder.none,
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 10,
-                                ),
-                              ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(22),
+                          borderSide: BorderSide(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: dark ? 0.1 : 0.12,
                             ),
                           ),
-                          if (_search.text.trim().isNotEmpty)
-                            IconButton(
-                              constraints: const BoxConstraints(
-                                minWidth: 30,
-                                minHeight: 30,
-                              ),
-                              padding: EdgeInsets.zero,
-                              splashRadius: 18,
-                              icon: Icon(
-                                Icons.close_rounded,
-                                size: 18,
-                                color: theme.colorScheme.onSurface.withValues(
-                                  alpha: 0.55,
-                                ),
-                              ),
-                              onPressed: () {
-                                _search.clear();
-                                setState(() {});
-                              },
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(22),
+                          borderSide: BorderSide(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.65,
                             ),
-                        ],
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 0,
+                          horizontal: 4,
+                        ),
+                        isDense: true,
                       ),
                     ),
                   ),
@@ -1860,7 +1872,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                     final info = c.data.participantInfo?[senderId];
                                     senderName = info?.name;
                                     if (senderName == null || senderName.isEmpty) {
-                                      final profile = profiles?[senderId];
+                                      final profile = profiles[senderId];
                                       senderName = profile?.name.isNotEmpty == true
                                           ? profile?.name
                                           : profile?.username;

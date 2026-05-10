@@ -1,7 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../settings/data/energy_saving_preference.dart';
 import '../data/recent_stickers_store.dart';
 import '../data/user_sticker_item_attachment.dart';
 import '../data/user_sticker_packs_repository.dart';
@@ -16,7 +18,7 @@ import '../data/user_sticker_packs_repository.dart';
 /// При тапе по стикеру вызывается [onPickAttachment] с тем же `ChatAttachment`,
 /// что и в полной панели стикеров (см. `composer_sticker_gif_sheet.dart`), —
 /// поэтому дальнейший pipeline отправки не меняется.
-class ComposerStickerSuggestionRow extends StatelessWidget {
+class ComposerStickerSuggestionRow extends ConsumerWidget {
   const ComposerStickerSuggestionRow({
     super.key,
     required this.userId,
@@ -31,13 +33,22 @@ class ComposerStickerSuggestionRow extends StatelessWidget {
   final int maxCount;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final energy = ref.watch(energySavingProvider);
+    final allowGifAutoplay = energy.effectiveAutoplayGif;
+    final allowAnimatedStickers = energy.effectiveAnimatedStickers;
+    final allowAnimatedEmoji = energy.effectiveAnimatedEmoji;
     return FutureBuilder<List<ChatAttachment>>(
       future: RecentStickersStore.instance.getRecents(),
       builder: (context, recentSnap) {
         final recents = recentSnap.data ?? const <ChatAttachment>[];
         if (recents.isNotEmpty) {
-          return _buildForRecents(recents);
+          return _buildForRecents(
+            recents,
+            allowGifAutoplay: allowGifAutoplay,
+            allowAnimatedStickers: allowAnimatedStickers,
+            allowAnimatedEmoji: allowAnimatedEmoji,
+          );
         }
         return StreamBuilder<List<UserStickerPackRow>>(
           stream: repo.watchMyPacks(userId),
@@ -46,8 +57,11 @@ class ComposerStickerSuggestionRow extends StatelessWidget {
             if (myPacks.isNotEmpty) {
               return StreamBuilder<List<StickerItemRow>>(
                 stream: repo.watchMyPackItems(userId, myPacks.first.id),
-                builder: (c, s) =>
-                    _buildForItems(s.data ?? const <StickerItemRow>[]),
+                builder: (c, s) => _buildForItems(
+                  s.data ?? const <StickerItemRow>[],
+                  allowGifAutoplay: allowGifAutoplay,
+                  allowAnimatedStickers: allowAnimatedStickers,
+                ),
               );
             }
             return StreamBuilder<List<PublicStickerPackRow>>(
@@ -58,8 +72,11 @@ class ComposerStickerSuggestionRow extends StatelessWidget {
                 if (publics.isEmpty) return const SizedBox.shrink();
                 return StreamBuilder<List<StickerItemRow>>(
                   stream: repo.watchPublicPackItems(publics.first.id),
-                  builder: (c, s) =>
-                      _buildForItems(s.data ?? const <StickerItemRow>[]),
+                  builder: (c, s) => _buildForItems(
+                    s.data ?? const <StickerItemRow>[],
+                    allowGifAutoplay: allowGifAutoplay,
+                    allowAnimatedStickers: allowAnimatedStickers,
+                  ),
                 );
               },
             );
@@ -69,7 +86,12 @@ class ComposerStickerSuggestionRow extends StatelessWidget {
     );
   }
 
-  Widget _buildForRecents(List<ChatAttachment> items) {
+  Widget _buildForRecents(
+    List<ChatAttachment> items, {
+    required bool allowGifAutoplay,
+    required bool allowAnimatedStickers,
+    required bool allowAnimatedEmoji,
+  }) {
     if (items.isEmpty) return const SizedBox.shrink();
     final take = items.take(maxCount).toList(growable: false);
     return Padding(
@@ -96,11 +118,19 @@ class ComposerStickerSuggestionRow extends StatelessWidget {
                 child: SizedBox(
                   width: 56,
                   height: 56,
-                  child: CachedNetworkImage(
-                    imageUrl: att.url,
-                    fit: BoxFit.contain,
-                    placeholder: (_, _) => const SizedBox.shrink(),
-                    errorWidget: (_, _, _) => const SizedBox.shrink(),
+                  child: TickerMode(
+                    enabled: _tickerEnabledForRecent(
+                      att,
+                      allowGifAutoplay: allowGifAutoplay,
+                      allowAnimatedStickers: allowAnimatedStickers,
+                      allowAnimatedEmoji: allowAnimatedEmoji,
+                    ),
+                    child: CachedNetworkImage(
+                      imageUrl: att.url,
+                      fit: BoxFit.contain,
+                      placeholder: (_, _) => const SizedBox.shrink(),
+                      errorWidget: (_, _, _) => const SizedBox.shrink(),
+                    ),
                   ),
                 ),
               ),
@@ -137,7 +167,11 @@ class ComposerStickerSuggestionRow extends StatelessWidget {
     );
   }
 
-  Widget _buildForItems(List<StickerItemRow> items) {
+  Widget _buildForItems(
+    List<StickerItemRow> items, {
+    required bool allowGifAutoplay,
+    required bool allowAnimatedStickers,
+  }) {
     if (items.isEmpty) return const SizedBox.shrink();
     final take = items.take(maxCount).toList(growable: false);
     return Padding(
@@ -153,6 +187,11 @@ class ComposerStickerSuggestionRow extends StatelessWidget {
             final it = take[i];
             return _StickerCell(
               item: it,
+              allowAnimation: _tickerEnabledForStickerItem(
+                it,
+                allowGifAutoplay: allowGifAutoplay,
+                allowAnimatedStickers: allowAnimatedStickers,
+              ),
               onTap: () => onPickAttachment(userStickerItemToAttachment(it)),
             );
           },
@@ -160,13 +199,44 @@ class ComposerStickerSuggestionRow extends StatelessWidget {
       ),
     );
   }
+
+  bool _tickerEnabledForRecent(
+    ChatAttachment attachment, {
+    required bool allowGifAutoplay,
+    required bool allowAnimatedStickers,
+    required bool allowAnimatedEmoji,
+  }) {
+    final name = attachment.name.toLowerCase();
+    if (name.startsWith('sticker_emoji_giphy_')) return allowAnimatedEmoji;
+    if (name.startsWith('sticker_')) return allowAnimatedStickers;
+    final type = (attachment.type ?? '').toLowerCase();
+    if (name.startsWith('gif_') || type == 'image/gif') {
+      return allowGifAutoplay;
+    }
+    return true;
+  }
+
+  bool _tickerEnabledForStickerItem(
+    StickerItemRow item, {
+    required bool allowGifAutoplay,
+    required bool allowAnimatedStickers,
+  }) {
+    final t = item.contentType.toLowerCase();
+    if (t == 'image/gif') return allowGifAutoplay;
+    return allowAnimatedStickers;
+  }
 }
 
 class _StickerCell extends StatelessWidget {
-  const _StickerCell({required this.item, required this.onTap});
+  const _StickerCell({
+    required this.item,
+    required this.onTap,
+    required this.allowAnimation,
+  });
 
   final StickerItemRow item;
   final VoidCallback onTap;
+  final bool allowAnimation;
 
   @override
   Widget build(BuildContext context) {
@@ -200,11 +270,14 @@ class _StickerCell extends StatelessWidget {
         ),
       ),
     );
+    final wrappedTile = isVideo
+        ? tile
+        : TickerMode(enabled: allowAnimation, child: tile);
     if (!isAnim) return tile;
     return Stack(
       alignment: Alignment.topRight,
       children: [
-        tile,
+        wrappedTile,
         Padding(
           padding: const EdgeInsets.all(4),
           child: Container(

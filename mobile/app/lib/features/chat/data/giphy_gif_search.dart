@@ -10,12 +10,14 @@ class GiphyGifItem {
   const GiphyGifItem({
     required this.id,
     required this.url,
+    this.emoji,
     this.width,
     this.height,
   });
 
   final String id;
   final String url;
+  final String? emoji;
   final int? width;
   final int? height;
 }
@@ -96,9 +98,9 @@ Future<GiphySearchOutcome> searchGifs(
     if (type != GiphyType.gifs) 'type': _typeParam(type),
     if (offset > 0) 'offset': '$offset',
   };
-  final uri = Uri.parse('$base/api/giphy/search').replace(
-    queryParameters: params.isEmpty ? null : params,
-  );
+  final uri = Uri.parse(
+    '$base/api/giphy/search',
+  ).replace(queryParameters: params.isEmpty ? null : params);
 
   // SECURITY: /api/giphy/search now requires a Firebase ID token. Without
   // it the route returns 401 and the picker stays empty. We attach the
@@ -145,12 +147,18 @@ Future<GiphySearchOutcome> searchGifs(
       }
       final w = e['width'];
       final h = e['height'];
-      out.add(GiphyGifItem(
-        id: id,
-        url: url,
-        width: w is int ? w : (w is num ? w.toInt() : null),
-        height: h is int ? h : (h is num ? h.toInt() : null),
-      ));
+      final emojiRaw = e['emoji'];
+      out.add(
+        GiphyGifItem(
+          id: id,
+          url: url,
+          emoji: emojiRaw is String && emojiRaw.trim().isNotEmpty
+              ? emojiRaw.trim()
+              : null,
+          width: w is int ? w : (w is num ? w.toInt() : null),
+          height: h is int ? h : (h is num ? h.toInt() : null),
+        ),
+      );
     }
     final off = body['offset'];
     final total = body['total'];
@@ -201,4 +209,26 @@ ChatAttachment giphyItemToSendAttachment(
     width: item.width,
     height: item.height,
   );
+}
+
+String? giphyItemToEmojiText(GiphyGifItem item) {
+  final direct = item.emoji?.trim();
+  if (direct != null && direct.isNotEmpty) return direct;
+  // Fallback: иногда id у emoji endpoint похож на hex-последовательность
+  // codepoints: "1f44d" или "1f469-200d-1f4bb".
+  final m = RegExp(
+    r'([0-9a-fA-F]{4,6}(?:-[0-9a-fA-F]{4,6}){0,9})',
+  ).firstMatch(item.id);
+  if (m == null) return null;
+  final seq = m.group(1);
+  if (seq == null || seq.isEmpty) return null;
+  final parts = seq.split('-');
+  final cps = <int>[];
+  for (final p in parts) {
+    final cp = int.tryParse(p, radix: 16);
+    if (cp == null || cp <= 0 || cp > 0x10FFFF) return null;
+    cps.add(cp);
+  }
+  if (cps.isEmpty) return null;
+  return String.fromCharCodes(cps);
 }

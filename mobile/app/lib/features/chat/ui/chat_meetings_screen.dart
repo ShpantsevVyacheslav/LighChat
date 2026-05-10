@@ -117,6 +117,7 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
         final dark = scheme.brightness == Brightness.dark;
 
         return Scaffold(
+          resizeToAvoidBottomInset: false,
           backgroundColor: Colors.transparent,
           body: Stack(
             fit: StackFit.expand,

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
@@ -15,6 +16,7 @@ import 'features/chat/data/user_profiles_repository.dart';
 import 'features/chat/data/user_sticker_packs_repository.dart';
 import 'features/chat/data/chat_list_offline_cache.dart';
 import 'features/chat/data/secret_chat_access.dart';
+import 'features/settings/data/energy_saving_preference.dart';
 
 class StarredChatMessageEntry {
   const StarredChatMessageEntry({
@@ -33,6 +35,46 @@ class StarredChatMessageEntry {
 }
 
 final firebaseReadyProvider = Provider<bool>((ref) => isFirebaseReady());
+
+class _AppLifecycleStateNotifier extends Notifier<AppLifecycleState>
+    with WidgetsBindingObserver {
+  @override
+  AppLifecycleState build() {
+    WidgetsBinding.instance.addObserver(this);
+    ref.onDispose(() => WidgetsBinding.instance.removeObserver(this));
+    return WidgetsBinding.instance.lifecycleState ?? AppLifecycleState.resumed;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (this.state != state) {
+      this.state = state;
+    }
+  }
+}
+
+final appLifecycleStateProvider =
+    NotifierProvider<_AppLifecycleStateNotifier, AppLifecycleState>(
+      _AppLifecycleStateNotifier.new,
+    );
+
+bool _isAppForeground(AppLifecycleState state) {
+  return state == AppLifecycleState.resumed ||
+      state == AppLifecycleState.inactive;
+}
+
+/// Контроль фоновых realtime-обновлений.
+///
+/// Когда "Background update" выключен (или активирован low-power режим),
+/// живые подписки Firestore в mobile-чате отключаются при уходе app в фон.
+final chatRealtimeEnabledProvider = Provider<bool>((ref) {
+  final energyAllowsBackground = ref.watch(
+    energySavingProvider.select((s) => s.effectiveBackgroundUpdate),
+  );
+  if (energyAllowsBackground) return true;
+  final lifecycle = ref.watch(appLifecycleStateProvider);
+  return _isAppForeground(lifecycle);
+});
 
 /// Завершена ли регистрация по `users/{uid}` (сервер для Google/Apple/Telegram при «пустом» кэше). После `completeGoogleProfile` — [Ref.invalidate].
 final registrationProfileCompleteProvider = FutureProvider.family<bool, String>((
@@ -85,6 +127,9 @@ final userChatIndexProvider = StreamProvider.family<UserChatIndex?, String>((
   if (offline?.index != null) {
     yield offline!.index;
   }
+  if (!ref.watch(chatRealtimeEnabledProvider)) {
+    return;
+  }
   final repo = ref.watch(chatRepositoryProvider);
   if (repo == null) {
     yield offline?.index;
@@ -105,6 +150,10 @@ final userSecretChatIndexProvider = StreamProvider.family<UserChatIndex?, String
     yield null;
     return;
   }
+  if (!ref.watch(chatRealtimeEnabledProvider)) {
+    yield null;
+    return;
+  }
   final repo = ref.watch(chatRepositoryProvider);
   if (repo == null) {
     yield null;
@@ -121,6 +170,9 @@ final userSecretChatFallbackIdsProvider =
     StreamProvider.family<List<String>, String>((ref, userId) {
       final uid = userId.trim();
       if (uid.isEmpty) return Stream.value(const <String>[]);
+      if (!ref.watch(chatRealtimeEnabledProvider)) {
+        return Stream.value(const <String>[]);
+      }
       return FirebaseFirestore.instance
           .collection('conversations')
           .where('participantIds', arrayContains: uid)
@@ -149,6 +201,9 @@ final userSavedMessagesChatIdsProvider =
     StreamProvider.family<List<String>, String>((ref, userId) {
       final uid = userId.trim();
       if (uid.isEmpty) return Stream.value(const <String>[]);
+      if (!ref.watch(chatRealtimeEnabledProvider)) {
+        return Stream.value(const <String>[]);
+      }
       return FirebaseFirestore.instance
           .collection('conversations')
           .where('participantIds', arrayContains: uid)
@@ -203,6 +258,10 @@ final conversationsProvider =
         }
       }
       final repo = ref.watch(chatRepositoryProvider);
+      if (!ref.watch(chatRealtimeEnabledProvider)) {
+        yield const <ConversationWithId>[];
+        return;
+      }
       if (repo == null) {
         yield const <ConversationWithId>[];
         return;
@@ -228,6 +287,9 @@ final messagesProvider =
       List<ChatMessage>,
       ({String conversationId, int limit})
     >((ref, args) {
+      if (!ref.watch(chatRealtimeEnabledProvider)) {
+        return Stream.value(const <ChatMessage>[]);
+      }
       final repo = ref.watch(chatRepositoryProvider);
       if (repo == null) return Stream.value(const <ChatMessage>[]);
       return repo.watchMessages(
@@ -241,6 +303,9 @@ final threadMessagesProvider =
       List<ChatMessage>,
       ({String conversationId, String parentMessageId, int limit})
     >((ref, args) {
+      if (!ref.watch(chatRealtimeEnabledProvider)) {
+        return Stream.value(const <ChatMessage>[]);
+      }
       final repo = ref.watch(chatRepositoryProvider);
       if (repo == null) return Stream.value(const <ChatMessage>[]);
       return repo.watchThreadMessages(

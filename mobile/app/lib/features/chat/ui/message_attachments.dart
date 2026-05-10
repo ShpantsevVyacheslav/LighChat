@@ -1,9 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../settings/data/energy_saving_preference.dart';
 import '../data/chat_attachment_mosaic_layout.dart';
 import '../data/chat_media_gallery.dart';
 import '../data/chat_media_layout_tokens.dart';
@@ -78,6 +80,13 @@ bool _isGifInlineAttachment(ChatAttachment a) {
   return a.name.toLowerCase().startsWith('gif_');
 }
 
+bool _isGifAttachment(ChatAttachment a) {
+  final t = (a.type ?? '').toLowerCase();
+  if (t == 'image/gif') return true;
+  final path = a.url.split('?').first.toLowerCase();
+  return path.endsWith('.gif');
+}
+
 double _attachmentsColumnWidth({
   required double available,
   required double gridMaxWidth,
@@ -136,12 +145,7 @@ double computeMessageAttachmentsColumnWidth({
   }
   final allGifGrid =
       images.isNotEmpty &&
-      images.every((a) {
-        final t = (a.type ?? '').toLowerCase();
-        if (t == 'image/gif') return true;
-        final path = a.url.split('?').first.toLowerCase();
-        return path.endsWith('.gif');
-      });
+      images.every(_isGifAttachment);
   final baseGridMax = allGifGrid
       ? ChatMediaLayoutTokens.gifAlbumGridMaxWidth
       : ChatMediaLayoutTokens.mediaGridMaxWidth;
@@ -165,7 +169,7 @@ double computeMessageAttachmentsColumnWidth({
   );
 }
 
-class MessageAttachments extends StatefulWidget {
+class MessageAttachments extends ConsumerStatefulWidget {
   const MessageAttachments({
     super.key,
     required this.attachments,
@@ -207,10 +211,10 @@ class MessageAttachments extends StatefulWidget {
   final bool clipSelf;
 
   @override
-  State<MessageAttachments> createState() => _MessageAttachmentsState();
+  ConsumerState<MessageAttachments> createState() => _MessageAttachmentsState();
 }
 
-class _MessageAttachmentsState extends State<MessageAttachments> {
+class _MessageAttachmentsState extends ConsumerState<MessageAttachments> {
   ValueNotifier<String?>? _ownedCircleSlot;
 
   @override
@@ -270,6 +274,10 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
   Widget build(BuildContext context) {
     final attachments = widget.attachments;
     if (attachments.isEmpty) return const SizedBox.shrink();
+    final energy = ref.watch(energySavingProvider);
+    final allowGifAutoplay = energy.effectiveAutoplayGif;
+    final allowAnimatedStickers = energy.effectiveAnimatedStickers;
+    final allowAnimatedEmoji = energy.effectiveAnimatedEmoji;
 
     final alignRight = widget.alignRight;
 
@@ -296,12 +304,7 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
         .toList(growable: false);
     final allGifGrid =
         images.isNotEmpty &&
-        images.every((a) {
-          final t = (a.type ?? '').toLowerCase();
-          if (t == 'image/gif') return true;
-          final path = a.url.split('?').first.toLowerCase();
-          return path.endsWith('.gif');
-        });
+        images.every(_isGifAttachment);
     final baseGridMax = allGifGrid
         ? ChatMediaLayoutTokens.gifAlbumGridMaxWidth
         : ChatMediaLayoutTokens.mediaGridMaxWidth;
@@ -339,6 +342,9 @@ class _MessageAttachmentsState extends State<MessageAttachments> {
                     images: images,
                     maxWidth: width,
                     alignRight: alignRight,
+                    allowGifAutoplay: allowGifAutoplay,
+                    allowAnimatedStickers: allowAnimatedStickers,
+                    allowAnimatedEmoji: allowAnimatedEmoji,
                     onOpenGridGallery: widget.onOpenGridGallery,
                     conversationId: widget.conversationId,
                     messageId: widget.messageId,
@@ -463,6 +469,9 @@ class _ImageGrid extends StatelessWidget {
     required this.images,
     required this.maxWidth,
     required this.alignRight,
+    required this.allowGifAutoplay,
+    required this.allowAnimatedStickers,
+    required this.allowAnimatedEmoji,
     this.onOpenGridGallery,
     this.conversationId,
     this.messageId,
@@ -472,6 +481,9 @@ class _ImageGrid extends StatelessWidget {
   final List<ChatAttachment> images;
   final double maxWidth;
   final bool alignRight;
+  final bool allowGifAutoplay;
+  final bool allowAnimatedStickers;
+  final bool allowAnimatedEmoji;
   final void Function(ChatAttachment attachment)? onOpenGridGallery;
   final String? conversationId;
   final String? messageId;
@@ -494,6 +506,9 @@ class _ImageGrid extends StatelessWidget {
         attachment: slice.first,
         maxWidth: maxWidth,
         borderRadius: clipSelf ? radius : BorderRadius.zero,
+        allowGifAutoplay: allowGifAutoplay,
+        allowAnimatedStickers: allowAnimatedStickers,
+        allowAnimatedEmoji: allowAnimatedEmoji,
         onOpenGridGallery: onOpenGridGallery,
         conversationId: conversationId,
         messageId: messageId,
@@ -519,7 +534,10 @@ class _ImageGrid extends StatelessWidget {
                     ),
                   ),
                 )
-              : ChatCachedNetworkImage(url: a.url, fit: BoxFit.cover),
+              : TickerMode(
+                  enabled: _tickerEnabledForAttachment(a),
+                  child: ChatCachedNetworkImage(url: a.url, fit: BoxFit.cover),
+                ),
           if (showPlus)
             Container(
               color: Colors.black.withValues(alpha: 0.35),
@@ -643,6 +661,15 @@ class _ImageGrid extends StatelessWidget {
       child: content,
     );
   }
+
+  bool _tickerEnabledForAttachment(ChatAttachment a) {
+    if (_isAnimatedEmojiAttachment(a)) return allowAnimatedEmoji;
+    if (_isStickerAttachment(a)) return allowAnimatedStickers;
+    if (_isGifAttachment(a) || _isGifInlineAttachment(a)) {
+      return allowGifAutoplay;
+    }
+    return true;
+  }
 }
 
 /// Одно фото / стикер / GIF: реальное соотношение сторон, без принудительного квадрата сетки.
@@ -651,6 +678,9 @@ class _SingleVisualAttachment extends StatelessWidget {
     required this.attachment,
     required this.maxWidth,
     required this.borderRadius,
+    required this.allowGifAutoplay,
+    required this.allowAnimatedStickers,
+    required this.allowAnimatedEmoji,
     this.onOpenGridGallery,
     this.conversationId,
     this.messageId,
@@ -659,6 +689,9 @@ class _SingleVisualAttachment extends StatelessWidget {
   final ChatAttachment attachment;
   final double maxWidth;
   final BorderRadius borderRadius;
+  final bool allowGifAutoplay;
+  final bool allowAnimatedStickers;
+  final bool allowAnimatedEmoji;
   final void Function(ChatAttachment attachment)? onOpenGridGallery;
   final String? conversationId;
   final String? messageId;
@@ -692,12 +725,15 @@ class _SingleVisualAttachment extends StatelessWidget {
       return SizedBox(
         width: boxW,
         height: boxH,
-        child: ChatCachedNetworkImage(
-          url: a.url,
-          fit: BoxFit.contain,
-          conversationId: conversationId,
-          messageId: messageId,
-          attachmentName: a.name,
+        child: TickerMode(
+          enabled: allowAnimatedEmoji,
+          child: ChatCachedNetworkImage(
+            url: a.url,
+            fit: BoxFit.contain,
+            conversationId: conversationId,
+            messageId: messageId,
+            attachmentName: a.name,
+          ),
         ),
       );
     }
@@ -725,12 +761,15 @@ class _SingleVisualAttachment extends StatelessWidget {
         child: SizedBox(
           width: boxW,
           height: boxH,
-          child: ChatCachedNetworkImage(
-            url: a.url,
-            fit: BoxFit.contain,
-            conversationId: conversationId,
-            messageId: messageId,
-            attachmentName: a.name,
+          child: TickerMode(
+            enabled: allowAnimatedStickers,
+            child: ChatCachedNetworkImage(
+              url: a.url,
+              fit: BoxFit.contain,
+              conversationId: conversationId,
+              messageId: messageId,
+              attachmentName: a.name,
+            ),
           ),
         ),
       );
@@ -744,6 +783,7 @@ class _SingleVisualAttachment extends StatelessWidget {
         maxHeight: 320,
         minHeight: 96,
         borderRadius: borderRadius,
+        allowAnimation: allowGifAutoplay,
         onOpenGridGallery: onOpenGridGallery,
         conversationId: conversationId,
         messageId: messageId,
@@ -756,6 +796,7 @@ class _SingleVisualAttachment extends StatelessWidget {
       maxHeight: 440,
       minHeight: 72,
       borderRadius: borderRadius,
+      allowAnimation: true,
       onOpenGridGallery: onOpenGridGallery,
       conversationId: conversationId,
       messageId: messageId,
@@ -770,6 +811,7 @@ class _AspectImageBox extends StatelessWidget {
     required this.maxHeight,
     required this.minHeight,
     required this.borderRadius,
+    required this.allowAnimation,
     this.onOpenGridGallery,
     this.conversationId,
     this.messageId,
@@ -780,6 +822,7 @@ class _AspectImageBox extends StatelessWidget {
   final double maxHeight;
   final double minHeight;
   final BorderRadius borderRadius;
+  final bool allowAnimation;
   final void Function(ChatAttachment attachment)? onOpenGridGallery;
   final String? conversationId;
   final String? messageId;
@@ -816,18 +859,21 @@ class _AspectImageBox extends StatelessWidget {
       boxH = (boxW * 4 / 3).clamp(minHeight, maxHeight);
     }
 
-    final img = ChatCachedNetworkImage(
-      url: attachment.url,
-      // Для вложений без width/height (часто E2EE decrypt-path) `contain`
-      // даёт "внутренний прямоугольник" с острыми углами. Используем `cover`,
-      // чтобы визуально сохранять rounded-card как у обычных медиа.
-      fit: hasExplicitSize
-          ? (isLandscape ? BoxFit.cover : BoxFit.contain)
-          : BoxFit.cover,
-      alignment: Alignment.center,
-      conversationId: conversationId,
-      messageId: messageId,
-      attachmentName: attachment.name,
+    final img = TickerMode(
+      enabled: allowAnimation,
+      child: ChatCachedNetworkImage(
+        url: attachment.url,
+        // Для вложений без width/height (часто E2EE decrypt-path) `contain`
+        // даёт "внутренний прямоугольник" с острыми углами. Используем `cover`,
+        // чтобы визуально сохранять rounded-card как у обычных медиа.
+        fit: hasExplicitSize
+            ? (isLandscape ? BoxFit.cover : BoxFit.contain)
+            : BoxFit.cover,
+        alignment: Alignment.center,
+        conversationId: conversationId,
+        messageId: messageId,
+        attachmentName: attachment.name,
+      ),
     );
     final maybeLocked = SecretChatMediaOpenService.isLockedSecretAttachment(
       attachment,

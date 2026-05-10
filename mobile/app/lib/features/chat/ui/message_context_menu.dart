@@ -36,6 +36,8 @@ enum MessageMenuActionType {
   edit,
   pin,
   star,
+  createSticker,
+  saveToMyStickers,
   forward,
   select,
   delete,
@@ -61,6 +63,47 @@ String _formatMenuDateTime(DateTime local) {
   final hh = d.hour.toString().padLeft(2, '0');
   final min = d.minute.toString().padLeft(2, '0');
   return '$dd.$mm.$yyyy $hh:$min';
+}
+
+bool _isStickerAttachmentForMenu(ChatAttachment a) {
+  return a.name.toLowerCase().startsWith('sticker_');
+}
+
+bool _isGifAttachmentForMenu(ChatAttachment a) {
+  final type = (a.type ?? '').toLowerCase();
+  if (type == 'image/gif') return true;
+  final path = a.url.split('?').first.toLowerCase();
+  return path.endsWith('.gif');
+}
+
+bool _isImageAttachmentForMenu(ChatAttachment a) {
+  if (_isStickerAttachmentForMenu(a) || _isGifAttachmentForMenu(a)) {
+    return false;
+  }
+  final type = (a.type ?? '').toLowerCase();
+  if (type.startsWith('image/')) return true;
+  final path = a.url.split('?').first.toLowerCase();
+  return path.endsWith('.jpg') ||
+      path.endsWith('.jpeg') ||
+      path.endsWith('.png') ||
+      path.endsWith('.webp') ||
+      path.endsWith('.heic');
+}
+
+ChatAttachment? messageMenuStickerAttachmentCandidate(ChatMessage message) {
+  for (final att in message.attachments) {
+    if (_isStickerAttachmentForMenu(att)) return att;
+  }
+  return null;
+}
+
+ChatAttachment? messageMenuCreateStickerAttachmentCandidate(
+  ChatMessage message,
+) {
+  for (final att in message.attachments) {
+    if (_isImageAttachmentForMenu(att)) return att;
+  }
+  return null;
 }
 
 Future<MessageMenuResult?> showMessageContextMenu(
@@ -168,6 +211,12 @@ class _MessageContextMenuPage extends StatelessWidget {
     final read = message.readAt?.toLocal();
     final expireAt = message.expireAt?.toLocal();
     final maxH = MediaQuery.sizeOf(context).height * 0.78;
+    final saveStickerAtt = messageMenuStickerAttachmentCandidate(message);
+    final createStickerAtt = messageMenuCreateStickerAttachmentCandidate(
+      message,
+    );
+    final canSaveSticker = saveStickerAtt != null;
+    final canCreateSticker = !canSaveSticker && createStickerAtt != null;
 
     return Material(
       type: MaterialType.transparency,
@@ -270,8 +319,8 @@ class _MessageContextMenuPage extends StatelessWidget {
                                       ),
                                       if (showThreadAction)
                                         _MenuTile(
-                                          icon: Icons
-                                              .chat_bubble_outline_rounded,
+                                          icon:
+                                              Icons.chat_bubble_outline_rounded,
                                           label:
                                               l10n.message_menu_action_thread,
                                           onTap: () => _pop(
@@ -327,6 +376,33 @@ class _MessageContextMenuPage extends StatelessWidget {
                                             context,
                                             const MessageMenuResult(
                                               MessageMenuActionType.star,
+                                            ),
+                                          ),
+                                        ),
+                                      if (canCreateSticker)
+                                        _MenuTile(
+                                          icon: Icons
+                                              .add_photo_alternate_outlined,
+                                          label: l10n
+                                              .message_menu_action_create_sticker,
+                                          onTap: () => _pop(
+                                            context,
+                                            const MessageMenuResult(
+                                              MessageMenuActionType
+                                                  .createSticker,
+                                            ),
+                                          ),
+                                        ),
+                                      if (canSaveSticker)
+                                        _MenuTile(
+                                          icon: Icons.bookmark_add_outlined,
+                                          label: l10n
+                                              .message_menu_action_save_to_my_stickers,
+                                          onTap: () => _pop(
+                                            context,
+                                            const MessageMenuResult(
+                                              MessageMenuActionType
+                                                  .saveToMyStickers,
                                             ),
                                           ),
                                         ),
