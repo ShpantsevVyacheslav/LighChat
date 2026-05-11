@@ -23,6 +23,7 @@ import '../data/e2ee_decryption_orchestrator.dart';
 import '../data/e2ee_data_type_policy.dart';
 import '../data/e2ee_plaintext_cache.dart';
 import '../data/e2ee_runtime.dart';
+import '../data/composer_attachment_limits.dart';
 import '../data/e2ee_attachment_send_helper.dart';
 import '../data/composer_html_editing.dart';
 import '../data/chat_attachment_upload.dart';
@@ -182,6 +183,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   final Set<String> _selectedMessageIds = <String>{};
   bool _actionBusy = false;
   final List<XFile> _pendingAttachments = <XFile>[];
+
+  /// Снимок предсэндовых лимитов вложений (см. `composer_attachment_limits.dart`).
+  /// Пересчитывается при каждом изменении `_pendingAttachments` и при смене
+  /// `convIsE2ee` (e2ee переключился — лимит уменьшился с 20 до 5/96 МБ).
+  ComposerLimitsState? _composerLimitsState;
+  bool _lastConvIsE2ee = false;
+  int _composerLimitsSerial = 0;
 
   bool _sendBusy = false;
   bool _voiceSendBusy = false;
@@ -591,6 +599,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       _chatDraftDebounce?.cancel();
       _controller.clear();
       _pendingAttachments.clear();
+      _composerLimitsState = null;
+      _composerLimitsSerial += 1;
       _lastChatDraftScheduleKey = null;
       _chatDraftRestoredForConvId = null;
       _limit = 100;
@@ -1724,6 +1734,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                     child: GestureDetector(
                                       behavior: HitTestBehavior.translucent,
                                       onTap: () {
+                                        if (_stickersPanelOpen) {
+                                          _closeStickersPanel();
+                                        }
                                         FocusManager.instance.primaryFocus
                                             ?.unfocus();
                                       },
@@ -2273,7 +2286,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                   ),
                                   if (_selectedMessageIds.isEmpty) ...[
                                     const LiveLocationStopBanner(),
-                                    ChatComposer(
+                                    Builder(builder: (innerCtx) {
+                                      // Синхронизируем `_lastConvIsE2ee` с актуальным состоянием
+                                      // чата и пересчитываем лимиты, если переключилось (например,
+                                      // E2EE стало активным после установки epoch).
+                                      final convIsE2eeNow =
+                                          isConversationE2eeActive(conv?.data);
+                                      if (convIsE2eeNow != _lastConvIsE2ee) {
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                          if (!mounted) return;
+                                          _lastConvIsE2ee = convIsE2eeNow;
+                                          _recomputeComposerLimits();
+                                        });
+                                      }
+                                      return ChatComposer(
                                       controller: _controller,
                                       focusNode: _composerFocusNode,
                                       stickersPanelOpen: _stickersPanelOpen,
@@ -2376,6 +2403,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                           () => _pendingAttachments.removeAt(i),
                                         );
                                         _scheduleChatDraftSave();
+                                        _recomputeComposerLimits();
                                       },
                                       onEditPending: (i) async {
                                         if (i < 0 ||
@@ -2450,6 +2478,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                           });
                                           _controller.text = edited.caption;
                                           _scheduleChatDraftSave();
+                                          _recomputeComposerLimits();
                                           return;
                                         }
 
@@ -2476,6 +2505,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                           });
                                           _controller.text = edited.caption;
                                           _scheduleChatDraftSave();
+                                          _recomputeComposerLimits();
                                         }
                                       },
                                       attachmentsEnabled:
@@ -2523,7 +2553,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                       onCloseFormattingToolbar: () => setState(
                                         () => _composerFormattingOpen = false,
                                       ),
-                                    ),
+                                      limitsState: _composerLimitsState,
+                                      sendBlockedByLimits:
+                                          _composerLimitsState?.isOverLimit ==
+                                          true,
+                                    );
+                                    }),
                                     Builder(
                                       builder: (context) {
                                         final keyboardInset =
@@ -3071,6 +3106,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     }
     setState(() => _pendingAttachments.addAll(files));
     _scheduleChatDraftSave();
+    _recomputeComposerLimits();
+  }
+
+  /// Пересчёт лимитов вложений для текущего черновика.
+  ///
+  /// Async из-за чтения `XFile.length()` (нужно только для E2EE-чатов, где
+  /// есть лимит на суммарный размер). Через serial-counter защищаемся от
+  /// гонок: если за время `await` пользователь успел добавить/удалить ещё —
+  /// результат пред-пересчёта молча отбрасываем.
+  void _recomputeComposerLimits() {
+    final limits = ComposerAttachmentLimits.forChat(isE2ee: _lastConvIsE2ee);
+    final filesSnapshot = List<XFile>.unmodifiable(_pendingAttachments);
+    final mySerial = ++_composerLimitsSerial;
+    unawaited(() async {
+      final state = await computeComposerLimitsState(filesSnapshot, limits);
+      if (!mounted || mySerial != _composerLimitsSerial) return;
+      setState(() => _composerLimitsState = state);
+    }());
   }
 
   void _handleDroppedText(String text) {
@@ -3085,6 +3138,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       if (payload.files.isNotEmpty) {
         setState(() => _pendingAttachments.addAll(payload.files));
         _scheduleChatDraftSave();
+        _recomputeComposerLimits();
       }
       final pastedText = payload.text ?? '';
       if (pastedText.trim().isNotEmpty) {
@@ -4244,6 +4298,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             );
         setState(() {
           _pendingAttachments.clear();
+          _composerLimitsState = null;
           _controller.clear();
           _replyingTo = null;
           _composerFormattingOpen = false;
@@ -4261,6 +4316,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       final restoreFormatting = _composerFormattingOpen;
       setState(() {
         _pendingAttachments.clear();
+        _composerLimitsState = null;
         _controller.clear();
         _replyingTo = null;
         _composerFormattingOpen = false;
@@ -4289,6 +4345,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             _replyingTo = restoreReply;
             _composerFormattingOpen = restoreFormatting;
           });
+          _recomputeComposerLimits();
           _toast(AppLocalizations.of(context)!.chat_send_failed(e));
         }
         return;
@@ -4959,18 +5016,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               if (!mounted || list.isEmpty) return;
               setState(() => _pendingAttachments.addAll(list));
               _scheduleChatDraftSave();
+              _recomputeComposerLimits();
               break;
             case 'camera_photo':
               final x = await picker.pickImage(source: ImageSource.camera);
               if (!mounted || x == null) return;
               setState(() => _pendingAttachments.add(x));
               _scheduleChatDraftSave();
+              _recomputeComposerLimits();
               break;
             case 'camera_video':
               final xv = await picker.pickVideo(source: ImageSource.camera);
               if (!mounted || xv == null) return;
               setState(() => _pendingAttachments.add(xv));
               _scheduleChatDraftSave();
+              _recomputeComposerLimits();
               break;
             default:
               break;
@@ -4995,6 +5055,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           if (add.isNotEmpty) {
             setState(() => _pendingAttachments.addAll(add));
             _scheduleChatDraftSave();
+            _recomputeComposerLimits();
           }
         } catch (e) {
           if (mounted) {

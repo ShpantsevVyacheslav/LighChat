@@ -2337,8 +2337,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
 
                         return GestureDetector(
                           behavior: HitTestBehavior.translucent,
-                          onTap: () =>
-                              FocusManager.instance.primaryFocus?.unfocus(),
+                          onTap: () {
+                            if (_stickersPanelOpen) {
+                              _closeStickersPanel();
+                            }
+                            FocusManager.instance.primaryFocus?.unfocus();
+                          },
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
