@@ -7955,4 +7955,59 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get chat_preview_attachment => 'Тіркеме';
+
+  @override
+  String get contacts_disclosure_title => 'LighChat-та таныстарды табу';
+
+  @override
+  String get contacts_disclosure_body =>
+      'LighChat телефон нөмірлері мен email-мекенжайларды мекенжай кітабыңыздан оқиды, оларды хэштейді және қолданбаны пайдаланатын контактілерді көрсету үшін серверімізбен тексереді. Контактілердің өзі ешқайда сақталмайды.';
+
+  @override
+  String get contacts_disclosure_allow => 'Рұқсат беру';
+
+  @override
+  String get contacts_disclosure_deny => 'Қазір емес';
+
+  @override
+  String get report_title => 'Шағым жасау';
+
+  @override
+  String get report_subtitle_message => 'Хабарламаға шағым';
+
+  @override
+  String get report_subtitle_user => 'Пайдаланушыға шағым';
+
+  @override
+  String get report_reason_spam => 'Спам';
+
+  @override
+  String get report_reason_offensive => 'Қорлайтын мазмұн';
+
+  @override
+  String get report_reason_violence => 'Зорлық-зомбылық немесе қорқыту';
+
+  @override
+  String get report_reason_fraud => 'Алаяқтық';
+
+  @override
+  String get report_reason_other => 'Басқа';
+
+  @override
+  String get report_comment_hint => 'Қосымша мәліметтер (міндетті емес)';
+
+  @override
+  String get report_submit => 'Жіберу';
+
+  @override
+  String get report_success => 'Шағым жіберілді. Рахмет!';
+
+  @override
+  String get report_error => 'Шағымды жіберу мүмкін болмады';
+
+  @override
+  String get message_menu_action_report => 'Шағым жасау';
+
+  @override
+  String get partner_profile_menu_report => 'Пайдаланушыға шағым';
 }

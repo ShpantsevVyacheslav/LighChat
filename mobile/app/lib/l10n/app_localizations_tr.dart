@@ -7935,4 +7935,59 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get chat_preview_attachment => 'Ek';
+
+  @override
+  String get contacts_disclosure_title => 'LighChat\'ta tanıdıkları bul';
+
+  @override
+  String get contacts_disclosure_body =>
+      'LighChat, adres defterinizdeki telefon numaralarını ve e-posta adreslerini okur, bunları hash\'ler ve hangi kişilerinizin uygulamayı kullandığını göstermek için sunucumuzla karşılaştırır. Kişileriniz asla sunucularımızda saklanmaz.';
+
+  @override
+  String get contacts_disclosure_allow => 'İzin Ver';
+
+  @override
+  String get contacts_disclosure_deny => 'Şimdi değil';
+
+  @override
+  String get report_title => 'Şikayet Et';
+
+  @override
+  String get report_subtitle_message => 'Mesajı şikayet et';
+
+  @override
+  String get report_subtitle_user => 'Kullanıcıyı şikayet et';
+
+  @override
+  String get report_reason_spam => 'Spam';
+
+  @override
+  String get report_reason_offensive => 'Rahatsız edici içerik';
+
+  @override
+  String get report_reason_violence => 'Şiddet veya tehdit';
+
+  @override
+  String get report_reason_fraud => 'Dolandırıcılık';
+
+  @override
+  String get report_reason_other => 'Diğer';
+
+  @override
+  String get report_comment_hint => 'Ek ayrıntılar (isteğe bağlı)';
+
+  @override
+  String get report_submit => 'Gönder';
+
+  @override
+  String get report_success => 'Şikayet gönderildi. Teşekkürler!';
+
+  @override
+  String get report_error => 'Şikayet gönderilemedi';
+
+  @override
+  String get message_menu_action_report => 'Şikayet Et';
+
+  @override
+  String get partner_profile_menu_report => 'Kullanıcıyı şikayet et';
 }

@@ -34,6 +34,7 @@ import '../data/reply_preview_builder.dart';
 import '../data/chat_attachment_upload.dart';
 import '../data/chat_outbox_attachment_notifier.dart';
 import 'message_context_menu.dart';
+import 'report_sheet.dart';
 import '../data/chat_message_search.dart';
 import '../data/user_block_providers.dart';
 import '../data/composer_clipboard_paste.dart';
@@ -1745,6 +1746,16 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
       case MessageMenuActionType.outboxRetry:
       case MessageMenuActionType.outboxCancel:
         break;
+      case MessageMenuActionType.report:
+        if (!mounted) return;
+        // ignore: use_build_context_synchronously — mounted checked above
+        await showReportSheet(
+          context,
+          reportedUserId: message.senderId,
+          conversationId: widget.conversationId,
+          messageId: message.id,
+          messageText: message.text,
+        );
     }
   }
 

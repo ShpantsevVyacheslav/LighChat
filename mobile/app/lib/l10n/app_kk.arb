@@ -4038,4 +4038,76 @@
   "legal_title_children": "Балалар саясаты",
   "legal_title_moderation": "Контентті модерациялау саясаты",
   "legal_title_aup": "Қолайлы пайдалану саясаты"
+  "contacts_disclosure_title": "LighChat-та таныстарды табу",
+  "@contacts_disclosure_title": {
+    "description": "Contacts prominent disclosure dialog title"
+  },
+  "contacts_disclosure_body": "LighChat телефон нөмірлері мен email-мекенжайларды мекенжай кітабыңыздан оқиды, оларды хэштейді және қолданбаны пайдаланатын контактілерді көрсету үшін серверімізбен тексереді. Контактілердің өзі ешқайда сақталмайды.",
+  "@contacts_disclosure_body": {
+    "description": "Contacts prominent disclosure dialog body"
+  },
+  "contacts_disclosure_allow": "Рұқсат беру",
+  "@contacts_disclosure_allow": {
+    "description": "Contacts disclosure allow button"
+  },
+  "contacts_disclosure_deny": "Қазір емес",
+  "@contacts_disclosure_deny": {
+    "description": "Contacts disclosure deny button"
+  },
+  "report_title": "Шағым жасау",
+  "@report_title": {
+    "description": "report title"
+  },
+  "report_subtitle_message": "Хабарламаға шағым",
+  "@report_subtitle_message": {
+    "description": "report subtitle message"
+  },
+  "report_subtitle_user": "Пайдаланушыға шағым",
+  "@report_subtitle_user": {
+    "description": "report subtitle user"
+  },
+  "report_reason_spam": "Спам",
+  "@report_reason_spam": {
+    "description": "report reason spam"
+  },
+  "report_reason_offensive": "Қорлайтын мазмұн",
+  "@report_reason_offensive": {
+    "description": "report reason offensive"
+  },
+  "report_reason_violence": "Зорлық-зомбылық немесе қорқыту",
+  "@report_reason_violence": {
+    "description": "report reason violence"
+  },
+  "report_reason_fraud": "Алаяқтық",
+  "@report_reason_fraud": {
+    "description": "report reason fraud"
+  },
+  "report_reason_other": "Басқа",
+  "@report_reason_other": {
+    "description": "report reason other"
+  },
+  "report_comment_hint": "Қосымша мәліметтер (міндетті емес)",
+  "@report_comment_hint": {
+    "description": "report comment hint"
+  },
+  "report_submit": "Жіберу",
+  "@report_submit": {
+    "description": "report submit"
+  },
+  "report_success": "Шағым жіберілді. Рахмет!",
+  "@report_success": {
+    "description": "report success"
+  },
+  "report_error": "Шағымды жіберу мүмкін болмады",
+  "@report_error": {
+    "description": "report error"
+  },
+  "message_menu_action_report": "Шағым жасау",
+  "@message_menu_action_report": {
+    "description": "message menu action report"
+  },
+  "partner_profile_menu_report": "Пайдаланушыға шағым",
+  "@partner_profile_menu_report": {
+    "description": "partner profile menu report"
+  }
 }

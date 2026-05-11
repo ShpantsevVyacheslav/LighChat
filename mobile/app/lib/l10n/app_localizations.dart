@@ -13953,6 +13953,114 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Вложение'**
   String get chat_preview_attachment;
+
+  /// Contacts prominent disclosure dialog title
+  ///
+  /// In ru, this message translates to:
+  /// **'Поиск знакомых в LighChat'**
+  String get contacts_disclosure_title;
+
+  /// Contacts prominent disclosure dialog body
+  ///
+  /// In ru, this message translates to:
+  /// **'LighChat считывает телефонные номера и email-адреса из вашей адресной книги, хэширует их и сверяет с нашим сервером, чтобы показать, кто из ваших контактов уже пользуется приложением. Сами контакты нигде не сохраняются.'**
+  String get contacts_disclosure_body;
+
+  /// Contacts disclosure allow button
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешить'**
+  String get contacts_disclosure_allow;
+
+  /// Contacts disclosure deny button
+  ///
+  /// In ru, this message translates to:
+  /// **'Не сейчас'**
+  String get contacts_disclosure_deny;
+
+  /// report title
+  ///
+  /// In ru, this message translates to:
+  /// **'Пожаловаться'**
+  String get report_title;
+
+  /// report subtitle message
+  ///
+  /// In ru, this message translates to:
+  /// **'На сообщение'**
+  String get report_subtitle_message;
+
+  /// report subtitle user
+  ///
+  /// In ru, this message translates to:
+  /// **'На пользователя'**
+  String get report_subtitle_user;
+
+  /// report reason spam
+  ///
+  /// In ru, this message translates to:
+  /// **'Спам'**
+  String get report_reason_spam;
+
+  /// report reason offensive
+  ///
+  /// In ru, this message translates to:
+  /// **'Оскорбительный контент'**
+  String get report_reason_offensive;
+
+  /// report reason violence
+  ///
+  /// In ru, this message translates to:
+  /// **'Насилие или угрозы'**
+  String get report_reason_violence;
+
+  /// report reason fraud
+  ///
+  /// In ru, this message translates to:
+  /// **'Мошенничество'**
+  String get report_reason_fraud;
+
+  /// report reason other
+  ///
+  /// In ru, this message translates to:
+  /// **'Другое'**
+  String get report_reason_other;
+
+  /// report comment hint
+  ///
+  /// In ru, this message translates to:
+  /// **'Дополнительные сведения (необязательно)'**
+  String get report_comment_hint;
+
+  /// report submit
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить'**
+  String get report_submit;
+
+  /// report success
+  ///
+  /// In ru, this message translates to:
+  /// **'Жалоба отправлена. Спасибо!'**
+  String get report_success;
+
+  /// report error
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось отправить жалобу'**
+  String get report_error;
+
+  /// message menu action report
+  ///
+  /// In ru, this message translates to:
+  /// **'Пожаловаться'**
+  String get message_menu_action_report;
+
+  /// partner profile menu report
+  ///
+  /// In ru, this message translates to:
+  /// **'Пожаловаться на пользователя'**
+  String get partner_profile_menu_report;
 }
 
 class _AppLocalizationsDelegate

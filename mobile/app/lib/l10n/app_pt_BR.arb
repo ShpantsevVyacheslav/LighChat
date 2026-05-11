@@ -4038,4 +4038,76 @@
   "legal_title_children": "Política para Crianças",
   "legal_title_moderation": "Política de Moderação de Conteúdo",
   "legal_title_aup": "Política de Uso Aceitável"
+  "contacts_disclosure_title": "Encontrar amigos no LighChat",
+  "@contacts_disclosure_title": {
+    "description": "Contacts prominent disclosure dialog title"
+  },
+  "contacts_disclosure_body": "O LighChat lê números de telefone e endereços de e-mail do seu livro de endereços, os hasheia e os verifica em nosso servidor para mostrar quais dos seus contatos já usam o aplicativo. Seus contatos nunca são armazenados em nossos servidores.",
+  "@contacts_disclosure_body": {
+    "description": "Contacts prominent disclosure dialog body"
+  },
+  "contacts_disclosure_allow": "Permitir",
+  "@contacts_disclosure_allow": {
+    "description": "Contacts disclosure allow button"
+  },
+  "contacts_disclosure_deny": "Agora não",
+  "@contacts_disclosure_deny": {
+    "description": "Contacts disclosure deny button"
+  },
+  "report_title": "Denunciar",
+  "@report_title": {
+    "description": "report title"
+  },
+  "report_subtitle_message": "Denunciar mensagem",
+  "@report_subtitle_message": {
+    "description": "report subtitle message"
+  },
+  "report_subtitle_user": "Denunciar usuário",
+  "@report_subtitle_user": {
+    "description": "report subtitle user"
+  },
+  "report_reason_spam": "Spam",
+  "@report_reason_spam": {
+    "description": "report reason spam"
+  },
+  "report_reason_offensive": "Conteúdo ofensivo",
+  "@report_reason_offensive": {
+    "description": "report reason offensive"
+  },
+  "report_reason_violence": "Violência ou ameaças",
+  "@report_reason_violence": {
+    "description": "report reason violence"
+  },
+  "report_reason_fraud": "Fraude ou golpe",
+  "@report_reason_fraud": {
+    "description": "report reason fraud"
+  },
+  "report_reason_other": "Outro",
+  "@report_reason_other": {
+    "description": "report reason other"
+  },
+  "report_comment_hint": "Detalhes adicionais (opcional)",
+  "@report_comment_hint": {
+    "description": "report comment hint"
+  },
+  "report_submit": "Enviar",
+  "@report_submit": {
+    "description": "report submit"
+  },
+  "report_success": "Denúncia enviada. Obrigado!",
+  "@report_success": {
+    "description": "report success"
+  },
+  "report_error": "Falha ao enviar denúncia",
+  "@report_error": {
+    "description": "report error"
+  },
+  "message_menu_action_report": "Denunciar",
+  "@message_menu_action_report": {
+    "description": "message menu action report"
+  },
+  "partner_profile_menu_report": "Denunciar usuário",
+  "@partner_profile_menu_report": {
+    "description": "partner profile menu report"
+  }
 }

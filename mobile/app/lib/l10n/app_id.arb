@@ -4038,4 +4038,76 @@
   "legal_title_children": "Kebijakan Anak",
   "legal_title_moderation": "Kebijakan Moderasi Konten",
   "legal_title_aup": "Kebijakan Penggunaan yang Dapat Diterima"
+  "contacts_disclosure_title": "Temukan teman di LighChat",
+  "@contacts_disclosure_title": {
+    "description": "Contacts prominent disclosure dialog title"
+  },
+  "contacts_disclosure_body": "LighChat membaca nomor telepon dan alamat email dari buku alamat Anda, mem-hash-nya, dan memeriksanya dengan server kami untuk menampilkan kontak mana yang sudah menggunakan aplikasi ini. Kontak Anda tidak pernah disimpan di server kami.",
+  "@contacts_disclosure_body": {
+    "description": "Contacts prominent disclosure dialog body"
+  },
+  "contacts_disclosure_allow": "Izinkan",
+  "@contacts_disclosure_allow": {
+    "description": "Contacts disclosure allow button"
+  },
+  "contacts_disclosure_deny": "Tidak sekarang",
+  "@contacts_disclosure_deny": {
+    "description": "Contacts disclosure deny button"
+  },
+  "report_title": "Laporkan",
+  "@report_title": {
+    "description": "report title"
+  },
+  "report_subtitle_message": "Laporkan pesan",
+  "@report_subtitle_message": {
+    "description": "report subtitle message"
+  },
+  "report_subtitle_user": "Laporkan pengguna",
+  "@report_subtitle_user": {
+    "description": "report subtitle user"
+  },
+  "report_reason_spam": "Spam",
+  "@report_reason_spam": {
+    "description": "report reason spam"
+  },
+  "report_reason_offensive": "Konten menyinggung",
+  "@report_reason_offensive": {
+    "description": "report reason offensive"
+  },
+  "report_reason_violence": "Kekerasan atau ancaman",
+  "@report_reason_violence": {
+    "description": "report reason violence"
+  },
+  "report_reason_fraud": "Penipuan",
+  "@report_reason_fraud": {
+    "description": "report reason fraud"
+  },
+  "report_reason_other": "Lainnya",
+  "@report_reason_other": {
+    "description": "report reason other"
+  },
+  "report_comment_hint": "Detail tambahan (opsional)",
+  "@report_comment_hint": {
+    "description": "report comment hint"
+  },
+  "report_submit": "Kirim",
+  "@report_submit": {
+    "description": "report submit"
+  },
+  "report_success": "Laporan terkirim. Terima kasih!",
+  "@report_success": {
+    "description": "report success"
+  },
+  "report_error": "Gagal mengirim laporan",
+  "@report_error": {
+    "description": "report error"
+  },
+  "message_menu_action_report": "Laporkan",
+  "@message_menu_action_report": {
+    "description": "message menu action report"
+  },
+  "partner_profile_menu_report": "Laporkan pengguna",
+  "@partner_profile_menu_report": {
+    "description": "partner profile menu report"
+  }
 }

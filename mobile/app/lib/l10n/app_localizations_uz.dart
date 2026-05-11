@@ -7976,4 +7976,59 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get chat_preview_attachment => 'Ilova';
+
+  @override
+  String get contacts_disclosure_title => 'LighChat\'da tanishlarni topish';
+
+  @override
+  String get contacts_disclosure_body =>
+      'LighChat manzil kitobingizdan telefon raqamlari va elektron pochta manzillarini o\'qiydi, ularni hash qiladi va qaysi kontaktlaringiz ilovadan foydalanayotganini ko\'rsatish uchun serverimiz bilan tekshiradi. Kontaktlarning o\'zi hech qaerda saqlanmaydi.';
+
+  @override
+  String get contacts_disclosure_allow => 'Ruxsat berish';
+
+  @override
+  String get contacts_disclosure_deny => 'Hozir emas';
+
+  @override
+  String get report_title => 'Shikoyat qilish';
+
+  @override
+  String get report_subtitle_message => 'Xabar haqida shikoyat';
+
+  @override
+  String get report_subtitle_user => 'Foydalanuvchi haqida shikoyat';
+
+  @override
+  String get report_reason_spam => 'Spam';
+
+  @override
+  String get report_reason_offensive => 'Haqoratli kontent';
+
+  @override
+  String get report_reason_violence => 'Zo\'ravonlik yoki tahdidlar';
+
+  @override
+  String get report_reason_fraud => 'Firibgarlik';
+
+  @override
+  String get report_reason_other => 'Boshqa';
+
+  @override
+  String get report_comment_hint => 'Qo\'shimcha ma\'lumotlar (ixtiyoriy)';
+
+  @override
+  String get report_submit => 'Yuborish';
+
+  @override
+  String get report_success => 'Shikoyat yuborildi. Rahmat!';
+
+  @override
+  String get report_error => 'Shikoyatni yuborib bo\'lmadi';
+
+  @override
+  String get message_menu_action_report => 'Shikoyat';
+
+  @override
+  String get partner_profile_menu_report => 'Foydalanuvchi haqida shikoyat';
 }

@@ -44,6 +44,7 @@ enum MessageMenuActionType {
   react,
   outboxRetry,
   outboxCancel,
+  report,
 }
 
 class MessageMenuResult {
@@ -445,6 +446,26 @@ class _MessageContextMenuPage extends StatelessWidget {
                                             context,
                                             const MessageMenuResult(
                                               MessageMenuActionType.delete,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      if (!isCurrentUser) ...[
+                                        Divider(
+                                          height: 16,
+                                          thickness: 1,
+                                          color: Colors.white.withValues(
+                                            alpha: 0.10,
+                                          ),
+                                        ),
+                                        _MenuTile(
+                                          icon: Icons.flag_outlined,
+                                          label: l10n.message_menu_action_report,
+                                          danger: true,
+                                          onTap: () => _pop(
+                                            context,
+                                            const MessageMenuResult(
+                                              MessageMenuActionType.report,
                                             ),
                                           ),
                                         ),

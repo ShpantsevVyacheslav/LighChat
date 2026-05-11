@@ -37,6 +37,7 @@ import {
 } from './context-menu/message-focus-hole';
 import { GroupMessageSenderMenu } from './GroupMessageSenderMenu';
 import { isGridGalleryAttachment, isGridGalleryVideo } from '@/components/chat/attachment-visual';
+import { ReportMessageDialog } from './report-message-dialog';
 
 const USER_COLORS = [
     'text-red-500', 'text-blue-500', 'text-green-500', 'text-yellow-500',
@@ -180,6 +181,7 @@ const ChatMessageItemComponent = ({
     
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [menuPosition, setMenuPosition] = useState<MessageContextMenuPosition | null>(null);
+    const [reportOpen, setReportOpen] = useState(false);
 
     const closeContextMenu = () => {
         setIsMenuOpen(false);
@@ -482,6 +484,9 @@ const ChatMessageItemComponent = ({
             }
             case 'star':
                 if (onToggleStar) onToggleStar(message.id, !isStarred);
+                break;
+            case 'report':
+                if (!isCurrentUser) setReportOpen(true);
                 break;
         }
     };
@@ -1022,6 +1027,17 @@ const ChatMessageItemComponent = ({
                 showThreadAction={!isDeleted && !isThreadMessage && !!onOpenThread}
                 onAction={onMenuAction}
             />
+            {!isCurrentUser && reportOpen && (
+                <ReportMessageDialog
+                    open={reportOpen}
+                    onOpenChange={setReportOpen}
+                    conversationId={conversation.id}
+                    messageId={message.id}
+                    messageSenderId={message.senderId}
+                    messageSenderName={allUsers.find(u => u.id === message.senderId)?.name}
+                    messageText={message.text ?? undefined}
+                />
+            )}
         </div>
     );
 };

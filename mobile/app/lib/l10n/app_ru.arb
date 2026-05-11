@@ -4079,5 +4079,77 @@
   "chat_preview_attachment": "Вложение",
   "@chat_preview_attachment": {
     "description": "Chat list preview: chat_preview_attachment"
+  },
+  "contacts_disclosure_title": "Поиск знакомых в LighChat",
+  "@contacts_disclosure_title": {
+    "description": "Contacts prominent disclosure dialog title"
+  },
+  "contacts_disclosure_body": "LighChat считывает телефонные номера и email-адреса из вашей адресной книги, хэширует их и сверяет с нашим сервером, чтобы показать, кто из ваших контактов уже пользуется приложением. Сами контакты нигде не сохраняются.",
+  "@contacts_disclosure_body": {
+    "description": "Contacts prominent disclosure dialog body"
+  },
+  "contacts_disclosure_allow": "Разрешить",
+  "@contacts_disclosure_allow": {
+    "description": "Contacts disclosure allow button"
+  },
+  "contacts_disclosure_deny": "Не сейчас",
+  "@contacts_disclosure_deny": {
+    "description": "Contacts disclosure deny button"
+  },
+  "report_title": "Пожаловаться",
+  "@report_title": {
+    "description": "report title"
+  },
+  "report_subtitle_message": "На сообщение",
+  "@report_subtitle_message": {
+    "description": "report subtitle message"
+  },
+  "report_subtitle_user": "На пользователя",
+  "@report_subtitle_user": {
+    "description": "report subtitle user"
+  },
+  "report_reason_spam": "Спам",
+  "@report_reason_spam": {
+    "description": "report reason spam"
+  },
+  "report_reason_offensive": "Оскорбительный контент",
+  "@report_reason_offensive": {
+    "description": "report reason offensive"
+  },
+  "report_reason_violence": "Насилие или угрозы",
+  "@report_reason_violence": {
+    "description": "report reason violence"
+  },
+  "report_reason_fraud": "Мошенничество",
+  "@report_reason_fraud": {
+    "description": "report reason fraud"
+  },
+  "report_reason_other": "Другое",
+  "@report_reason_other": {
+    "description": "report reason other"
+  },
+  "report_comment_hint": "Дополнительные сведения (необязательно)",
+  "@report_comment_hint": {
+    "description": "report comment hint"
+  },
+  "report_submit": "Отправить",
+  "@report_submit": {
+    "description": "report submit"
+  },
+  "report_success": "Жалоба отправлена. Спасибо!",
+  "@report_success": {
+    "description": "report success"
+  },
+  "report_error": "Не удалось отправить жалобу",
+  "@report_error": {
+    "description": "report error"
+  },
+  "message_menu_action_report": "Пожаловаться",
+  "@message_menu_action_report": {
+    "description": "message menu action report"
+  },
+  "partner_profile_menu_report": "Пожаловаться на пользователя",
+  "@partner_profile_menu_report": {
+    "description": "partner profile menu report"
   }
 }

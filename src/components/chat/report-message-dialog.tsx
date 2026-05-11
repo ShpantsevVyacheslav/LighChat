@@ -97,6 +97,9 @@ export function ReportMessageDialog({
                 <SelectItem value="spam">{t('chat.moderation.reasonSpam')}</SelectItem>
                 <SelectItem value="harassment">{t('chat.moderation.reasonHarassment')}</SelectItem>
                 <SelectItem value="inappropriate">{t('chat.moderation.reasonInappropriate')}</SelectItem>
+                <SelectItem value="offensive">{t('chat.moderation.reasonOffensive')}</SelectItem>
+                <SelectItem value="violence">{t('chat.moderation.reasonViolence')}</SelectItem>
+                <SelectItem value="fraud">{t('chat.moderation.reasonFraud')}</SelectItem>
                 <SelectItem value="other">{t('chat.moderation.reasonOther')}</SelectItem>
               </SelectContent>
             </Select>

@@ -4038,4 +4038,76 @@
   "legal_title_children": "Bolalar siyosati",
   "legal_title_moderation": "Kontent moderatsiyasi siyosati",
   "legal_title_aup": "Qabul qilinadigan foydalanish siyosati"
+  "contacts_disclosure_title": "LighChat'da tanishlarni topish",
+  "@contacts_disclosure_title": {
+    "description": "Contacts prominent disclosure dialog title"
+  },
+  "contacts_disclosure_body": "LighChat manzil kitobingizdan telefon raqamlari va elektron pochta manzillarini o'qiydi, ularni hash qiladi va qaysi kontaktlaringiz ilovadan foydalanayotganini ko'rsatish uchun serverimiz bilan tekshiradi. Kontaktlarning o'zi hech qaerda saqlanmaydi.",
+  "@contacts_disclosure_body": {
+    "description": "Contacts prominent disclosure dialog body"
+  },
+  "contacts_disclosure_allow": "Ruxsat berish",
+  "@contacts_disclosure_allow": {
+    "description": "Contacts disclosure allow button"
+  },
+  "contacts_disclosure_deny": "Hozir emas",
+  "@contacts_disclosure_deny": {
+    "description": "Contacts disclosure deny button"
+  },
+  "report_title": "Shikoyat qilish",
+  "@report_title": {
+    "description": "report title"
+  },
+  "report_subtitle_message": "Xabar haqida shikoyat",
+  "@report_subtitle_message": {
+    "description": "report subtitle message"
+  },
+  "report_subtitle_user": "Foydalanuvchi haqida shikoyat",
+  "@report_subtitle_user": {
+    "description": "report subtitle user"
+  },
+  "report_reason_spam": "Spam",
+  "@report_reason_spam": {
+    "description": "report reason spam"
+  },
+  "report_reason_offensive": "Haqoratli kontent",
+  "@report_reason_offensive": {
+    "description": "report reason offensive"
+  },
+  "report_reason_violence": "Zo'ravonlik yoki tahdidlar",
+  "@report_reason_violence": {
+    "description": "report reason violence"
+  },
+  "report_reason_fraud": "Firibgarlik",
+  "@report_reason_fraud": {
+    "description": "report reason fraud"
+  },
+  "report_reason_other": "Boshqa",
+  "@report_reason_other": {
+    "description": "report reason other"
+  },
+  "report_comment_hint": "Qo'shimcha ma'lumotlar (ixtiyoriy)",
+  "@report_comment_hint": {
+    "description": "report comment hint"
+  },
+  "report_submit": "Yuborish",
+  "@report_submit": {
+    "description": "report submit"
+  },
+  "report_success": "Shikoyat yuborildi. Rahmat!",
+  "@report_success": {
+    "description": "report success"
+  },
+  "report_error": "Shikoyatni yuborib bo'lmadi",
+  "@report_error": {
+    "description": "report error"
+  },
+  "message_menu_action_report": "Shikoyat",
+  "@message_menu_action_report": {
+    "description": "message menu action report"
+  },
+  "partner_profile_menu_report": "Foydalanuvchi haqida shikoyat",
+  "@partner_profile_menu_report": {
+    "description": "partner profile menu report"
+  }
 }

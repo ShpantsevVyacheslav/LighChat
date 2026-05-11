@@ -7983,6 +7983,61 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get chat_preview_attachment => 'Anexo';
+
+  @override
+  String get contacts_disclosure_title => 'Encontrar amigos no LighChat';
+
+  @override
+  String get contacts_disclosure_body =>
+      'O LighChat lê números de telefone e endereços de e-mail do seu livro de endereços, os hasheia e os verifica em nosso servidor para mostrar quais dos seus contatos já usam o aplicativo. Seus contatos nunca são armazenados em nossos servidores.';
+
+  @override
+  String get contacts_disclosure_allow => 'Permitir';
+
+  @override
+  String get contacts_disclosure_deny => 'Agora não';
+
+  @override
+  String get report_title => 'Denunciar';
+
+  @override
+  String get report_subtitle_message => 'Denunciar mensagem';
+
+  @override
+  String get report_subtitle_user => 'Denunciar usuário';
+
+  @override
+  String get report_reason_spam => 'Spam';
+
+  @override
+  String get report_reason_offensive => 'Conteúdo ofensivo';
+
+  @override
+  String get report_reason_violence => 'Violência ou ameaças';
+
+  @override
+  String get report_reason_fraud => 'Fraude ou golpe';
+
+  @override
+  String get report_reason_other => 'Outro';
+
+  @override
+  String get report_comment_hint => 'Detalhes adicionais (opcional)';
+
+  @override
+  String get report_submit => 'Enviar';
+
+  @override
+  String get report_success => 'Denúncia enviada. Obrigado!';
+
+  @override
+  String get report_error => 'Falha ao enviar denúncia';
+
+  @override
+  String get message_menu_action_report => 'Denunciar';
+
+  @override
+  String get partner_profile_menu_report => 'Denunciar usuário';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -15955,4 +16010,59 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get chat_preview_attachment => 'Anexo';
+
+  @override
+  String get contacts_disclosure_title => 'Encontrar amigos no LighChat';
+
+  @override
+  String get contacts_disclosure_body =>
+      'O LighChat lê números de telefone e endereços de e-mail do seu livro de endereços, os hasheia e os verifica em nosso servidor para mostrar quais dos seus contatos já usam o aplicativo. Seus contatos nunca são armazenados em nossos servidores.';
+
+  @override
+  String get contacts_disclosure_allow => 'Permitir';
+
+  @override
+  String get contacts_disclosure_deny => 'Agora não';
+
+  @override
+  String get report_title => 'Denunciar';
+
+  @override
+  String get report_subtitle_message => 'Denunciar mensagem';
+
+  @override
+  String get report_subtitle_user => 'Denunciar usuário';
+
+  @override
+  String get report_reason_spam => 'Spam';
+
+  @override
+  String get report_reason_offensive => 'Conteúdo ofensivo';
+
+  @override
+  String get report_reason_violence => 'Violência ou ameaças';
+
+  @override
+  String get report_reason_fraud => 'Fraude ou golpe';
+
+  @override
+  String get report_reason_other => 'Outro';
+
+  @override
+  String get report_comment_hint => 'Detalhes adicionais (opcional)';
+
+  @override
+  String get report_submit => 'Enviar';
+
+  @override
+  String get report_success => 'Denúncia enviada. Obrigado!';
+
+  @override
+  String get report_error => 'Falha ao enviar denúncia';
+
+  @override
+  String get message_menu_action_report => 'Denunciar';
+
+  @override
+  String get partner_profile_menu_report => 'Denunciar usuário';
 }

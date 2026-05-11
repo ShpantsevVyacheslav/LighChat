@@ -4038,4 +4038,76 @@
   "legal_title_children": "Çocuk Politikası",
   "legal_title_moderation": "İçerik Moderasyon Politikası",
   "legal_title_aup": "Kabul Edilebilir Kullanım Politikası"
+  "contacts_disclosure_title": "LighChat'ta tanıdıkları bul",
+  "@contacts_disclosure_title": {
+    "description": "Contacts prominent disclosure dialog title"
+  },
+  "contacts_disclosure_body": "LighChat, adres defterinizdeki telefon numaralarını ve e-posta adreslerini okur, bunları hash'ler ve hangi kişilerinizin uygulamayı kullandığını göstermek için sunucumuzla karşılaştırır. Kişileriniz asla sunucularımızda saklanmaz.",
+  "@contacts_disclosure_body": {
+    "description": "Contacts prominent disclosure dialog body"
+  },
+  "contacts_disclosure_allow": "İzin Ver",
+  "@contacts_disclosure_allow": {
+    "description": "Contacts disclosure allow button"
+  },
+  "contacts_disclosure_deny": "Şimdi değil",
+  "@contacts_disclosure_deny": {
+    "description": "Contacts disclosure deny button"
+  },
+  "report_title": "Şikayet Et",
+  "@report_title": {
+    "description": "report title"
+  },
+  "report_subtitle_message": "Mesajı şikayet et",
+  "@report_subtitle_message": {
+    "description": "report subtitle message"
+  },
+  "report_subtitle_user": "Kullanıcıyı şikayet et",
+  "@report_subtitle_user": {
+    "description": "report subtitle user"
+  },
+  "report_reason_spam": "Spam",
+  "@report_reason_spam": {
+    "description": "report reason spam"
+  },
+  "report_reason_offensive": "Rahatsız edici içerik",
+  "@report_reason_offensive": {
+    "description": "report reason offensive"
+  },
+  "report_reason_violence": "Şiddet veya tehdit",
+  "@report_reason_violence": {
+    "description": "report reason violence"
+  },
+  "report_reason_fraud": "Dolandırıcılık",
+  "@report_reason_fraud": {
+    "description": "report reason fraud"
+  },
+  "report_reason_other": "Diğer",
+  "@report_reason_other": {
+    "description": "report reason other"
+  },
+  "report_comment_hint": "Ek ayrıntılar (isteğe bağlı)",
+  "@report_comment_hint": {
+    "description": "report comment hint"
+  },
+  "report_submit": "Gönder",
+  "@report_submit": {
+    "description": "report submit"
+  },
+  "report_success": "Şikayet gönderildi. Teşekkürler!",
+  "@report_success": {
+    "description": "report success"
+  },
+  "report_error": "Şikayet gönderilemedi",
+  "@report_error": {
+    "description": "report error"
+  },
+  "message_menu_action_report": "Şikayet Et",
+  "@message_menu_action_report": {
+    "description": "message menu action report"
+  },
+  "partner_profile_menu_report": "Kullanıcıyı şikayet et",
+  "@partner_profile_menu_report": {
+    "description": "partner profile menu report"
+  }
 }

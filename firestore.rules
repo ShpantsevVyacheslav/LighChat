@@ -1096,7 +1096,22 @@ service cloud.firestore {
 
     match /messageReports/{reportId} {
       allow read: if isAdmin();
-      allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.reporterId == request.auth.uid
+        // Prevent status / review fields from being set by the client
+        && request.resource.data.status == 'pending'
+        && !('reviewedBy' in request.resource.data)
+        && !('reviewedAt' in request.resource.data)
+        && !('actionTaken' in request.resource.data)
+        // Required fields must be present and non-empty
+        && request.resource.data.conversationId is string
+        && request.resource.data.conversationId.size() > 0
+        && request.resource.data.messageSenderId is string
+        && request.resource.data.messageSenderId.size() > 0
+        && request.resource.data.reason is string
+        && request.resource.data.reason in [
+             'spam','harassment','inappropriate','offensive','violence','fraud','other'
+           ];
       allow update: if isAdmin();
       allow delete: if false;
     }
