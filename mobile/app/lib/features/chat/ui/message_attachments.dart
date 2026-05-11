@@ -16,6 +16,7 @@ import '../data/secret_chat_media_open_service.dart';
 import '../data/video_circle_utils.dart';
 import 'chat_cached_network_image.dart';
 import 'chat_document_open.dart';
+import 'chat_glass_panel.dart';
 import 'message_video_attachment.dart';
 import 'message_video_circle_player.dart';
 import 'message_voice_attachment.dart';
@@ -915,46 +916,39 @@ class _FileRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              color: Colors.white.withValues(
-                alpha: scheme.brightness == Brightness.dark ? 0.06 : 0.18,
-              ),
-              border: Border.all(
-                color: Colors.white.withValues(
-                  alpha: scheme.brightness == Brightness.dark ? 0.12 : 0.30,
-                ),
-              ),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.insert_drive_file_rounded,
-                  color: scheme.onSurface.withValues(alpha: 0.70),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    att.name.isNotEmpty ? att.name : att.url,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
-                if (onTap != null)
+      child: ChatGlassPanel(
+        padding: EdgeInsets.zero,
+        borderRadius: const BorderRadius.all(Radius.circular(14)),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
                   Icon(
-                    Icons.open_in_new_rounded,
-                    size: 18,
-                    color: scheme.onSurface.withValues(alpha: 0.62),
+                    Icons.insert_drive_file_rounded,
+                    color: scheme.onSurface.withValues(alpha: 0.70),
                   ),
-              ],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      att.name.isNotEmpty ? att.name : att.url,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  if (onTap != null)
+                    Icon(
+                      Icons.open_in_new_rounded,
+                      size: 18,
+                      color: scheme.onSurface.withValues(alpha: 0.62),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -977,55 +971,48 @@ class _DocumentFileRow extends StatelessWidget {
     final subtitle = sizeLabel == null ? docType : '$docType · $sizeLabel';
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              color: Colors.white.withValues(
-                alpha: scheme.brightness == Brightness.dark ? 0.06 : 0.18,
-              ),
-              border: Border.all(
-                color: Colors.white.withValues(
-                  alpha: scheme.brightness == Brightness.dark ? 0.12 : 0.30,
-                ),
-              ),
-            ),
-            padding: const EdgeInsets.all(8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _DocumentThumbnail(att: att),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        att.name.isNotEmpty ? att.name : att.url,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: scheme.onSurface.withValues(alpha: 0.72),
-                          fontWeight: FontWeight.w600,
+      child: ChatGlassPanel(
+        padding: EdgeInsets.zero,
+        borderRadius: const BorderRadius.all(Radius.circular(14)),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _DocumentThumbnail(att: att),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          att.name.isNotEmpty ? att.name : att.url,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 3),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: scheme.onSurface.withValues(alpha: 0.72),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

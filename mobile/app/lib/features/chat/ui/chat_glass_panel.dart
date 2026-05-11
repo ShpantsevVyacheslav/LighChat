@@ -3,11 +3,19 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 /// Размытый тёмный фон как у [ChatHeader] / капсулы даты — читаемость на обоях.
-/// Используется для опроса, системных карточек (геолокация и т.п.).
+/// Используется для опроса, системных карточек (геолокация и т.п.), а также
+/// документов и голосовых сообщений (визуальный паритет с опросом).
 class ChatGlassPanel extends StatelessWidget {
-  const ChatGlassPanel({super.key, required this.child});
+  const ChatGlassPanel({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(12),
+    this.borderRadius = const BorderRadius.all(Radius.circular(16)),
+  });
 
   final Widget child;
+  final EdgeInsetsGeometry padding;
+  final BorderRadius borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -20,12 +28,12 @@ class ChatGlassPanel extends StatelessWidget {
     );
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: borderRadius,
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(12),
+          padding: padding,
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.26),
             border: Border.all(color: Colors.white.withValues(alpha: 0.14)),

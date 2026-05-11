@@ -6,6 +6,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import 'message_audio_waveform.dart';
+import 'chat_glass_panel.dart';
 import 'chat_vlc_network_media.dart';
 import '../../../l10n/app_localizations.dart';
 import '../data/voice_transcription_callables.dart';
@@ -144,23 +145,13 @@ class _WebStyleVoiceRow extends StatelessWidget {
     final metaColor = isMine
         ? scheme.onPrimary.withValues(alpha: 0.7)
         : scheme.onSurface.withValues(alpha: 0.55);
-    final borderColor = isMine
-        ? scheme.onPrimary.withValues(alpha: 0.18)
-        : scheme.onSurface.withValues(alpha: 0.16);
-    final fillColor = isMine
-        ? scheme.primary.withValues(alpha: 0.16)
-        : scheme.surfaceContainerHighest.withValues(alpha: 0.30);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 300),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: fillColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: borderColor),
-          ),
+        child: ChatGlassPanel(
+          padding: EdgeInsets.zero,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
