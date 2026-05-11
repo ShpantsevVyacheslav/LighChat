@@ -443,6 +443,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     if (views.isEmpty) return;
     final view = views.first;
     final height = view.viewInsets.bottom / view.devicePixelRatio;
+    // Сбрасываем floor СИНХРОННО как только клавиатура догнала
+    // удерживаемую высоту — даёт seamless-переход panel→keyboard
+    // без поздних рывков composer'а при срабатывании fallback-таймера.
+    if (_stickersTransitionFooterFloor > 0 &&
+        height >= _stickersTransitionFooterFloor - 1) {
+      _stickersTransitionFooterTimer?.cancel();
+      if (mounted) {
+        setState(() => _stickersTransitionFooterFloor = 0);
+      } else {
+        _stickersTransitionFooterFloor = 0;
+      }
+    }
     if (height <= 0 || (height - _lastKeyboardHeight).abs() < 0.5) return;
     if (!mounted) {
       _lastKeyboardHeight = height;
@@ -2600,12 +2612,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                           keyboardInset,
                                           _stickersTransitionFooterFloor,
                                         ].reduce((a, b) => a > b ? a : b);
+                                        // AnimatedSize гладко интерполирует
+                                        // ЛЮБОЕ изменение footerHeight (≈180 ms,
+                                        // easeOutCubic) — страховка от рывков
+                                        // при разной высоте клавиатуры (с/без
+                                        // predictive bar), при истечении floor
+                                        // и других edge-кейсах. На штатном
+                                        // keyboard↔panel переходе footer
+                                        // фактически константен и анимация
+                                        // ничего не делает.
                                         if (!_stickersPanelOpen) {
-                                          if (footerHeight <= 0) {
-                                            return const SizedBox.shrink();
-                                          }
-                                          return SizedBox(
-                                            height: footerHeight,
+                                          return AnimatedSize(
+                                            duration: const Duration(
+                                              milliseconds: 180,
+                                            ),
+                                            curve: Curves.easeOutCubic,
+                                            alignment: Alignment.topCenter,
+                                            child: footerHeight <= 0
+                                                ? const SizedBox.shrink()
+                                                : SizedBox(
+                                                    height: footerHeight,
+                                                  ),
                                           );
                                         }
                                         final stickerRepo = ref.read(
@@ -2663,9 +2690,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                         // рендерится на полной высоте, низ
                                         // прячется за клавиатурой (она
                                         // системно поверх Flutter-view).
-                                        return SizedBox(
-                                          height: footerHeight,
-                                          child: panel,
+                                        return AnimatedSize(
+                                          duration: const Duration(
+                                            milliseconds: 180,
+                                          ),
+                                          curve: Curves.easeOutCubic,
+                                          alignment: Alignment.topCenter,
+                                          child: SizedBox(
+                                            height: footerHeight,
+                                            child: panel,
+                                          ),
                                         );
                                       },
                                     ),
@@ -4769,16 +4803,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   /// Удерживает «пол» под composer'ом на время переключения keyboard↔panel,
   /// чтобы поле ввода не уезжало вниз и не было видно «прыжка» содержимого
-  /// чата (Bug #1/#3). Через [hold] таймер сбрасывает пол до 0.
+  /// чата. [hold] — fallback-таймер на случай, если клавиатура так и не
+  /// поднимется. Основной сценарий очистки — `didChangeMetrics`
+  /// (см. ниже): как только kbInset догнал floor, floor сбрасывается
+  /// синхронно, и composer не дёргается.
   void _holdStickersFooterTransition(
     double height, {
-    Duration hold = const Duration(milliseconds: 380),
+    Duration hold = const Duration(milliseconds: 800),
   }) {
     if (!mounted || height <= 0) return;
     _stickersTransitionFooterTimer?.cancel();
     setState(() => _stickersTransitionFooterFloor = height);
     _stickersTransitionFooterTimer = Timer(hold, () {
       if (!mounted) return;
+      // Fallback: клавиатура не поднялась за hold ms (например,
+      // пользователь свернул чат или редактор отказал в фокусе).
+      // Сбрасываем floor мягко: AnimatedSize ниже сгладит изменение.
       setState(() => _stickersTransitionFooterFloor = 0);
     });
   }

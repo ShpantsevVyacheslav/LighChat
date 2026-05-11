@@ -232,6 +232,15 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
     if (views.isEmpty) return;
     final view = views.first;
     final height = view.viewInsets.bottom / view.devicePixelRatio;
+    if (_stickersTransitionFooterFloor > 0 &&
+        height >= _stickersTransitionFooterFloor - 1) {
+      _stickersTransitionFooterTimer?.cancel();
+      if (mounted) {
+        setState(() => _stickersTransitionFooterFloor = 0);
+      } else {
+        _stickersTransitionFooterFloor = 0;
+      }
+    }
     if (height <= 0 || (height - _lastKeyboardHeight).abs() < 0.5) return;
     if (!mounted) {
       _lastKeyboardHeight = height;
@@ -690,10 +699,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
   }
 
   /// См. chat_screen `_holdStickersFooterTransition` — резерв «пола»
-  /// под composer'ом на время keyboard↔panel перехода.
+  /// под composer'ом на время keyboard↔panel перехода. Floor сбрасывается
+  /// через `_captureKeyboardHeight`, как только kbInset догнал floor;
+  /// fallback-таймер только страхует случай, когда клавиатура не поднялась.
   void _holdStickersFooterTransition(
     double height, {
-    Duration hold = const Duration(milliseconds: 380),
+    Duration hold = const Duration(milliseconds: 800),
   }) {
     if (!mounted || height <= 0) return;
     _stickersTransitionFooterTimer?.cancel();
@@ -2830,10 +2841,16 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                       _stickersTransitionFooterFloor,
                                     ].reduce((a, b) => a > b ? a : b);
                                     if (!_stickersPanelOpen) {
-                                      if (footerHeight <= 0) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      return SizedBox(height: footerHeight);
+                                      return AnimatedSize(
+                                        duration: const Duration(
+                                          milliseconds: 180,
+                                        ),
+                                        curve: Curves.easeOutCubic,
+                                        alignment: Alignment.topCenter,
+                                        child: footerHeight <= 0
+                                            ? const SizedBox.shrink()
+                                            : SizedBox(height: footerHeight),
+                                      );
                                     }
                                     final repo = ref.read(
                                       userStickerPacksRepositoryProvider,
@@ -2880,9 +2897,16 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                         _closeStickersPanel();
                                       },
                                     );
-                                    return SizedBox(
-                                      height: footerHeight,
-                                      child: panel,
+                                    return AnimatedSize(
+                                      duration: const Duration(
+                                        milliseconds: 180,
+                                      ),
+                                      curve: Curves.easeOutCubic,
+                                      alignment: Alignment.topCenter,
+                                      child: SizedBox(
+                                        height: footerHeight,
+                                        child: panel,
+                                      ),
                                     );
                                   },
                                 ),
