@@ -10,11 +10,16 @@ import { logger } from '@/lib/logger';
 
 // SECURITY: Firestore document IDs are interpolated into paths; reject any
 // shape that would let `..` / `/` walk outside the expected collection.
+// Whitelist-regex был слишком узким — резал валидные secret-chat IDs вида
+// `sdm_5:alice_3:bob` (двоеточие). Переходим на blacklist: запрещаем `/` и
+// чистые `.`/`..`; остальное Firestore SDK обрабатывает как identifier,
+// а не как path-компонент, поэтому path-injection невозможен.
 const FirestoreIdSchema = z
   .string()
   .min(1)
-  .max(128)
-  .regex(/^[A-Za-z0-9_-]+$/, 'invalid_id');
+  .max(256)
+  .refine((s) => !s.includes('/'), 'invalid_id: slash forbidden')
+  .refine((s) => s !== '.' && s !== '..', 'invalid_id: dot/dotdot forbidden');
 
 // Mirror src/lib/types.ts ReportReason — keep in sync.
 const ReportReasonSchema = z.enum([
@@ -178,6 +183,84 @@ export async function unhideMessageAction(input: {
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
     console.error('[unhideMessageAction]', e);
     return { ok: false, error: 'Не удалось восстановить сообщение' };
+  }
+}
+
+const ReviewAndHideSchema = z.object({
+  idToken: z.string().min(1),
+  reportId: FirestoreIdSchema,
+  conversationId: FirestoreIdSchema,
+  messageId: FirestoreIdSchema,
+  reason: z.string().max(500).optional(),
+});
+
+/**
+ * Атомарно скрывает сообщение и переводит жалобу в `action_taken`.
+ * Запись в Firestore идёт одним `WriteBatch` — поэтому либо обе мутации
+ * применяются, либо ни одна. Раньше две операции шли последовательно,
+ * и при падении второй жалоба оставалась `pending`, а сообщение уже скрыто.
+ */
+export async function reviewAndHideReportAction(input: {
+  idToken: string;
+  reportId: string;
+  conversationId: string;
+  messageId: string;
+  reason?: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parsed = ReviewAndHideSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: 'Некорректные параметры' };
+  }
+  try {
+    const actor = await assertAdminByIdToken(parsed.data.idToken);
+    const now = new Date().toISOString();
+
+    const hiddenByAdmin: MessageHiddenByAdmin = {
+      at: now,
+      by: actor.uid,
+      reason: parsed.data.reason,
+    };
+
+    const messageRef = adminDb
+      .collection('conversations')
+      .doc(parsed.data.conversationId)
+      .collection('messages')
+      .doc(parsed.data.messageId);
+    const reportRef = adminDb.collection('messageReports').doc(parsed.data.reportId);
+
+    const batch = adminDb.batch();
+    batch.update(messageRef, { hiddenByAdmin });
+    batch.update(reportRef, {
+      status: 'action_taken' satisfies ReportStatus,
+      actionTaken: 'hidden' satisfies ModerationAction,
+      reviewedBy: actor.uid,
+      reviewedAt: now,
+    });
+    await batch.commit();
+
+    await Promise.all([
+      logAdminAction({
+        actorId: actor.uid,
+        actorName: actor.name,
+        action: 'moderation.hide_message',
+        target: { type: 'message', id: parsed.data.messageId },
+        details: { conversationId: parsed.data.conversationId, reason: parsed.data.reason, reportId: parsed.data.reportId },
+      }),
+      logAdminAction({
+        actorId: actor.uid,
+        actorName: actor.name,
+        action: 'moderation.review_report',
+        target: { type: 'message', id: parsed.data.reportId },
+        details: { status: 'action_taken', actionTaken: 'hidden', atomic: true },
+      }),
+    ]);
+
+    return { ok: true };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
+    logger.error('moderation', 'reviewAndHideReportAction', e);
+    return { ok: false, error: 'Не удалось скрыть сообщение и обработать жалобу' };
   }
 }
 

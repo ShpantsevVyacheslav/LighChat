@@ -11,9 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ShieldAlert, Loader2, EyeOff, Check, X } from 'lucide-react';
+import { ShieldAlert, Loader2, EyeOff, Check, X, Ban, User as UserIcon, Flag } from 'lucide-react';
 import {
   collection,
+  doc,
+  getDoc,
   limit as fsLimit,
   onSnapshot,
   orderBy,
@@ -21,13 +23,15 @@ import {
   where,
 } from 'firebase/firestore';
 import { useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
+import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import {
   reviewReportAction,
-  hideMessageAction,
+  reviewAndHideReportAction,
 } from '@/actions/moderation-actions';
-import type { MessageReport, ReportStatus } from '@/lib/types';
+import type { MessageReport, ReportStatus, User } from '@/lib/types';
 import { useI18n } from '@/hooks/use-i18n';
+import { UserBlockDialog } from '@/components/admin/user-block-dialog';
 
 const REASON_LABEL_KEYS: Record<string, string> = {
   spam: 'admin.moderation.reasonSpam',
@@ -57,23 +61,37 @@ export function AdminModerationPanel() {
   const { t } = useI18n();
   const firebaseAuth = useFirebaseAuth();
   const firestore = useFirestore();
+  const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const [reports, setReports] = useState<MessageReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>('pending');
   const [acting, setActing] = useState<string | null>(null);
+  const [blockTarget, setBlockTarget] = useState<User | null>(null);
+  const [pendingBlockReportId, setPendingBlockReportId] = useState<string | null>(null);
+  // Растущее окно для live-подписки. При нажатии "Показать ещё" увеличиваем
+  // лимит на REPORTS_PAGE; onSnapshot переподписывается на новый запрос.
+  const REPORTS_PAGE = 50;
+  const [reportsLimit, setReportsLimit] = useState(REPORTS_PAGE);
+  const [hasMore, setHasMore] = useState(false);
+
+  useEffect(() => {
+    setReportsLimit(REPORTS_PAGE);
+    setHasMore(false);
+  }, [statusFilter]);
 
   useEffect(() => {
     if (!firestore) return;
     setLoading(true);
     const base = collection(firestore, 'messageReports');
     const q = statusFilter === 'all'
-      ? query(base, orderBy('createdAt', 'desc'), fsLimit(50))
-      : query(base, where('status', '==', statusFilter), orderBy('createdAt', 'desc'), fsLimit(50));
+      ? query(base, orderBy('createdAt', 'desc'), fsLimit(reportsLimit))
+      : query(base, where('status', '==', statusFilter), orderBy('createdAt', 'desc'), fsLimit(reportsLimit));
     return onSnapshot(
       q,
       (snap) => {
         setReports(snap.docs.map((d) => d.data() as MessageReport));
+        setHasMore(snap.docs.length >= reportsLimit);
         setLoading(false);
       },
       (err) => {
@@ -81,55 +99,92 @@ export function AdminModerationPanel() {
         setLoading(false);
       },
     );
-  }, [firestore, statusFilter]);
+  }, [firestore, statusFilter, reportsLimit]);
 
   const handleHideAndReview = async (report: MessageReport) => {
     const token = await firebaseAuth?.currentUser?.getIdToken();
     if (!token) return;
-    // User-level reports (без конкретного messageId) нельзя «скрыть как сообщение»;
-    // для них доступен только Dismiss или будущий ban-flow. UI ниже дизейблит
-    // кнопку, но добавляем guard на случай прямого вызова из reflection.
     if (!report.messageId) {
       toast({ variant: 'destructive', title: 'У этой жалобы нет конкретного сообщения — её можно только отклонить' });
       return;
     }
     setActing(report.id);
-
-    const hideRes = await hideMessageAction({
-      idToken: token,
-      conversationId: report.conversationId,
-      messageId: report.messageId,
-      reason: `Report: ${report.reason}`,
-    });
-
-    if (hideRes.ok) {
-      await reviewReportAction({
+    try {
+      const res = await reviewAndHideReportAction({
         idToken: token,
         reportId: report.id,
-        status: 'action_taken',
-        actionTaken: 'hidden',
+        conversationId: report.conversationId,
+        messageId: report.messageId,
+        reason: `Report: ${report.reason}`,
       });
-      toast({ title: t('admin.moderation.messageHiddenToast') });
-    } else {
-      toast({ variant: 'destructive', title: hideRes.error });
+      if (res.ok) {
+        toast({ title: t('admin.moderation.messageHiddenToast') });
+      } else {
+        toast({ variant: 'destructive', title: res.error });
+      }
+    } catch (e) {
+      console.error('[AdminModerationPanel] handleHideAndReview', e);
+      toast({ variant: 'destructive', title: 'Не удалось обработать жалобу' });
+    } finally {
+      setActing(null);
     }
-    setActing(null);
   };
 
   const handleDismiss = async (report: MessageReport) => {
     const token = await firebaseAuth?.currentUser?.getIdToken();
     if (!token) return;
     setActing(report.id);
-    const res = await reviewReportAction({
-      idToken: token,
-      reportId: report.id,
-      status: 'dismissed',
-      actionTaken: 'none',
-    });
-    if (res.ok) {
-      toast({ title: t('admin.moderation.reportDismissed') });
+    try {
+      const res = await reviewReportAction({
+        idToken: token,
+        reportId: report.id,
+        status: 'dismissed',
+        actionTaken: 'none',
+      });
+      if (res.ok) {
+        toast({ title: t('admin.moderation.reportDismissed') });
+      } else {
+        toast({ variant: 'destructive', title: res.error });
+      }
+    } catch (e) {
+      console.error('[AdminModerationPanel] handleDismiss', e);
+      toast({ variant: 'destructive', title: 'Не удалось отклонить жалобу' });
+    } finally {
+      setActing(null);
     }
-    setActing(null);
+  };
+
+  const handleOpenBlock = async (report: MessageReport) => {
+    if (!firestore) return;
+    setActing(report.id);
+    try {
+      const snap = await getDoc(doc(firestore, 'users', report.messageSenderId));
+      if (!snap.exists()) {
+        toast({ variant: 'destructive', title: 'Пользователь не найден' });
+        return;
+      }
+      setBlockTarget({ id: snap.id, ...(snap.data() as Omit<User, 'id'>) });
+      setPendingBlockReportId(report.id);
+    } catch (e) {
+      console.error('[AdminModerationPanel] load user for block', e);
+      toast({ variant: 'destructive', title: 'Не удалось загрузить пользователя' });
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const handleBlockDone = async () => {
+    if (!pendingBlockReportId) return;
+    const token = await firebaseAuth?.currentUser?.getIdToken();
+    if (token) {
+      await reviewReportAction({
+        idToken: token,
+        reportId: pendingBlockReportId,
+        status: 'action_taken',
+        actionTaken: 'user_blocked',
+      });
+    }
+    setPendingBlockReportId(null);
   };
 
   const formatDate = (iso: string) => {
@@ -183,10 +238,17 @@ export function AdminModerationPanel() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{t('admin.moderation.authorLabel')} <strong>{r.messageSenderName ?? r.messageSenderId}</strong></span>
-                  <span>&middot;</span>
-                  <span>{t('admin.moderation.reportedByLabel')} {r.reporterName}</span>
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <UserIcon className="h-3 w-3 shrink-0" />
+                    <span>{t('admin.moderation.authorLabel')}</span>
+                    <strong className="text-foreground">{r.messageSenderName ?? r.messageSenderId}</strong>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Flag className="h-3 w-3 shrink-0" />
+                    <span>{t('admin.moderation.reportedByLabel')}</span>
+                    <strong className="text-foreground">{r.reporterName}</strong>
+                  </div>
                 </div>
 
                 {r.description && (
@@ -194,7 +256,7 @@ export function AdminModerationPanel() {
                 )}
 
                 {r.status === 'pending' && (
-                  <div className="flex gap-2 pt-1">
+                  <div className="flex flex-wrap gap-2 pt-1">
                     <Button
                       size="sm"
                       variant="destructive"
@@ -205,6 +267,15 @@ export function AdminModerationPanel() {
                     >
                       {acting === r.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
                       {t('admin.moderation.hideMessage')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="rounded-xl"
+                      onClick={() => handleOpenBlock(r)}
+                      disabled={acting === r.id || !currentUser?.id}
+                    >
+                      <Ban className="h-3 w-3 mr-1" /> {t('admin.usersList.block')}
                     </Button>
                     <Button
                       size="sm"
@@ -225,9 +296,37 @@ export function AdminModerationPanel() {
                 )}
               </div>
             ))}
+            {hasMore && (
+              <div className="flex justify-center pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl"
+                  onClick={() => setReportsLimit((n) => n + REPORTS_PAGE)}
+                >
+                  Показать ещё
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
+
+      {currentUser?.id && (
+        <UserBlockDialog
+          open={!!blockTarget}
+          onOpenChange={(open) => {
+            if (!open) {
+              setBlockTarget(null);
+              setPendingBlockReportId(null);
+            }
+          }}
+          firestore={firestore}
+          target={blockTarget}
+          blockedById={currentUser.id}
+          onDone={handleBlockDone}
+        />
+      )}
     </Card>
   );
 }
