@@ -38,16 +38,22 @@ export function categorizeAttachmentsFromMessages(messages: ChatMessage[]): Cate
 
     if (msg.attachments) {
       msg.attachments.forEach((att) => {
-        const isSticker = att.name.startsWith('sticker_') || att.type.includes('svg');
-        const isVideoCircle = att.name.startsWith('video-circle_');
+        // Defensive: E2EE-вложения / оптимистичные / legacy messages могут
+        // прийти с `name === undefined` или `type === undefined`. Без guard
+        // тут падает весь useMemo ChatParticipantProfile → /dashboard crash
+        // ("Cannot read properties of undefined (reading 'startsWith')").
+        const name = att.name ?? '';
+        const type = att.type ?? '';
+        const isSticker = name.startsWith('sticker_') || type.includes('svg');
+        const isVideoCircle = name.startsWith('video-circle_');
 
         if (isSticker) {
           stickers.push(att);
         } else if (isVideoCircle) {
           circles.push({ ...att, senderId: msg.senderId, createdAt: msg.createdAt });
-        } else if (att.type.startsWith('image/') || att.type.startsWith('video/')) {
+        } else if (type.startsWith('image/') || type.startsWith('video/')) {
           media.push(att);
-        } else if (att.type.startsWith('audio/')) {
+        } else if (type.startsWith('audio/')) {
           audios.push(att);
         } else {
           files.push(att);
