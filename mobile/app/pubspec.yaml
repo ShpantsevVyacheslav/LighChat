@@ -53,6 +53,12 @@ dependencies:
   # Уже доступен транзитивно, но объявляем явно (depend_on_referenced_packages).
   crypto: ^3.0.3
 
+  # Транзитивный через flutter_cache_manager — нужен прямым, чтобы экран
+  # «Хранилище» мог читать flutter_cache_manager-вскую базу
+  # `chat_image_cache.db` и сопоставлять имена файлов (UUID) с url для
+  # атрибуции к чату. См. `LocalCacheEntryRegistry.readImageContextSyncForFileName`.
+  sqflite: any
+
   # Versions are managed via `flutter pub add` to match Flutter SDK.
   firebase_core: any
   firebase_auth: any

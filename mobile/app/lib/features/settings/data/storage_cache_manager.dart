@@ -203,12 +203,15 @@ class StorageCacheManager {
       labelPrefix: 'Thumb',
     );
     final tempDir = await getTemporaryDirectory();
+    final chatImagesUrlByFile =
+        await LocalCacheEntryRegistry.readChatImageCacheUrlsByFile();
     await _collectFlatDirectory(
       entries: entries,
       prefs: prefs,
       dir: Directory('${tempDir.path}/chat_image_cache'),
       category: LocalStorageCategory.chatImages,
       labelPrefix: 'Image',
+      chatImagesUrlByFile: chatImagesUrlByFile,
     );
     _collectDraftEntries(entries, prefs, userId, l10n);
     _collectChatListSnapshot(entries, prefs, userId, l10n);
@@ -546,6 +549,30 @@ class StorageCacheManager {
     return freed;
   }
 
+  /// flutter_cache_manager 3.4 пишет файлы в `chat_image_cache/` под именами
+  /// `<UUID>.<ext>` — наш hex32-маркер из `eTag` он игнорирует. Поэтому
+  /// пытаемся сначала привычный путь (по hex32 в имени, на случай если
+  /// версия кэшера или URL-наименование изменятся), а если не нашли —
+  /// реверсим имя файла → URL через map из `chat_image_cache.db` и читаем
+  /// контекст по URL.
+  LocalCacheEntryContext? _resolveChatImageContext({
+    required SharedPreferences prefs,
+    required String fileName,
+    required Map<String, String>? urlByFile,
+  }) {
+    final byHex = LocalCacheEntryRegistry.readImageContextSyncForFileName(
+      prefs: prefs,
+      fileName: fileName,
+    );
+    if (byHex != null) return byHex;
+    final url = urlByFile?[fileName];
+    if (url == null || url.isEmpty) return null;
+    return LocalCacheEntryRegistry.readImageContextSyncForUrl(
+      prefs: prefs,
+      url: url,
+    );
+  }
+
   Future<void> _collectE2eeMedia(
     List<LocalStorageEntry> out,
     Directory supportDir,
@@ -618,6 +645,7 @@ class StorageCacheManager {
     required Directory dir,
     required LocalStorageCategory category,
     required String labelPrefix,
+    Map<String, String>? chatImagesUrlByFile,
   }) async {
     if (!await dir.exists()) return;
     final files = await dir.list(recursive: true, followLinks: false).toList();
@@ -638,10 +666,10 @@ class StorageCacheManager {
             prefs: prefs,
             fileName: fileName,
           ),
-        LocalStorageCategory.chatImages =>
-          LocalCacheEntryRegistry.readImageContextSyncForFileName(
+        LocalStorageCategory.chatImages => _resolveChatImageContext(
             prefs: prefs,
             fileName: fileName,
+            urlByFile: chatImagesUrlByFile,
           ),
         _ => null,
       };

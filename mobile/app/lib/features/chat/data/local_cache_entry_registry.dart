@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
 
 class LocalCacheEntryContext {
   const LocalCacheEntryContext({
@@ -176,6 +179,52 @@ class LocalCacheEntryRegistry {
   }) {
     final id = _extractHex32Id(fileName);
     if (id == null) return null;
+    return _readContext(prefs: prefs, key: '$_imageKeyPrefix$id');
+  }
+
+  /// Читаем `flutter_cache_manager`-вскую базу `chat_image_cache.db`
+  /// (sqflite) и строим карту `relativePath (имя файла на диске) → URL`.
+  /// Нужно потому что flutter_cache_manager 3.4 хранит файлы под именами
+  /// `<UUID>.<ext>`, игнорируя `eTag` — без этой карты `_extractHex32Id`
+  /// ничего не извлечёт и все chat-картинки уйдут в orphan на экране
+  /// «Хранилище».
+  static Future<Map<String, String>> readChatImageCacheUrlsByFile({
+    String cacheKey = 'chat_image_cache',
+  }) async {
+    try {
+      final dir = await getApplicationSupportDirectory();
+      final dbPath = '${dir.path}${Platform.pathSeparator}$cacheKey.db';
+      if (!await File(dbPath).exists()) return const <String, String>{};
+      final db = await openReadOnlyDatabase(dbPath);
+      try {
+        final rows = await db.query(
+          'cacheObject',
+          columns: <String>['relativePath', 'url'],
+        );
+        final out = <String, String>{};
+        for (final row in rows) {
+          final rel = row['relativePath'];
+          final url = row['url'];
+          if (rel is String && url is String && rel.isNotEmpty) {
+            out[rel] = url;
+          }
+        }
+        return out;
+      } finally {
+        await db.close();
+      }
+    } catch (_) {
+      return const <String, String>{};
+    }
+  }
+
+  /// Прямая читалка контекста по URL (без zoom через filename) — нужна когда
+  /// мы реверс-инжинирим имя файла → URL через flutter_cache_manager DB.
+  static LocalCacheEntryContext? readImageContextSyncForUrl({
+    required SharedPreferences prefs,
+    required String url,
+  }) {
+    final id = imageFileIdForUrl(url);
     return _readContext(prefs: prefs, key: '$_imageKeyPrefix$id');
   }
 
