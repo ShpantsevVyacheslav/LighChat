@@ -15,6 +15,7 @@ import {
   blobToSquareCenterCroppedPngBlob,
   getVideoFileDurationSeconds,
 } from '@/lib/sticker-media-normalize';
+import { logger } from '@/lib/logger';
 
 export type AddImageFilesToPackOptions = {
   /** Уже приведён к квадрату (например из «Создать стикер»). */
@@ -29,7 +30,7 @@ async function normalizeStaticImageFileForUserStickerPack(file: File): Promise<F
       const b = await convertHeicHeifBlobToPngBlob(file);
       work = new File([b], file.name.replace(/\.hei[cf]$/i, '.png'), { type: 'image/png' });
     } catch (e) {
-      console.warn('[LighChat:stickers] HEIC normalize for pack', e);
+      logger.warn('stickers', 'HEIC normalize for pack', e);
       return file;
     }
   }
@@ -43,7 +44,7 @@ async function normalizeStaticImageFileForUserStickerPack(file: File): Promise<F
         .slice(0, 80) || 'sticker';
     return new File([out], `${base}_sq.png`, { type: 'image/png' });
   } catch (e) {
-    console.warn('[LighChat:stickers] square crop failed, using original', e);
+    logger.warn('stickers', 'square crop failed, using original', e);
     return file;
   }
 }
@@ -94,7 +95,7 @@ export async function deleteUserStickerPack(
       try {
         await deleteObject(storageRef(st, path));
       } catch (e) {
-        console.warn('[LighChat:stickers] deleteObject (pack delete)', path, e);
+        logger.warn('stickers', 'deleteObject (pack delete)', { path, e });
       }
     }
 
@@ -108,10 +109,10 @@ export async function deleteUserStickerPack(
     }
 
     await deleteDoc(doc(fs, 'users', userId, 'stickerPacks', packId));
-    console.info('[LighChat:stickers] pack deleted', { packId, userId });
+    logger.debug('stickers', 'pack deleted', { packId, userId });
     return { ok: true };
   } catch (e) {
-    console.warn('[LighChat:stickers] deleteUserStickerPack failed', e);
+    logger.warn('stickers', 'deleteUserStickerPack failed', e);
     return { ok: false, error: 'delete_failed' };
   }
 }
@@ -176,7 +177,7 @@ export async function addImageFilesToUserStickerPack(
         await updateDoc(doc(fs, 'users', userId, 'stickerPacks', packId), { updatedAt: now });
         ok += 1;
       } catch (e) {
-        console.warn('[LighChat:stickers] video upload failed', e);
+        logger.warn('stickers', 'video upload failed', e);
         errors.push('upload_failed');
         skipped += 1;
       }
@@ -193,7 +194,7 @@ export async function addImageFilesToUserStickerPack(
       try {
         uploadFile = await normalizeStaticImageFileForUserStickerPack(file);
       } catch (e) {
-        console.warn('[LighChat:stickers] normalize before upload', e);
+        logger.warn('stickers', 'normalize before upload', e);
         uploadFile = file;
       }
     }
@@ -233,7 +234,7 @@ export async function addImageFilesToUserStickerPack(
       await updateDoc(doc(fs, 'users', userId, 'stickerPacks', packId), { updatedAt: now });
       ok += 1;
     } catch (e) {
-      console.warn('[LighChat:stickers] upload failed', e);
+      logger.warn('stickers', 'upload failed', e);
       errors.push('upload_failed');
       skipped += 1;
     }
@@ -270,7 +271,7 @@ export async function addChatImageAsSquareStickerToPack(
         safeName = safeName.replace(/\.hei[cf]$/i, '.png');
         if (!safeName.toLowerCase().endsWith('.png')) safeName = `${safeName}.png`;
       } catch (e) {
-        console.warn('[LighChat:stickers] HEIC square sticker', e);
+        logger.warn('stickers', 'HEIC square sticker', e);
         return { ok: false, error: 'convert_failed' };
       }
     }
@@ -285,7 +286,7 @@ export async function addChatImageAsSquareStickerToPack(
     if (r.errors.includes('file_too_large')) return { ok: false, error: 'file_too_large' };
     return { ok: false, error: r.errors[0] || 'upload_failed' };
   } catch (e) {
-    console.warn('[LighChat:stickers] chat square sticker', e);
+    logger.warn('stickers', 'chat square sticker', e);
     return { ok: false, error: 'fetch_failed' };
   }
 }
@@ -321,7 +322,7 @@ export async function addChatAttachmentToUserStickerPack(
         safeName = safeName.replace(/\.hei[cf]$/i, '.png');
         if (!safeName.toLowerCase().endsWith('.png')) safeName = `${safeName}.png`;
       } catch (e) {
-        console.warn('[LighChat:stickers] HEIC convert for pack failed', e);
+        logger.warn('stickers', 'HEIC convert for pack failed', e);
         return { ok: false, error: 'convert_failed' };
       }
     }
@@ -332,7 +333,7 @@ export async function addChatAttachmentToUserStickerPack(
     if (r.errors.includes('file_too_large')) return { ok: false, error: 'file_too_large' };
     return { ok: false, error: r.errors[0] || 'upload_failed' };
   } catch (e) {
-    console.warn('[LighChat:stickers] remote save failed', e);
+    logger.warn('stickers', 'remote save failed', e);
     return { ok: false, error: 'fetch_failed' };
   }
 }

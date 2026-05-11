@@ -65,6 +65,7 @@ import { isRegistrationProfileComplete } from '@/lib/registration-profile-comple
 import { writeDeviceSession } from '@/lib/device-session';
 import { applyPhoneMask, normalizePhoneDigits } from '@/lib/phone-utils';
 import { requestVerifiedEmailChange } from '@/lib/auth-email-change';
+import { logger } from '@/lib/logger';
 
 import {
   isNormalizedUsernameTokenAllowed,
@@ -351,7 +352,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               lastSeen: new Date().toISOString() 
             });
         } catch (e) {
-            console.warn("Presence update failed during logout", e);
+            logger.warn('auth', 'Presence update failed during logout', e);
         }
     }
     if (logoutUid && firestore) {
@@ -362,7 +363,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           active: false,
         });
       } catch (e) {
-        console.warn('Device session update failed during logout', e);
+        logger.warn('auth', 'Device session update failed during logout', e);
       }
     }
     
@@ -373,14 +374,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const { clearAllE2eeCache } = await import('@/lib/e2ee');
       await clearAllE2eeCache();
     } catch (e) {
-      console.warn('clearAllE2eeCache failed on logout', e);
+      logger.warn('auth', 'clearAllE2eeCache failed on logout', e);
     }
 
     try {
         await signOut(auth);
         router.push('/auth');
     } catch (e) {
-        console.error('Logout error', e);
+        logger.error('auth', 'Logout error', e);
         setError('Произошла ошибка при выходе.');
     }
   }, [auth, router, appUser, firestore]);
@@ -393,7 +394,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const finalizeOAuthCredential = useCallback(
     async (result: UserCredential): Promise<boolean> => {
       if (!firestore) {
-        console.error('OAuth sign-in: Firestore недоступен.');
+        logger.error('auth', 'OAuth sign-in: Firestore недоступен.');
         setError('Сервис данных недоступен. Обновите страницу и попробуйте снова.');
         return false;
       }
@@ -401,7 +402,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (authDebugEnabled()) {
         try {
           const u = result.user;
-          console.info('[auth debug] oauth credential', {
+          logger.debug('auth', 'oauth credential', {
             uid: u.uid,
             providerIds: u.providerData.map((p) => p.providerId),
             email: redactForAuthDebug(u.email),
@@ -420,7 +421,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             ),
           });
         } catch (e) {
-          console.warn('[auth debug] failed to log oauth credential', e);
+          logger.warn('auth', 'failed to log oauth credential', e);
         }
       }
 
@@ -481,12 +482,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             });
             if (!taken) patch.phone = phoneFormatted;
             else
-              console.info(
-                '[auth] OAuth enrich: phone from provider skipped (registrationIndex)',
+              logger.debug(
+                'auth',
+                'OAuth enrich: phone from provider skipped (registrationIndex)',
                 result.user.uid,
               );
           } catch (e) {
-            console.warn('[auth] OAuth enrich: phone availability check failed', e);
+            logger.warn('auth', 'OAuth enrich: phone availability check failed', e);
           }
         }
 
@@ -500,7 +502,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           try {
             await firestoreAfterOAuthSignIn(result.user, () => updateDoc(userDocRef, patch));
           } catch (writeErr) {
-            console.error('OAuth sign-in: не удалось обновить документ users/', writeErr);
+            logger.error('auth', 'OAuth sign-in: не удалось обновить документ users/', writeErr);
           }
         }
 
@@ -528,7 +530,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             });
             if (!taken) phoneOut = phoneFormatted;
           } catch (e) {
-            console.warn('[auth] OAuth create: phone availability check failed', e);
+            logger.warn('auth', 'OAuth create: phone availability check failed', e);
           }
         }
 
@@ -552,7 +554,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           })
         );
       } catch (writeErr) {
-        console.error('OAuth sign-in: не удалось создать документ users/', writeErr);
+        logger.error('auth', 'OAuth sign-in: не удалось создать документ users/', writeErr);
         /* Сессия Auth уже есть — слушатель профиля подставит заглушку; не блокируем вход. */
       }
       return true;
@@ -586,7 +588,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch (e: unknown) {
         if (cancelled) return;
         const err = e as { code?: string };
-        console.error('OAuth redirect sign-in error:', e);
+        logger.error('auth', 'OAuth redirect sign-in error', e);
         const msg = (
           {
             'auth/account-exists-with-different-credential':
@@ -673,9 +675,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                   isRegistrationProfileComplete(prev) &&
                   !isRegistrationProfileComplete(merged)
                 ) {
-                  console.info(
-                    '[auth] skip stale cached users/%s snapshot (keep complete profile)',
-                    docSnap.id,
+                  logger.debug(
+                    'auth',
+                    `skip stale cached users/${docSnap.id} snapshot (keep complete profile)`,
                   );
                   setIsProfileLoading(false);
                   return true;
@@ -717,8 +719,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                     }
                     commitMerged();
                   } catch (e) {
-                    console.warn(
-                      '[auth] getDocFromServer after incomplete cached passwordless profile',
+                    logger.warn(
+                      'auth',
+                      'getDocFromServer after incomplete cached passwordless profile',
                       e,
                     );
                     commitMerged();
@@ -745,7 +748,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           setIsProfileLoading(false);
         },
         (e) => {
-          console.warn('Profile sync warning:', e.message);
+          logger.warn('auth', 'Profile sync warning', e.message);
           /* Сессия Firebase есть, а снимок профиля недоступен (сеть/правила) — не сбрасывать вход. */
           const fallback = {
             id: firebaseUser.uid,
@@ -939,7 +942,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // 380f3e9 уже не роняет UI «Критической ошибкой» благодаря фильтру
         // в `non-blocking-updates.tsx`. Здесь setDoc вызывается напрямую,
         // поэтому глушим явно.
-        console.warn('Device session write failed', e);
+        logger.warn('auth', 'Device session write failed', e);
       }
     };
 
@@ -986,7 +989,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
         return true;
       } catch (e: any) {
-        console.error('Login error:', e);
+        logger.error('auth', 'Login error', e);
         const msg = ({
           'auth/user-not-found': 'Пользователь с таким email не найден.',
           'auth/wrong-password': 'Неверный пароль.',
@@ -1039,7 +1042,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         } catch (preAuthErr: unknown) {
           const err = preAuthErr as { code?: string };
-          console.error('Registration: fetchSignInMethodsForEmail', preAuthErr);
+          logger.error('auth', 'Registration: fetchSignInMethodsForEmail', preAuthErr);
           const message =
             err.code === 'auth/network-request-failed'
               ? 'Не удалось проверить email (ошибка сети). Проверьте подключение.'
@@ -1072,7 +1075,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             };
           }
         } catch (idxErr) {
-          console.error('Registration: проверка registrationIndex не удалась', idxErr);
+          logger.error('auth', 'Registration: проверка registrationIndex не удалась', idxErr);
           const message =
             'Не удалось проверить, свободны ли email, телефон и логин. Проверьте сеть и попробуйте снова.';
           setError(message);
@@ -1100,7 +1103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             avatarUrl = uploadedUrl;
             if (avatarThumbUrl) avatarExtras.avatarThumb = avatarThumbUrl;
           } catch (uploadErr) {
-            console.warn('Avatar upload failed, using default:', uploadErr);
+            logger.warn('auth', 'Avatar upload failed, using default', uploadErr);
           }
         }
 
@@ -1133,7 +1136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
         return { ok: true };
       } catch (e: unknown) {
-        console.error('Registration error:', e);
+        logger.error('auth', 'Registration error', e);
         const err = e as { code?: string };
         const byCode: Record<
           string,
@@ -1249,7 +1252,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           };
         }
       } catch (idxErr) {
-        console.error('completeGoogleProfile: registrationIndex checks failed', idxErr);
+        logger.error('auth', 'completeGoogleProfile: registrationIndex checks failed', idxErr);
         const message =
           'Не удалось проверить уникальность телефона и логина. Проверьте сеть и попробуйте снова.';
         setError(message);
@@ -1285,7 +1288,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           avatarUrl = uploadedUrl;
           thumbOnAvatarUpload.avatarThumb = avatarThumbUrl ?? deleteField();
         } catch (uploadErr) {
-          console.warn('completeGoogleProfile: avatar upload failed', uploadErr);
+          logger.warn('auth', 'completeGoogleProfile: avatar upload failed', uploadErr);
         }
       }
 
@@ -1319,7 +1322,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               },
             });
           } catch (e) {
-            console.warn('completeGoogleProfile: requestVerifiedEmailChange', e);
+            logger.warn('auth', 'completeGoogleProfile: requestVerifiedEmailChange', e);
           }
           try {
             await firebaseUser.reload();
@@ -1338,10 +1341,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             setAppUser(next);
           }
         }
-        console.info('[auth] completeGoogleProfile saved users/%s', uid);
+        logger.debug('auth', `completeGoogleProfile saved users/${uid}`);
         return { ok: true };
       } catch (e) {
-        console.error('completeGoogleProfile: Firestore update failed', e);
+        logger.error('auth', 'completeGoogleProfile: Firestore update failed', e);
         const message = 'Не удалось сохранить профиль. Попробуйте ещё раз.';
         setError(message);
         return { ok: false, message };
@@ -1361,14 +1364,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return await finalizeOAuthCredential(result);
     } catch (e: unknown) {
       const err = e as { code?: string };
-      console.error('Google sign-in error:', e);
+      logger.error('auth', 'Google sign-in error', e);
 
       if (err.code === 'auth/popup-blocked') {
         try {
           await signInWithRedirect(auth, provider);
           return false;
         } catch (re) {
-          console.error('Google redirect fallback error:', re);
+          logger.error('auth', 'Google redirect fallback error', re);
           setError(
             'Браузер заблокировал окно входа. Разрешите всплывающие окна для этого сайта или попробуйте другой браузер.'
           );
@@ -1424,14 +1427,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return await finalizeOAuthCredential(result);
     } catch (e: unknown) {
       const err = e as { code?: string };
-      console.error('Apple sign-in error:', e);
+      logger.error('auth', 'Apple sign-in error', e);
 
       if (err.code === 'auth/popup-blocked') {
         try {
           await signInWithRedirect(auth, provider);
           return false;
         } catch (re) {
-          console.error('Apple redirect fallback error:', re);
+          logger.error('auth', 'Apple redirect fallback error', re);
           setError(
             'Браузер заблокировал окно входа. Разрешите всплывающие окна для этого сайта или попробуйте другой браузер.'
           );
@@ -1489,7 +1492,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const cred = await signInWithCustomToken(auth, customToken);
         return await finalizeOAuthCredential(cred);
       } catch (e: unknown) {
-        console.error('Telegram sign-in error:', e);
+        logger.error('auth', 'Telegram sign-in error', e);
         const err = e as { code?: string; message?: string };
         const code = err.code ?? '';
         const msg = (
@@ -1585,7 +1588,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             }
             emailVerificationSent = true;
           } catch (e: unknown) {
-            console.error('requestVerifiedEmailChange:', e);
+            logger.error('auth', 'requestVerifiedEmailChange', e);
             const { msg } = mapEmailChangeError(e);
             setError(msg);
             return { ok: false, message: msg };
@@ -1647,7 +1650,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           ? { ok: true, emailVerificationSent: true }
           : { ok: true };
     } catch (e: any) {
-        console.error("Error updating user profile:", e);
+        logger.error('auth', 'Error updating user profile', e);
         const msg = 'Не удалось обновить профиль.';
         setError(msg);
         return { ok: false, message: msg };
