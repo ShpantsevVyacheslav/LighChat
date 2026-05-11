@@ -1009,8 +1009,45 @@ class _ChatVideoEditorScreenState extends State<ChatVideoEditorScreen> {
       final session = await FFmpegKit.execute(command);
       final returnCode = await session.getReturnCode();
       if (!ReturnCode.isSuccess(returnCode)) {
-        final logs = (await session.getAllLogsAsString()) ?? '';
-        throw Exception(logs.trim().isEmpty ? 'FFmpeg export failed' : logs);
+        // [audit ffmpeg-kit] Раньше throw'или getAllLogsAsString() — это
+        // выливало 50+ строк build-конфига ffmpeg в UI, реальная ошибка
+        // (одна строка) тонула в конце. Сейчас:
+        // 1. Сначала пробуем getFailStackTrace — нативный exception если
+        //    ffmpeg-kit плагин упал (Xcode 15+ / iOS 17+ часто).
+        // 2. Затем — последние 8 строк stderr (где fmpeg пишет сам error).
+        // 3. Fallback: return code.
+        final stack = await session.getFailStackTrace();
+        String errLine;
+        if (stack != null && stack.trim().isNotEmpty) {
+          errLine = stack.trim().split('\n').take(3).join('\n');
+        } else {
+          final logs = (await session.getAllLogsAsString()) ?? '';
+          final lines = logs.trim().split('\n');
+          // Грепаем строки которые похожи на сообщения ошибок ffmpeg.
+          final errors = lines
+              .where(
+                (l) =>
+                    l.contains('Error') ||
+                    l.contains('error') ||
+                    l.contains('Invalid') ||
+                    l.contains('not found') ||
+                    l.contains('Conversion failed'),
+              )
+              .take(5)
+              .toList();
+          if (errors.isNotEmpty) {
+            errLine = errors.join('\n');
+          } else if (lines.length > 8) {
+            // Последние 8 строк log'а где обычно сидит реальная ошибка.
+            errLine = lines.sublist(lines.length - 8).join('\n');
+          } else {
+            errLine = logs.trim();
+          }
+        }
+        final returnInt = returnCode == null ? 'unknown' : '${returnCode.getValue()}';
+        throw Exception(
+          'FFmpeg failed (rc=$returnInt):\n${errLine.trim().isEmpty ? 'unknown' : errLine.trim()}',
+        );
       }
 
       final outFile = XFile(
