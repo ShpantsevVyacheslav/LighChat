@@ -3984,5 +3984,21 @@
   "chat_preview_attachment": "Adjunto",
   "@chat_preview_attachment": {
     "description": "Chat list preview: chat_preview_attachment"
+  },
+  "contacts_disclosure_title": "Encontrar amigos en LighChat",
+  "@contacts_disclosure_title": {
+    "description": "Contacts prominent disclosure dialog title"
+  },
+  "contacts_disclosure_body": "LighChat lee los números de teléfono y las direcciones de correo electrónico de tu libreta de contactos, los hashea y los compara con nuestro servidor para mostrar cuáles de tus contactos ya usan la aplicación. Tus contactos nunca se almacenan en nuestros servidores.",
+  "@contacts_disclosure_body": {
+    "description": "Contacts prominent disclosure dialog body"
+  },
+  "contacts_disclosure_allow": "Permitir",
+  "@contacts_disclosure_allow": {
+    "description": "Contacts disclosure allow button"
+  },
+  "contacts_disclosure_deny": "Ahora no",
+  "@contacts_disclosure_deny": {
+    "description": "Contacts disclosure deny button"
   }
 }

@@ -7914,4 +7914,17 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get chat_preview_attachment => 'Тіркеме';
+
+  @override
+  String get contacts_disclosure_title => 'LighChat-та таныстарды табу';
+
+  @override
+  String get contacts_disclosure_body =>
+      'LighChat телефон нөмірлері мен email-мекенжайларды мекенжай кітабыңыздан оқиды, оларды хэштейді және қолданбаны пайдаланатын контактілерді көрсету үшін серверімізбен тексереді. Контактілердің өзі ешқайда сақталмайды.';
+
+  @override
+  String get contacts_disclosure_allow => 'Рұқсат беру';
+
+  @override
+  String get contacts_disclosure_deny => 'Қазір емес';
 }

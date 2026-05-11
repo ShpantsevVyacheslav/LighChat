@@ -7894,4 +7894,17 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get chat_preview_attachment => 'Ek';
+
+  @override
+  String get contacts_disclosure_title => 'LighChat\'ta tanıdıkları bul';
+
+  @override
+  String get contacts_disclosure_body =>
+      'LighChat, adres defterinizdeki telefon numaralarını ve e-posta adreslerini okur, bunları hash\'ler ve hangi kişilerinizin uygulamayı kullandığını göstermek için sunucumuzla karşılaştırır. Kişileriniz asla sunucularımızda saklanmaz.';
+
+  @override
+  String get contacts_disclosure_allow => 'İzin Ver';
+
+  @override
+  String get contacts_disclosure_deny => 'Şimdi değil';
 }

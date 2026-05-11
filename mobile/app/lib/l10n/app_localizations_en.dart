@@ -7863,4 +7863,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chat_preview_attachment => 'Attachment';
+
+  @override
+  String get contacts_disclosure_title => 'Find friends in LighChat';
+
+  @override
+  String get contacts_disclosure_body =>
+      'LighChat reads phone numbers and email addresses from your address book, hashes them, and checks them against our server to show which of your contacts already use the app. Your contacts are never stored on our servers.';
+
+  @override
+  String get contacts_disclosure_allow => 'Allow';
+
+  @override
+  String get contacts_disclosure_deny => 'Not now';
 }

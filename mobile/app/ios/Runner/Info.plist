@@ -5,12 +5,7 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Allow Flutter tools on your computer to connect and debug your application. This prompt will not appear on release builds.</string>
-	<key>NSBonjourServices</key>
-	<array>
-		<string>_dartobservatory._tcp</string>
-		<string>_dartVmService._tcp</string>
-	</array>
+	<string>LighChat использует локальную сеть для установки прямых peer-to-peer соединений при голосовых и видеозвонках, что улучшает качество связи и снижает задержку.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>ru</string>
 	<key>CFBundleLocalizations</key>
@@ -65,7 +60,7 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Чтобы отправлять и обновлять геолокацию в чате</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Для записи видео со звуком в чате</string>
+	<string>Для записи голосовых сообщений, видео со звуком, а также для голосовых и видеозвонков в чате</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Чтобы сохранять фото и видео из чата в галерею</string>
 	<key>NSPhotoLibraryUsageDescription</key>

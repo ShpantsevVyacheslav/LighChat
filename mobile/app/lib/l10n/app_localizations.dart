@@ -13881,6 +13881,30 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Вложение'**
   String get chat_preview_attachment;
+
+  /// Contacts prominent disclosure dialog title
+  ///
+  /// In ru, this message translates to:
+  /// **'Поиск знакомых в LighChat'**
+  String get contacts_disclosure_title;
+
+  /// Contacts prominent disclosure dialog body
+  ///
+  /// In ru, this message translates to:
+  /// **'LighChat считывает телефонные номера и email-адреса из вашей адресной книги, хэширует их и сверяет с нашим сервером, чтобы показать, кто из ваших контактов уже пользуется приложением. Сами контакты нигде не сохраняются.'**
+  String get contacts_disclosure_body;
+
+  /// Contacts disclosure allow button
+  ///
+  /// In ru, this message translates to:
+  /// **'Разрешить'**
+  String get contacts_disclosure_allow;
+
+  /// Contacts disclosure deny button
+  ///
+  /// In ru, this message translates to:
+  /// **'Не сейчас'**
+  String get contacts_disclosure_deny;
 }
 
 class _AppLocalizationsDelegate

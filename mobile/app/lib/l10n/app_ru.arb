@@ -4061,5 +4061,21 @@
   "chat_preview_attachment": "Вложение",
   "@chat_preview_attachment": {
     "description": "Chat list preview: chat_preview_attachment"
+  },
+  "contacts_disclosure_title": "Поиск знакомых в LighChat",
+  "@contacts_disclosure_title": {
+    "description": "Contacts prominent disclosure dialog title"
+  },
+  "contacts_disclosure_body": "LighChat считывает телефонные номера и email-адреса из вашей адресной книги, хэширует их и сверяет с нашим сервером, чтобы показать, кто из ваших контактов уже пользуется приложением. Сами контакты нигде не сохраняются.",
+  "@contacts_disclosure_body": {
+    "description": "Contacts prominent disclosure dialog body"
+  },
+  "contacts_disclosure_allow": "Разрешить",
+  "@contacts_disclosure_allow": {
+    "description": "Contacts disclosure allow button"
+  },
+  "contacts_disclosure_deny": "Не сейчас",
+  "@contacts_disclosure_deny": {
+    "description": "Contacts disclosure deny button"
   }
 }

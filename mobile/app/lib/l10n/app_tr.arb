@@ -3984,5 +3984,21 @@
   "chat_preview_attachment": "Ek",
   "@chat_preview_attachment": {
     "description": "Chat list preview: chat_preview_attachment"
+  },
+  "contacts_disclosure_title": "LighChat'ta tanıdıkları bul",
+  "@contacts_disclosure_title": {
+    "description": "Contacts prominent disclosure dialog title"
+  },
+  "contacts_disclosure_body": "LighChat, adres defterinizdeki telefon numaralarını ve e-posta adreslerini okur, bunları hash'ler ve hangi kişilerinizin uygulamayı kullandığını göstermek için sunucumuzla karşılaştırır. Kişileriniz asla sunucularımızda saklanmaz.",
+  "@contacts_disclosure_body": {
+    "description": "Contacts prominent disclosure dialog body"
+  },
+  "contacts_disclosure_allow": "İzin Ver",
+  "@contacts_disclosure_allow": {
+    "description": "Contacts disclosure allow button"
+  },
+  "contacts_disclosure_deny": "Şimdi değil",
+  "@contacts_disclosure_deny": {
+    "description": "Contacts disclosure deny button"
   }
 }

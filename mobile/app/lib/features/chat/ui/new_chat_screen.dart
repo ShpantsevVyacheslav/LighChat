@@ -13,6 +13,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 import '../data/e2ee_auto_enable_helper.dart';
 import '../data/contact_display_name.dart';
 import '../data/device_contacts_suggestions.dart';
+import 'contacts_disclosure_dialog.dart';
 import '../data/new_chat_user_search.dart';
 import '../data/secret_chat_create.dart';
 import '../data/user_chat_policy.dart';
@@ -66,6 +67,10 @@ class _NewChatScreenState extends ConsumerState<NewChatScreen> {
   }
 
   Future<void> _ensureDeviceContactsLoaded() async {
+    if (_deviceContactsLoaded) return;
+    if (!mounted) return;
+    final accepted = await ensureContactsDisclosureAccepted(context); // ignore: use_build_context_synchronously
+    if (!accepted || !mounted) return;
     if (_deviceContactsLoaded) return;
     _deviceContactsLoaded = true;
     final loaded = await loadDeviceContactsIfGranted();

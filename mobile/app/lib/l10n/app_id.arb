@@ -3984,5 +3984,21 @@
   "chat_preview_attachment": "Lampiran",
   "@chat_preview_attachment": {
     "description": "Chat list preview: chat_preview_attachment"
+  },
+  "contacts_disclosure_title": "Temukan teman di LighChat",
+  "@contacts_disclosure_title": {
+    "description": "Contacts prominent disclosure dialog title"
+  },
+  "contacts_disclosure_body": "LighChat membaca nomor telepon dan alamat email dari buku alamat Anda, mem-hash-nya, dan memeriksanya dengan server kami untuk menampilkan kontak mana yang sudah menggunakan aplikasi ini. Kontak Anda tidak pernah disimpan di server kami.",
+  "@contacts_disclosure_body": {
+    "description": "Contacts prominent disclosure dialog body"
+  },
+  "contacts_disclosure_allow": "Izinkan",
+  "@contacts_disclosure_allow": {
+    "description": "Contacts disclosure allow button"
+  },
+  "contacts_disclosure_deny": "Tidak sekarang",
+  "@contacts_disclosure_deny": {
+    "description": "Contacts disclosure deny button"
   }
 }

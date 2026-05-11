@@ -7955,6 +7955,19 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get chat_preview_attachment => 'Adjunto';
+
+  @override
+  String get contacts_disclosure_title => 'Encontrar amigos en LighChat';
+
+  @override
+  String get contacts_disclosure_body =>
+      'LighChat lee los números de teléfono y las direcciones de correo electrónico de tu libreta de contactos, los hashea y los compara con nuestro servidor para mostrar cuáles de tus contactos ya usan la aplicación. Tus contactos nunca se almacenan en nuestros servidores.';
+
+  @override
+  String get contacts_disclosure_allow => 'Permitir';
+
+  @override
+  String get contacts_disclosure_deny => 'Ahora no';
 }
 
 /// The translations for Spanish Castilian, as used in Mexico (`es_MX`).
@@ -15809,4 +15822,17 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get chat_preview_attachment => 'Adjunto';
+
+  @override
+  String get contacts_disclosure_title => 'Encontrar amigos en LighChat';
+
+  @override
+  String get contacts_disclosure_body =>
+      'LighChat lee los números de teléfono y las direcciones de correo electrónico de tu libreta de contactos, los hashea y los compara con nuestro servidor para mostrar cuáles de tus contactos ya usan la aplicación. Tus contactos nunca se almacenan en nuestros servidores.';
+
+  @override
+  String get contacts_disclosure_allow => 'Permitir';
+
+  @override
+  String get contacts_disclosure_deny => 'Ahora no';
 }

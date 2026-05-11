@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/device_contacts_suggestions.dart';
+import 'contacts_disclosure_dialog.dart';
 import '../data/contact_display_name.dart';
 import '../data/new_chat_user_search.dart';
 import '../data/user_chat_policy.dart';
@@ -90,6 +91,10 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
   }
 
   Future<void> _ensureDeviceContactsLoaded() async {
+    if (_deviceContactsLoaded) return;
+    if (!mounted) return;
+    final accepted = await ensureContactsDisclosureAccepted(context); // ignore: use_build_context_synchronously
+    if (!accepted || !mounted) return;
     if (_deviceContactsLoaded) return;
     _deviceContactsLoaded = true;
     final loaded = await loadDeviceContactsIfGranted();

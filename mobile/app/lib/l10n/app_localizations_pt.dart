@@ -7925,6 +7925,19 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get chat_preview_attachment => 'Anexo';
+
+  @override
+  String get contacts_disclosure_title => 'Encontrar amigos no LighChat';
+
+  @override
+  String get contacts_disclosure_body =>
+      'O LighChat lê números de telefone e endereços de e-mail do seu livro de endereços, os hasheia e os verifica em nosso servidor para mostrar quais dos seus contatos já usam o aplicativo. Seus contatos nunca são armazenados em nossos servidores.';
+
+  @override
+  String get contacts_disclosure_allow => 'Permitir';
+
+  @override
+  String get contacts_disclosure_deny => 'Agora não';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -15749,4 +15762,17 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get chat_preview_attachment => 'Anexo';
+
+  @override
+  String get contacts_disclosure_title => 'Encontrar amigos no LighChat';
+
+  @override
+  String get contacts_disclosure_body =>
+      'O LighChat lê números de telefone e endereços de e-mail do seu livro de endereços, os hasheia e os verifica em nosso servidor para mostrar quais dos seus contatos já usam o aplicativo. Seus contatos nunca são armazenados em nossos servidores.';
+
+  @override
+  String get contacts_disclosure_allow => 'Permitir';
+
+  @override
+  String get contacts_disclosure_deny => 'Agora não';
 }

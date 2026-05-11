@@ -7891,4 +7891,17 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get chat_preview_attachment => 'Lampiran';
+
+  @override
+  String get contacts_disclosure_title => 'Temukan teman di LighChat';
+
+  @override
+  String get contacts_disclosure_body =>
+      'LighChat membaca nomor telepon dan alamat email dari buku alamat Anda, mem-hash-nya, dan memeriksanya dengan server kami untuk menampilkan kontak mana yang sudah menggunakan aplikasi ini. Kontak Anda tidak pernah disimpan di server kami.';
+
+  @override
+  String get contacts_disclosure_allow => 'Izinkan';
+
+  @override
+  String get contacts_disclosure_deny => 'Tidak sekarang';
 }

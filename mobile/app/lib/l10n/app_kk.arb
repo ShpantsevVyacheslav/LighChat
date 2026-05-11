@@ -3984,5 +3984,21 @@
   "chat_preview_attachment": "Тіркеме",
   "@chat_preview_attachment": {
     "description": "Chat list preview: chat_preview_attachment"
+  },
+  "contacts_disclosure_title": "LighChat-та таныстарды табу",
+  "@contacts_disclosure_title": {
+    "description": "Contacts prominent disclosure dialog title"
+  },
+  "contacts_disclosure_body": "LighChat телефон нөмірлері мен email-мекенжайларды мекенжай кітабыңыздан оқиды, оларды хэштейді және қолданбаны пайдаланатын контактілерді көрсету үшін серверімізбен тексереді. Контактілердің өзі ешқайда сақталмайды.",
+  "@contacts_disclosure_body": {
+    "description": "Contacts prominent disclosure dialog body"
+  },
+  "contacts_disclosure_allow": "Рұқсат беру",
+  "@contacts_disclosure_allow": {
+    "description": "Contacts disclosure allow button"
+  },
+  "contacts_disclosure_deny": "Қазір емес",
+  "@contacts_disclosure_deny": {
+    "description": "Contacts disclosure deny button"
   }
 }

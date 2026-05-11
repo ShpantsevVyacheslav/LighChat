@@ -7936,4 +7936,17 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get chat_preview_attachment => 'Ilova';
+
+  @override
+  String get contacts_disclosure_title => 'LighChat\'da tanishlarni topish';
+
+  @override
+  String get contacts_disclosure_body =>
+      'LighChat manzil kitobingizdan telefon raqamlari va elektron pochta manzillarini o\'qiydi, ularni hash qiladi va qaysi kontaktlaringiz ilovadan foydalanayotganini ko\'rsatish uchun serverimiz bilan tekshiradi. Kontaktlarning o\'zi hech qaerda saqlanmaydi.';
+
+  @override
+  String get contacts_disclosure_allow => 'Ruxsat berish';
+
+  @override
+  String get contacts_disclosure_deny => 'Hozir emas';
 }

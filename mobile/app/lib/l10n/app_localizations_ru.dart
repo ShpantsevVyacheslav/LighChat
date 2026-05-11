@@ -7900,4 +7900,17 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chat_preview_attachment => 'Вложение';
+
+  @override
+  String get contacts_disclosure_title => 'Поиск знакомых в LighChat';
+
+  @override
+  String get contacts_disclosure_body =>
+      'LighChat считывает телефонные номера и email-адреса из вашей адресной книги, хэширует их и сверяет с нашим сервером, чтобы показать, кто из ваших контактов уже пользуется приложением. Сами контакты нигде не сохраняются.';
+
+  @override
+  String get contacts_disclosure_allow => 'Разрешить';
+
+  @override
+  String get contacts_disclosure_deny => 'Не сейчас';
 }
