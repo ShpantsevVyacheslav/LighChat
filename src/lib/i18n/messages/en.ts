@@ -2462,7 +2462,7 @@ export const messagesEn = {
       chatQuotaTitle: 'Quota for group chat',
       chatIdPlaceholder: 'Chat ID',
       chatQuotaMbLabel: 'Quota (MB), empty = reset',
-      storageDescription: 'Parameters below are saved in Firestore (platformSettings/main and document fields). Actual file deletion by age and FIFO on total quota overflow must be implemented in Cloud Functions (Storage traversal, size calculation, linking to message dates).',
+      storageDescription: 'Settings are applied by cron functions mediaRetentionCleanupDaily (retention) and enforceStorageQuotasDaily (per-chat quotas + global limit). Default enforcementMode=\"off\" — no deletes happen. Switch to dry_run to log what would be deleted, then enforce to actually remove objects from GCS.',
       e2eeHint: 'After creating a direct chat the client will attempt to enable end-to-end encryption if both participants have keys. Field platformSettings/main.e2eeDefaultForNewDirectChats.',
       retentionPlaceholder: 'Empty — not set',
       retentionDescription: 'Images and videos in Storage older than N days from the message timestamp.',

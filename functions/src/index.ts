@@ -16,6 +16,7 @@ export { onUserCreated } from './triggers/auth/onUserCreated';
 // HTTP Triggers (onCall)
 export { createNewUser } from './triggers/http/createNewUser';
 export { signInWithTelegram } from './triggers/http/signInWithTelegram';
+export { signInWithYandex } from './triggers/http/signInWithYandex';
 export { requestQrLogin } from './triggers/http/requestQrLogin';
 export { confirmQrLogin } from './triggers/http/confirmQrLogin';
 export { checkRegistrationKeyAvailable } from './triggers/http/checkRegistrationKeyAvailable';
@@ -26,6 +27,9 @@ export { backfillOutgoingBlocks } from './triggers/http/backfillOutgoingBlocks';
 export { backfillRegistrationIndex } from './triggers/http/backfillRegistrationIndex';
 export { migrateDeviceLocationToPrivate } from './triggers/http/migrateDeviceLocationToPrivate';
 export { syncAdminClaims } from './triggers/http/syncAdminClaims';
+export { adminRecomputeStorageStats } from './triggers/http/adminRecomputeStorageStats';
+export { adminRecomputeStats } from './triggers/http/adminRecomputeStats';
+export { recomputeAdminStatsDaily } from './triggers/scheduler/recomputeAdminStatsDaily';
 export { requestMeetingAccess, respondToMeetingRequest } from './triggers/http/meetingJoinRequests';
 export { checkGroupInvitesAllowed } from './triggers/http/checkGroupInvitesAllowed';
 export { retryChatMediaTranscode } from './triggers/http/retryChatMediaTranscode';
@@ -78,3 +82,5 @@ export { cleanupSecretMediaRequests } from './triggers/scheduler/cleanupSecretMe
 export { cleanupDurakReadyRooms } from './triggers/scheduler/cleanupDurakReadyRooms';
 export { cleanupDurakTurnTimeouts } from './triggers/scheduler/cleanupDurakTurnTimeouts';
 export { sendScheduledMessages } from './triggers/scheduler/sendScheduledMessages';
+export { mediaRetentionCleanupDaily } from './triggers/scheduler/mediaRetentionCleanupDaily';
+export { enforceStorageQuotasDaily } from './triggers/scheduler/enforceStorageQuotasDaily';

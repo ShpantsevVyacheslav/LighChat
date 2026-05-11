@@ -2464,7 +2464,7 @@ export const messagesPtBr = {
       chatQuotaTitle: 'Cota para bate-papo em grupo',
       chatIdPlaceholder: 'ID do bate-papo',
       chatQuotaMbLabel: 'Cota (MB), vazia = redefinida',
-      storageDescription: 'Os parâmetros abaixo são salvos no Firestore (campos platformSettings/main e document). A exclusão real de arquivos por idade e FIFO no estouro total da cota deve ser implementada no Cloud Functions (travessia de armazenamento, cálculo de tamanho, vinculação a datas de mensagens).',
+      storageDescription: 'Settings are applied by cron functions mediaRetentionCleanupDaily (retention) and enforceStorageQuotasDaily (per-chat quotas + global limit). Default enforcementMode=\"off\" — no deletes happen. Switch to dry_run to log what would be deleted, then enforce to actually remove objects from GCS.',
       e2eeHint: 'Depois de criar um chat direto, o cliente tentará habilitar a criptografia ponta a ponta se ambos os participantes tiverem chaves. Campo platformSettings/main.e2eeDefaultForNewDirectChats.',
       retentionPlaceholder: 'Vazio – não definido',
       retentionDescription: 'Imagens e vídeos no armazenamento com mais de N dias a partir do carimbo de data/hora da mensagem.',

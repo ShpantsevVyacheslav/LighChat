@@ -2464,7 +2464,7 @@ export const messagesId = {
       chatQuotaTitle: 'Kuota untuk obrolan grup',
       chatIdPlaceholder: 'ID Obrolan',
       chatQuotaMbLabel: 'Kuota (MB), kosong = reset',
-      storageDescription: 'Parameter di bawah ini disimpan di Firestore (platformSettings/bidang utama dan dokumen). Penghapusan file sebenarnya berdasarkan usia dan FIFO pada total kuota yang berlebihan harus diterapkan di Cloud Functions (Traversal penyimpanan, penghitungan ukuran, penautan ke tanggal pesan).',
+      storageDescription: 'Settings are applied by cron functions mediaRetentionCleanupDaily (retention) and enforceStorageQuotasDaily (per-chat quotas + global limit). Default enforcementMode=\"off\" — no deletes happen. Switch to dry_run to log what would be deleted, then enforce to actually remove objects from GCS.',
       e2eeHint: 'Setelah membuat obrolan langsung, klien akan mencoba mengaktifkan enkripsi ujung ke ujung jika kedua peserta memiliki kunci. Platform lapanganSettings/main.e2eeDefaultForNewDirectChats.',
       retentionPlaceholder: 'Kosong — tidak disetel',
       retentionDescription: 'Gambar dan video di Penyimpanan lebih lama dari N hari sejak stempel waktu pesan.',

@@ -416,12 +416,23 @@ export type SecretMediaKeyGrantDoc = {
 
 /** Документ Firestore: platformSettings/main */
 export type PlatformStoragePolicy = {
-  /** Удаление медиа в Storage старше N дней от даты отправки (нужна Cloud Function + индексация дат). */
+  /** Удаление медиа в Storage старше N дней от даты отправки. Применяется cron-функцией `mediaRetentionCleanupDaily`. */
   mediaRetentionDays: number | null;
-  /** Общий лимит проекта в Гб; при превышении — FIFO по старым файлам (нужна CF). */
+  /** Общий лимит проекта в Гб; при превышении — FIFO-выселение вложений из «жирных» чатов (`enforceStorageQuotasDaily`). */
   totalQuotaGb: number | null;
   /** Оценка стоимости в панели статистики: USD за 1 Гб·мес (не из биллинга GCP). */
   estimatedPricePerGbMonthUsd?: number | null;
+  /**
+   * Режим enforcement квот / retention.
+   *  - `off` (default) — cron-функции `mediaRetentionCleanupDaily` и
+   *    `enforceStorageQuotasDaily` не делают ничего.
+   *  - `dry_run` — функции считают «что бы удалили» и пишут в логи без
+   *    реальных операций. Полезно перед первым включением.
+   *  - `enforce` — реальное удаление объектов GCS и зачистка поля
+   *    `attachments` в Firestore (на сообщении остаётся метка
+   *    `mediaEvictedAt`/`mediaEvictedReason`).
+   */
+  enforcementMode?: 'off' | 'dry_run' | 'enforce';
   updatedAt?: string;
   updatedBy?: string;
 };

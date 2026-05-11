@@ -148,7 +148,7 @@ export function AdminOverviewDashboard({ onNavigateTab }: AdminOverviewDashboard
         </section>
       )}
 
-      {geo && (geo.topCountries.length > 0 || geo.topCities.length > 0) && (
+      {geo && (
         <section className="space-y-2">
           <div className="flex items-baseline justify-between px-1 gap-2">
             <h2 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">

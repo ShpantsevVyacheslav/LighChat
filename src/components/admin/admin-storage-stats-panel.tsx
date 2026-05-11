@@ -27,8 +27,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { fetchChatStorageStatsAction } from '@/actions/storage-stats-actions';
-import { listAdminConversationsAction } from '@/actions/admin-conversations-list-action';
-import type { AdminChatStorageStatsResult, Conversation, PlatformSettingsDoc } from '@/lib/types';
+import { listAdminConversationsAction, type AdminConversationListItem } from '@/actions/admin-conversations-list-action';
+import type { AdminChatStorageStatsResult, PlatformSettingsDoc } from '@/lib/types';
 import { formatStorageBytes, bytesToGiB } from '@/lib/format-storage';
 import { ruEnSubstringMatch } from '@/lib/ru-latin-search-normalize';
 import { BarChart3, Loader2, RefreshCw } from 'lucide-react';
@@ -37,6 +37,31 @@ import { useI18n } from '@/hooks/use-i18n';
 const MAIN_DOC = 'main';
 
 type PeriodPreset = 'all' | 'day' | 'week' | 'month' | 'year' | 'custom';
+
+function conversationDisplayName(
+  c: AdminConversationListItem,
+  fallback: string,
+): { primary: string; secondary: string } {
+  if (c.isGroup) {
+    const primary = (c.name && c.name.trim()) || fallback;
+    const memberSample = c.participants.map((p) => p.name).slice(0, 3).join(', ');
+    const more = c.participantCount > 3 ? ` +${c.participantCount - 3}` : '';
+    const secondary = memberSample ? `${memberSample}${more}` : '';
+    return { primary, secondary };
+  }
+  // direct: распознать «saved messages» (один и тот же uid в обеих ролях)
+  const uniqueIds = new Set(c.participants.map((p) => p.id));
+  if (uniqueIds.size === 1 && c.participants.length > 0) {
+    const me = c.participants[0];
+    return { primary: `Избранное · ${me.name}`, secondary: me.id };
+  }
+  const names = c.participants.map((p) => p.name).filter(Boolean);
+  if (names.length === 0) {
+    return { primary: (c.name && c.name.trim()) || fallback, secondary: '' };
+  }
+  const primary = names.join(' ↔ ');
+  return { primary, secondary: c.participants.map((p) => p.id).join(' · ') };
+}
 
 function rangeForPreset(preset: PeriodPreset): { from: string | null; to: string | null } {
   const now = new Date();
@@ -69,7 +94,7 @@ export function AdminStorageStatsPanel() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [conversations, setConversations] = useState<Pick<Conversation, 'id' | 'name' | 'isGroup'>[]>([]);
+  const [conversations, setConversations] = useState<AdminConversationListItem[]>([]);
   const [convSearch, setConvSearch] = useState('');
   const [selectedConvIds, setSelectedConvIds] = useState<Set<string>>(() => new Set());
   const [preset, setPreset] = useState<PeriodPreset>('all');
@@ -149,11 +174,15 @@ export function AdminStorageStatsPanel() {
   const filteredConversations = useMemo(() => {
     const q = convSearch.trim().toLowerCase();
     if (!q) return conversations;
-    return conversations.filter(
-      (c) =>
-        c.id.toLowerCase().includes(q) ||
-        (c.name && ruEnSubstringMatch(c.name, q)),
-    );
+    return conversations.filter((c) => {
+      if (c.id.toLowerCase().includes(q)) return true;
+      if (c.name && ruEnSubstringMatch(c.name, q)) return true;
+      for (const p of c.participants) {
+        if (p.id.toLowerCase().includes(q)) return true;
+        if (p.name && ruEnSubstringMatch(p.name, q)) return true;
+      }
+      return false;
+    });
   }, [conversations, convSearch]);
 
   const toggleConv = useCallback((id: string, checked: boolean) => {
@@ -334,21 +363,36 @@ export function AdminStorageStatsPanel() {
               <p className="text-sm text-muted-foreground p-2">{t('adminPage.storageStats.loadingChats')}</p>
             ) : (
               <ul className="space-y-2 pr-3">
-                {filteredConversations.map((c) => (
-                  <li key={c.id} className="flex items-start gap-2 text-sm">
-                    <Checkbox
-                      id={`conv-${c.id}`}
-                      checked={selectedConvIds.has(c.id)}
-                      onCheckedChange={(v) => toggleConv(c.id, v === true)}
-                    />
-                    <label htmlFor={`conv-${c.id}`} className="cursor-pointer leading-tight">
-                      <span className="font-medium">{c.name || t('adminPage.storageStats.noTitle')}</span>
-                      <span className="ml-1 text-muted-foreground text-xs">
-                        {c.isGroup ? `· ${t('adminPage.storageStats.groupTag')}` : `· ${t('adminPage.storageStats.directTag')}`} · {c.id.slice(0, 12)}…
-                      </span>
-                    </label>
-                  </li>
-                ))}
+                {filteredConversations.map((c) => {
+                  const noTitle = t('adminPage.storageStats.noTitle');
+                  const { primary, secondary } = conversationDisplayName(c, noTitle);
+                  const tag = c.isGroup
+                    ? `${t('adminPage.storageStats.groupTag')} · ${c.participantCount}`
+                    : t('adminPage.storageStats.directTag');
+                  return (
+                    <li key={c.id} className="flex items-start gap-2 text-sm">
+                      <Checkbox
+                        id={`conv-${c.id}`}
+                        checked={selectedConvIds.has(c.id)}
+                        onCheckedChange={(v) => toggleConv(c.id, v === true)}
+                      />
+                      <label htmlFor={`conv-${c.id}`} className="cursor-pointer leading-tight min-w-0 flex-1">
+                        <div className="flex items-baseline gap-1">
+                          <span className="font-medium truncate">{primary}</span>
+                          <span className="text-muted-foreground text-xs whitespace-nowrap">· {tag}</span>
+                        </div>
+                        {secondary && (
+                          <div
+                            className="text-muted-foreground text-[11px] truncate"
+                            title={`${secondary} · ${c.id}`}
+                          >
+                            {secondary}
+                          </div>
+                        )}
+                      </label>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </ScrollArea>

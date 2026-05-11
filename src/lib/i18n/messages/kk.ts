@@ -2464,7 +2464,7 @@ export const messagesKk = {
       chatQuotaTitle: 'Топтық чатқа арналған квота',
       chatIdPlaceholder: 'Чат идентификаторы',
       chatQuotaMbLabel: 'Квота (МБ), бос = қалпына келтіру',
-      storageDescription: 'Төмендегі параметрлер Firestore ішінде сақталады (платформа параметрлері/негізгі және құжат өрістері). Жасы бойынша нақты файлды жою және жалпы квота толып кету бойынша FIFO Cloud функцияларында жүзеге асырылуы керек (Сақтау орнын ауыстыру, өлшемді есептеу, хабарлама күндеріне сілтеме).',
+      storageDescription: 'Settings are applied by cron functions mediaRetentionCleanupDaily (retention) and enforceStorageQuotasDaily (per-chat quotas + global limit). Default enforcementMode=\"off\" — no deletes happen. Switch to dry_run to log what would be deleted, then enforce to actually remove objects from GCS.',
       e2eeHint: 'Тікелей чатты жасағаннан кейін клиент екі қатысушының кілттері болса, түпкілікті шифрлауды қосуға әрекет жасайды. Field platformSettings/main.e2eeDefaultForNewDirectChats.',
       retentionPlaceholder: 'Бос — орнатылмаған',
       retentionDescription: 'Хабардың уақыт белгісінен N күннен асқан жадтағы суреттер мен бейнелер.',

@@ -2464,7 +2464,7 @@ export const messagesUz = {
       chatQuotaTitle: 'Guruh suhbati uchun kvota',
       chatIdPlaceholder: 'Chat identifikatori',
       chatQuotaMbLabel: 'Kvota (MB), bo\'sh = qayta o\'rnatish',
-      storageDescription: 'Quyidagi parametrlar Firestore-da saqlanadi (platforma sozlamalari/asosiy va hujjat maydonlari). Yosh bo‘yicha haqiqiy faylni o‘chirish va umumiy kvota to‘lib ketishi bo‘yicha FIFO Cloud funksiyalarida amalga oshirilishi kerak (Saqlash maydoni, o‘lchamni hisoblash, xabar sanalariga bog‘lash).',
+      storageDescription: 'Settings are applied by cron functions mediaRetentionCleanupDaily (retention) and enforceStorageQuotasDaily (per-chat quotas + global limit). Default enforcementMode=\"off\" — no deletes happen. Switch to dry_run to log what would be deleted, then enforce to actually remove objects from GCS.',
       e2eeHint: 'To\'g\'ridan-to\'g\'ri suhbatni yaratgandan so\'ng, mijoz ikkala ishtirokchida kalitlarga ega bo\'lsa, oxirigacha shifrlashni yoqishga harakat qiladi. Field platformSettings/main.e2eeDefaultForNewDirectChats.',
       retentionPlaceholder: 'Boʻsh — oʻrnatilmagan',
       retentionDescription: 'Xabar vaqt tamg‘asidan N kundan eski xotiradagi rasm va videolar.',

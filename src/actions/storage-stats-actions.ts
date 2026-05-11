@@ -102,9 +102,32 @@ export async function fetchChatStorageStatsAction(input: {
   for (const d of convSnap.docs) {
     const data = d.data();
     const isGroup = Boolean(data?.isGroup);
-    const title =
-      (typeof data?.name === 'string' && data.name.trim()) ||
-      (isGroup ? `Группа ${d.id.slice(0, 8)}…` : `Чат ${d.id.slice(0, 8)}…`);
+    const explicitName =
+      typeof data?.name === 'string' && data.name.trim() ? data.name.trim() : null;
+
+    let title: string;
+    if (explicitName) {
+      title = explicitName;
+    } else if (isGroup) {
+      title = `Группа ${d.id.slice(0, 8)}…`;
+    } else {
+      const ids = Array.isArray(data?.participantIds)
+        ? (data.participantIds as unknown[]).filter((x): x is string => typeof x === 'string')
+        : [];
+      const info = (data?.participantInfo ?? {}) as Record<string, { name?: string }>;
+      const uniq = Array.from(new Set(ids));
+      const names = uniq
+        .map((id) => (info[id]?.name?.trim() ? info[id].name!.trim() : id))
+        .filter(Boolean);
+      if (uniq.length === 1 && names[0]) {
+        title = `Избранное · ${names[0]}`;
+      } else if (names.length >= 2) {
+        title = `${names[0]} ↔ ${names[1]}`;
+      } else {
+        title = `Чат ${d.id.slice(0, 8)}…`;
+      }
+    }
+
     convMeta.set(d.id, { isGroup, title });
   }
 

@@ -22,6 +22,7 @@ import {
 } from '@/actions/support-ticket-actions';
 import type { SupportTicket, SupportTicketMessage, TicketStatus } from '@/lib/types';
 import { useI18n } from '@/hooks/use-i18n';
+import { useToast } from '@/hooks/use-toast';
 
 const STATUS_LABEL_KEYS: Record<TicketStatus, string> = {
   open: 'adminPage.supportStatusLabels.open',
@@ -52,9 +53,12 @@ const CATEGORY_LABEL_KEYS: Record<string, string> = {
 
 export function AdminSupportInbox() {
   const { t } = useI18n();
+  const { toast } = useToast();
   const firebaseAuth = useFirebaseAuth();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<TicketStatus | 'all'>('all');
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [messages, setMessages] = useState<SupportTicketMessage[]>([]);
@@ -66,13 +70,49 @@ export function AdminSupportInbox() {
     const token = await firebaseAuth?.currentUser?.getIdToken();
     if (!token) return;
     setLoading(true);
-    const res = await fetchSupportTicketsAction({
-      idToken: token,
-      statusFilter: statusFilter !== 'all' ? statusFilter : undefined,
-    });
-    if (res.ok) setTickets(res.tickets);
-    setLoading(false);
-  }, [firebaseAuth, statusFilter]);
+    try {
+      const res = await fetchSupportTicketsAction({
+        idToken: token,
+        statusFilter: statusFilter !== 'all' ? statusFilter : undefined,
+      });
+      if (res.ok) {
+        setTickets(res.tickets);
+        setNextCursor(res.nextCursor);
+      } else {
+        toast({ variant: 'destructive', title: res.error || 'Не удалось загрузить тикеты' });
+      }
+    } catch (e) {
+      console.error('[AdminSupportInbox] loadTickets', e);
+      toast({ variant: 'destructive', title: 'Не удалось загрузить тикеты' });
+    } finally {
+      setLoading(false);
+    }
+  }, [firebaseAuth, statusFilter, toast]);
+
+  const loadMore = useCallback(async () => {
+    if (!nextCursor) return;
+    const token = await firebaseAuth?.currentUser?.getIdToken();
+    if (!token) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetchSupportTicketsAction({
+        idToken: token,
+        statusFilter: statusFilter !== 'all' ? statusFilter : undefined,
+        cursor: nextCursor,
+      });
+      if (res.ok) {
+        setTickets((prev) => [...prev, ...res.tickets]);
+        setNextCursor(res.nextCursor);
+      } else {
+        toast({ variant: 'destructive', title: res.error || 'Не удалось загрузить ещё' });
+      }
+    } catch (e) {
+      console.error('[AdminSupportInbox] loadMore', e);
+      toast({ variant: 'destructive', title: 'Не удалось загрузить ещё' });
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [firebaseAuth, statusFilter, nextCursor, toast]);
 
   useEffect(() => { loadTickets(); }, [loadTickets]);
 
@@ -81,9 +121,19 @@ export function AdminSupportInbox() {
     const token = await firebaseAuth?.currentUser?.getIdToken();
     if (!token) return;
     setLoadingMessages(true);
-    const res = await fetchTicketMessagesAction({ idToken: token, ticketId: ticket.id });
-    if (res.ok) setMessages(res.messages);
-    setLoadingMessages(false);
+    try {
+      const res = await fetchTicketMessagesAction({ idToken: token, ticketId: ticket.id });
+      if (res.ok) {
+        setMessages(res.messages);
+      } else {
+        toast({ variant: 'destructive', title: res.error || 'Не удалось загрузить сообщения тикета' });
+      }
+    } catch (e) {
+      console.error('[AdminSupportInbox] openTicket', e);
+      toast({ variant: 'destructive', title: 'Не удалось загрузить сообщения тикета' });
+    } finally {
+      setLoadingMessages(false);
+    }
   };
 
   const sendReply = async () => {
@@ -91,21 +141,38 @@ export function AdminSupportInbox() {
     const token = await firebaseAuth?.currentUser?.getIdToken();
     if (!token) return;
     setSending(true);
-    const res = await replyToTicketAction({ idToken: token, ticketId: selectedTicket.id, text: reply.trim() });
-    if (res.ok) {
-      setReply('');
-      await openTicket(selectedTicket);
+    try {
+      const res = await replyToTicketAction({ idToken: token, ticketId: selectedTicket.id, text: reply.trim() });
+      if (res.ok) {
+        setReply('');
+        await openTicket(selectedTicket);
+      } else {
+        toast({ variant: 'destructive', title: res.error || 'Не удалось отправить ответ' });
+      }
+    } catch (e) {
+      console.error('[AdminSupportInbox] sendReply', e);
+      toast({ variant: 'destructive', title: 'Не удалось отправить ответ' });
+    } finally {
+      setSending(false);
     }
-    setSending(false);
   };
 
   const changeStatus = async (status: TicketStatus) => {
     if (!selectedTicket) return;
     const token = await firebaseAuth?.currentUser?.getIdToken();
     if (!token) return;
-    await updateTicketStatusAction({ idToken: token, ticketId: selectedTicket.id, status });
-    setSelectedTicket({ ...selectedTicket, status });
-    loadTickets();
+    try {
+      const res = await updateTicketStatusAction({ idToken: token, ticketId: selectedTicket.id, status });
+      if (!res.ok) {
+        toast({ variant: 'destructive', title: res.error || 'Не удалось изменить статус' });
+        return;
+      }
+      setSelectedTicket({ ...selectedTicket, status });
+      loadTickets();
+    } catch (e) {
+      console.error('[AdminSupportInbox] changeStatus', e);
+      toast({ variant: 'destructive', title: 'Не удалось изменить статус' });
+    }
   };
 
   const formatDate = (iso: string) => {
@@ -228,6 +295,20 @@ export function AdminSupportInbox() {
                 </div>
               </button>
             ))}
+            {nextCursor && (
+              <div className="flex justify-center pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl"
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                  Показать ещё
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

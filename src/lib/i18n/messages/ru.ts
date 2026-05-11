@@ -2464,7 +2464,7 @@ export const messagesRu = {
       chatQuotaTitle: 'Квота для группового чата',
       chatIdPlaceholder: 'Идентификатор чата',
       chatQuotaMbLabel: 'Квота (МБ), пусто = сброс',
-      storageDescription: 'Параметры ниже сохраняются в Firestore (platformSettings/main и поля документов). Фактическое удаление файлов по сроку и FIFO при переполнении общей квоты нужно реализовать в Cloud Functions (обход Storage, подсчёт размера, связь с датами сообщений).',
+      storageDescription: 'Параметры применяются крон-функциями mediaRetentionCleanupDaily (срок хранения) и enforceStorageQuotasDaily (квоты чатов + глобальный лимит). По умолчанию режим enforcementMode=\"off\" — функции ничего не удаляют. Переключите в dry_run, чтобы увидеть в логах \"что бы удалили\", и в enforce для реального удаления объектов GCS.',
       e2eeHint: 'После создания личного чата клиент попытается включить сквозное шифрование, если у обоих участников есть ключи. Поле platformSettings/main.e2eeDefaultForNewDirectChats.',
       retentionPlaceholder: 'Пусто — не задано',
       retentionDescription: 'Изображения и видео в Storage старше N дней от метки в сообщении.',

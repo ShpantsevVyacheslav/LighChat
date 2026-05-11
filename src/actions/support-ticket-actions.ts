@@ -66,20 +66,45 @@ export async function createSupportTicketAction(input: {
   }
 }
 
+const TICKET_PAGE_SIZE = 50;
+const TICKET_PAGE_SIZE_MAX = 100;
+
 export async function fetchSupportTicketsAction(input: {
   idToken: string;
   statusFilter?: TicketStatus;
-}): Promise<{ ok: true; tickets: SupportTicket[] } | { ok: false; error: string }> {
+  cursor?: string;
+  pageSize?: number;
+}): Promise<
+  | { ok: true; tickets: SupportTicket[]; nextCursor: string | null }
+  | { ok: false; error: string }
+> {
   try {
     await assertAdminByIdToken(input.idToken);
 
-    let query = adminDb.collection('supportTickets').orderBy('createdAt', 'desc').limit(100);
+    const size = Math.min(
+      Math.max(1, Math.floor(input.pageSize ?? TICKET_PAGE_SIZE)),
+      TICKET_PAGE_SIZE_MAX,
+    );
+
+    let query: FirebaseFirestore.Query = adminDb
+      .collection('supportTickets')
+      .orderBy('createdAt', 'desc');
     if (input.statusFilter) {
       query = query.where('status', '==', input.statusFilter);
     }
+    query = query.limit(size);
+    if (input.cursor) {
+      const startSnap = await adminDb.collection('supportTickets').doc(input.cursor).get();
+      if (startSnap.exists) {
+        query = query.startAfter(startSnap);
+      }
+    }
+
     const snap = await query.get();
     const tickets = snap.docs.map((d) => d.data() as SupportTicket);
-    return { ok: true, tickets };
+    const nextCursor =
+      snap.docs.length === size ? snap.docs[snap.docs.length - 1].id : null;
+    return { ok: true, tickets, nextCursor };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };

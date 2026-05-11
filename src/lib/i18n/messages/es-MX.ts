@@ -2464,7 +2464,7 @@ export const messagesEsMx = {
       chatQuotaTitle: 'Cuota para chat grupal',
       chatIdPlaceholder: 'ID de chat',
       chatQuotaMbLabel: 'Cuota (MB), vacía = restablecer',
-      storageDescription: 'Los parámetros a continuación se guardan en Firestore (configuración de plataforma/campos principales y de documento). La eliminación real de archivos por antigüedad y FIFO en caso de desbordamiento de cuota total se debe implementar en Cloud Functions (recorrido de almacenamiento, cálculo de tamaño, vinculación a fechas de mensajes).',
+      storageDescription: 'Settings are applied by cron functions mediaRetentionCleanupDaily (retention) and enforceStorageQuotasDaily (per-chat quotas + global limit). Default enforcementMode=\"off\" — no deletes happen. Switch to dry_run to log what would be deleted, then enforce to actually remove objects from GCS.',
       e2eeHint: 'Después de crear un chat directo, el cliente intentará habilitar el cifrado de extremo a extremo si ambos participantes tienen claves. Plataforma de campoSettings/main.e2eeDefaultForNewDirectChats.',
       retentionPlaceholder: 'Vacío: no configurado',
       retentionDescription: 'Imágenes y vídeos almacenados con más de N días desde la marca de tiempo del mensaje.',

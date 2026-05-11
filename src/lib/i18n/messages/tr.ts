@@ -2464,7 +2464,7 @@ export const messagesTr = {
       chatQuotaTitle: 'Grup sohbeti kotası',
       chatIdPlaceholder: 'Sohbet Kimliği',
       chatQuotaMbLabel: 'Kota (MB), boş = sıfırla',
-      storageDescription: 'Aşağıdaki parametreler Firestore\'a kaydedilir (platformSettings/ana ve belge alanları). Yaşa göre fiili dosya silme ve toplam kota aşımına ilişkin FIFO, Cloud Functions\'ta uygulanmalıdır (Depolama geçişi, boyut hesaplama, mesaj tarihlerine bağlanma).',
+      storageDescription: 'Settings are applied by cron functions mediaRetentionCleanupDaily (retention) and enforceStorageQuotasDaily (per-chat quotas + global limit). Default enforcementMode=\"off\" — no deletes happen. Switch to dry_run to log what would be deleted, then enforce to actually remove objects from GCS.',
       e2eeHint: 'Doğrudan sohbet oluşturduktan sonra, her iki katılımcının da anahtarları varsa müşteri uçtan uca şifrelemeyi etkinleştirmeye çalışacaktır. Saha platformuSettings/main.e2eeDefaultForNewDirectChats.',
       retentionPlaceholder: 'Boş — ayarlanmadı',
       retentionDescription: 'Depolama alanında bulunan, mesaj zaman damgasından itibaren N günden daha eski resimler ve videolar.',
