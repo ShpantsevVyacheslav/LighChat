@@ -6,6 +6,7 @@ import { adminDb } from '@/firebase/admin';
 import { assertAdminByIdToken, verifyUserByIdToken } from '@/actions/admin-actions';
 import { logAdminAction } from '@/lib/server/audit-log';
 import type { MessageReport, ReportStatus, ModerationAction, MessageHiddenByAdmin } from '@/lib/types';
+import { logger } from '@/lib/logger';
 
 // SECURITY: Firestore document IDs are interpolated into paths; reject any
 // shape that would let `..` / `/` walk outside the expected collection.
@@ -91,30 +92,8 @@ export async function createMessageReportAction(input: {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'UNAUTHORIZED') return { ok: false, error: 'Требуется вход' };
     if (msg === 'BLOCKED') return { ok: false, error: 'Аккаунт заблокирован' };
-    console.error('[createMessageReportAction]', e);
+    logger.error('moderation', 'createMessageReportAction', e);
     return { ok: false, error: 'Не удалось отправить жалобу' };
-  }
-}
-
-export async function fetchPendingReportsAction(input: {
-  idToken: string;
-  statusFilter?: ReportStatus;
-}): Promise<{ ok: true; reports: MessageReport[] } | { ok: false; error: string }> {
-  try {
-    await assertAdminByIdToken(input.idToken);
-
-    let query = adminDb.collection('messageReports').orderBy('createdAt', 'desc').limit(50);
-    if (input.statusFilter) {
-      query = query.where('status', '==', input.statusFilter);
-    }
-    const snap = await query.get();
-    const reports = snap.docs.map((d) => d.data() as MessageReport);
-    return { ok: true, reports };
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[fetchPendingReportsAction]', e);
-    return { ok: false, error: 'Ошибка загрузки жалоб' };
   }
 }
 

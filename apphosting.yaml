@@ -28,3 +28,15 @@ env:
     secret: GIPHY_API_KEY
     availability:
       - RUNTIME
+
+  # HMAC-ключ для Server Action ID в Next.js. Должен совпадать на этапе
+  # `next build` и в рантайме SSR — иначе клиент при POST на Server Action
+  # получит UnrecognizedActionError ("Server action not found"). Без пина
+  # Next генерирует ключ заново на каждом билде → action IDs дрейфуют.
+  # Создать секрет:  firebase apphosting:secrets:set NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
+  # Дать доступ:     firebase apphosting:secrets:grantaccess NEXT_SERVER_ACTIONS_ENCRYPTION_KEY --backend <BACKEND_ID>
+  - variable: NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
+    secret: NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
+    availability:
+      - BUILD
+      - RUNTIME

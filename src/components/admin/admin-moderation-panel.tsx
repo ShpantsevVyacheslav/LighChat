@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,10 +12,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ShieldAlert, Loader2, EyeOff, Check, X } from 'lucide-react';
-import { useAuth as useFirebaseAuth } from '@/firebase';
+import {
+  collection,
+  limit as fsLimit,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from 'firebase/firestore';
+import { useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import {
-  fetchPendingReportsAction,
   reviewReportAction,
   hideMessageAction,
 } from '@/actions/moderation-actions';
@@ -49,25 +56,32 @@ const STATUS_COLORS: Record<ReportStatus, string> = {
 export function AdminModerationPanel() {
   const { t } = useI18n();
   const firebaseAuth = useFirebaseAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [reports, setReports] = useState<MessageReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>('pending');
   const [acting, setActing] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    const token = await firebaseAuth?.currentUser?.getIdToken();
-    if (!token) return;
+  useEffect(() => {
+    if (!firestore) return;
     setLoading(true);
-    const res = await fetchPendingReportsAction({
-      idToken: token,
-      statusFilter: statusFilter !== 'all' ? statusFilter : undefined,
-    });
-    if (res.ok) setReports(res.reports);
-    setLoading(false);
-  }, [firebaseAuth, statusFilter]);
-
-  useEffect(() => { load(); }, [load]);
+    const base = collection(firestore, 'messageReports');
+    const q = statusFilter === 'all'
+      ? query(base, orderBy('createdAt', 'desc'), fsLimit(50))
+      : query(base, where('status', '==', statusFilter), orderBy('createdAt', 'desc'), fsLimit(50));
+    return onSnapshot(
+      q,
+      (snap) => {
+        setReports(snap.docs.map((d) => d.data() as MessageReport));
+        setLoading(false);
+      },
+      (err) => {
+        console.error('[AdminModerationPanel] onSnapshot', err);
+        setLoading(false);
+      },
+    );
+  }, [firestore, statusFilter]);
 
   const handleHideAndReview = async (report: MessageReport) => {
     const token = await firebaseAuth?.currentUser?.getIdToken();
@@ -96,7 +110,6 @@ export function AdminModerationPanel() {
         actionTaken: 'hidden',
       });
       toast({ title: t('admin.moderation.messageHiddenToast') });
-      load();
     } else {
       toast({ variant: 'destructive', title: hideRes.error });
     }
@@ -115,7 +128,6 @@ export function AdminModerationPanel() {
     });
     if (res.ok) {
       toast({ title: t('admin.moderation.reportDismissed') });
-      load();
     }
     setActing(null);
   };
