@@ -92,7 +92,13 @@ export type MeetingPoll = {
   creatorId: string;
   status: 'active' | 'ended' | 'cancelled' | 'draft';
   isAnonymous: boolean;
-  createdAt: any;
+  /**
+   * ISO timestamp (string) **или** Firestore Timestamp (`{ toDate(): Date }`)
+   * — клиентский SDK возвращает Timestamp как есть, server-actions сериализуют
+   * в ISO string. Consumer'ы делают narrowing через `typeof === 'string'`
+   * или `'toDate' in createdAt`.
+   */
+  createdAt: string | { toDate(): Date };
   /** uid → индекс варианта или массив индексов при множественном выборе. */
   votes: Record<string, number | number[]>;
   allowMultipleAnswers?: boolean;
@@ -125,8 +131,14 @@ export type MeetingSignal = {
   from: string;
   to: string;
   type: 'offer' | 'answer' | 'candidate';
-  data: any;
-  createdAt: any;
+  /**
+   * WebRTC signaling payload: SDP-offer/answer (`RTCSessionDescriptionInit`)
+   * или ICE candidate (`RTCIceCandidateInit`). Раньше `any` — теперь `unknown`,
+   * чтобы consumer'ы (simple-peer normalizer) делали явный type-narrowing.
+   */
+  data: unknown;
+  /** ISO timestamp (string) или Firestore Timestamp (см. MeetingPoll.createdAt). */
+  createdAt: string | { toDate(): Date };
 };
 
 export type UserMeetingsIndex = {
@@ -166,8 +178,11 @@ export type Call = {
   receiverAvatar?: string;
   status: CallStatus;
   isVideo: boolean;
-  offer?: any;
-  answer?: any;
+  /** SDP-offer (`RTCSessionDescriptionInit`-shape). `unknown` чтобы заставить
+   *  consumer-код явно проверять структуру перед передачей в RTCPeerConnection. */
+  offer?: unknown;
+  /** SDP-answer (см. `offer`). */
+  answer?: unknown;
   createdAt: string;
   startedAt?: string;
   endedAt?: string;
@@ -870,7 +885,8 @@ export type MeetingMessage = {
   senderName: string;
   text?: string;
   attachments?: ChatAttachment[];
-  createdAt: any;
+  /** ISO timestamp (string) или Firestore Timestamp (см. MeetingPoll.createdAt). */
+  createdAt: string | { toDate(): Date };
   updatedAt?: string;
   isDeleted?: boolean;
 };
