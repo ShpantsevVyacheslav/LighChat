@@ -1176,6 +1176,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chat_list_create_folder_name_label => 'FOLDER NAME';
 
   @override
+  String get chat_list_create_folder_name_hint => 'Folder name';
+
+  @override
   String chat_list_create_folder_chats_label(Object count) {
     return 'CHATS ($count)';
   }

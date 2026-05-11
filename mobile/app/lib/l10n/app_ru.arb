@@ -542,6 +542,7 @@
   "chat_list_create_folder_title": "Новая папка",
   "chat_list_create_folder_subtitle": "Создайте папку для быстрой фильтрации чатов.",
   "chat_list_create_folder_name_label": "НАЗВАНИЕ ПАПКИ",
+  "chat_list_create_folder_name_hint": "Название папки",
   "chat_list_create_folder_chats_label": "ЧАТЫ ({count})",
   "@chat_list_create_folder_chats_label": {
     "placeholders": {

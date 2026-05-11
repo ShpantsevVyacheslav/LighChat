@@ -1189,6 +1189,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chat_list_create_folder_name_label => 'НАЗВАНИЕ ПАПКИ';
 
   @override
+  String get chat_list_create_folder_name_hint => 'Название папки';
+
+  @override
   String chat_list_create_folder_chats_label(Object count) {
     return 'ЧАТЫ ($count)';
   }

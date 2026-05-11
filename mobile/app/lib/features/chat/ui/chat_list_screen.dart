@@ -2173,7 +2173,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                     }
                   }
 
-                  return Container(
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => FocusScope.of(ctx).unfocus(),
+                    child: Container(
                     constraints: BoxConstraints(
                       maxWidth: 760,
                       maxHeight: MediaQuery.of(ctx).size.height * 0.84,
@@ -2217,7 +2220,6 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                           TextField(
                             controller: controller,
                             focusNode: focus,
-                            autofocus: true,
                             onChanged: (_) => setModalState(() {}),
                             textInputAction: TextInputAction.done,
                             textCapitalization: TextCapitalization.sentences,
@@ -2228,8 +2230,8 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                               fontWeight: FontWeight.w500,
                             ),
                             decoration: InputDecoration(
-                              hintText: AppLocalizations.of(context)!
-                                  .settings_chats_icon_picker_search_hint,
+                              hintText: sheetL10n
+                                  .chat_list_create_folder_name_hint,
                               hintStyle: TextStyle(
                                 color: modalFg.withValues(alpha: 0.42),
                                 fontSize: 15,
@@ -2642,6 +2644,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                           ),
                         ],
                       ),
+                    ),
                     ),
                   );
                 },

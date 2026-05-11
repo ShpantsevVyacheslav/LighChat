@@ -1190,6 +1190,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get chat_list_create_folder_name_label => 'NOME DA PASTA';
 
   @override
+  String get chat_list_create_folder_name_hint => 'Nome da pasta';
+
+  @override
   String chat_list_create_folder_chats_label(Object count) {
     return 'CONVERSAS ($count)';
   }
@@ -9237,6 +9240,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get chat_list_create_folder_name_label => 'NOME DA PASTA';
+
+  @override
+  String get chat_list_create_folder_name_hint => 'Nome da pasta';
 
   @override
   String chat_list_create_folder_chats_label(Object count) {

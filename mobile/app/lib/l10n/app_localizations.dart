@@ -2158,6 +2158,12 @@ abstract class AppLocalizations {
   /// **'НАЗВАНИЕ ПАПКИ'**
   String get chat_list_create_folder_name_label;
 
+  /// No description provided for @chat_list_create_folder_name_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Название папки'**
+  String get chat_list_create_folder_name_hint;
+
   /// No description provided for @chat_list_create_folder_chats_label.
   ///
   /// In ru, this message translates to:
