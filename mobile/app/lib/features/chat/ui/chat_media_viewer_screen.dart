@@ -915,11 +915,7 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
 }
 
 class _BackdropLayer extends StatelessWidget {
-  const _BackdropLayer({
-    this.item,
-    this.conversationId,
-    this.messageId,
-  });
+  const _BackdropLayer({this.item, this.conversationId, this.messageId});
 
   final ChatAttachment? item;
   final String? conversationId;
@@ -953,11 +949,11 @@ class _BackdropLayer extends StatelessWidget {
               // [LocalCacheEntryRegistry]), чтобы blurred backdrop не оседал
               // в дефолтном `libCachedImageData/` orphan-кэше.
               ? (hasChatCtx
-                  ? CachedNetworkImageProvider(
-                      url,
-                      cacheManager: ChatImageCacheManager(),
-                    )
-                  : CachedNetworkImageProvider(url))
+                    ? CachedNetworkImageProvider(
+                        url,
+                        cacheManager: ChatImageCacheManager(),
+                      )
+                    : CachedNetworkImageProvider(url))
               : null);
     if (hasChatCtx && uri != null && uri.hasScheme && uri.scheme != 'file') {
       LocalCacheEntryRegistry.registerImageContext(
@@ -1128,12 +1124,14 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage>
   void _animateZoomTo(Matrix4 target) {
     _disposeZoomAnimListener();
     final c = widget.transformationController;
-    final anim = Matrix4Tween(begin: c.value, end: target).animate(
-      CurvedAnimation(parent: _zoomAnim, curve: Curves.easeOutCubic),
-    );
+    final anim = Matrix4Tween(
+      begin: c.value,
+      end: target,
+    ).animate(CurvedAnimation(parent: _zoomAnim, curve: Curves.easeOutCubic));
     void l() {
       c.value = anim.value;
     }
+
     _zoomTickListener = l;
     _zoomAnim
       ..removeStatusListener(_onZoomAnimStatus)
@@ -1700,82 +1698,82 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage>
       );
     }
 
+    // Внешний GestureDetector — НЕ внутри ValueListenableBuilder/AnimatedBuilder,
+    // иначе DoubleTapGestureRecognizer теряет состояние между тапами при
+    // ребилдах от обновлений видеоплеера/матрицы зума.
     return _wrapWithEdgeNav(
-      ColoredBox(
-        color: Colors.black,
-        child: Center(
-          child: AspectRatio(
-            aspectRatio: c.value.aspectRatio > 0 ? c.value.aspectRatio : 16 / 9,
-            child: ValueListenableBuilder<VideoPlayerValue>(
-              valueListenable: c,
-              builder: (context, value, _) {
-                final playing = value.isPlaying;
-                if (playing != _lastNotifiedPlaying) {
-                  _lastNotifiedPlaying = playing;
-                  final cb = widget.onPlaybackStateChanged;
-                  final idx = widget.pageIndex;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    cb?.call(idx, playing);
-                  });
-                }
-                if (_controlsVisible != _lastNotifiedControlsVisible) {
-                  _lastNotifiedControlsVisible = _controlsVisible;
-                  final cb = widget.onControlsVisibleChanged;
-                  final idx = widget.pageIndex;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    cb?.call(idx, _controlsVisible);
-                  });
-                }
-                final duration = _safeDuration(value);
-                final basePos = _scrubbing ? _scrubPosition : value.position;
-                final position = Duration(
-                  milliseconds: basePos.inMilliseconds.clamp(
-                    0,
-                    duration.inMilliseconds,
-                  ),
-                );
-                final sliderMax = duration.inMilliseconds > 0
-                    ? duration.inMilliseconds.toDouble()
-                    : 1.0;
-                final sliderValue = position.inMilliseconds.toDouble().clamp(
-                  0.0,
-                  sliderMax,
-                );
+      GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          final av = _av;
+          final playing = av?.value.isPlaying ?? false;
+          if (_controlsVisible) {
+            if (playing) {
+              _hideControlsNow();
+            } else {
+              unawaited(_togglePlayPause());
+            }
+          } else {
+            _showControlsTemporarily(force: true);
+          }
+        },
+        onDoubleTapDown: _handleVideoDoubleTap,
+        child: ColoredBox(
+          color: Colors.black,
+          child: Center(
+            child: AspectRatio(
+              aspectRatio: c.value.aspectRatio > 0
+                  ? c.value.aspectRatio
+                  : 16 / 9,
+              child: ValueListenableBuilder<VideoPlayerValue>(
+                valueListenable: c,
+                builder: (context, value, _) {
+                  final playing = value.isPlaying;
+                  if (playing != _lastNotifiedPlaying) {
+                    _lastNotifiedPlaying = playing;
+                    final cb = widget.onPlaybackStateChanged;
+                    final idx = widget.pageIndex;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      cb?.call(idx, playing);
+                    });
+                  }
+                  if (_controlsVisible != _lastNotifiedControlsVisible) {
+                    _lastNotifiedControlsVisible = _controlsVisible;
+                    final cb = widget.onControlsVisibleChanged;
+                    final idx = widget.pageIndex;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      cb?.call(idx, _controlsVisible);
+                    });
+                  }
+                  final duration = _safeDuration(value);
+                  final basePos = _scrubbing ? _scrubPosition : value.position;
+                  final position = Duration(
+                    milliseconds: basePos.inMilliseconds.clamp(
+                      0,
+                      duration.inMilliseconds,
+                    ),
+                  );
+                  final sliderMax = duration.inMilliseconds > 0
+                      ? duration.inMilliseconds.toDouble()
+                      : 1.0;
+                  final sliderValue = position.inMilliseconds.toDouble().clamp(
+                    0.0,
+                    sliderMax,
+                  );
 
-                return AnimatedBuilder(
-                  animation: widget.transformationController,
-                  builder: (context, _) {
-                    final zoomed = widget.transformationController.value
-                            .getMaxScaleOnAxis() >
-                        _videoZoomedThreshold;
-                    return GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        if (_controlsVisible) {
-                          if (value.isPlaying) {
-                            _hideControlsNow();
-                          } else {
-                            unawaited(_togglePlayPause());
-                          }
-                        } else {
-                          _showControlsTemporarily(force: true);
-                        }
-                      },
-                      onDoubleTapDown: _handleVideoDoubleTap,
-                      onDoubleTap: () {},
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          InteractiveViewer(
-                            clipBehavior: Clip.hardEdge,
-                            transformationController:
-                                widget.transformationController,
-                            minScale: 1,
-                            maxScale: 4,
-                            panEnabled: zoomed,
-                            scaleEnabled: true,
-                            child: VideoPlayer(c),
-                          ),
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      InteractiveViewer(
+                        clipBehavior: Clip.hardEdge,
+                        transformationController:
+                            widget.transformationController,
+                        minScale: 1,
+                        maxScale: 4,
+                        panEnabled: true,
+                        scaleEnabled: true,
+                        child: VideoPlayer(c),
+                      ),
                       if (_switchingQuality)
                         Positioned.fill(
                           child: ColoredBox(
@@ -1954,12 +1952,10 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage>
                           ),
                         ),
                       ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),
