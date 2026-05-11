@@ -26,11 +26,26 @@ import { useToast } from '@/hooks/use-toast';
 import { createMessageReportAction } from '@/actions/moderation-actions';
 import type { ReportReason } from '@/lib/types';
 
+/**
+ * Универсальный диалог жалобы — поддерживает оба режима:
+ *  - **message-report**: `messageId` задан → жалоба на конкретное сообщение
+ *    в чате (заголовок «Пожаловаться на сообщение»).
+ *  - **user-report**: `messageId` отсутствует → жалоба на пользователя в
+ *    целом (заголовок «Пожаловаться на пользователя»). Используется из
+ *    `ChatParticipantProfile` (кнопка рядом с «Заблокировать»), что
+ *    закрывает H-2 [audit] паритет с mobile.
+ *
+ * Backend (`createMessageReportAction` + Zod `CreateMessageReportSchema`)
+ * уже принимает `messageId?` опционально и кладёт в одну коллекцию
+ * `messageReports`; в админ-панели user-report'ы рендерятся как жалобы
+ * без «Hide Message» (см. admin-moderation-panel `!r.messageId` disable).
+ */
 interface ReportMessageDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   conversationId: string;
-  messageId: string;
+  /** Если задан — это жалоба на сообщение, иначе на пользователя. */
+  messageId?: string;
   messageSenderId: string;
   messageSenderName?: string;
   messageText?: string;
@@ -45,6 +60,7 @@ export function ReportMessageDialog({
   messageSenderName,
   messageText,
 }: ReportMessageDialogProps) {
+  const isUserReport = !messageId;
   const { user } = useAuth();
   const { user: firebaseUser } = useUser();
   const { toast } = useToast();
@@ -83,8 +99,12 @@ export function ReportMessageDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-3xl max-w-sm">
         <DialogHeader>
-          <DialogTitle>{t('chat.report.title')}</DialogTitle>
-          <DialogDescription>{t('chat.report.description')}</DialogDescription>
+          <DialogTitle>
+            {isUserReport ? t('chat.report.userTitle') : t('chat.report.title')}
+          </DialogTitle>
+          <DialogDescription>
+            {isUserReport ? t('chat.report.userDescription') : t('chat.report.description')}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 pt-2">
           <div className="space-y-2">

@@ -5,7 +5,7 @@ import type { User, Conversation, ChatMessage, UserRole, UserContactsIndex } fro
 import { ROLES } from '@/lib/constants';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from '@/components/ui/sheet';
-import { Image as ImageIcon, X, ArrowLeft, Users, Edit, Mail, ShieldCheck, Cake, LogOut, MessageSquare, Smartphone, UserRound, MapPin, UserPlus, ChevronDown, Share2, Star, Bell, Palette, History, Shield, PlusCircle, Video, Phone, Ban, Unlock, Swords, LockKeyhole } from 'lucide-react';
+import { Image as ImageIcon, X, ArrowLeft, Users, Edit, Mail, ShieldCheck, Cake, LogOut, MessageSquare, Smartphone, UserRound, MapPin, UserPlus, ChevronDown, Share2, Star, Bell, Palette, History, Shield, PlusCircle, Video, Phone, Ban, Unlock, Swords, LockKeyhole, Flag } from 'lucide-react';
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { GroupChatFormPanel } from '@/components/chat/GroupChatFormPanel';
 import { GroupChatParticipantsManageView } from '@/components/chat/GroupChatParticipantsManageView';
@@ -58,6 +58,7 @@ import { LeaveGroupPanel } from '@/components/chat/conversation-pages/LeaveGroup
 import { normalizeBlockedUserIds } from '@/lib/user-block-utils';
 import { SecretChatComposeDialog } from '@/components/chat/SecretChatComposeDialog';
 import { SecretChatSettingsDialog } from '@/components/chat/SecretChatSettingsDialog';
+import { ReportMessageDialog } from '@/components/chat/report-message-dialog';
 import { buildSecretDirectConversationId } from '@/lib/secret-chat/secret-chat-create';
 import {
   AlertDialog,
@@ -137,6 +138,7 @@ export function ChatParticipantProfile({
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [unblockDialogOpen, setUnblockDialogOpen] = useState(false);
   const [blockBusy, setBlockBusy] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [secretComposePeer, setSecretComposePeer] = useState<User | null>(null);
   const [secretSettingsOpen, setSecretSettingsOpen] = useState(false);
   const router = useRouter();
@@ -1219,6 +1221,15 @@ export function ChatParticipantProfile({
 
               {showBlockUserRow ? (
                 <WaMenuSection className="pb-0.5">
+                  {/* H-2 [audit] жалоба на пользователя — паритет с mobile report_sheet.dart.
+                      Условие показа = showBlockUserRow (1-on-1 чат / focus на участника
+                      группы, не self-saved, не я). Бэкенд — тот же createMessageReportAction,
+                      но без messageId — попадает как user-level report в админ-панель. */}
+                  <WaMenuRow
+                    icon={<Flag className="h-[18px] w-[18px] shrink-0 text-destructive" />}
+                    title={t('chat.profile.reportUser')}
+                    onClick={() => setReportDialogOpen(true)}
+                  />
                   <WaMenuRow
                     icon={
                       isPartnerBlockedByMe ? (
@@ -1425,6 +1436,20 @@ export function ChatParticipantProfile({
             handleSheetOpenChange(false);
             router.replace('/dashboard/chat');
           }}
+        />
+      ) : null}
+
+      {/* H-2 [audit] user-report диалог. `messageId` не передаём — диалог
+          показывает заголовок «Пожаловаться на пользователя»; на бэке
+          report пишется без messageId и в админке кнопка «Скрыть сообщение»
+          для него дизейблится (см. admin-moderation-panel.tsx). */}
+      {showBlockUserRow && profileDocId ? (
+        <ReportMessageDialog
+          open={reportDialogOpen}
+          onOpenChange={setReportDialogOpen}
+          conversationId={conversation.id}
+          messageSenderId={profileDocId}
+          messageSenderName={displayParticipantInfo?.name}
         />
       ) : null}
     </Sheet>
