@@ -6875,13 +6875,13 @@ class AppLocalizationsKk extends AppLocalizations {
   String get video_editor_caption_hint => 'Қосу подпись...';
 
   @override
-  String get video_effects_speed => 'Скорость';
+  String get video_effects_speed => 'Жылдамдық';
 
   @override
-  String get video_filter_none => 'Оригинал';
+  String get video_filter_none => 'Түпнұсқа';
 
   @override
-  String get video_filter_enhance => 'Улучшить';
+  String get video_filter_enhance => 'Жақсарту';
 
   @override
   String get share_location_title => 'Бөлісу геолокацией';
@@ -7713,7 +7713,7 @@ class AppLocalizationsKk extends AppLocalizations {
   String get animation_quality_cinematic => 'Кинематографический';
 
   @override
-  String get crop_aspect_original => 'Оригинал';
+  String get crop_aspect_original => 'Түпнұсқа';
 
   @override
   String get crop_aspect_square => 'Квадрат';

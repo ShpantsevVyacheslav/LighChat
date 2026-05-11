@@ -6869,13 +6869,13 @@ class AppLocalizationsTr extends AppLocalizations {
   String get video_editor_caption_hint => 'Açıklama ekle...';
 
   @override
-  String get video_effects_speed => 'Скорость';
+  String get video_effects_speed => 'Hız';
 
   @override
-  String get video_filter_none => 'Оригинал';
+  String get video_filter_none => 'Orijinal';
 
   @override
-  String get video_filter_enhance => 'Улучшить';
+  String get video_filter_enhance => 'Geliştir';
 
   @override
   String get share_location_title => 'Konum paylaş';

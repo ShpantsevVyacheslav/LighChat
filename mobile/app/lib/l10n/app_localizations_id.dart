@@ -6869,13 +6869,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get video_editor_caption_hint => 'Tambah caption...';
 
   @override
-  String get video_effects_speed => 'Скорость';
+  String get video_effects_speed => 'Kecepatan';
 
   @override
-  String get video_filter_none => 'Оригинал';
+  String get video_filter_none => 'Asli';
 
   @override
-  String get video_filter_enhance => 'Улучшить';
+  String get video_filter_enhance => 'Tingkatkan';
 
   @override
   String get share_location_title => 'Bagikan Lokasi';

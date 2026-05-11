@@ -6906,13 +6906,13 @@ class AppLocalizationsUz extends AppLocalizations {
   String get video_editor_caption_hint => 'Izoh qoʻshing...';
 
   @override
-  String get video_effects_speed => 'Скорость';
+  String get video_effects_speed => 'Tezlik';
 
   @override
-  String get video_filter_none => 'Оригинал';
+  String get video_filter_none => 'Asl nusxa';
 
   @override
-  String get video_filter_enhance => 'Улучшить';
+  String get video_filter_enhance => 'Yaxshilash';
 
   @override
   String get share_location_title => 'Joylashuvni ulashish';
