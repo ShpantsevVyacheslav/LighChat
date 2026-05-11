@@ -5440,6 +5440,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get media_tab_links => 'Havolalar';
 
   @override
+  String get media_tab_audio => 'Audio';
+
+  @override
   String get media_empty_files => 'Fayllar yoʻq';
 
   @override
@@ -5453,6 +5456,9 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get media_empty_links => 'Havolalar yoʻq';
+
+  @override
+  String get media_empty_audio => 'Ovozli xabarlar yoʻq';
 
   @override
   String get media_sender_you => 'Siz';

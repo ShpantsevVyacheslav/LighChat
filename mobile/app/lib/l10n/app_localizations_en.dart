@@ -5384,6 +5384,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get media_tab_links => 'Links';
 
   @override
+  String get media_tab_audio => 'Audio';
+
+  @override
   String get media_empty_files => 'No files';
 
   @override
@@ -5397,6 +5400,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get media_empty_links => 'No links';
+
+  @override
+  String get media_empty_audio => 'No voice messages';
 
   @override
   String get media_sender_you => 'You';

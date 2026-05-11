@@ -5415,6 +5415,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get media_tab_links => 'Bağlantılar';
 
   @override
+  String get media_tab_audio => 'Ses';
+
+  @override
   String get media_empty_files => 'Dosya yok';
 
   @override
@@ -5428,6 +5431,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get media_empty_links => 'Bağlantı yok';
+
+  @override
+  String get media_empty_audio => 'Sesli mesaj yok';
 
   @override
   String get media_sender_you => 'Siz';

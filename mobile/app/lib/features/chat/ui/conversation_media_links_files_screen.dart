@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -18,11 +19,19 @@ import '../data/video_circle_utils.dart';
 import 'chat_cached_network_image.dart';
 import 'chat_document_open.dart';
 import 'chat_media_viewer_screen.dart';
+import 'message_voice_attachment.dart';
 import 'profile_subpage_header.dart';
 import 'video_cached_thumb_image.dart';
 import 'video_circle_gallery.dart';
 
-enum _MediaTab { media, circles, files, links }
+enum _MediaTab { media, circles, files, links, audio }
+
+bool _isAudioVoiceAttachment(ChatAttachment a) {
+  final t = (a.type ?? '').toLowerCase();
+  if (t.startsWith('audio/')) return true;
+  final n = a.name.toLowerCase();
+  return n.startsWith('audio_');
+}
 
 class _AttachmentEntry {
   const _AttachmentEntry({required this.message, required this.attachment});
@@ -127,6 +136,7 @@ class _ConversationMediaLinksFilesScreenState
     final tabs = <(_MediaTab, String)>[
       (_MediaTab.media, AppLocalizations.of(context)!.media_tab_media),
       (_MediaTab.circles, AppLocalizations.of(context)!.media_tab_circles),
+      (_MediaTab.audio, AppLocalizations.of(context)!.media_tab_audio),
       (_MediaTab.files, AppLocalizations.of(context)!.media_tab_files),
       (_MediaTab.links, AppLocalizations.of(context)!.media_tab_links),
     ];
@@ -225,6 +235,7 @@ class _ConversationMediaLinksFilesScreenState
     final circles = _collectCircleItems(msgsAsc);
     final files = _collectFileItems(msgsAsc);
     final links = _collectLinks(msgsAsc);
+    final audios = _collectAudioItems(msgsAsc);
 
     return switch (_tab) {
       _MediaTab.media => _mediaGrid(mediaItems),
@@ -234,6 +245,7 @@ class _ConversationMediaLinksFilesScreenState
         emptyText: AppLocalizations.of(context)!.media_empty_files,
       ),
       _MediaTab.links => _linksList(links),
+      _MediaTab.audio => _audioList(audios),
     };
   }
 
@@ -241,77 +253,216 @@ class _ConversationMediaLinksFilesScreenState
     if (items.isEmpty) {
       return _emptyBody(AppLocalizations.of(context)!.media_empty_media);
     }
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, i) {
-        final item = items[i];
-        final att = item.attachment;
-        final isVideo = isChatGridGalleryVideo(att);
-        return InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () => _openMediaViewer(items, i),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                if (SecretChatMediaOpenService.isLockedSecretAttachment(att))
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.28),
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.lock_rounded,
-                        color: Colors.white,
-                        size: 26,
-                      ),
-                    ),
-                  )
-                else if (isVideo)
-                  VideoCachedThumbImage(
-                    videoUrl: att.url,
-                    conversationId: widget.conversationId,
-                    messageId: item.message.id,
-                    attachmentName: att.name,
-                    fit: BoxFit.cover,
-                  )
-                else
-                  ChatCachedNetworkImage(
-                    url: att.url,
-                    fit: BoxFit.cover,
-                    conversationId: widget.conversationId,
-                    messageId: item.message.id,
-                    attachmentName: att.name,
-                  ),
-                if (isVideo)
-                  Align(
-                    alignment: Alignment.center,
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.black.withValues(alpha: 0.35),
-                      ),
-                      child: Icon(
-                        Icons.play_arrow_rounded,
-                        color: Colors.white.withValues(alpha: 0.95),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
+    // items здесь по возрастанию (см. collectChatMediaGalleryItems → asc),
+    // а на экране сверху должны быть последние присланные → разворачиваем.
+    final ordered = items.reversed.toList(growable: false);
+    final groups = _groupByMonthDesc<ChatMediaGalleryItem>(
+      ordered,
+      (it) => it.message.createdAt.toLocal(),
     );
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
+    final monthFmt = DateFormat.yMMMM(localeTag);
+
+    final slivers = <Widget>[];
+    for (final group in groups) {
+      slivers.add(
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _MonthHeaderDelegate(
+            label: _capitalize(monthFmt.format(group.month)),
+            scheme: Theme.of(context).colorScheme,
+          ),
+        ),
+      );
+      slivers.add(
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            delegate: SliverChildBuilderDelegate((context, i) {
+              final item = group.items[i];
+              final att = item.attachment;
+              final isVideo = isChatGridGalleryVideo(att);
+              // Viewer открываем по полному desc-списку, чтобы свайп через
+              // границы месяцев продолжал работать в хронологии.
+              final indexInOrdered = ordered.indexOf(item);
+              return InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => _openMediaViewer(
+                  ordered,
+                  indexInOrdered < 0 ? 0 : indexInOrdered,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (SecretChatMediaOpenService.isLockedSecretAttachment(
+                        att,
+                      ))
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.28),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.lock_rounded,
+                              color: Colors.white,
+                              size: 26,
+                            ),
+                          ),
+                        )
+                      else if (isVideo)
+                        VideoCachedThumbImage(
+                          videoUrl: att.url,
+                          conversationId: widget.conversationId,
+                          messageId: item.message.id,
+                          attachmentName: att.name,
+                          fit: BoxFit.cover,
+                        )
+                      else
+                        ChatCachedNetworkImage(
+                          url: att.url,
+                          fit: BoxFit.cover,
+                          conversationId: widget.conversationId,
+                          messageId: item.message.id,
+                          attachmentName: att.name,
+                        ),
+                      if (isVideo)
+                        Align(
+                          alignment: Alignment.center,
+                          child: Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.black.withValues(alpha: 0.35),
+                            ),
+                            child: Icon(
+                              Icons.play_arrow_rounded,
+                              color: Colors.white.withValues(alpha: 0.95),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }, childCount: group.items.length),
+          ),
+        ),
+      );
+    }
+
+    return CustomScrollView(slivers: slivers);
+  }
+
+  Widget _audioList(List<_AttachmentEntry> items) {
+    if (items.isEmpty) {
+      return _emptyBody(AppLocalizations.of(context)!.media_empty_audio);
+    }
+    final scheme = Theme.of(context).colorScheme;
+    final groups = _groupByMonthDesc<_AttachmentEntry>(
+      items,
+      (e) => e.message.createdAt.toLocal(),
+    );
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
+    final monthFmt = DateFormat.yMMMM(localeTag);
+
+    final slivers = <Widget>[];
+    for (final group in groups) {
+      slivers.add(
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _MonthHeaderDelegate(
+            label: _capitalize(monthFmt.format(group.month)),
+            scheme: scheme,
+          ),
+        ),
+      );
+      slivers.add(
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+          sliver: SliverList.builder(
+            itemCount: group.items.length,
+            itemBuilder: (context, i) {
+              final e = group.items[i];
+              final dt = e.message.createdAt.toLocal();
+              final meta =
+                  '${_senderLabel(e.message.senderId)} · ${_formatTime(dt)}';
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _glass(
+                  radius: 18,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 10, 8, 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        MessageVoiceAttachment(
+                          attachment: e.attachment,
+                          attachmentIndex: 0,
+                          alignRight: false,
+                          conversationId: widget.conversationId,
+                          messageId: e.message.id,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
+                          child: Text(
+                            meta,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurface.withValues(alpha: 0.62),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    }
+    return CustomScrollView(slivers: slivers);
+  }
+
+  List<_MonthGroup<T>> _groupByMonthDesc<T>(
+    List<T> items,
+    DateTime Function(T) getDate,
+  ) {
+    if (items.isEmpty) return const [];
+    final out = <_MonthGroup<T>>[];
+    DateTime? currentKey;
+    List<T> bucket = <T>[];
+    for (final it in items) {
+      final d = getDate(it);
+      final key = DateTime(d.year, d.month);
+      if (currentKey == null || key != currentKey) {
+        if (currentKey != null) {
+          out.add(_MonthGroup<T>(month: currentKey, items: bucket));
+        }
+        currentKey = key;
+        bucket = <T>[];
+      }
+      bucket.add(it);
+    }
+    if (currentKey != null) {
+      out.add(_MonthGroup<T>(month: currentKey, items: bucket));
+    }
+    return out;
+  }
+
+  String _capitalize(String s) {
+    if (s.isEmpty) return s;
+    return s[0].toUpperCase() + s.substring(1);
   }
 
   Future<void> _openMediaViewer(
@@ -550,9 +701,23 @@ class _ConversationMediaLinksFilesScreenState
         final isGif = n.startsWith('gif_');
         final isCircle = isVideoCircleAttachment(a);
         final isMedia = isChatGridGalleryAttachment(a);
-        // Audio attachments are shown in the "Файлы" tab (the separate
-        // "Аудио" tab was removed to match the new design).
-        if (isSticker || isGif || isCircle || isMedia) continue;
+        final isAudio = _isAudioVoiceAttachment(a);
+        if (isSticker || isGif || isCircle || isMedia || isAudio) continue;
+        if (!seen.add(a.url)) continue;
+        out.add(_AttachmentEntry(message: m, attachment: a));
+      }
+    }
+    return out.reversed.toList(growable: false);
+  }
+
+  List<_AttachmentEntry> _collectAudioItems(List<ChatMessage> msgsAsc) {
+    final seen = <String>{};
+    final out = <_AttachmentEntry>[];
+    for (final m in msgsAsc) {
+      if (m.isDeleted) continue;
+      for (final a in m.attachments) {
+        if (!_isAudioVoiceAttachment(a)) continue;
+        if (isVideoCircleAttachment(a)) continue;
         if (!seen.add(a.url)) continue;
         out.add(_AttachmentEntry(message: m, attachment: a));
       }
@@ -638,5 +803,71 @@ class _ConversationMediaLinksFilesScreenState
         ),
       ),
     );
+  }
+}
+
+class _MonthGroup<T> {
+  const _MonthGroup({required this.month, required this.items});
+
+  final DateTime month;
+  final List<T> items;
+}
+
+class _MonthHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _MonthHeaderDelegate({required this.label, required this.scheme});
+
+  final String label;
+  final ColorScheme scheme;
+
+  static const double _height = 36;
+
+  @override
+  double get minExtent => _height;
+
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final dark = scheme.brightness == Brightness.dark;
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          height: _height,
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          alignment: Alignment.centerLeft,
+          decoration: BoxDecoration(
+            color: (dark ? Colors.black : Colors.white).withValues(
+              alpha: dark ? 0.34 : 0.62,
+            ),
+            border: Border(
+              bottom: BorderSide(
+                color: scheme.onSurface.withValues(alpha: dark ? 0.10 : 0.06),
+              ),
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.2,
+              color: scheme.onSurface.withValues(alpha: 0.86),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _MonthHeaderDelegate oldDelegate) {
+    return oldDelegate.label != label ||
+        oldDelegate.scheme.brightness != scheme.brightness;
   }
 }

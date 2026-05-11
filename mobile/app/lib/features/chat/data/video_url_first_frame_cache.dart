@@ -7,6 +7,7 @@ import 'package:ffmpeg_kit_min_gpl/return_code.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../ui/chat_gallery_video_local_cache.dart';
 import 'local_cache_entry_registry.dart';
 
 /// Кэш первого кадра сетевого видео (jpg) для превью в ленте и сетке «Медиа».
@@ -76,8 +77,15 @@ class VideoUrlFirstFrameCache {
         return existing;
       }
 
-      final ffmpegInput = _resolveInputForFfmpeg(videoUrl);
-      final quotedIn = '"${ffmpegInput.replaceAll('"', '\\"')}"';
+      // `ffmpeg_kit_min_gpl` собран без HTTPS-протоколов → дёргать кадр прямо из
+      // сетевого URL надёжно не получится. Поэтому если есть уже скачанный
+      // локальный файл из `chat_video_cache/`, берём его как input — это и
+      // быстрее, и работает офлайн.
+      final localCached = await ChatGalleryVideoLocalCache.cachedFileIfExists(
+        videoUrl,
+      );
+      final input = localCached?.path ?? _resolveInputForFfmpeg(videoUrl);
+      final quotedIn = '"${input.replaceAll('"', '\\"')}"';
       final quotedOut = '"${outPath.replaceAll('"', '\\"')}"';
       final cmd =
           '-y -hide_banner -loglevel error -ss 0.05 -i $quotedIn -frames:v 1 -q:v 5 $quotedOut';
@@ -86,7 +94,8 @@ class VideoUrlFirstFrameCache {
       if (!ReturnCode.isSuccess(code)) {
         if (kDebugMode) {
           debugPrint(
-            'VideoUrlFirstFrameCache ffmpeg failed for $videoUrl code=$code',
+            'VideoUrlFirstFrameCache ffmpeg failed for $videoUrl code=$code'
+            ' (input=${localCached == null ? 'network' : 'local'})',
           );
         }
         return null;
@@ -106,5 +115,13 @@ class VideoUrlFirstFrameCache {
     } finally {
       _inFlight.remove(videoUrl);
     }
+  }
+
+  /// Сбросить in-memory negative result, чтобы следующий `getOrCreate` снова
+  /// попытался сгенерировать превью (например, после того как видео доскачалось
+  /// в локальный кэш через `ChatGalleryVideoLocalCache.warmUp`).
+  void invalidate(String videoUrl) {
+    final trimmed = videoUrl.trim();
+    _memory.remove(trimmed);
   }
 }

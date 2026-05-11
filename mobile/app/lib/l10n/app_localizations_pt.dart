@@ -5441,6 +5441,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get media_tab_links => 'Ligações';
 
   @override
+  String get media_tab_audio => 'Áudio';
+
+  @override
   String get media_empty_files => 'Não files';
 
   @override
@@ -5454,6 +5457,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get media_empty_links => 'Não links';
+
+  @override
+  String get media_empty_audio => 'Sem mensagens de voz';
 
   @override
   String get media_sender_you => 'Você';
@@ -13416,6 +13422,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get media_tab_links => 'Ligações';
 
   @override
+  String get media_tab_audio => 'Áudio';
+
+  @override
   String get media_empty_files => 'Não files';
 
   @override
@@ -13429,6 +13438,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get media_empty_links => 'Não links';
+
+  @override
+  String get media_empty_audio => 'Sem mensagens de voz';
 
   @override
   String get media_sender_you => 'Você';

@@ -5405,6 +5405,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get media_tab_links => 'Tautan';
 
   @override
+  String get media_tab_audio => 'Audio';
+
+  @override
   String get media_empty_files => 'Tidak Berkas';
 
   @override
@@ -5418,6 +5421,9 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get media_empty_links => 'Tidak links';
+
+  @override
+  String get media_empty_audio => 'Tidak ada pesan suara';
 
   @override
   String get media_sender_you => 'Anda';

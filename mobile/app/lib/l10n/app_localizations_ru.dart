@@ -5409,6 +5409,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get media_tab_links => 'Ссылки';
 
   @override
+  String get media_tab_audio => 'Аудио';
+
+  @override
   String get media_empty_files => 'Нет файлов';
 
   @override
@@ -5422,6 +5425,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get media_empty_links => 'Нет ссылок';
+
+  @override
+  String get media_empty_audio => 'Нет аудио';
 
   @override
   String get media_sender_you => 'Вы';

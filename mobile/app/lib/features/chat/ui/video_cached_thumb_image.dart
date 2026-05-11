@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../data/video_url_first_frame_cache.dart';
+import 'chat_gallery_video_local_cache.dart';
 
 /// Статичный первый кадр сетевого видео из локального кэша (ffmpeg).
 class VideoCachedThumbImage extends StatefulWidget {
@@ -28,6 +29,7 @@ class VideoCachedThumbImage extends StatefulWidget {
 
 class _VideoCachedThumbImageState extends State<VideoCachedThumbImage> {
   File? _file;
+  bool _warmedUp = false;
 
   @override
   void initState() {
@@ -39,6 +41,7 @@ class _VideoCachedThumbImageState extends State<VideoCachedThumbImage> {
   void didUpdateWidget(covariant VideoCachedThumbImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.videoUrl != widget.videoUrl) {
+      _warmedUp = false;
       unawaited(_load());
     }
   }
@@ -51,7 +54,43 @@ class _VideoCachedThumbImageState extends State<VideoCachedThumbImage> {
       attachmentName: widget.attachmentName,
     );
     if (!mounted) return;
-    setState(() => _file = f);
+    if (f != null) {
+      setState(() => _file = f);
+      return;
+    }
+    // ffmpeg-min-gpl собран без HTTPS, поэтому сетевой URL обычно фейлится.
+    // Если локального файла ещё нет — попробуем прогреть кэш видео (соблюдая
+    // пользовательскую настройку videoDownloadsEnabled — она проверяется
+    // внутри warmUp) и затем повторим попытку извлечь первый кадр.
+    if (_warmedUp) return;
+    _warmedUp = true;
+    final hadCachedFile = await ChatGalleryVideoLocalCache.hasCachedFile(
+      widget.videoUrl,
+    );
+    if (hadCachedFile) return;
+    try {
+      await ChatGalleryVideoLocalCache.warmUp(
+        widget.videoUrl,
+        conversationId: widget.conversationId,
+        messageId: widget.messageId,
+        attachmentName: widget.attachmentName,
+      );
+    } catch (_) {
+      return;
+    }
+    final nowCached = await ChatGalleryVideoLocalCache.hasCachedFile(
+      widget.videoUrl,
+    );
+    if (!nowCached || !mounted) return;
+    VideoUrlFirstFrameCache.instance.invalidate(widget.videoUrl);
+    final retry = await VideoUrlFirstFrameCache.instance.getOrCreate(
+      widget.videoUrl,
+      conversationId: widget.conversationId,
+      messageId: widget.messageId,
+      attachmentName: widget.attachmentName,
+    );
+    if (!mounted) return;
+    setState(() => _file = retry);
   }
 
   @override

@@ -9484,6 +9484,12 @@ abstract class AppLocalizations {
   /// **'Ссылки'**
   String get media_tab_links;
 
+  /// No description provided for @media_tab_audio.
+  ///
+  /// In ru, this message translates to:
+  /// **'Аудио'**
+  String get media_tab_audio;
+
   /// No description provided for @media_empty_files.
   ///
   /// In ru, this message translates to:
@@ -9513,6 +9519,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Нет ссылок'**
   String get media_empty_links;
+
+  /// No description provided for @media_empty_audio.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет аудио'**
+  String get media_empty_audio;
 
   /// No description provided for @media_sender_you.
   ///

@@ -5456,6 +5456,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get media_tab_links => 'Enlaces';
 
   @override
+  String get media_tab_audio => 'Audio';
+
+  @override
   String get media_empty_files => 'Sin archivos';
 
   @override
@@ -5469,6 +5472,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get media_empty_links => 'Sin enlaces';
+
+  @override
+  String get media_empty_audio => 'Sin mensajes de voz';
 
   @override
   String get media_sender_you => 'Tú';
@@ -13444,6 +13450,9 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get media_tab_links => 'Enlaces';
 
   @override
+  String get media_tab_audio => 'Audio';
+
+  @override
   String get media_empty_files => 'Sin archivos';
 
   @override
@@ -13457,6 +13466,9 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get media_empty_links => 'Sin enlaces';
+
+  @override
+  String get media_empty_audio => 'Sin mensajes de voz';
 
   @override
   String get media_sender_you => 'Tú';
