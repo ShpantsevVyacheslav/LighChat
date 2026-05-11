@@ -1099,9 +1099,6 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage>
   late final AnimationController _zoomAnim;
   VoidCallback? _zoomTickListener;
 
-  /// Прогресс сохранения в локальный кэш (0..1) или `null`, если полоска не нужна.
-  double? _cacheProgress;
-  bool _downloadCancelled = false;
   bool _lastNotifiedPlaying = false;
   bool _lastNotifiedControlsVisible = true;
 
@@ -1190,25 +1187,12 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage>
             videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
           );
         } else {
-          // Важно: не блокировать воспроизведение полной скачкой в кэш.
-          // Играем сразу по сети, а кэширование (если нужно) идёт параллельно.
-          if (mounted) setState(() => _cacheProgress = 0);
-          unawaited(
-            ChatGalleryVideoLocalCache.downloadToCache(
-              url: url,
-              onProgress: (p) {
-                if (!mounted || _downloadCancelled) return;
-                setState(() => _cacheProgress = p ?? _cacheProgress);
-              },
-              isCancelled: () => _downloadCancelled || !mounted,
-              conversationId: widget.conversationId,
-              messageId: widget.messageId,
-              attachmentName: widget.attachmentName,
-            ).whenComplete(() {
-              if (!mounted || _downloadCancelled) return;
-              setState(() => _cacheProgress = null);
-            }),
-          );
+          // НЕ запускаем параллельный downloadToCache: video_player сам
+          // стримит сетевой URL, а второй HTTP-коннект только дробил бы
+          // пропускную способность пополам и визуально создавал эффект
+          // «видео не играет, пока полностью не загрузится». Кэш для
+          // повторных открытий заполняется отложенно через warmUp() в
+          // dispose() — там сеть уже свободна.
           c = VideoPlayerController.networkUrl(
             uri,
             videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
@@ -1238,10 +1222,7 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage>
     } catch (_) {
       await c?.dispose();
       if (mounted) {
-        setState(() {
-          _failed = true;
-          _cacheProgress = null;
-        });
+        setState(() => _failed = true);
       }
     }
   }
@@ -1255,11 +1236,24 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage>
     if (_pipResumeTarget == this) {
       _pipResumeTarget = null;
     }
-    _downloadCancelled = true;
     _hideControlsTimer?.cancel();
     _av?.dispose();
     _disposeZoomAnimListener();
     _zoomAnim.dispose();
+    // Подогрев кэша «после» — сеть уже свободна, в отличие от случая,
+    // когда плеер активен и сам качает по тому же URL.
+    final url = widget.url;
+    final uri = Uri.tryParse(url);
+    if (uri != null && uri.scheme.isNotEmpty && uri.scheme != 'file') {
+      unawaited(
+        ChatGalleryVideoLocalCache.warmUp(
+          url,
+          conversationId: widget.conversationId,
+          messageId: widget.messageId,
+          attachmentName: widget.attachmentName,
+        ),
+      );
+    }
     super.dispose();
   }
 
@@ -1699,30 +1693,9 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage>
     final c = _av;
     if (c == null || !c.value.isInitialized) {
       return _wrapWithEdgeNav(
-        ColoredBox(
+        const ColoredBox(
           color: Colors.black,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              const Center(child: CircularProgressIndicator()),
-              if (_cacheProgress != null)
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: ClipRect(
-                    child: LinearProgressIndicator(
-                      minHeight: 4,
-                      value: _cacheProgress! >= 1 ? null : _cacheProgress,
-                      backgroundColor: Colors.white.withValues(alpha: 0.12),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        const Color(0xFF2F86FF).withValues(alpha: 0.55),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
+          child: Center(child: CircularProgressIndicator()),
         ),
       );
     }
