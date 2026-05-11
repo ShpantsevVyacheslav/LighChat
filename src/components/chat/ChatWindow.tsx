@@ -46,6 +46,7 @@ import { useStickerSaveFlow } from '@/hooks/use-sticker-save-flow';
 import { useScheduledMessages } from '@/hooks/use-scheduled-messages';
 import { useChatProfilePane } from '@/hooks/use-chat-profile-pane';
 import { useChatThreadPanel } from '@/hooks/use-chat-thread-panel';
+import { useChatSelection } from '@/hooks/use-chat-selection';
 import { isSavedMessagesChat } from '@/lib/saved-messages-chat';
 import { CHAT_GLASS_PANEL, CHAT_HEADER_SAFE_AREA_STRIP } from '@/lib/chat-glass-styles';
 import { buildGroupMentionCandidates, extractMentionedUserIdsFromPlainText } from '@/lib/group-mention-utils';
@@ -318,7 +319,8 @@ export function ChatWindow({
   const optimisticObjectUrlsRef = useRef<Map<string, string[]>>(new Map());
   const [editingMessage, setEditingMessage] = useState<{ id: string; text: string; attachments?: ChatAttachment[] } | null>(null);
   const [replyingTo, setReplyingTo] = useState<ReplyContext | null>(null);
-  const [selection, setSelection] = useState({ active: false, ids: new Set<string>() });
+  // [audit M-009] selection state перенесён в useChatSelection ниже (после
+  // handleDeleteMessage, т.к. хук принимает deleteMessage callback'ом).
   const [mediaViewerState, setMediaViewerState] = useState({ isOpen: false, startIndex: 0 });
   // [audit M-009] 4 useState'а для profile pane вынесены в useChatProfilePane
   // ниже — см. `profilePane.*`. Старые имена `profileFocusUserId` /
@@ -367,7 +369,7 @@ export function ChatWindow({
   });
   /** Якорь с z-[10050] — скрываем при оверлеях и при document fullscreen (видео). */
   const [documentFullscreen, setDocumentFullscreen] = useState(false);
-  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  // [audit M-009] isBulkProcessing внутри useChatSelection.
   const [unreadSeparatorId, setUnreadSeparatorId] = useState<string | null>(null);
   const hasClearedSeparatorRef = useRef(false);
   /** Не снимать разделитель по rangeChanged «у низа», пока не выполнен стартовый scroll к непрочитанным (иначе alignToBottom съедает ленту до таймера). */
@@ -1696,21 +1698,23 @@ export function ChatWindow({
     }
   };
 
-  const handleBulkDelete = async () => {
-    if (!firestore || selection.ids.size === 0) return;
-    setIsBulkProcessing(true);
-    try {
-        for (const id of Array.from(selection.ids)) {
-            await handleDeleteMessage(id);
-        }
-        setSelection({ active: false, ids: new Set() });
-        toast({ title: t('chat.messagesDeleted') });
-    } catch {
-        toast({ variant: 'destructive', title: t('chat.deleteError') });
-    } finally {
-        setIsBulkProcessing(false);
-    }
-  };
+  // [audit M-009] selection state — единый хук, поднимаем сюда после
+  // handleDeleteMessage (хук принимает его как `deleteMessage` callback).
+  // Aliases ниже сохраняют форму старых имён для минимального JSX-diff'а.
+  const chatSelection = useChatSelection({
+    allMessages,
+    currentUserId: currentUser.id,
+    deleteMessage: handleDeleteMessage,
+    toast,
+    t,
+  });
+  const selection = useMemo(
+    () => ({ active: chatSelection.active, ids: chatSelection.selectedIds }),
+    [chatSelection.active, chatSelection.selectedIds],
+  );
+  const isBulkProcessing = chatSelection.isBusy;
+  const canDeleteBulk = chatSelection.canDelete;
+  const handleBulkDelete = chatSelection.bulkDelete;
 
   const handleReactTo = async (messageId: string, emoji: string, threadParentId?: string) => {
     if (!firestore || !currentUser) return;
@@ -1951,13 +1955,7 @@ export function ChatWindow({
   // [audit M-009] alias на метод хука.
   const clearThreadReactionScrollTarget = threadPanel.clearReactionScrollTarget;
 
-  const canDeleteBulk = useMemo(() => {
-    if (selection.ids.size === 0) return false;
-    return Array.from(selection.ids).every(id => {
-        const m = allMessages.find(msg => msg.id === id);
-        return m && m.senderId === currentUser.id && !m.isDeleted;
-    });
-  }, [selection.ids, allMessages, currentUser.id]);
+  // [audit M-009] canDeleteBulk вычисляется внутри useChatSelection.
 
   const windowTouchStart = useRef<{ x: number, y: number } | null>(null);
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -2039,7 +2037,7 @@ export function ChatWindow({
         >
             <div className="flex min-w-0 flex-1 items-center gap-2">
             {selection.active ? (
-                <SelectionHeader count={selection.ids.size} onCancel={() => setSelection({ active: false, ids: new Set() })} onDelete={handleBulkDelete} onForward={() => { if (!allowSecretForward) return; const selectedMessages = allMessages.filter(m => selection.ids.has(m.id)); sessionStorage.setItem('forwardMessages', JSON.stringify(selectedMessages)); router.push('/dashboard/chat/forward'); }} isProcessing={isBulkProcessing} showDelete={canDeleteBulk} />
+                <SelectionHeader count={selection.ids.size} onCancel={chatSelection.cancel} onDelete={handleBulkDelete} onForward={() => { if (!allowSecretForward) return; const selectedMessages = allMessages.filter(m => selection.ids.has(m.id)); sessionStorage.setItem('forwardMessages', JSON.stringify(selectedMessages)); router.push('/dashboard/chat/forward'); }} isProcessing={isBulkProcessing} showDelete={canDeleteBulk} />
             ) : isSearchActive ? (
                 <div className="flex w-full animate-in slide-in-from-right-4 items-center gap-2">
                     <Button variant="ghost" size="icon" className="rounded-full" onClick={() => { setIsSearchActive(false); setSearchQuery(''); }}><ArrowLeft className="h-5 w-5" /></Button>
@@ -2325,7 +2323,7 @@ export function ChatWindow({
                                 suppressReadReceipts={suppressReadReceipts}
                               >
                                 <div className="py-1 px-4">
-                                  <ChatMessageItem message={item.message} currentUser={currentUser} allUsers={allUsers} conversation={conversation} isSelected={selection.ids.has(item.message.id)} isSelectionActive={selection.active} editingMessage={editingMessage?.id === item.message.id ? editingMessage : null} onToggleSelection={(id) => setSelection(prev => { const next = new Set(prev.ids); if (next.has(id)) next.delete(id); else next.add(id); return { active: true, ids: next }; })} onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }} onUpdateMessage={handleUpdateMessage} onDelete={(id) => handleDeleteMessage(id)} onCopy={(txt) => { if (!allowSecretCopy) return; const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); navigator.clipboard.writeText(cleanText); toast({ title: t('chat.textCopied') }); }} onPin={handlePinMessage} onReply={(c) => { setReplyingTo(c); setEditingMessage(null); }} onForward={(m) => { if (!allowSecretForward) return; sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} allowForward={allowSecretForward} allowCopy={allowSecretCopy} onReact={(mid, emoji) => handleReactTo(mid, emoji)} onOpenImageViewer={handleOpenMediaViewer} onOpenVideoViewer={handleOpenMediaViewer} onNavigateToMessage={navigateToMessage} onOpenThread={threadPanel.open} chatSettings={chatSettings} isLastInChat={isLastInChat} onMentionProfileOpen={handleMentionProfileOpen} onGroupSenderProfileOpen={handleGroupSenderProfileOpen} onGroupSenderWritePrivate={handleGroupSenderWritePrivate} onSaveStickerGif={handleSaveStickerFromMessage} contactProfiles={userContactsIndex?.contactProfiles} e2eeDecryptedByMessageId={e2eePlaintextByMessageId} isStarred={starredMessageIds.has(item.message.id)} onToggleStar={handleToggleStar} onRetryMediaNorm={handleRetryMediaNorm} />
+                                  <ChatMessageItem message={item.message} currentUser={currentUser} allUsers={allUsers} conversation={conversation} isSelected={selection.ids.has(item.message.id)} isSelectionActive={selection.active} editingMessage={editingMessage?.id === item.message.id ? editingMessage : null} onToggleSelection={chatSelection.toggle} onEdit={(m) => { setEditingMessage(m); setReplyingTo(null); }} onUpdateMessage={handleUpdateMessage} onDelete={(id) => handleDeleteMessage(id)} onCopy={(txt) => { if (!allowSecretCopy) return; const cleanText = txt.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); navigator.clipboard.writeText(cleanText); toast({ title: t('chat.textCopied') }); }} onPin={handlePinMessage} onReply={(c) => { setReplyingTo(c); setEditingMessage(null); }} onForward={(m) => { if (!allowSecretForward) return; sessionStorage.setItem('forwardMessages', JSON.stringify([m])); router.push('/dashboard/chat/forward'); }} allowForward={allowSecretForward} allowCopy={allowSecretCopy} onReact={(mid, emoji) => handleReactTo(mid, emoji)} onOpenImageViewer={handleOpenMediaViewer} onOpenVideoViewer={handleOpenMediaViewer} onNavigateToMessage={navigateToMessage} onOpenThread={threadPanel.open} chatSettings={chatSettings} isLastInChat={isLastInChat} onMentionProfileOpen={handleMentionProfileOpen} onGroupSenderProfileOpen={handleGroupSenderProfileOpen} onGroupSenderWritePrivate={handleGroupSenderWritePrivate} onSaveStickerGif={handleSaveStickerFromMessage} contactProfiles={userContactsIndex?.contactProfiles} e2eeDecryptedByMessageId={e2eePlaintextByMessageId} isStarred={starredMessageIds.has(item.message.id)} onToggleStar={handleToggleStar} onRetryMediaNorm={handleRetryMediaNorm} />
                                 </div>
                               </MessageReadOnViewport>
                             );
