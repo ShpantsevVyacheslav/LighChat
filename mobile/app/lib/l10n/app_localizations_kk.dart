@@ -521,18 +521,18 @@ class AppLocalizationsKk extends AppLocalizations {
       'Кэшированные фотографижәне және стикеры из открытых чатов.';
 
   @override
-  String get storage_category_stickers_gifs_emoji => 'Стикеры, GIF, эмодзи';
+  String get storage_category_stickers_gifs_emoji => 'Стикерлер, GIF, эмодзи';
 
   @override
   String get storage_category_stickers_gifs_emoji_subtitle =>
-      'Кэш недавних стикеров, GIPHY (gifs/stickers/emoji) и анимированных эмодзи.';
+      'Соңғы стикерлер мен GIPHY кэші (gif/sticker/animated emoji).';
 
   @override
-  String get storage_category_network_images => 'Кэш сетевых картинок';
+  String get storage_category_network_images => 'Желідегі сурет кэші';
 
   @override
   String get storage_category_network_images_subtitle =>
-      'Аватары, превью и прочие изображения, скачанные из сети (libCachedImageData).';
+      'Аватарлар, превьюлер және желіден жүктелген басқа суреттер (libCachedImageData).';
 
   @override
   String get storage_media_type_video => 'Видео';
@@ -559,16 +559,16 @@ class AppLocalizationsKk extends AppLocalizations {
       'Барлығы медиа останутся в облаке. Пржәне необжүрісимостжәне сіз сможете загрузить их снова.';
 
   @override
-  String get storage_settings_categories_title => 'По категориям';
+  String get storage_settings_categories_title => 'Санат бойынша';
 
   @override
   String storage_settings_clear_category_title(String category) {
-    return 'Очистить «$category»?';
+    return '«$category» тазалау керек пе?';
   }
 
   @override
   String storage_settings_clear_category_body(String size) {
-    return 'Будет освобождено около $size. Действие нельзя отменить.';
+    return '$size шамасында орын босайды. Бұл әрекетті қайтару мүмкін емес.';
   }
 
   @override
@@ -923,7 +923,7 @@ class AppLocalizationsKk extends AppLocalizations {
   String get common_retry => 'Қайталап көру';
 
   @override
-  String get auth_login_email_label => 'Email';
+  String get auth_login_email_label => 'Электрондық пошта';
 
   @override
   String get auth_login_password_label => 'Құпиясөз';
@@ -957,7 +957,7 @@ class AppLocalizationsKk extends AppLocalizations {
   String get profile_username_label => 'Логин';
 
   @override
-  String get profile_email_label => 'Email';
+  String get profile_email_label => 'Электрондық пошта';
 
   @override
   String get profile_phone_label => 'Телефон';
@@ -990,7 +990,7 @@ class AppLocalizationsKk extends AppLocalizations {
   String get profile_password_tooltip_hide => 'Скрыть';
 
   @override
-  String get profile_placeholder_username => 'username';
+  String get profile_placeholder_username => 'пайдаланушы аты';
 
   @override
   String get profile_placeholder_email => 'name@example.com';
@@ -2664,7 +2664,7 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String chat_conversation_error(Object error) {
-    return 'Conversation error: $error';
+    return 'Әңгімелесу қатесі: $error';
   }
 
   @override
@@ -2725,11 +2725,10 @@ class AppLocalizationsKk extends AppLocalizations {
   String get message_menu_action_star_remove => 'Убрать из избранного';
 
   @override
-  String get message_menu_action_create_sticker => 'Создать стикер';
+  String get message_menu_action_create_sticker => 'Стикер жасау';
 
   @override
-  String get message_menu_action_save_to_my_stickers =>
-      'Добавить в мои стикеры';
+  String get message_menu_action_save_to_my_stickers => 'Стикерлеріме сақтау';
 
   @override
   String get message_menu_action_forward => 'Переслать';
@@ -2997,7 +2996,7 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String chat_selection_selected_count(int count) {
-    return '$count selected';
+    return '$count таңдалды';
   }
 
   @override
@@ -3096,7 +3095,7 @@ class AppLocalizationsKk extends AppLocalizations {
   String get register_hint_choose_country => 'Сізберите страну';
 
   @override
-  String get register_label_email => 'Email';
+  String get register_label_email => 'Электрондық пошта';
 
   @override
   String get register_hint_email => 'Енгізіңіз email';
@@ -4079,10 +4078,10 @@ class AppLocalizationsKk extends AppLocalizations {
   String get meeting_participants_button => 'Усағаттники';
 
   @override
-  String get meeting_notifications_button => 'Активность';
+  String get meeting_notifications_button => 'Белсенділік';
 
   @override
-  String get meeting_pip_button => 'Свернуть';
+  String get meeting_pip_button => 'Кішірейту';
 
   @override
   String get settings_chats_bottom_nav_icons_title => 'Иконкжәне нижнего меню';
@@ -4648,11 +4647,11 @@ class AppLocalizationsKk extends AppLocalizations {
   String get meeting_join_guest => 'Гость';
 
   @override
-  String get meeting_join_as_label => 'Вы войдёте как';
+  String get meeting_join_as_label => 'Сіз мына атпен қосыласыз';
 
   @override
   String get meeting_lobby_camera_blocked =>
-      'Доступ к камере не выдан. Вы войдёте с выключенной камерой.';
+      'Камераға рұқсат берілмеген. Сіз камера өшірулі күйде қосыласыз.';
 
   @override
   String get meeting_join_button => 'Қосылу';
@@ -6399,7 +6398,7 @@ class AppLocalizationsKk extends AppLocalizations {
   String get google_profile_phone => 'Телефон';
 
   @override
-  String get google_profile_email => 'Email';
+  String get google_profile_email => 'Электрондық пошта';
 
   @override
   String get google_profile_dob => 'Жәнеәсол рождения';
@@ -6611,7 +6610,7 @@ class AppLocalizationsKk extends AppLocalizations {
   String get google_complete_phone_label => 'Телефон (11 цифр)';
 
   @override
-  String get google_complete_email_label => 'Email';
+  String get google_complete_email_label => 'Электрондық пошта';
 
   @override
   String get google_complete_email_hint => 'you@example.com';
@@ -6829,7 +6828,7 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String contacts_years_other(Object count) {
-    return '$count years';
+    return '$count жыл';
   }
 
   @override
@@ -7296,7 +7295,7 @@ class AppLocalizationsKk extends AppLocalizations {
   String get gif_section_recent => 'НЕДАВНИЕ';
 
   @override
-  String get gif_section_trending => 'TRENDING';
+  String get gif_section_trending => 'ТРЕНДІ';
 
   @override
   String get auth_create_account_title => 'Аккаунт құру';
@@ -7671,16 +7670,16 @@ class AppLocalizationsKk extends AppLocalizations {
   String get storage_label_other => 'Басқа';
 
   @override
-  String get storage_label_recent_stickers => 'Недавние стикеры';
+  String get storage_label_recent_stickers => 'Соңғы стикерлер';
 
   @override
-  String get storage_label_giphy_search => 'GIPHY · поисковый кэш';
+  String get storage_label_giphy_search => 'GIPHY · іздеу кэші';
 
   @override
-  String get storage_label_giphy_recent => 'GIPHY · недавние GIF';
+  String get storage_label_giphy_recent => 'GIPHY · соңғы GIF-тер';
 
   @override
-  String get storage_chat_unattributed => 'Без привязки к чату';
+  String get storage_chat_unattributed => 'Чатқа байланыстырылмаған';
 
   @override
   String storage_label_draft(String key) {
@@ -7781,7 +7780,8 @@ class AppLocalizationsKk extends AppLocalizations {
   String get welcomeSkip => 'Өткізіп жіберу';
 
   @override
-  String get welcomeReplayDebugTile => 'Replay welcome animation (debug)';
+  String get welcomeReplayDebugTile =>
+      'Сәлемдесу анимациясын қайталау (отладка)';
 
   @override
   String get sticker_scope_library => 'Библиотека';
@@ -7898,45 +7898,45 @@ class AppLocalizationsKk extends AppLocalizations {
       'Быстрое жаңарту чатов пржәне переключенижәне между приложениями.';
 
   @override
-  String get legal_index_title => 'Юридические документы';
+  String get legal_index_title => 'Заңды құжаттар';
 
   @override
   String get legal_index_subtitle =>
-      'Политика конфиденциальности, пользовательское соглашение и другие юридические документы, регулирующие использование LighChat.';
+      'Құпиялылық саясаты, қызмет көрсету шарттары және LighChat пайдалануды реттейтін басқа заңды құжаттар.';
 
   @override
-  String get legal_settings_section_title => 'Правовая информация';
+  String get legal_settings_section_title => 'Заңды ақпарат';
 
   @override
   String get legal_settings_section_subtitle =>
-      'Политика конфиденциальности, пользовательское соглашение, EULA и другие документы.';
+      'Құпиялылық саясаты, қызмет көрсету шарттары, EULA және т.б.';
 
   @override
-  String get legal_not_found => 'Документ не найден';
+  String get legal_not_found => 'Құжат табылмады';
 
   @override
-  String get legal_title_privacy_policy => 'Политика конфиденциальности';
+  String get legal_title_privacy_policy => 'Құпиялылық саясаты';
 
   @override
-  String get legal_title_terms_of_service => 'Пользовательское соглашение';
+  String get legal_title_terms_of_service => 'Қызмет көрсету шарттары';
 
   @override
-  String get legal_title_cookie_policy => 'Политика использования cookies';
+  String get legal_title_cookie_policy => 'Cookie саясаты';
 
   @override
-  String get legal_title_eula => 'Лицензионное соглашение (EULA)';
+  String get legal_title_eula => 'Соңғы пайдаланушы лицензиялық келісімі';
 
   @override
-  String get legal_title_dpa => 'Соглашение об обработке данных (DPA)';
+  String get legal_title_dpa => 'Деректерді өңдеу келісімі';
 
   @override
-  String get legal_title_children => 'Политика в отношении несовершеннолетних';
+  String get legal_title_children => 'Балалар саясаты';
 
   @override
-  String get legal_title_moderation => 'Политика модерации контента';
+  String get legal_title_moderation => 'Контентті модерациялау саясаты';
 
   @override
-  String get legal_title_aup => 'Правила допустимого использования';
+  String get legal_title_aup => 'Қолайлы пайдалану саясаты';
 
   @override
   String get chat_list_item_sender_you => 'Сіз';

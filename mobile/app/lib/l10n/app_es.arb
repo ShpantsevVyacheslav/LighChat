@@ -43,7 +43,7 @@
   "secret_chat_settings_media_views": "Límites de visualización de multimedia",
   "secret_chat_settings_media_views_subtitle": "Límites aproximados de visualizaciones del destinatario",
   "secret_chat_media_type_image": "Imágenes",
-  "secret_chat_media_type_video": "Videos",
+  "secret_chat_media_type_video": "Vídeos",
   "secret_chat_media_type_voice": "Mensajes de voz",
   "secret_chat_media_type_location": "Ubicación",
   "secret_chat_media_type_file": "Archivos",
@@ -83,7 +83,7 @@
   "tournament_standings_empty": "Sin resultados aún",
   "tournament_games": "Juegos",
   "tournament_games_empty": "Sin juegos aún",
-  "tournament_points": "{pts} pts",
+  "tournament_points": "{pts} puntos",
   "@tournament_points": {
     "placeholders": {
       "pts": {}
@@ -181,7 +181,7 @@
       "gb": {}
     }
   },
-  "storage_unit_gb": "GB",
+  "storage_unit_gb": "ES",
   "storage_settings_clear_all_button": "Borrar toda la caché",
   "storage_settings_trim_button": "Ajustar al límite",
   "storage_settings_policy_title": "Qué mantener localmente",
@@ -498,7 +498,7 @@
   "settings_chats_inherit_global": "Usar configuración global",
   "settings_chats_no_background": "Sin fondo",
   "settings_chats_no_background_on": "Sin fondo (activado)",
-  "chat_list_title": "Chats",
+  "chat_list_title": "Charlas",
   "chat_list_search_hint": "Buscar…",
   "chat_list_loading_connecting": "Conectando…",
   "chat_list_loading_conversations": "Cargando conversaciones…",
@@ -763,7 +763,7 @@
     }
   },
   "new_chat_fallback_user_display_name": "Usuario",
-  "new_group_role_badge_admin": "ADMIN",
+  "new_group_role_badge_admin": "ADMINISTRACIÓN",
   "new_group_role_badge_worker": "MIEMBRO",
   "new_group_error_auth_session": "No se pudo verificar el inicio de sesión: {error}",
   "@new_group_error_auth_session": {
@@ -794,7 +794,7 @@
   "new_group_action_create": "Crear",
   "group_members_title": "Miembros",
   "group_members_invite_link": "Invitar por enlace",
-  "group_members_admin_badge": "ADMIN",
+  "group_members_admin_badge": "ADMINISTRACIÓN",
   "group_members_invite_text": "Únete al grupo {groupName} en LighChat: {inviteLink}",
   "@group_members_invite_text": {
     "placeholders": {
@@ -905,11 +905,19 @@
   "share_picker_summary_text_only": "Texto",
   "share_picker_summary_files_count": "Archivos: {count}",
   "@share_picker_summary_files_count": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "share_picker_summary_files_with_text": "Archivos: {count} + texto",
   "@share_picker_summary_files_with_text": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "devices_title": "Mis dispositivos",
   "devices_subtitle": "Dispositivos donde se publica tu clave pública de cifrado. Revocar crea una nueva época de clave para todos los chats cifrados — el dispositivo revocado no podrá leer nuevos mensajes.",
@@ -1093,8 +1101,8 @@
   "disappearing_messages_snackbar_off": "Mensajes que desaparecen desactivados.",
   "disappearing_messages_snackbar_updated": "Temporizador actualizado.",
   "disappearing_preset_off": "Desactivado",
-  "disappearing_preset_1h": "1 h",
-  "disappearing_preset_24h": "24 h",
+  "disappearing_preset_1h": "1 hora",
+  "disappearing_preset_24h": "24 horas",
   "disappearing_preset_7d": "7 días",
   "disappearing_preset_30d": "30 días",
   "disappearing_ttl_summary_off": "Desactivado",
@@ -1128,7 +1136,7 @@
   "conversation_profile_e2ee_subtitle_off": "El cifrado de extremo a extremo está desactivado. Toca para activar.",
   "partner_profile_title_fallback_group": "Chat grupal",
   "partner_profile_title_fallback_saved": "Mensajes guardados",
-  "partner_profile_title_fallback_chat": "Chat",
+  "partner_profile_title_fallback_chat": "Charlar",
   "partner_profile_subtitle_group_member_count": "{count} miembros",
   "@partner_profile_subtitle_group_member_count": {
     "placeholders": {
@@ -1175,7 +1183,7 @@
   "partner_profile_tooltip_close": "Cerrar",
   "partner_profile_edit_contact_short": "Editar",
   "partner_profile_tooltip_copy_chat_id": "Copiar ID del chat",
-  "partner_profile_action_chats": "Chats",
+  "partner_profile_action_chats": "Charlas",
   "partner_profile_action_voice_call": "Llamar",
   "partner_profile_action_video": "Video",
   "partner_profile_action_share": "Compartir",
@@ -1554,7 +1562,7 @@
   "chat_selection_tooltip_forward": "Reenviar",
   "chat_selection_tooltip_delete": "Eliminar",
   "chat_composer_hint_message": "Escribe un mensaje…",
-  "chat_composer_tooltip_stickers": "Stickers",
+  "chat_composer_tooltip_stickers": "Pegatinas",
   "chat_composer_tooltip_attachments": "Adjuntos",
   "chat_list_unread_separator": "Mensajes no leídos",
   "chat_e2ee_decrypt_failed_open_devices": "No se pudo descifrar. Abre Configuración → Dispositivos",
@@ -1857,8 +1865,8 @@
   },
   "sticker_pack_deleted": "Paquete eliminado",
   "sticker_pack_delete_failed": "Error al eliminar el paquete",
-  "sticker_tab_emoji": "EMOJI",
-  "sticker_tab_stickers": "STICKERS",
+  "sticker_tab_emoji": "emojis",
+  "sticker_tab_stickers": "PEGATINAS",
   "sticker_tab_gif": "GIF",
   "sticker_scope_my": "Mío",
   "sticker_scope_public": "Pública",
@@ -1895,7 +1903,7 @@
   "composer_attach_video_circle": "Video circular",
   "composer_attach_location": "Ubicación",
   "composer_attach_poll": "Encuesta",
-  "composer_attach_stickers": "Stickers",
+  "composer_attach_stickers": "Pegatinas",
   "composer_attach_clipboard": "Portapapeles",
   "composer_attach_text": "Texto",
   "meeting_create_poll": "Crear encuesta",
@@ -1991,7 +1999,7 @@
       }
     }
   },
-  "meeting_chat_tab": "Chat",
+  "meeting_chat_tab": "Charlar",
   "meeting_requests_tab": "Solicitudes ({count})",
   "@meeting_requests_tab": {
     "placeholders": {
@@ -2227,7 +2235,7 @@
   "add_contact_add_unavailable": "No se puede agregar",
   "add_contact_searching": "Buscando contacto...",
   "add_contact_scan_qr_title": "Escanear código QR",
-  "add_contact_flash_tooltip": "Flash",
+  "add_contact_flash_tooltip": "Destello",
   "add_contact_scan_qr_hint": "Apunta tu cámara al código QR de un perfil de LighChat",
   "contacts_edit_enter_name": "Ingresa el nombre del contacto.",
   "contacts_edit_save_error": "No se pudo guardar el contacto: {error}",
@@ -2258,7 +2266,7 @@
   "chat_settings_color_sky": "Cielo",
   "chat_settings_color_purple": "Púrpura",
   "chat_settings_color_crimson": "Carmesí",
-  "chat_settings_color_tiffany": "Tiffany",
+  "chat_settings_color_tiffany": "tiffany",
   "chat_settings_color_yellow": "Amarillo",
   "chat_settings_color_powder": "Polvos",
   "chat_settings_color_turquoise": "Turquesa",
@@ -2335,7 +2343,7 @@
       "count": {}
     }
   },
-  "meeting_tab_chat": "Chat",
+  "meeting_tab_chat": "Charlar",
   "meeting_tab_chat_count": "Chat ({count})",
   "@meeting_tab_chat_count": {
     "placeholders": {
@@ -2415,7 +2423,7 @@
   "pinned_type_poll": "Encuesta",
   "pinned_type_link": "Enlace",
   "pinned_type_location": "Ubicación",
-  "pinned_type_sticker": "Sticker",
+  "pinned_type_sticker": "Etiqueta engomada",
   "pinned_type_file": "Archivo",
   "call_entry_login_required_title": "Se requiere iniciar sesión",
   "call_entry_login_required_subtitle": "Abre la app e inicia sesión en tu cuenta.",
@@ -2454,7 +2462,7 @@
   "chat_theme_description": "El fondo de esta conversación solo es visible para ti. La configuración global del chat en la sección de Configuración del chat no se ve afectada.",
   "chat_theme_current_bg": "Fondo actual",
   "chat_theme_default_bg": "Predeterminado (configuración global)",
-  "chat_theme_presets": "Presets",
+  "chat_theme_presets": "Preajustes",
   "chat_theme_global_label": "Global",
   "chat_theme_hint": "Elige un preset o foto de la galería",
   "date_today": "Hoy",
@@ -2664,7 +2672,7 @@
   "attach_circle": "Circular",
   "attach_location": "Ubicación",
   "attach_poll": "Encuesta",
-  "attach_stickers": "Stickers",
+  "attach_stickers": "Pegatinas",
   "attach_clipboard": "Portapapeles",
   "attach_text": "Texto",
   "attach_title": "Adjuntar",
@@ -2726,7 +2734,7 @@
   "poll_status_active": "Activa",
   "poll_badge_public": "Pública",
   "poll_badge_multi": "Respuestas múltiples",
-  "poll_badge_quiz": "Quiz",
+  "poll_badge_quiz": "Prueba",
   "poll_restart": "Reiniciar",
   "poll_finish": "Finalizar",
   "poll_submit_vote": "Enviar voto",
@@ -2917,7 +2925,7 @@
   "location_live_label": "En vivo",
   "location_error": "Error al cargar el mapa",
   "location_no_permission": "Sin acceso a la ubicación",
-  "group_member_admin": "Admin",
+  "group_member_admin": "Administración",
   "group_member_creator": "Creador",
   "group_member_member": "Miembro",
   "group_member_open_chat": "Mensaje",
@@ -3119,7 +3127,7 @@
   "game_error_invalid_argument": "Movimiento no válido",
   "game_error_precondition": "El movimiento no está disponible en este momento",
   "game_error_server": "Error al hacer el movimiento. Intenta de nuevo",
-  "reply_sticker": "Sticker",
+  "reply_sticker": "Etiqueta engomada",
   "reply_gif": "GIF",
   "reply_video_circle": "Video circular",
   "reply_voice_message": "Mensaje de voz",
@@ -3135,7 +3143,7 @@
   "call_format_today": "Hoy",
   "call_format_yesterday": "Ayer",
   "call_format_second_short": "s",
-  "call_format_minute_short": "m",
+  "call_format_minute_short": "metro",
   "call_format_hour_short": "h",
   "call_format_day_short": "d",
   "call_month_january": "Enero",
@@ -3310,7 +3318,7 @@
       }
     }
   },
-  "nav_chats": "Chats",
+  "nav_chats": "Charlas",
   "nav_contacts": "Contactos",
   "nav_meetings": "Reuniones",
   "nav_calls": "Llamadas",
@@ -3321,7 +3329,7 @@
   "chat_search_snippet_attachment": "Adjunto",
   "chat_search_snippet_location": "Ubicación",
   "chat_search_snippet_message": "Mensaje",
-  "bottom_nav_chats": "Chats",
+  "bottom_nav_chats": "Charlas",
   "bottom_nav_contacts": "Contactos",
   "bottom_nav_meetings": "Reuniones",
   "bottom_nav_calls": "Llamadas",
@@ -3448,7 +3456,7 @@
   "call_status_ended": "Finalizada",
   "presence_offline": "Sin conexión",
   "presence_online": "En línea",
-  "dm_title_fallback": "Chat",
+  "dm_title_fallback": "Charlar",
   "dm_title_partner_fallback": "Contacto",
   "group_title_fallback": "Chat grupal",
   "block_call_viewer_blocked": "Bloqueaste a este usuario. Llamada no disponible — desbloquea en Perfil → Bloqueados.",
@@ -3472,7 +3480,7 @@
   "presence_last_seen_prefix": "Visto por última vez ",
   "presence_less_than_minute_ago": "hace menos de un minuto",
   "presence_yesterday": "ayer",
-  "dm_fallback_title": "Chat",
+  "dm_fallback_title": "Charlar",
   "dm_fallback_partner": "Contacto",
   "group_fallback_title": "Chat grupal",
   "block_send_viewer_blocked": "Bloqueaste a este usuario. Envío no disponible — desbloquea en Perfil → Bloqueados.",
@@ -3569,7 +3577,7 @@
   "block_send_you_blocked": "Bloqueaste a este usuario. Envío no disponible — desbloquea en Perfil → Bloqueados.",
   "block_send_they_blocked": "Este usuario restringió la comunicación contigo. Envío no disponible.",
   "forward_unknown_fallback": "Desconocido",
-  "dm_title_chat": "Chat",
+  "dm_title_chat": "Charlar",
   "dm_title_partner": "Compañero",
   "dm_title_group": "Chat grupal",
   "e2ee_too_many_attachments": "Demasiados adjuntos para envío cifrado: máximo 5 archivos por mensaje.",
@@ -3631,7 +3639,7 @@
     }
   },
   "call_mini_end": "Finalizar llamada",
-  "animation_quality_lite": "Lite",
+  "animation_quality_lite": "ligero",
   "animation_quality_balanced": "Equilibrado",
   "animation_quality_cinematic": "Cinemático",
   "crop_aspect_original": "Original",
@@ -3657,7 +3665,7 @@
       }
     }
   },
-  "bottom_nav_label_chats": "Chats",
+  "bottom_nav_label_chats": "Charlas",
   "bottom_nav_label_contacts": "Contactos",
   "bottom_nav_label_conferences": "Conferencias",
   "bottom_nav_label_calls": "Llamadas",
@@ -3988,12 +3996,44 @@
   "@chat_preview_message": {
     "description": "Chat list preview: chat_preview_message"
   },
-  "chat_preview_sticker": "Sticker",
+  "chat_preview_sticker": "Etiqueta engomada",
   "@chat_preview_sticker": {
     "description": "Chat list preview: chat_preview_sticker"
   },
   "chat_preview_attachment": "Adjunto",
   "@chat_preview_attachment": {
     "description": "Chat list preview: chat_preview_attachment"
-  }
+  },
+  "storage_category_stickers_gifs_emoji": "Stickers, GIF y emoji",
+  "storage_category_stickers_gifs_emoji_subtitle": "Caché de stickers recientes y de GIPHY (gif/stickers/emoji animados).",
+  "storage_category_network_images": "Caché de imágenes de red",
+  "storage_category_network_images_subtitle": "Avatares, vistas previas y otras imágenes obtenidas por red (libCachedImageData).",
+  "storage_media_type_audio": "Audio",
+  "storage_settings_categories_title": "Por categoría",
+  "storage_settings_clear_category_title": "¿Borrar \"{category}\"?",
+  "storage_settings_clear_category_body": "Se liberarán aproximadamente {size}. Esta acción no se puede deshacer.",
+  "message_menu_action_create_sticker": "Crear sticker",
+  "message_menu_action_save_to_my_stickers": "Guardar en mis stickers",
+  "meeting_notifications_button": "Actividad",
+  "meeting_pip_button": "Minimizar",
+  "meeting_join_as_label": "Te unirás como",
+  "meeting_lobby_camera_blocked": "El permiso de la cámara está denegado. Te unirás con la cámara apagada.",
+  "storage_label_audio": "Audio",
+  "storage_label_recent_stickers": "Stickers recientes",
+  "storage_label_giphy_search": "GIPHY · caché de búsqueda",
+  "storage_label_giphy_recent": "GIPHY · GIF recientes",
+  "storage_chat_unattributed": "No atribuido a un chat",
+  "legal_index_title": "Documentos legales",
+  "legal_index_subtitle": "Política de privacidad, términos de servicio y otros documentos legales que regulan el uso de LighChat.",
+  "legal_settings_section_title": "Información legal",
+  "legal_settings_section_subtitle": "Política de privacidad, términos de servicio, EULA y más.",
+  "legal_not_found": "Documento no encontrado",
+  "legal_title_privacy_policy": "Política de Privacidad",
+  "legal_title_terms_of_service": "Términos de Servicio",
+  "legal_title_cookie_policy": "Política de Cookies",
+  "legal_title_eula": "Acuerdo de Licencia de Usuario Final",
+  "legal_title_dpa": "Acuerdo de Procesamiento de Datos",
+  "legal_title_children": "Política para Niños",
+  "legal_title_moderation": "Política de Moderación de Contenido",
+  "legal_title_aup": "Política de Uso Aceptable"
 }

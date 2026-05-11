@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 
+import 'chat_link_normalization.dart';
 import '../ui/message_html_text.dart';
 import 'sanitize_message_html.dart';
 import 'mention_token_codec.dart';
@@ -106,6 +107,29 @@ class ComposerHtmlEditing {
     return out.toString();
   }
 
+  /// Inline custom-emoji span for animated emoji rendering in message text.
+  ///
+  /// `fallbackEmoji` must be a visible unicode emoji so plain-text surfaces
+  /// (search/notifications/legacy clients) still have meaningful content.
+  static String buildInlineCustomEmojiSpanHtml({
+    required String emojiId,
+    required String imageUrl,
+    required String fallbackEmoji,
+  }) {
+    final id = emojiId.trim();
+    final src = imageUrl.trim();
+    final fallback = fallbackEmoji.trim();
+    if (id.isEmpty || src.isEmpty || fallback.isEmpty) {
+      return escapeHtmlText(fallbackEmoji);
+    }
+    final idEsc = escapeHtmlAttribute(id);
+    final srcEsc = escapeHtmlAttribute(src);
+    final fbEsc = escapeHtmlText(fallback);
+    return '<span data-chat-custom-emoji="" '
+        'data-emoji-id="$idEsc" '
+        'data-emoji-src="$srcEsc">$fbEsc</span>';
+  }
+
   static TextEditingValue toggleInline(
     String text,
     TextSelection sel,
@@ -163,7 +187,7 @@ class ComposerHtmlEditing {
     TextSelection sel,
     String url,
   ) {
-    final u = url.trim();
+    final u = normalizeChatLinkUrl(url);
     final normalized = _normalizeHtmlSelection(text, sel);
     final normalizedLinkRange = _expandSelectionToAnchor(
       text,

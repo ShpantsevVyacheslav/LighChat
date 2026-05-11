@@ -248,7 +248,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String tournament_points(Object pts) {
-    return '$pts pts';
+    return '$pts pontos';
   }
 
   @override
@@ -523,18 +523,18 @@ class AppLocalizationsPt extends AppLocalizations {
       'Fotos e figurinhas em cache dos chats abertos.';
 
   @override
-  String get storage_category_stickers_gifs_emoji => 'Стикеры, GIF, эмодзи';
+  String get storage_category_stickers_gifs_emoji => 'Figurinhas, GIFs e emoji';
 
   @override
   String get storage_category_stickers_gifs_emoji_subtitle =>
-      'Кэш недавних стикеров, GIPHY (gifs/stickers/emoji) и анимированных эмодзи.';
+      'Cache de figurinhas recentes e do GIPHY (gifs/figurinhas/emojis animados).';
 
   @override
-  String get storage_category_network_images => 'Кэш сетевых картинок';
+  String get storage_category_network_images => 'Cache de imagens de rede';
 
   @override
   String get storage_category_network_images_subtitle =>
-      'Аватары, превью и прочие изображения, скачанные из сети (libCachedImageData).';
+      'Avatares, prévias e outras imagens buscadas pela rede (libCachedImageData).';
 
   @override
   String get storage_media_type_video => 'Vídeo';
@@ -543,7 +543,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get storage_media_type_photo => 'Fotos';
 
   @override
-  String get storage_media_type_audio => 'Аудио';
+  String get storage_media_type_audio => 'Áudio';
 
   @override
   String get storage_media_type_files => 'Arquivos';
@@ -561,16 +561,16 @@ class AppLocalizationsPt extends AppLocalizations {
       'Toda a mídia continua na nuvem. Você pode baixar de novo quando quiser.';
 
   @override
-  String get storage_settings_categories_title => 'По категориям';
+  String get storage_settings_categories_title => 'Por categoria';
 
   @override
   String storage_settings_clear_category_title(String category) {
-    return 'Очистить «$category»?';
+    return 'Limpar \"$category\"?';
   }
 
   @override
   String storage_settings_clear_category_body(String size) {
-    return 'Будет освобождено около $size. Действие нельзя отменить.';
+    return 'Cerca de $size será liberado. Esta ação não pode ser desfeita.';
   }
 
   @override
@@ -926,7 +926,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get common_retry => 'Tentar de novo';
 
   @override
-  String get auth_login_email_label => 'Email';
+  String get auth_login_email_label => 'E-mail';
 
   @override
   String get auth_login_password_label => 'Senha';
@@ -960,7 +960,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get profile_username_label => 'Nome de usuário';
 
   @override
-  String get profile_email_label => 'Email';
+  String get profile_email_label => 'E-mail';
 
   @override
   String get profile_phone_label => 'Telefone';
@@ -993,7 +993,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get profile_password_tooltip_hide => 'Ocultar';
 
   @override
-  String get profile_placeholder_username => 'username';
+  String get profile_placeholder_username => 'nome de usuário';
 
   @override
   String get profile_placeholder_email => 'nome@exemplo.com';
@@ -1120,7 +1120,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settings_chats_no_background_on => 'Sem plano de fundo (ativado)';
 
   @override
-  String get chat_list_title => 'Chats';
+  String get chat_list_title => 'Bate-papos';
 
   @override
   String get chat_list_search_hint => 'Buscar…';
@@ -1191,7 +1191,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String chat_list_create_folder_chats_label(Object count) {
-    return 'CHATS ($count)';
+    return 'CONVERSAS ($count)';
   }
 
   @override
@@ -1610,7 +1610,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get new_chat_fallback_user_display_name => 'Usuário';
 
   @override
-  String get new_group_role_badge_admin => 'ADMIN';
+  String get new_group_role_badge_admin => 'ADMINISTRADOR';
 
   @override
   String get new_group_role_badge_worker => 'MEMBRO';
@@ -1681,7 +1681,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get group_members_invite_link => 'Convidar via link';
 
   @override
-  String get group_members_admin_badge => 'ADMIN';
+  String get group_members_admin_badge => 'ADMINISTRADOR';
 
   @override
   String group_members_invite_text(Object groupName, Object inviteLink) {
@@ -1835,7 +1835,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get video_call_connecting => 'Chamada de vídeo…';
 
   @override
-  String get video_call_pip_tooltip => 'Picture in picture';
+  String get video_call_pip_tooltip => 'Imagem em imagem';
 
   @override
   String get video_call_mini_window_tooltip => 'Mini janela';
@@ -2245,10 +2245,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get disappearing_preset_off => 'Desativado';
 
   @override
-  String get disappearing_preset_1h => '1 h';
+  String get disappearing_preset_1h => '1 hora';
 
   @override
-  String get disappearing_preset_24h => '24 h';
+  String get disappearing_preset_24h => '24 horas';
 
   @override
   String get disappearing_preset_7d => '7 dias';
@@ -2300,7 +2300,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get partner_profile_title_fallback_saved => 'Mensagens salvas';
 
   @override
-  String get partner_profile_title_fallback_chat => 'Chat';
+  String get partner_profile_title_fallback_chat => 'Bater papo';
 
   @override
   String partner_profile_subtitle_group_member_count(Object count) {
@@ -2381,7 +2381,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get partner_profile_tooltip_copy_chat_id => 'Copiar ID do chat';
 
   @override
-  String get partner_profile_action_chats => 'Chats';
+  String get partner_profile_action_chats => 'Bate-papos';
 
   @override
   String get partner_profile_action_voice_call => 'Ligar';
@@ -2454,7 +2454,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get partner_profile_field_system_role => 'Função no sistema';
 
   @override
-  String get partner_profile_field_email => 'Email';
+  String get partner_profile_field_email => 'E-mail';
 
   @override
   String get partner_profile_field_phone => 'Telefone';
@@ -2733,11 +2733,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get message_menu_action_star_remove => 'Remover de Favoritas';
 
   @override
-  String get message_menu_action_create_sticker => 'Создать стикер';
+  String get message_menu_action_create_sticker => 'Criar figurinha';
 
   @override
   String get message_menu_action_save_to_my_stickers =>
-      'Добавить в мои стикеры';
+      'Salvar nas minhas figurinhas';
 
   @override
   String get message_menu_action_forward => 'Encaminhar';
@@ -2785,7 +2785,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get conversation_games_durak_subtitle => 'Criar lobby';
 
   @override
-  String get conversation_game_lobby_title => 'Lobby';
+  String get conversation_game_lobby_title => 'Salão';
 
   @override
   String get conversation_game_lobby_not_found => 'Jogo não encontrado';
@@ -3006,7 +3006,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String chat_selection_selected_count(int count) {
-    return '$count selected';
+    return '$count selecionado';
   }
 
   @override
@@ -3105,7 +3105,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get register_hint_choose_country => 'Escolha um país';
 
   @override
-  String get register_label_email => 'Email';
+  String get register_label_email => 'E-mail';
 
   @override
   String get register_hint_email => 'Digite seu email';
@@ -3871,11 +3871,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String meeting_chat_tab_unread(int count) {
-    return 'Chat ($count)';
+    return 'Bate-papo ($count)';
   }
 
   @override
-  String get meeting_chat_tab => 'Chat';
+  String get meeting_chat_tab => 'Bater papo';
 
   @override
   String meeting_requests_tab(int count) {
@@ -4080,7 +4080,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get meeting_screen_label => 'Tela';
 
   @override
-  String get meeting_bg_off => 'BG';
+  String get meeting_bg_off => 'GB';
 
   @override
   String get meeting_bg_blur => 'Desfoque';
@@ -4092,36 +4092,37 @@ class AppLocalizationsPt extends AppLocalizations {
   String get meeting_participants_button => 'Membros';
 
   @override
-  String get meeting_notifications_button => 'Активность';
+  String get meeting_notifications_button => 'Atividade';
 
   @override
-  String get meeting_pip_button => 'Свернуть';
+  String get meeting_pip_button => 'Minimizar';
 
   @override
-  String get settings_chats_bottom_nav_icons_title => 'Bottom navigation icons';
+  String get settings_chats_bottom_nav_icons_title =>
+      'Ícones de navegação inferiores';
 
   @override
   String get settings_chats_bottom_nav_icons_subtitle =>
       'Escolha ícones e estilo visual como na web.';
 
   @override
-  String get settings_chats_nav_colorful => 'Colorful';
+  String get settings_chats_nav_colorful => 'Colorido';
 
   @override
-  String get settings_chats_nav_minimal => 'Minimal';
+  String get settings_chats_nav_minimal => 'Mínimo';
 
   @override
   String get settings_chats_nav_global_title => 'Para todos os ícones';
 
   @override
   String get settings_chats_nav_global_subtitle =>
-      'Global layer: color, size, stroke width, and tile background.';
+      'Camada global: cor, tamanho, largura do traço e fundo do bloco.';
 
   @override
   String get settings_chats_reset_tooltip => 'Restaurar';
 
   @override
-  String get settings_chats_collapse => 'Collapse';
+  String get settings_chats_collapse => 'Colapso';
 
   @override
   String get settings_chats_customize => 'Personalizar';
@@ -4133,10 +4134,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settings_chats_style_tooltip => 'Estilo';
 
   @override
-  String get settings_chats_icon_size => 'Icon size';
+  String get settings_chats_icon_size => 'Tamanho do ícone';
 
   @override
-  String get settings_chats_stroke_width => 'Stroke width';
+  String get settings_chats_stroke_width => 'Largura do traço';
 
   @override
   String get settings_chats_default => 'Padrão';
@@ -4145,7 +4146,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settings_chats_icon_search_hint_en => 'Buscar por nome...';
 
   @override
-  String get settings_chats_emoji_effects => 'Emoji effects';
+  String get settings_chats_emoji_effects => 'Efeitos de emojis';
 
   @override
   String get settings_chats_emoji_effects_subtitle =>
@@ -4157,7 +4158,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get settings_chats_emoji_balanced_desc =>
-      'Balanced: automatic compromise between performance and expressiveness.';
+      'Equilibrado: compromisso automático entre performance e expressividade.';
 
   @override
   String get settings_chats_emoji_cinematic_desc =>
@@ -4167,7 +4168,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settings_chats_preview_incoming_msg => 'Oi! Tudo bem?';
 
   @override
-  String get settings_chats_preview_outgoing_msg => 'Great, thanks!';
+  String get settings_chats_preview_outgoing_msg => 'Ótimo, obrigado!';
 
   @override
   String get settings_chats_preview_hello => 'Olá';
@@ -4230,7 +4231,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get contacts_fallback_user => 'Usuário';
 
   @override
-  String get contacts_status_online => 'online';
+  String get contacts_status_online => 'on-line';
 
   @override
   String get contacts_status_recently => 'Visto recentemente';
@@ -4366,7 +4367,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get add_contact_scan_qr_title => 'Escanear QR code';
 
   @override
-  String get add_contact_flash_tooltip => 'Flash';
+  String get add_contact_flash_tooltip => 'Clarão';
 
   @override
   String get add_contact_scan_qr_hint =>
@@ -4617,11 +4618,11 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get meeting_tab_chat => 'Chat';
+  String get meeting_tab_chat => 'Bater papo';
 
   @override
   String meeting_tab_chat_count(Object count) {
-    return 'Chat ($count)';
+    return 'Bate-papo ($count)';
   }
 
   @override
@@ -4662,11 +4663,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get meeting_join_guest => 'Convidado';
 
   @override
-  String get meeting_join_as_label => 'Вы войдёте как';
+  String get meeting_join_as_label => 'Você entrará como';
 
   @override
   String get meeting_lobby_camera_blocked =>
-      'Доступ к камере не выдан. Вы войдёте с выключенной камерой.';
+      'A permissão da câmera foi negada. Você entrará com a câmera desligada.';
 
   @override
   String get meeting_join_button => 'Entrar';
@@ -4733,7 +4734,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get group_members_add_member_tooltip => 'Adicionar member';
 
   @override
-  String get group_members_invite_copied => 'Invite link copied';
+  String get group_members_invite_copied => 'Link de convite copiado';
 
   @override
   String group_members_copy_link_error(String error) {
@@ -4744,7 +4745,8 @@ class AppLocalizationsPt extends AppLocalizations {
   String get group_members_added => 'Membros added';
 
   @override
-  String get group_members_revoke_admin_title => 'Revoke admin privileges?';
+  String get group_members_revoke_admin_title =>
+      'Revogar privilégios de administrador?';
 
   @override
   String group_members_revoke_admin_body(String name) {
@@ -4752,7 +4754,8 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get group_members_grant_admin_title => 'Grant admin privileges?';
+  String get group_members_grant_admin_title =>
+      'Conceder privilégios de administrador?';
 
   @override
   String group_members_grant_admin_body(String name) {
@@ -4760,13 +4763,13 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get group_members_revoke_admin_action => 'Revoke';
+  String get group_members_revoke_admin_action => 'Revogar';
 
   @override
-  String get group_members_grant_admin_action => 'Grant';
+  String get group_members_grant_admin_action => 'Conceder';
 
   @override
-  String get group_members_remove_title => 'Remove member?';
+  String get group_members_remove_title => 'Remover membro?';
 
   @override
   String group_members_remove_body(String name) {
@@ -4774,13 +4777,13 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get group_members_remove_action => 'Remove';
+  String get group_members_remove_action => 'Remover';
 
   @override
   String get group_members_removed => 'Membro removed';
 
   @override
-  String get group_members_menu_revoke_admin => 'Remove admin';
+  String get group_members_menu_revoke_admin => 'Remover administrador';
 
   @override
   String get group_members_menu_grant_admin => 'Tornar admin';
@@ -4789,7 +4792,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get group_members_menu_remove => 'Remover do grupo';
 
   @override
-  String get group_members_creator_badge => 'CREATOR';
+  String get group_members_creator_badge => 'CRIADOR';
 
   @override
   String get group_members_add_title => 'Adicionar membros';
@@ -4802,10 +4805,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Todos os seus contatos já estão no grupo.';
 
   @override
-  String get group_members_nobody_found => 'Nobody found.';
+  String get group_members_nobody_found => 'Ninguém encontrou.';
 
   @override
-  String get group_members_user_fallback => 'User';
+  String get group_members_user_fallback => 'Usuário';
 
   @override
   String get group_members_select_members => 'Selecionar members';
@@ -4822,7 +4825,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String group_members_auth_error(String error) {
-    return 'Authorization error: $error';
+    return 'Erro de autorização: $error';
   }
 
   @override
@@ -4840,20 +4843,20 @@ class AppLocalizationsPt extends AppLocalizations {
   String get poll_create_title => 'Enquete do chat';
 
   @override
-  String get poll_question_label => 'Question';
+  String get poll_question_label => 'Pergunta';
 
   @override
-  String get poll_question_hint => 'E.g.: What time shall we meet?';
+  String get poll_question_hint => 'Ex.: A que horas nos encontraremos?';
 
   @override
   String get poll_description_label => 'Descrição (optional)';
 
   @override
-  String get poll_options_title => 'Options';
+  String get poll_options_title => 'Opções';
 
   @override
   String poll_option_hint(int index) {
-    return 'Option $index';
+    return 'Opção $index';
   }
 
   @override
@@ -4866,7 +4869,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get poll_switch_anonymous_sub => 'Não mostrar quem votou em quê';
 
   @override
-  String get poll_switch_multi => 'Multiple answers';
+  String get poll_switch_multi => 'Múltiplas respostas';
 
   @override
   String get poll_switch_multi_sub => 'Várias opções podem ser selecionadas';
@@ -4879,44 +4882,45 @@ class AppLocalizationsPt extends AppLocalizations {
       'Os participantes podem sugerir opções próprias';
 
   @override
-  String get poll_switch_revote => 'Can change vote';
+  String get poll_switch_revote => 'Pode mudar o voto';
 
   @override
-  String get poll_switch_revote_sub => 'Revote allowed until poll closes';
+  String get poll_switch_revote_sub =>
+      'Revogação permitida até o encerramento da enquete';
 
   @override
-  String get poll_switch_shuffle => 'Shuffle options';
+  String get poll_switch_shuffle => 'Opções aleatórias';
 
   @override
   String get poll_switch_shuffle_sub =>
       'Ordem diferente para cada participante';
 
   @override
-  String get poll_switch_quiz => 'Quiz mode';
+  String get poll_switch_quiz => 'Modo de teste';
 
   @override
-  String get poll_switch_quiz_sub => 'One correct answer';
+  String get poll_switch_quiz_sub => 'Uma resposta correta';
 
   @override
-  String get poll_correct_option_label => 'Correct option';
+  String get poll_correct_option_label => 'Opção correta';
 
   @override
-  String get poll_quiz_explanation_label => 'Explanation (optional)';
+  String get poll_quiz_explanation_label => 'Explicação (opcional)';
 
   @override
   String get poll_close_by_time => 'Fechar by time';
 
   @override
-  String get poll_close_not_set => 'Not set';
+  String get poll_close_not_set => 'Não definido';
 
   @override
   String get poll_close_reset => 'Restaurar deadline';
 
   @override
-  String get poll_publish => 'Publish';
+  String get poll_publish => 'Publicar';
 
   @override
-  String get poll_error_empty_question => 'Enter a question';
+  String get poll_error_empty_question => 'Insira uma pergunta';
 
   @override
   String get poll_error_min_options => 'São necessárias pelo menos 2 opções';
@@ -4941,7 +4945,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get poll_status_cancelled => 'Cancelada';
 
   @override
-  String get poll_status_ended => 'Ended';
+  String get poll_status_ended => 'Terminou';
 
   @override
   String get poll_status_draft => 'Rascunho';
@@ -4956,13 +4960,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get poll_badge_multi => 'Múltiplas respostas';
 
   @override
-  String get poll_badge_quiz => 'Quiz';
+  String get poll_badge_quiz => 'Questionário';
 
   @override
-  String get poll_menu_restart => 'Restart';
+  String get poll_menu_restart => 'Reiniciar';
 
   @override
-  String get poll_menu_end => 'End';
+  String get poll_menu_end => 'Fim';
 
   @override
   String get poll_menu_delete => 'Excluir';
@@ -4971,18 +4975,18 @@ class AppLocalizationsPt extends AppLocalizations {
   String get poll_submit_vote => 'Enviar voto';
 
   @override
-  String get poll_suggest_option_hint => 'Suggest an option';
+  String get poll_suggest_option_hint => 'Sugira uma opção';
 
   @override
   String get poll_revote => 'Alterar voto';
 
   @override
   String poll_votes_count(int count) {
-    return '$count votes';
+    return '$count votos';
   }
 
   @override
-  String get poll_show_voters => 'Who voted';
+  String get poll_show_voters => 'Quem votou';
 
   @override
   String get poll_hide_voters => 'Ocultar';
@@ -5003,25 +5007,25 @@ class AppLocalizationsPt extends AppLocalizations {
   String get durak_winner_label => 'Vencedor';
 
   @override
-  String get durak_rematch => 'Play again';
+  String get durak_rematch => 'Jogue novamente';
 
   @override
-  String get durak_surrender_tooltip => 'End game';
+  String get durak_surrender_tooltip => 'Fim do jogo';
 
   @override
   String get durak_close_tooltip => 'Fechar';
 
   @override
-  String get durak_fx_took => 'Took';
+  String get durak_fx_took => 'Pegou';
 
   @override
-  String get durak_fx_beat => 'Beaten';
+  String get durak_fx_beat => 'Espancado';
 
   @override
   String get durak_opponent_role_defend => 'DEF';
 
   @override
-  String get durak_opponent_role_attack => 'ATK';
+  String get durak_opponent_role_attack => 'ATQ';
 
   @override
   String get durak_opponent_role_throwin => 'THR';
@@ -5039,7 +5043,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String durak_tournament_played(int finished, int total) {
-    return 'Played $finished of $total';
+    return 'Jogado $finished de $total';
   }
 
   @override
@@ -5049,13 +5053,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get durak_tournament_next => 'Próximo tournament game';
 
   @override
-  String get durak_single_game => 'Single game';
+  String get durak_single_game => 'Jogo único';
 
   @override
   String get durak_tournament_total_games_title => 'Quantos jogos no torneio?';
 
   @override
-  String get durak_finish_game_tooltip => 'End game';
+  String get durak_finish_game_tooltip => 'Fim do jogo';
 
   @override
   String get durak_lobby_game_unavailable =>
@@ -5071,25 +5075,25 @@ class AppLocalizationsPt extends AppLocalizations {
   String get durak_lobby_start => 'Iniciar game';
 
   @override
-  String get durak_lobby_waiting_short => 'Waiting…';
+  String get durak_lobby_waiting_short => 'Esperando…';
 
   @override
   String get durak_lobby_ready => 'Pronto';
 
   @override
-  String get durak_lobby_empty_slot => 'Waiting…';
+  String get durak_lobby_empty_slot => 'Esperando…';
 
   @override
   String get durak_settings_timer_subtitle => '15 segundos by default';
 
   @override
-  String get durak_dm_game_active => 'Durak game in progress';
+  String get durak_dm_game_active => 'Jogo Durak em andamento';
 
   @override
-  String get durak_dm_game_created => 'Durak game created';
+  String get durak_dm_game_created => 'Jogo Durak criado';
 
   @override
-  String get game_durak_subtitle => 'Single game or tournament';
+  String get game_durak_subtitle => 'Jogo único ou torneio';
 
   @override
   String get group_member_write_dm => 'Enviar direct message';
@@ -5103,7 +5107,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String group_member_open_dm_error(String error) {
-    return 'Failed to open direct chat: $error';
+    return 'Falha ao abrir o chat direto: $error';
   }
 
   @override
@@ -5120,7 +5124,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String group_avatar_process_error(String error) {
-    return 'Failed to process photo: $error';
+    return 'Falha ao processar foto: $error';
   }
 
   @override
@@ -5131,11 +5135,11 @@ class AppLocalizationsPt extends AppLocalizations {
       'Esta carta não bate a carta do ataque';
 
   @override
-  String get durak_error_only_attacker_first => 'Attacker goes first';
+  String get durak_error_only_attacker_first => 'O atacante vai primeiro';
 
   @override
   String get durak_error_defender_cannot_attack =>
-      'Defender cannot throw in right now';
+      'O defensor não pode lançar agora';
 
   @override
   String get durak_error_not_allowed_throwin =>
@@ -5150,31 +5154,32 @@ class AppLocalizationsPt extends AppLocalizations {
       'Você só pode jogar cartas do mesmo valor';
 
   @override
-  String get durak_error_cannot_throw_in => 'Cannot throw in more cards';
+  String get durak_error_cannot_throw_in =>
+      'Não é possível adicionar mais cartas';
 
   @override
   String get durak_error_card_not_in_hand =>
       'Esta carta não está mais na sua mão';
 
   @override
-  String get durak_error_already_defended => 'This card is already defended';
+  String get durak_error_already_defended => 'Esta carta já está defendida';
 
   @override
   String get durak_error_bad_attack_index =>
       'Selecionar an attacking card to defend against';
 
   @override
-  String get durak_error_only_defender => 'Another player is defending now';
+  String get durak_error_only_defender => 'Outro jogador está defendendo agora';
 
   @override
   String get durak_error_defender_already_taking =>
-      'Defender is already taking cards';
+      'Defensor já está aceitando cartões';
 
   @override
   String get durak_error_game_not_active => 'Jogo is no longer active';
 
   @override
-  String get durak_error_not_in_lobby => 'Lobby has already started';
+  String get durak_error_not_in_lobby => 'O lobby já começou';
 
   @override
   String get durak_error_game_already_active => 'Jogo has already started';
@@ -5184,11 +5189,12 @@ class AppLocalizationsPt extends AppLocalizations {
       'Já existe um jogo ativo neste chat';
 
   @override
-  String get durak_error_resolution_pending => 'Finish the disputed move first';
+  String get durak_error_resolution_pending =>
+      'Termine o movimento disputado primeiro';
 
   @override
   String get durak_error_rematch_failed =>
-      'Failed to prepare rematch. Please try again';
+      'Falha ao preparar a revanche. Por favor, tente novamente';
 
   @override
   String get durak_error_unauthenticated => 'Você precisa entrar';
@@ -5198,14 +5204,15 @@ class AppLocalizationsPt extends AppLocalizations {
       'Esta ação não está disponível para você';
 
   @override
-  String get durak_error_invalid_argument => 'Invalid move';
+  String get durak_error_invalid_argument => 'Movimento inválido';
 
   @override
   String get durak_error_failed_precondition =>
       'A jogada não está disponível agora';
 
   @override
-  String get durak_error_server => 'Failed to execute move. Please try again';
+  String get durak_error_server =>
+      'Falha ao executar a movimentação. Por favor, tente novamente';
 
   @override
   String pinned_count(int count) {
@@ -5431,7 +5438,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get media_tab_files => 'Arquivos';
 
   @override
-  String get media_tab_links => 'Links';
+  String get media_tab_links => 'Ligações';
 
   @override
   String get media_empty_files => 'Não files';
@@ -6137,7 +6144,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get sticker_save_failed => 'Falha ao baixar or save GIF';
 
   @override
-  String get sticker_tab_my => 'My';
+  String get sticker_tab_my => 'Meu';
 
   @override
   String get sticker_tab_shared => 'Compartilhados';
@@ -6284,7 +6291,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get location_no_permission => 'Não location access';
 
   @override
-  String get group_member_admin => 'Admin';
+  String get group_member_admin => 'Administrador';
 
   @override
   String get group_member_creator => 'Criador';
@@ -6341,7 +6348,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get group_avatar_upload_error => 'Erro de upload';
 
   @override
-  String get avatar_picker_title => 'Avatar';
+  String get avatar_picker_title => 'avatar';
 
   @override
   String get avatar_picker_camera => 'Câmera';
@@ -6419,7 +6426,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get google_profile_phone => 'Telefone';
 
   @override
-  String get google_profile_email => 'Email';
+  String get google_profile_email => 'E-mail';
 
   @override
   String get google_profile_dob => 'Data de nascimento';
@@ -6631,7 +6638,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get google_complete_phone_label => 'Telefone';
 
   @override
-  String get google_complete_email_label => 'Email';
+  String get google_complete_email_label => 'E-mail';
 
   @override
   String get google_complete_email_hint => 'voce@exemplo.com';
@@ -6654,7 +6661,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'Esta carta não bate a carta do ataque';
 
   @override
-  String get game_error_attacker_first => 'The attacker moves first';
+  String get game_error_attacker_first => 'O atacante se move primeiro';
 
   @override
   String get game_error_defender_no_attack =>
@@ -6706,7 +6713,8 @@ class AppLocalizationsPt extends AppLocalizations {
   String get game_error_active_exists => 'Já existe um jogo ativo neste chat';
 
   @override
-  String get game_error_round_pending => 'Finish the contested move first';
+  String get game_error_round_pending =>
+      'Termine o movimento contestado primeiro';
 
   @override
   String get game_error_rematch_failed =>
@@ -6720,7 +6728,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'Esta ação não está disponível para você';
 
   @override
-  String get game_error_invalid_argument => 'Invalid move';
+  String get game_error_invalid_argument => 'Movimento inválido';
 
   @override
   String get game_error_precondition => 'A jogada não está disponível agora';
@@ -6750,10 +6758,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reply_file => 'Arquivo';
 
   @override
-  String get reply_location => 'Location';
+  String get reply_location => 'Localização';
 
   @override
-  String get reply_poll => 'Poll';
+  String get reply_poll => 'Enquete';
 
   @override
   String get reply_link => 'Link';
@@ -6762,7 +6770,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reply_message => 'Mensagem';
 
   @override
-  String get reply_sender_you => 'You';
+  String get reply_sender_you => 'Você';
 
   @override
   String get reply_sender_member => 'Membro';
@@ -6774,10 +6782,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get call_format_yesterday => 'Ontem';
 
   @override
-  String get call_format_second_short => 's';
+  String get call_format_second_short => 'é';
 
   @override
-  String get call_format_minute_short => 'm';
+  String get call_format_minute_short => 'eu';
 
   @override
   String get call_format_hour_short => 'h';
@@ -6786,43 +6794,43 @@ class AppLocalizationsPt extends AppLocalizations {
   String get call_format_day_short => 'd';
 
   @override
-  String get call_month_january => 'January';
+  String get call_month_january => 'Janeiro';
 
   @override
-  String get call_month_february => 'February';
+  String get call_month_february => 'Fevereiro';
 
   @override
-  String get call_month_march => 'March';
+  String get call_month_march => 'Marchar';
 
   @override
-  String get call_month_april => 'April';
+  String get call_month_april => 'abril';
 
   @override
-  String get call_month_may => 'May';
+  String get call_month_may => 'Poderia';
 
   @override
-  String get call_month_june => 'June';
+  String get call_month_june => 'Junho';
 
   @override
-  String get call_month_july => 'July';
+  String get call_month_july => 'Julho';
 
   @override
-  String get call_month_august => 'August';
+  String get call_month_august => 'Agosto';
 
   @override
-  String get call_month_september => 'September';
+  String get call_month_september => 'Setembro';
 
   @override
-  String get call_month_october => 'October';
+  String get call_month_october => 'outubro';
 
   @override
-  String get call_month_november => 'November';
+  String get call_month_november => 'novembro';
 
   @override
-  String get call_month_december => 'December';
+  String get call_month_december => 'dezembro';
 
   @override
-  String get push_incoming_call => 'Incoming call';
+  String get push_incoming_call => 'Chamada recebida';
 
   @override
   String get push_incoming_video_call => 'Chamada de vídeo recebida';
@@ -6838,39 +6846,39 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String contacts_years_one(Object count) {
-    return '$count year';
+    return '$count ano';
   }
 
   @override
   String contacts_years_few(Object count) {
-    return '$count years';
+    return '$count anos';
   }
 
   @override
   String contacts_years_many(Object count) {
-    return '$count years';
+    return '$count anos';
   }
 
   @override
   String contacts_years_other(Object count) {
-    return '$count years';
+    return '$count anos';
   }
 
   @override
-  String get durak_entry_single_game => 'Single game';
+  String get durak_entry_single_game => 'Jogo único';
 
   @override
-  String get durak_entry_finish_game_tooltip => 'Finish game';
+  String get durak_entry_finish_game_tooltip => 'Terminar o jogo';
 
   @override
   String get durak_entry_tournament_games_dialog_title =>
-      'How many games in tournament?';
+      'Quantos jogos no torneio?';
 
   @override
   String get durak_entry_cancel => 'Cancelar';
 
   @override
-  String get durak_entry_create => 'Create';
+  String get durak_entry_create => 'Criar';
 
   @override
   String video_editor_load_failed(Object error) {
@@ -6879,34 +6887,34 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String video_editor_process_failed(Object error) {
-    return 'Failed to process video: $error';
+    return 'Falha ao processar o vídeo: $error';
   }
 
   @override
   String video_editor_duration(Object duration) {
-    return 'Duration: $duration';
+    return 'Duração: $duration';
   }
 
   @override
-  String get video_editor_brush => 'Brush';
+  String get video_editor_brush => 'Escovar';
 
   @override
   String get video_editor_caption_hint => 'Adicionar caption...';
 
   @override
-  String get video_effects_speed => 'Скорость';
+  String get video_effects_speed => 'Velocidade';
 
   @override
-  String get video_filter_none => 'Оригинал';
+  String get video_filter_none => 'Original';
 
   @override
-  String get video_filter_enhance => 'Улучшить';
+  String get video_filter_enhance => 'Melhorar';
 
   @override
-  String get share_location_title => 'Share location';
+  String get share_location_title => 'Compartilhar localização';
 
   @override
-  String get share_location_how => 'Sharing method';
+  String get share_location_how => 'Método de compartilhamento';
 
   @override
   String get share_location_cancel => 'Cancelar';
@@ -6924,7 +6932,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get photo_source_record_video => 'Gravar video';
 
   @override
-  String get video_attachment_media_kind => 'video';
+  String get video_attachment_media_kind => 'vídeo';
 
   @override
   String get video_attachment_title => 'Vídeo';
@@ -6942,45 +6950,46 @@ class AppLocalizationsPt extends AppLocalizations {
       'A transmissão de localização deste contato terminou. A posição atual está indisponível.';
 
   @override
-  String get location_card_title => 'Location';
+  String get location_card_title => 'Localização';
 
   @override
   String location_card_accuracy(Object meters) {
-    return '±$meters m';
+    return '±${meters}m';
   }
 
   @override
   String get link_webview_copy_tooltip => 'Copiar link';
 
   @override
-  String get link_webview_copied_snackbar => 'Link copied';
+  String get link_webview_copied_snackbar => 'Link copiado';
 
   @override
   String get link_webview_open_browser_tooltip => 'Abrir in browser';
 
   @override
-  String get hold_record_pause => 'Paused';
+  String get hold_record_pause => 'Pausado';
 
   @override
-  String get hold_record_release_cancel => 'Release to cancel';
+  String get hold_record_release_cancel => 'Solte para cancelar';
 
   @override
-  String get hold_record_slide_hints => 'Slide left — cancel · Up — pause';
+  String get hold_record_slide_hints =>
+      'Deslize para a esquerda — cancelar · Para cima — pausar';
 
   @override
-  String get e2ee_badge_loading => 'Loading fingerprint…';
+  String get e2ee_badge_loading => 'Carregando impressão digital…';
 
   @override
   String e2ee_badge_error(Object error) {
-    return 'Failed to get fingerprint: $error';
+    return 'Falha ao obter impressão digital: $error';
   }
 
   @override
-  String get e2ee_badge_label => 'E2EE Fingerprint';
+  String get e2ee_badge_label => 'E2EE Impressão digital';
 
   @override
   String e2ee_badge_label_with_user(Object user) {
-    return 'E2EE Fingerprint • $user';
+    return 'E2EE Impressão digital • $user';
   }
 
   @override
@@ -6993,41 +7002,41 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String message_search_results_count(Object count) {
-    return 'SEARCH RESULTS: $count';
+    return 'RESULTADOS DE PESQUISA: $count';
   }
 
   @override
-  String get message_search_not_found => 'NOTHING FOUND';
+  String get message_search_not_found => 'NADA ENCONTRADO';
 
   @override
-  String get message_search_participant_fallback => 'Participant';
+  String get message_search_participant_fallback => 'Participante';
 
   @override
-  String get wallpaper_purple => 'Purple';
+  String get wallpaper_purple => 'Roxo';
 
   @override
-  String get wallpaper_pink => 'Pink';
+  String get wallpaper_pink => 'Rosa';
 
   @override
-  String get wallpaper_blue => 'Blue';
+  String get wallpaper_blue => 'Azul';
 
   @override
-  String get wallpaper_green => 'Green';
+  String get wallpaper_green => 'Verde';
 
   @override
-  String get wallpaper_sunset => 'Sunset';
+  String get wallpaper_sunset => 'Pôr do sol';
 
   @override
-  String get wallpaper_tender => 'Tender';
+  String get wallpaper_tender => 'Macio';
 
   @override
-  String get wallpaper_lime => 'Lime';
+  String get wallpaper_lime => 'Lima';
 
   @override
-  String get wallpaper_graphite => 'Graphite';
+  String get wallpaper_graphite => 'Grafite';
 
   @override
-  String get avatar_crop_title => 'Adjust avatar';
+  String get avatar_crop_title => 'Ajustar avatar';
 
   @override
   String get avatar_crop_hint =>
@@ -7051,7 +7060,7 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get meeting_entry_participant_fallback => 'Participant';
+  String get meeting_entry_participant_fallback => 'Participante';
 
   @override
   String get meeting_entry_back => 'Voltar';
@@ -7069,35 +7078,36 @@ class AppLocalizationsPt extends AppLocalizations {
   String get meeting_chat_deleted => 'Mensagem deleted';
 
   @override
-  String get meeting_chat_edited_mark => '• edited';
+  String get meeting_chat_edited_mark => '• editado';
 
   @override
-  String get e2ee_decrypt_image_failed => 'Failed to decrypt image';
+  String get e2ee_decrypt_image_failed => 'Falha ao descriptografar a imagem';
 
   @override
-  String get e2ee_decrypt_video_failed => 'Failed to decrypt video';
+  String get e2ee_decrypt_video_failed => 'Falha ao descriptografar o vídeo';
 
   @override
-  String get e2ee_decrypt_audio_failed => 'Failed to decrypt audio';
+  String get e2ee_decrypt_audio_failed => 'Falha ao descriptografar o áudio';
 
   @override
-  String get e2ee_decrypt_attachment_failed => 'Failed to decrypt attachment';
+  String get e2ee_decrypt_attachment_failed =>
+      'Falha ao descriptografar o anexo';
 
   @override
-  String get search_preview_attachment => 'Attachment';
+  String get search_preview_attachment => 'Anexo';
 
   @override
-  String get search_preview_location => 'Location';
+  String get search_preview_location => 'Localização';
 
   @override
   String get search_preview_message => 'Mensagem';
 
   @override
-  String get outbox_attachment_singular => 'Attachment';
+  String get outbox_attachment_singular => 'Anexo';
 
   @override
   String outbox_attachments_count(int count) {
-    return 'Attachments ($count)';
+    return 'Anexos ($count)';
   }
 
   @override
@@ -7109,7 +7119,7 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get nav_chats => 'Chats';
+  String get nav_chats => 'Bate-papos';
 
   @override
   String get nav_contacts => 'Contatos';
@@ -7121,29 +7131,32 @@ class AppLocalizationsPt extends AppLocalizations {
   String get nav_calls => 'Chamadas';
 
   @override
-  String get e2ee_media_decrypt_failed_image => 'Failed to decrypt image';
+  String get e2ee_media_decrypt_failed_image =>
+      'Falha ao descriptografar a imagem';
 
   @override
-  String get e2ee_media_decrypt_failed_video => 'Failed to decrypt video';
+  String get e2ee_media_decrypt_failed_video =>
+      'Falha ao descriptografar o vídeo';
 
   @override
-  String get e2ee_media_decrypt_failed_audio => 'Failed to decrypt audio';
+  String get e2ee_media_decrypt_failed_audio =>
+      'Falha ao descriptografar o áudio';
 
   @override
   String get e2ee_media_decrypt_failed_attachment =>
-      'Failed to decrypt attachment';
+      'Falha ao descriptografar o anexo';
 
   @override
-  String get chat_search_snippet_attachment => 'Attachment';
+  String get chat_search_snippet_attachment => 'Anexo';
 
   @override
-  String get chat_search_snippet_location => 'Location';
+  String get chat_search_snippet_location => 'Localização';
 
   @override
   String get chat_search_snippet_message => 'Mensagem';
 
   @override
-  String get bottom_nav_chats => 'Chats';
+  String get bottom_nav_chats => 'Bate-papos';
 
   @override
   String get bottom_nav_contacts => 'Contatos';
@@ -7155,37 +7168,37 @@ class AppLocalizationsPt extends AppLocalizations {
   String get bottom_nav_calls => 'Chamadas';
 
   @override
-  String get chat_list_swipe_folders => 'FOLDERS';
+  String get chat_list_swipe_folders => 'PASTAS';
 
   @override
-  String get chat_list_swipe_clear => 'CLEAR';
+  String get chat_list_swipe_clear => 'CLARO';
 
   @override
-  String get chat_list_swipe_delete => 'DELETE';
+  String get chat_list_swipe_delete => 'EXCLUIR';
 
   @override
-  String get composer_editing_title => 'EDITING MESSAGE';
+  String get composer_editing_title => 'EDITAR MENSAGEM';
 
   @override
   String get composer_editing_cancel_tooltip => 'Cancelar editing';
 
   @override
-  String get composer_formatting_title => 'FORMATTING';
+  String get composer_formatting_title => 'FORMATAÇÃO';
 
   @override
-  String get composer_link_preview_loading => 'Loading preview…';
+  String get composer_link_preview_loading => 'Carregando visualização…';
 
   @override
   String get composer_link_preview_hide_tooltip => 'Ocultar preview';
 
   @override
-  String get chat_invite_button => 'Invite';
+  String get chat_invite_button => 'Convidar';
 
   @override
-  String get forward_preview_unknown_sender => 'Unknown';
+  String get forward_preview_unknown_sender => 'Desconhecido';
 
   @override
-  String get forward_preview_attachment => 'Attachment';
+  String get forward_preview_attachment => 'Anexo';
 
   @override
   String get forward_preview_message => 'Mensagem';
@@ -7204,7 +7217,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get chat_message_deleted => 'Mensagem deleted';
 
   @override
-  String get profile_qr_share => 'Share';
+  String get profile_qr_share => 'Compartilhar';
 
   @override
   String get shared_location_open_browser_tooltip => 'Abrir in browser';
@@ -7213,11 +7226,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reply_preview_message_fallback => 'Mensagem';
 
   @override
-  String get video_circle_media_kind => 'video';
+  String get video_circle_media_kind => 'vídeo';
 
   @override
   String reactions_rated_count(int count) {
-    return 'Reacted: $count';
+    return 'Reagiu: $count';
   }
 
   @override
@@ -7229,19 +7242,19 @@ class AppLocalizationsPt extends AppLocalizations {
   String get durak_create_timer_subtitle => 'Padrão 15 segundos';
 
   @override
-  String get dm_game_banner_active => 'Durak game in progress';
+  String get dm_game_banner_active => 'Jogo Durak em andamento';
 
   @override
-  String get dm_game_banner_created => 'Durak game created';
+  String get dm_game_banner_created => 'Jogo Durak criado';
 
   @override
-  String get chat_folder_favorites => 'Favorites';
+  String get chat_folder_favorites => 'Favoritos';
 
   @override
-  String get chat_folder_new => 'New';
+  String get chat_folder_new => 'Novo';
 
   @override
-  String get contact_profile_user_fallback => 'User';
+  String get contact_profile_user_fallback => 'Usuário';
 
   @override
   String contact_profile_error(String error) {
@@ -7252,10 +7265,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get conversation_threads_loading_title => 'Tópicos';
 
   @override
-  String get theme_label_light => 'Light';
+  String get theme_label_light => 'Luz';
 
   @override
-  String get theme_label_dark => 'Dark';
+  String get theme_label_dark => 'Escuro';
 
   @override
   String get theme_label_auto => 'Auto';
@@ -7270,7 +7283,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get contacts_fallback_name => 'Contato';
 
   @override
-  String get sticker_pack_default_name => 'My pack';
+  String get sticker_pack_default_name => 'Meu pacote';
 
   @override
   String get profile_error_phone_taken =>
@@ -7293,24 +7306,25 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get chat_attachment_decrypt_error => 'Failed to decrypt attachment';
+  String get chat_attachment_decrypt_error =>
+      'Falha ao descriptografar o anexo';
 
   @override
-  String get mention_fallback_label => 'member';
+  String get mention_fallback_label => 'membro';
 
   @override
   String get mention_fallback_label_capitalized => 'Membro';
 
   @override
-  String get meeting_speaking_label => 'Speaking';
+  String get meeting_speaking_label => 'Falando';
 
   @override
   String meeting_local_you_suffix(String name) {
-    return '$name (You)';
+    return '$name (Você)';
   }
 
   @override
-  String get video_crop_title => 'Crop';
+  String get video_crop_title => 'Cortar';
 
   @override
   String video_crop_load_error(String error) {
@@ -7321,10 +7335,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get gif_section_recent => 'RECENTES';
 
   @override
-  String get gif_section_trending => 'TRENDING';
+  String get gif_section_trending => 'TENDÊNCIAS';
 
   @override
-  String get auth_create_account_title => 'Create Account';
+  String get auth_create_account_title => 'Criar uma conta';
 
   @override
   String yandex_sign_in_yandex_error(String error) {
@@ -7332,22 +7346,22 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get call_status_missed => 'Missed';
+  String get call_status_missed => 'Perdido';
 
   @override
-  String get call_status_cancelled => 'Cancelled';
+  String get call_status_cancelled => 'Cancelado';
 
   @override
-  String get call_status_ended => 'Ended';
+  String get call_status_ended => 'Terminou';
 
   @override
-  String get presence_offline => 'Offline';
+  String get presence_offline => 'Off-line';
 
   @override
-  String get presence_online => 'Online';
+  String get presence_online => 'On-line';
 
   @override
-  String get dm_title_fallback => 'Chat';
+  String get dm_title_fallback => 'Bater papo';
 
   @override
   String get dm_title_partner_fallback => 'Contato';
@@ -7378,7 +7392,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get forward_group_fallback => 'Grupo';
 
   @override
-  String get forward_unknown_user => 'Unknown';
+  String get forward_unknown_user => 'Desconhecido';
 
   @override
   String get live_location_once => 'Apenas uma vez (somente esta mensagem)';
@@ -7405,15 +7419,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get live_location_1day => '1 dia';
 
   @override
-  String get live_location_forever => 'Forever (until I turn it off)';
+  String get live_location_forever => 'Para sempre (até eu desligar)';
 
   @override
   String get e2ee_send_too_many_files =>
-      'Too many attachments for encrypted send: maximum 5 files per message.';
+      'Muitos anexos para envio criptografado: máximo de 5 arquivos por mensagem.';
 
   @override
   String get e2ee_send_too_large =>
-      'Total attachment size too large: maximum 96 MB for one encrypted message.';
+      'Tamanho total do anexo muito grande: máximo de 96 MB para uma mensagem criptografada.';
 
   @override
   String get presence_last_seen_prefix => 'Visto por último ';
@@ -7422,10 +7436,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get presence_less_than_minute_ago => 'less than a minuto ago';
 
   @override
-  String get presence_yesterday => 'yesterday';
+  String get presence_yesterday => 'ontem';
 
   @override
-  String get dm_fallback_title => 'Chat';
+  String get dm_fallback_title => 'Bater papo';
 
   @override
   String get dm_fallback_partner => 'Contato';
@@ -7457,20 +7471,20 @@ class AppLocalizationsPt extends AppLocalizations {
       'Este nome de usuário já está em uso. Por favor, escolha outro.';
 
   @override
-  String get mention_fallback_participant => 'Participant';
+  String get mention_fallback_participant => 'Participante';
 
   @override
   String get sticker_gif_recent => 'RECENTES';
 
   @override
-  String get meeting_screen_sharing => 'Screen';
+  String get meeting_screen_sharing => 'Tela';
 
   @override
-  String get meeting_speaking => 'Speaking';
+  String get meeting_speaking => 'Falando';
 
   @override
   String auth_sign_in_failed(Object error) {
-    return 'Sign-in failed: $error';
+    return 'Falha no login: $error';
   }
 
   @override
@@ -7480,7 +7494,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String auth_error_prefix(Object error) {
-    return 'Auth error: $error';
+    return 'Erro de autenticação: $error';
   }
 
   @override
@@ -7549,35 +7563,35 @@ class AppLocalizationsPt extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count years ago',
-      one: 'a year ago',
+      other: '$count anos atrás',
+      one: 'um ano atrás',
     );
     return '$_temp0';
   }
 
   @override
-  String get wallpaper_gradient_purple => 'Purple';
+  String get wallpaper_gradient_purple => 'Roxo';
 
   @override
-  String get wallpaper_gradient_pink => 'Pink';
+  String get wallpaper_gradient_pink => 'Rosa';
 
   @override
-  String get wallpaper_gradient_blue => 'Blue';
+  String get wallpaper_gradient_blue => 'Azul';
 
   @override
-  String get wallpaper_gradient_green => 'Green';
+  String get wallpaper_gradient_green => 'Verde';
 
   @override
-  String get wallpaper_gradient_sunset => 'Sunset';
+  String get wallpaper_gradient_sunset => 'Pôr do sol';
 
   @override
-  String get wallpaper_gradient_gentle => 'Gentle';
+  String get wallpaper_gradient_gentle => 'Gentil';
 
   @override
-  String get wallpaper_gradient_lime => 'Lime';
+  String get wallpaper_gradient_lime => 'Lima';
 
   @override
-  String get wallpaper_gradient_graphite => 'Graphite';
+  String get wallpaper_gradient_graphite => 'Grafite';
 
   @override
   String get sticker_tab_recent => 'RECENTES';
@@ -7602,24 +7616,24 @@ class AppLocalizationsPt extends AppLocalizations {
       'Este usuário restringiu a comunicação com você. Envio indisponível.';
 
   @override
-  String get forward_unknown_fallback => 'Unknown';
+  String get forward_unknown_fallback => 'Desconhecido';
 
   @override
-  String get dm_title_chat => 'Chat';
+  String get dm_title_chat => 'Bater papo';
 
   @override
-  String get dm_title_partner => 'Partner';
+  String get dm_title_partner => 'Parceiro';
 
   @override
   String get dm_title_group => 'Chat em grupo';
 
   @override
   String get e2ee_too_many_attachments =>
-      'Too many attachments for encrypted sending: maximum 5 files per message.';
+      'Muitos anexos para envio criptografado: máximo de 5 arquivos por mensagem.';
 
   @override
   String get e2ee_total_size_exceeded =>
-      'Total attachment size too large: maximum 96 MB per encrypted message.';
+      'Tamanho total do anexo muito grande: máximo de 96 MB por mensagem criptografada.';
 
   @override
   String yandex_sign_in_error_prefix(String error) {
@@ -7627,17 +7641,17 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get meeting_participant_screen => 'Screen';
+  String get meeting_participant_screen => 'Tela';
 
   @override
-  String get meeting_participant_speaking => 'Speaking';
+  String get meeting_participant_speaking => 'Falando';
 
   @override
-  String get nav_error_title => 'Navigation error';
+  String get nav_error_title => 'Erro de navegação';
 
   @override
   String get nav_error_invalid_secret_compose =>
-      'Invalid secret compose navigation';
+      'Navegação de composição secreta inválida';
 
   @override
   String get sign_in_title => 'Entrar';
@@ -7658,7 +7672,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String sign_in_auth_error(String error) {
-    return 'Auth error: $error';
+    return 'Erro de autenticação: $error';
   }
 
   @override
@@ -7673,33 +7687,34 @@ class AppLocalizationsPt extends AppLocalizations {
   String get storage_label_photo => 'Foto';
 
   @override
-  String get storage_label_audio => 'Аудио';
+  String get storage_label_audio => 'Áudio';
 
   @override
   String get storage_label_files => 'Arquivos';
 
   @override
-  String get storage_label_other => 'Other';
+  String get storage_label_other => 'Outro';
 
   @override
-  String get storage_label_recent_stickers => 'Недавние стикеры';
+  String get storage_label_recent_stickers => 'Figurinhas recentes';
 
   @override
-  String get storage_label_giphy_search => 'GIPHY · поисковый кэш';
+  String get storage_label_giphy_search => 'GIPHY · cache de busca';
 
   @override
-  String get storage_label_giphy_recent => 'GIPHY · недавние GIF';
+  String get storage_label_giphy_recent => 'GIPHY · GIFs recentes';
 
   @override
-  String get storage_chat_unattributed => 'Без привязки к чату';
+  String get storage_chat_unattributed => 'Não atribuído a um chat';
 
   @override
   String storage_label_draft(String key) {
-    return 'Draft · $key';
+    return 'Rascunho · $key';
   }
 
   @override
-  String get storage_label_offline_snapshot => 'Offline chat list snapshot';
+  String get storage_label_offline_snapshot =>
+      'Instantâneo da lista de bate-papo off-line';
 
   @override
   String storage_label_profile_cache(String name) {
@@ -7707,25 +7722,25 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get call_mini_end => 'End call';
+  String get call_mini_end => 'Encerrar chamada';
 
   @override
-  String get animation_quality_lite => 'Lite';
+  String get animation_quality_lite => 'Leve';
 
   @override
-  String get animation_quality_balanced => 'Balanced';
+  String get animation_quality_balanced => 'Equilibrado';
 
   @override
-  String get animation_quality_cinematic => 'Cinematic';
+  String get animation_quality_cinematic => 'Cinematográfico';
 
   @override
   String get crop_aspect_original => 'Original';
 
   @override
-  String get crop_aspect_square => 'Square';
+  String get crop_aspect_square => 'Quadrado';
 
   @override
-  String get push_notification_title => 'Allow notifications';
+  String get push_notification_title => 'Permitir notificações';
 
   @override
   String get push_notification_rationale =>
@@ -7736,7 +7751,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'Ativar notifications to display incoming calls.';
 
   @override
-  String get push_notification_grant => 'Allow';
+  String get push_notification_grant => 'Permitir';
 
   @override
   String get push_call_accept => 'Aceitar';
@@ -7745,33 +7760,33 @@ class AppLocalizationsPt extends AppLocalizations {
   String get push_call_decline => 'Recusar';
 
   @override
-  String get push_channel_incoming_calls => 'Incoming calls';
+  String get push_channel_incoming_calls => 'Chamadas recebidas';
 
   @override
-  String get push_channel_missed_calls => 'Missed calls';
+  String get push_channel_missed_calls => 'Chamadas perdidas';
 
   @override
   String get push_channel_messages_desc => 'Novas mensagens nos chats';
 
   @override
-  String get push_channel_silent => 'Silent messages';
+  String get push_channel_silent => 'Mensagens silenciosas';
 
   @override
-  String get push_channel_silent_desc => 'Push without sound';
+  String get push_channel_silent_desc => 'Empurre sem som';
 
   @override
-  String get push_caller_unknown => 'Someone';
+  String get push_caller_unknown => 'Alguém';
 
   @override
-  String get outbox_attachment_single => 'Attachment';
+  String get outbox_attachment_single => 'Anexo';
 
   @override
   String outbox_attachment_count(int count) {
-    return 'Attachments ($count)';
+    return 'Anexos ($count)';
   }
 
   @override
-  String get bottom_nav_label_chats => 'Chats';
+  String get bottom_nav_label_chats => 'Bate-papos';
 
   @override
   String get bottom_nav_label_contacts => 'Contatos';
@@ -7789,28 +7804,30 @@ class AppLocalizationsPt extends AppLocalizations {
   String get welcomeBubbleSubtitle => 'O farol está aceso';
 
   @override
-  String get welcomeSkip => 'Skip';
+  String get welcomeSkip => 'Pular';
 
   @override
-  String get welcomeReplayDebugTile => 'Replay welcome animation (debug)';
+  String get welcomeReplayDebugTile =>
+      'Reproduzir animação de boas-vindas (depuração)';
 
   @override
-  String get sticker_scope_library => 'Library';
+  String get sticker_scope_library => 'Biblioteca';
 
   @override
   String get sticker_library_search_hint => 'Buscar stickers...';
 
   @override
-  String get account_menu_energy_saving => 'Power saving';
+  String get account_menu_energy_saving => 'Economia de energia';
 
   @override
   String get energy_saving_title => 'Economia de energia';
 
   @override
-  String get energy_saving_section_mode => 'Power saving mode';
+  String get energy_saving_section_mode => 'Modo de economia de energia';
 
   @override
-  String get energy_saving_section_resource_heavy => 'Resource-heavy processes';
+  String get energy_saving_section_resource_heavy =>
+      'Processos com muitos recursos';
 
   @override
   String get energy_saving_threshold_off => 'Desativado';
@@ -7819,10 +7836,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get energy_saving_threshold_always => 'Ativado';
 
   @override
-  String get energy_saving_threshold_off_full => 'Never';
+  String get energy_saving_threshold_off_full => 'Nunca';
 
   @override
-  String get energy_saving_threshold_always_full => 'Always';
+  String get energy_saving_threshold_always_full => 'Sempre';
 
   @override
   String energy_saving_threshold_at(int percent) {
@@ -7831,7 +7848,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get energy_saving_hint_off =>
-      'Resource-heavy effects are never auto-disabled.';
+      'Os efeitos com muitos recursos nunca são desativados automaticamente.';
 
   @override
   String get energy_saving_hint_always =>
@@ -7844,11 +7861,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String energy_saving_current_battery(int percent) {
-    return 'Current battery: $percent%';
+    return 'Bateria atual: $percent%';
   }
 
   @override
-  String get energy_saving_active_now => 'mode is active';
+  String get energy_saving_active_now => 'modo está ativo';
 
   @override
   String get energy_saving_active_threshold =>
@@ -7877,7 +7894,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get energy_saving_animated_stickers_subtitle =>
-      'Looped sticker animations and full-screen Premium sticker effects.';
+      'Animações de adesivos em loop e efeitos de adesivos Premium em tela cheia.';
 
   @override
   String get energy_saving_animated_emoji_title => 'Emoji animado';
@@ -7906,48 +7923,48 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get energy_saving_background_update_subtitle =>
-      'Quick chat updates when switching between apps.';
+      'Atualizações rápidas de bate-papo ao alternar entre aplicativos.';
 
   @override
-  String get legal_index_title => 'Юридические документы';
+  String get legal_index_title => 'Documentos legais';
 
   @override
   String get legal_index_subtitle =>
-      'Политика конфиденциальности, пользовательское соглашение и другие юридические документы, регулирующие использование LighChat.';
+      'Política de privacidade, termos de serviço e outros documentos legais que regem o uso do LighChat.';
 
   @override
-  String get legal_settings_section_title => 'Правовая информация';
+  String get legal_settings_section_title => 'Informações legais';
 
   @override
   String get legal_settings_section_subtitle =>
-      'Политика конфиденциальности, пользовательское соглашение, EULA и другие документы.';
+      'Política de privacidade, termos de serviço, EULA e mais.';
 
   @override
-  String get legal_not_found => 'Документ не найден';
+  String get legal_not_found => 'Documento não encontrado';
 
   @override
-  String get legal_title_privacy_policy => 'Политика конфиденциальности';
+  String get legal_title_privacy_policy => 'Política de Privacidade';
 
   @override
-  String get legal_title_terms_of_service => 'Пользовательское соглашение';
+  String get legal_title_terms_of_service => 'Termos de Serviço';
 
   @override
-  String get legal_title_cookie_policy => 'Политика использования cookies';
+  String get legal_title_cookie_policy => 'Política de Cookies';
 
   @override
-  String get legal_title_eula => 'Лицензионное соглашение (EULA)';
+  String get legal_title_eula => 'Contrato de Licença de Usuário Final';
 
   @override
-  String get legal_title_dpa => 'Соглашение об обработке данных (DPA)';
+  String get legal_title_dpa => 'Acordo de Processamento de Dados';
 
   @override
-  String get legal_title_children => 'Политика в отношении несовершеннолетних';
+  String get legal_title_children => 'Política para Crianças';
 
   @override
-  String get legal_title_moderation => 'Политика модерации контента';
+  String get legal_title_moderation => 'Política de Moderação de Conteúdo';
 
   @override
-  String get legal_title_aup => 'Правила допустимого использования';
+  String get legal_title_aup => 'Política de Uso Aceitável';
 
   @override
   String get chat_list_item_sender_you => 'Você';
@@ -8206,7 +8223,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String tournament_points(Object pts) {
-    return '$pts pts';
+    return '$pts pontos';
   }
 
   @override
@@ -8481,10 +8498,27 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Fotos e figurinhas em cache dos chats abertos.';
 
   @override
+  String get storage_category_stickers_gifs_emoji => 'Figurinhas, GIFs e emoji';
+
+  @override
+  String get storage_category_stickers_gifs_emoji_subtitle =>
+      'Cache de figurinhas recentes e do GIPHY (gifs/figurinhas/emojis animados).';
+
+  @override
+  String get storage_category_network_images => 'Cache de imagens de rede';
+
+  @override
+  String get storage_category_network_images_subtitle =>
+      'Avatares, prévias e outras imagens buscadas pela rede (libCachedImageData).';
+
+  @override
   String get storage_media_type_video => 'Vídeo';
 
   @override
   String get storage_media_type_photo => 'Fotos';
+
+  @override
+  String get storage_media_type_audio => 'Áudio';
 
   @override
   String get storage_media_type_files => 'Arquivos';
@@ -8500,6 +8534,19 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get storage_settings_clear_all_hint =>
       'Toda a mídia continua na nuvem. Você pode baixar de novo quando quiser.';
+
+  @override
+  String get storage_settings_categories_title => 'Por categoria';
+
+  @override
+  String storage_settings_clear_category_title(String category) {
+    return 'Limpar \"$category\"?';
+  }
+
+  @override
+  String storage_settings_clear_category_body(String size) {
+    return 'Cerca de $size será liberado. Esta ação não pode ser desfeita.';
+  }
 
   @override
   String get storage_auto_delete_title =>
@@ -8854,7 +8901,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get common_retry => 'Tentar de novo';
 
   @override
-  String get auth_login_email_label => 'Email';
+  String get auth_login_email_label => 'E-mail';
 
   @override
   String get auth_login_password_label => 'Senha';
@@ -8888,7 +8935,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get profile_username_label => 'Nome de usuário';
 
   @override
-  String get profile_email_label => 'Email';
+  String get profile_email_label => 'E-mail';
 
   @override
   String get profile_phone_label => 'Telefone';
@@ -8921,7 +8968,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get profile_password_tooltip_hide => 'Ocultar';
 
   @override
-  String get profile_placeholder_username => 'username';
+  String get profile_placeholder_username => 'nome de usuário';
 
   @override
   String get profile_placeholder_email => 'nome@exemplo.com';
@@ -9048,7 +9095,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get settings_chats_no_background_on => 'Sem plano de fundo (ativado)';
 
   @override
-  String get chat_list_title => 'Chats';
+  String get chat_list_title => 'Bate-papos';
 
   @override
   String get chat_list_search_hint => 'Buscar…';
@@ -9119,7 +9166,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String chat_list_create_folder_chats_label(Object count) {
-    return 'CHATS ($count)';
+    return 'CONVERSAS ($count)';
   }
 
   @override
@@ -9538,7 +9585,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get new_chat_fallback_user_display_name => 'Usuário';
 
   @override
-  String get new_group_role_badge_admin => 'ADMIN';
+  String get new_group_role_badge_admin => 'ADMINISTRADOR';
 
   @override
   String get new_group_role_badge_worker => 'MEMBRO';
@@ -9609,7 +9656,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get group_members_invite_link => 'Convidar via link';
 
   @override
-  String get group_members_admin_badge => 'ADMIN';
+  String get group_members_admin_badge => 'ADMINISTRADOR';
 
   @override
   String group_members_invite_text(Object groupName, Object inviteLink) {
@@ -9763,7 +9810,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get video_call_connecting => 'Chamada de vídeo…';
 
   @override
-  String get video_call_pip_tooltip => 'Picture in picture';
+  String get video_call_pip_tooltip => 'Imagem em imagem';
 
   @override
   String get video_call_mini_window_tooltip => 'Mini janela';
@@ -10173,10 +10220,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get disappearing_preset_off => 'Desativado';
 
   @override
-  String get disappearing_preset_1h => '1 h';
+  String get disappearing_preset_1h => '1 hora';
 
   @override
-  String get disappearing_preset_24h => '24 h';
+  String get disappearing_preset_24h => '24 horas';
 
   @override
   String get disappearing_preset_7d => '7 dias';
@@ -10228,7 +10275,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get partner_profile_title_fallback_saved => 'Mensagens salvas';
 
   @override
-  String get partner_profile_title_fallback_chat => 'Chat';
+  String get partner_profile_title_fallback_chat => 'Bater papo';
 
   @override
   String partner_profile_subtitle_group_member_count(Object count) {
@@ -10309,7 +10356,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get partner_profile_tooltip_copy_chat_id => 'Copiar ID do chat';
 
   @override
-  String get partner_profile_action_chats => 'Chats';
+  String get partner_profile_action_chats => 'Bate-papos';
 
   @override
   String get partner_profile_action_voice_call => 'Ligar';
@@ -10382,7 +10429,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get partner_profile_field_system_role => 'Função no sistema';
 
   @override
-  String get partner_profile_field_email => 'Email';
+  String get partner_profile_field_email => 'E-mail';
 
   @override
   String get partner_profile_field_phone => 'Telefone';
@@ -10661,6 +10708,13 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get message_menu_action_star_remove => 'Remover de Favoritas';
 
   @override
+  String get message_menu_action_create_sticker => 'Criar figurinha';
+
+  @override
+  String get message_menu_action_save_to_my_stickers =>
+      'Salvar nas minhas figurinhas';
+
+  @override
   String get message_menu_action_forward => 'Encaminhar';
 
   @override
@@ -10706,7 +10760,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get conversation_games_durak_subtitle => 'Criar lobby';
 
   @override
-  String get conversation_game_lobby_title => 'Lobby';
+  String get conversation_game_lobby_title => 'Salão';
 
   @override
   String get conversation_game_lobby_not_found => 'Jogo não encontrado';
@@ -10927,7 +10981,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String chat_selection_selected_count(int count) {
-    return '$count selected';
+    return '$count selecionado';
   }
 
   @override
@@ -11026,7 +11080,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get register_hint_choose_country => 'Escolha um país';
 
   @override
-  String get register_label_email => 'Email';
+  String get register_label_email => 'E-mail';
 
   @override
   String get register_hint_email => 'Digite seu email';
@@ -11792,11 +11846,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String meeting_chat_tab_unread(int count) {
-    return 'Chat ($count)';
+    return 'Bate-papo ($count)';
   }
 
   @override
-  String get meeting_chat_tab => 'Chat';
+  String get meeting_chat_tab => 'Bater papo';
 
   @override
   String meeting_requests_tab(int count) {
@@ -12001,7 +12055,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get meeting_screen_label => 'Tela';
 
   @override
-  String get meeting_bg_off => 'BG';
+  String get meeting_bg_off => 'GB';
 
   @override
   String get meeting_bg_blur => 'Desfoque';
@@ -12013,30 +12067,37 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get meeting_participants_button => 'Membros';
 
   @override
-  String get settings_chats_bottom_nav_icons_title => 'Bottom navigation icons';
+  String get meeting_notifications_button => 'Atividade';
+
+  @override
+  String get meeting_pip_button => 'Minimizar';
+
+  @override
+  String get settings_chats_bottom_nav_icons_title =>
+      'Ícones de navegação inferiores';
 
   @override
   String get settings_chats_bottom_nav_icons_subtitle =>
       'Escolha ícones e estilo visual como na web.';
 
   @override
-  String get settings_chats_nav_colorful => 'Colorful';
+  String get settings_chats_nav_colorful => 'Colorido';
 
   @override
-  String get settings_chats_nav_minimal => 'Minimal';
+  String get settings_chats_nav_minimal => 'Mínimo';
 
   @override
   String get settings_chats_nav_global_title => 'Para todos os ícones';
 
   @override
   String get settings_chats_nav_global_subtitle =>
-      'Global layer: color, size, stroke width, and tile background.';
+      'Camada global: cor, tamanho, largura do traço e fundo do bloco.';
 
   @override
   String get settings_chats_reset_tooltip => 'Restaurar';
 
   @override
-  String get settings_chats_collapse => 'Collapse';
+  String get settings_chats_collapse => 'Colapso';
 
   @override
   String get settings_chats_customize => 'Personalizar';
@@ -12048,10 +12109,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get settings_chats_style_tooltip => 'Estilo';
 
   @override
-  String get settings_chats_icon_size => 'Icon size';
+  String get settings_chats_icon_size => 'Tamanho do ícone';
 
   @override
-  String get settings_chats_stroke_width => 'Stroke width';
+  String get settings_chats_stroke_width => 'Largura do traço';
 
   @override
   String get settings_chats_default => 'Padrão';
@@ -12060,7 +12121,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get settings_chats_icon_search_hint_en => 'Buscar por nome...';
 
   @override
-  String get settings_chats_emoji_effects => 'Emoji effects';
+  String get settings_chats_emoji_effects => 'Efeitos de emojis';
 
   @override
   String get settings_chats_emoji_effects_subtitle =>
@@ -12072,7 +12133,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settings_chats_emoji_balanced_desc =>
-      'Balanced: automatic compromise between performance and expressiveness.';
+      'Equilibrado: compromisso automático entre performance e expressividade.';
 
   @override
   String get settings_chats_emoji_cinematic_desc =>
@@ -12082,7 +12143,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get settings_chats_preview_incoming_msg => 'Oi! Tudo bem?';
 
   @override
-  String get settings_chats_preview_outgoing_msg => 'Great, thanks!';
+  String get settings_chats_preview_outgoing_msg => 'Ótimo, obrigado!';
 
   @override
   String get settings_chats_preview_hello => 'Olá';
@@ -12145,7 +12206,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get contacts_fallback_user => 'Usuário';
 
   @override
-  String get contacts_status_online => 'online';
+  String get contacts_status_online => 'on-line';
 
   @override
   String get contacts_status_recently => 'Visto recentemente';
@@ -12281,7 +12342,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get add_contact_scan_qr_title => 'Escanear QR code';
 
   @override
-  String get add_contact_flash_tooltip => 'Flash';
+  String get add_contact_flash_tooltip => 'Clarão';
 
   @override
   String get add_contact_scan_qr_hint =>
@@ -12532,11 +12593,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
-  String get meeting_tab_chat => 'Chat';
+  String get meeting_tab_chat => 'Bater papo';
 
   @override
   String meeting_tab_chat_count(Object count) {
-    return 'Chat ($count)';
+    return 'Bate-papo ($count)';
   }
 
   @override
@@ -12575,6 +12636,13 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get meeting_join_guest => 'Convidado';
+
+  @override
+  String get meeting_join_as_label => 'Você entrará como';
+
+  @override
+  String get meeting_lobby_camera_blocked =>
+      'A permissão da câmera foi negada. Você entrará com a câmera desligada.';
 
   @override
   String get meeting_join_button => 'Entrar';
@@ -12641,7 +12709,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get group_members_add_member_tooltip => 'Adicionar member';
 
   @override
-  String get group_members_invite_copied => 'Invite link copied';
+  String get group_members_invite_copied => 'Link de convite copiado';
 
   @override
   String group_members_copy_link_error(String error) {
@@ -12652,7 +12720,8 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get group_members_added => 'Membros added';
 
   @override
-  String get group_members_revoke_admin_title => 'Revoke admin privileges?';
+  String get group_members_revoke_admin_title =>
+      'Revogar privilégios de administrador?';
 
   @override
   String group_members_revoke_admin_body(String name) {
@@ -12660,7 +12729,8 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
-  String get group_members_grant_admin_title => 'Grant admin privileges?';
+  String get group_members_grant_admin_title =>
+      'Conceder privilégios de administrador?';
 
   @override
   String group_members_grant_admin_body(String name) {
@@ -12668,13 +12738,13 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
-  String get group_members_revoke_admin_action => 'Revoke';
+  String get group_members_revoke_admin_action => 'Revogar';
 
   @override
-  String get group_members_grant_admin_action => 'Grant';
+  String get group_members_grant_admin_action => 'Conceder';
 
   @override
-  String get group_members_remove_title => 'Remove member?';
+  String get group_members_remove_title => 'Remover membro?';
 
   @override
   String group_members_remove_body(String name) {
@@ -12682,13 +12752,13 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
-  String get group_members_remove_action => 'Remove';
+  String get group_members_remove_action => 'Remover';
 
   @override
   String get group_members_removed => 'Membro removed';
 
   @override
-  String get group_members_menu_revoke_admin => 'Remove admin';
+  String get group_members_menu_revoke_admin => 'Remover administrador';
 
   @override
   String get group_members_menu_grant_admin => 'Tornar admin';
@@ -12697,7 +12767,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get group_members_menu_remove => 'Remover do grupo';
 
   @override
-  String get group_members_creator_badge => 'CREATOR';
+  String get group_members_creator_badge => 'CRIADOR';
 
   @override
   String get group_members_add_title => 'Adicionar membros';
@@ -12710,10 +12780,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Todos os seus contatos já estão no grupo.';
 
   @override
-  String get group_members_nobody_found => 'Nobody found.';
+  String get group_members_nobody_found => 'Ninguém encontrou.';
 
   @override
-  String get group_members_user_fallback => 'User';
+  String get group_members_user_fallback => 'Usuário';
 
   @override
   String get group_members_select_members => 'Selecionar members';
@@ -12730,7 +12800,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String group_members_auth_error(String error) {
-    return 'Authorization error: $error';
+    return 'Erro de autorização: $error';
   }
 
   @override
@@ -12748,20 +12818,20 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get poll_create_title => 'Enquete do chat';
 
   @override
-  String get poll_question_label => 'Question';
+  String get poll_question_label => 'Pergunta';
 
   @override
-  String get poll_question_hint => 'E.g.: What time shall we meet?';
+  String get poll_question_hint => 'Ex.: A que horas nos encontraremos?';
 
   @override
   String get poll_description_label => 'Descrição (optional)';
 
   @override
-  String get poll_options_title => 'Options';
+  String get poll_options_title => 'Opções';
 
   @override
   String poll_option_hint(int index) {
-    return 'Option $index';
+    return 'Opção $index';
   }
 
   @override
@@ -12774,7 +12844,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get poll_switch_anonymous_sub => 'Não mostrar quem votou em quê';
 
   @override
-  String get poll_switch_multi => 'Multiple answers';
+  String get poll_switch_multi => 'Múltiplas respostas';
 
   @override
   String get poll_switch_multi_sub => 'Várias opções podem ser selecionadas';
@@ -12787,44 +12857,45 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Os participantes podem sugerir opções próprias';
 
   @override
-  String get poll_switch_revote => 'Can change vote';
+  String get poll_switch_revote => 'Pode mudar o voto';
 
   @override
-  String get poll_switch_revote_sub => 'Revote allowed until poll closes';
+  String get poll_switch_revote_sub =>
+      'Revogação permitida até o encerramento da enquete';
 
   @override
-  String get poll_switch_shuffle => 'Shuffle options';
+  String get poll_switch_shuffle => 'Opções aleatórias';
 
   @override
   String get poll_switch_shuffle_sub =>
       'Ordem diferente para cada participante';
 
   @override
-  String get poll_switch_quiz => 'Quiz mode';
+  String get poll_switch_quiz => 'Modo de teste';
 
   @override
-  String get poll_switch_quiz_sub => 'One correct answer';
+  String get poll_switch_quiz_sub => 'Uma resposta correta';
 
   @override
-  String get poll_correct_option_label => 'Correct option';
+  String get poll_correct_option_label => 'Opção correta';
 
   @override
-  String get poll_quiz_explanation_label => 'Explanation (optional)';
+  String get poll_quiz_explanation_label => 'Explicação (opcional)';
 
   @override
   String get poll_close_by_time => 'Fechar by time';
 
   @override
-  String get poll_close_not_set => 'Not set';
+  String get poll_close_not_set => 'Não definido';
 
   @override
   String get poll_close_reset => 'Restaurar deadline';
 
   @override
-  String get poll_publish => 'Publish';
+  String get poll_publish => 'Publicar';
 
   @override
-  String get poll_error_empty_question => 'Enter a question';
+  String get poll_error_empty_question => 'Insira uma pergunta';
 
   @override
   String get poll_error_min_options => 'São necessárias pelo menos 2 opções';
@@ -12849,7 +12920,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get poll_status_cancelled => 'Cancelada';
 
   @override
-  String get poll_status_ended => 'Ended';
+  String get poll_status_ended => 'Terminou';
 
   @override
   String get poll_status_draft => 'Rascunho';
@@ -12864,13 +12935,13 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get poll_badge_multi => 'Múltiplas respostas';
 
   @override
-  String get poll_badge_quiz => 'Quiz';
+  String get poll_badge_quiz => 'Questionário';
 
   @override
-  String get poll_menu_restart => 'Restart';
+  String get poll_menu_restart => 'Reiniciar';
 
   @override
-  String get poll_menu_end => 'End';
+  String get poll_menu_end => 'Fim';
 
   @override
   String get poll_menu_delete => 'Excluir';
@@ -12879,18 +12950,18 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get poll_submit_vote => 'Enviar voto';
 
   @override
-  String get poll_suggest_option_hint => 'Suggest an option';
+  String get poll_suggest_option_hint => 'Sugira uma opção';
 
   @override
   String get poll_revote => 'Alterar voto';
 
   @override
   String poll_votes_count(int count) {
-    return '$count votes';
+    return '$count votos';
   }
 
   @override
-  String get poll_show_voters => 'Who voted';
+  String get poll_show_voters => 'Quem votou';
 
   @override
   String get poll_hide_voters => 'Ocultar';
@@ -12911,25 +12982,25 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get durak_winner_label => 'Vencedor';
 
   @override
-  String get durak_rematch => 'Play again';
+  String get durak_rematch => 'Jogue novamente';
 
   @override
-  String get durak_surrender_tooltip => 'End game';
+  String get durak_surrender_tooltip => 'Fim do jogo';
 
   @override
   String get durak_close_tooltip => 'Fechar';
 
   @override
-  String get durak_fx_took => 'Took';
+  String get durak_fx_took => 'Pegou';
 
   @override
-  String get durak_fx_beat => 'Beaten';
+  String get durak_fx_beat => 'Espancado';
 
   @override
   String get durak_opponent_role_defend => 'DEF';
 
   @override
-  String get durak_opponent_role_attack => 'ATK';
+  String get durak_opponent_role_attack => 'ATQ';
 
   @override
   String get durak_opponent_role_throwin => 'THR';
@@ -12947,7 +13018,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String durak_tournament_played(int finished, int total) {
-    return 'Played $finished of $total';
+    return 'Jogado $finished de $total';
   }
 
   @override
@@ -12957,13 +13028,13 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get durak_tournament_next => 'Próximo tournament game';
 
   @override
-  String get durak_single_game => 'Single game';
+  String get durak_single_game => 'Jogo único';
 
   @override
   String get durak_tournament_total_games_title => 'Quantos jogos no torneio?';
 
   @override
-  String get durak_finish_game_tooltip => 'End game';
+  String get durak_finish_game_tooltip => 'Fim do jogo';
 
   @override
   String get durak_lobby_game_unavailable =>
@@ -12979,25 +13050,25 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get durak_lobby_start => 'Iniciar game';
 
   @override
-  String get durak_lobby_waiting_short => 'Waiting…';
+  String get durak_lobby_waiting_short => 'Esperando…';
 
   @override
   String get durak_lobby_ready => 'Pronto';
 
   @override
-  String get durak_lobby_empty_slot => 'Waiting…';
+  String get durak_lobby_empty_slot => 'Esperando…';
 
   @override
   String get durak_settings_timer_subtitle => '15 segundos by default';
 
   @override
-  String get durak_dm_game_active => 'Durak game in progress';
+  String get durak_dm_game_active => 'Jogo Durak em andamento';
 
   @override
-  String get durak_dm_game_created => 'Durak game created';
+  String get durak_dm_game_created => 'Jogo Durak criado';
 
   @override
-  String get game_durak_subtitle => 'Single game or tournament';
+  String get game_durak_subtitle => 'Jogo único ou torneio';
 
   @override
   String get group_member_write_dm => 'Enviar direct message';
@@ -13011,7 +13082,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String group_member_open_dm_error(String error) {
-    return 'Failed to open direct chat: $error';
+    return 'Falha ao abrir o chat direto: $error';
   }
 
   @override
@@ -13028,7 +13099,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String group_avatar_process_error(String error) {
-    return 'Failed to process photo: $error';
+    return 'Falha ao processar foto: $error';
   }
 
   @override
@@ -13039,11 +13110,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Esta carta não bate a carta do ataque';
 
   @override
-  String get durak_error_only_attacker_first => 'Attacker goes first';
+  String get durak_error_only_attacker_first => 'O atacante vai primeiro';
 
   @override
   String get durak_error_defender_cannot_attack =>
-      'Defender cannot throw in right now';
+      'O defensor não pode lançar agora';
 
   @override
   String get durak_error_not_allowed_throwin =>
@@ -13058,31 +13129,32 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Você só pode jogar cartas do mesmo valor';
 
   @override
-  String get durak_error_cannot_throw_in => 'Cannot throw in more cards';
+  String get durak_error_cannot_throw_in =>
+      'Não é possível adicionar mais cartas';
 
   @override
   String get durak_error_card_not_in_hand =>
       'Esta carta não está mais na sua mão';
 
   @override
-  String get durak_error_already_defended => 'This card is already defended';
+  String get durak_error_already_defended => 'Esta carta já está defendida';
 
   @override
   String get durak_error_bad_attack_index =>
       'Selecionar an attacking card to defend against';
 
   @override
-  String get durak_error_only_defender => 'Another player is defending now';
+  String get durak_error_only_defender => 'Outro jogador está defendendo agora';
 
   @override
   String get durak_error_defender_already_taking =>
-      'Defender is already taking cards';
+      'Defensor já está aceitando cartões';
 
   @override
   String get durak_error_game_not_active => 'Jogo is no longer active';
 
   @override
-  String get durak_error_not_in_lobby => 'Lobby has already started';
+  String get durak_error_not_in_lobby => 'O lobby já começou';
 
   @override
   String get durak_error_game_already_active => 'Jogo has already started';
@@ -13092,11 +13164,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Já existe um jogo ativo neste chat';
 
   @override
-  String get durak_error_resolution_pending => 'Finish the disputed move first';
+  String get durak_error_resolution_pending =>
+      'Termine o movimento disputado primeiro';
 
   @override
   String get durak_error_rematch_failed =>
-      'Failed to prepare rematch. Please try again';
+      'Falha ao preparar a revanche. Por favor, tente novamente';
 
   @override
   String get durak_error_unauthenticated => 'Você precisa entrar';
@@ -13106,14 +13179,15 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Esta ação não está disponível para você';
 
   @override
-  String get durak_error_invalid_argument => 'Invalid move';
+  String get durak_error_invalid_argument => 'Movimento inválido';
 
   @override
   String get durak_error_failed_precondition =>
       'A jogada não está disponível agora';
 
   @override
-  String get durak_error_server => 'Failed to execute move. Please try again';
+  String get durak_error_server =>
+      'Falha ao executar a movimentação. Por favor, tente novamente';
 
   @override
   String pinned_count(int count) {
@@ -13339,7 +13413,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get media_tab_files => 'Arquivos';
 
   @override
-  String get media_tab_links => 'Links';
+  String get media_tab_links => 'Ligações';
 
   @override
   String get media_empty_files => 'Não files';
@@ -14045,7 +14119,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get sticker_save_failed => 'Falha ao baixar or save GIF';
 
   @override
-  String get sticker_tab_my => 'My';
+  String get sticker_tab_my => 'Meu';
 
   @override
   String get sticker_tab_shared => 'Compartilhados';
@@ -14192,7 +14266,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get location_no_permission => 'Não location access';
 
   @override
-  String get group_member_admin => 'Admin';
+  String get group_member_admin => 'Administrador';
 
   @override
   String get group_member_creator => 'Criador';
@@ -14249,7 +14323,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get group_avatar_upload_error => 'Erro de upload';
 
   @override
-  String get avatar_picker_title => 'Avatar';
+  String get avatar_picker_title => 'avatar';
 
   @override
   String get avatar_picker_camera => 'Câmera';
@@ -14327,7 +14401,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get google_profile_phone => 'Telefone';
 
   @override
-  String get google_profile_email => 'Email';
+  String get google_profile_email => 'E-mail';
 
   @override
   String get google_profile_dob => 'Data de nascimento';
@@ -14539,7 +14613,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get google_complete_phone_label => 'Telefone';
 
   @override
-  String get google_complete_email_label => 'Email';
+  String get google_complete_email_label => 'E-mail';
 
   @override
   String get google_complete_email_hint => 'voce@exemplo.com';
@@ -14562,7 +14636,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Esta carta não bate a carta do ataque';
 
   @override
-  String get game_error_attacker_first => 'The attacker moves first';
+  String get game_error_attacker_first => 'O atacante se move primeiro';
 
   @override
   String get game_error_defender_no_attack =>
@@ -14614,7 +14688,8 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get game_error_active_exists => 'Já existe um jogo ativo neste chat';
 
   @override
-  String get game_error_round_pending => 'Finish the contested move first';
+  String get game_error_round_pending =>
+      'Termine o movimento contestado primeiro';
 
   @override
   String get game_error_rematch_failed =>
@@ -14628,7 +14703,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Esta ação não está disponível para você';
 
   @override
-  String get game_error_invalid_argument => 'Invalid move';
+  String get game_error_invalid_argument => 'Movimento inválido';
 
   @override
   String get game_error_precondition => 'A jogada não está disponível agora';
@@ -14658,10 +14733,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get reply_file => 'Arquivo';
 
   @override
-  String get reply_location => 'Location';
+  String get reply_location => 'Localização';
 
   @override
-  String get reply_poll => 'Poll';
+  String get reply_poll => 'Enquete';
 
   @override
   String get reply_link => 'Link';
@@ -14670,7 +14745,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get reply_message => 'Mensagem';
 
   @override
-  String get reply_sender_you => 'You';
+  String get reply_sender_you => 'Você';
 
   @override
   String get reply_sender_member => 'Membro';
@@ -14682,10 +14757,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get call_format_yesterday => 'Ontem';
 
   @override
-  String get call_format_second_short => 's';
+  String get call_format_second_short => 'é';
 
   @override
-  String get call_format_minute_short => 'm';
+  String get call_format_minute_short => 'eu';
 
   @override
   String get call_format_hour_short => 'h';
@@ -14694,43 +14769,43 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get call_format_day_short => 'd';
 
   @override
-  String get call_month_january => 'January';
+  String get call_month_january => 'Janeiro';
 
   @override
-  String get call_month_february => 'February';
+  String get call_month_february => 'Fevereiro';
 
   @override
-  String get call_month_march => 'March';
+  String get call_month_march => 'Marchar';
 
   @override
-  String get call_month_april => 'April';
+  String get call_month_april => 'abril';
 
   @override
-  String get call_month_may => 'May';
+  String get call_month_may => 'Poderia';
 
   @override
-  String get call_month_june => 'June';
+  String get call_month_june => 'Junho';
 
   @override
-  String get call_month_july => 'July';
+  String get call_month_july => 'Julho';
 
   @override
-  String get call_month_august => 'August';
+  String get call_month_august => 'Agosto';
 
   @override
-  String get call_month_september => 'September';
+  String get call_month_september => 'Setembro';
 
   @override
-  String get call_month_october => 'October';
+  String get call_month_october => 'outubro';
 
   @override
-  String get call_month_november => 'November';
+  String get call_month_november => 'novembro';
 
   @override
-  String get call_month_december => 'December';
+  String get call_month_december => 'dezembro';
 
   @override
-  String get push_incoming_call => 'Incoming call';
+  String get push_incoming_call => 'Chamada recebida';
 
   @override
   String get push_incoming_video_call => 'Chamada de vídeo recebida';
@@ -14746,39 +14821,39 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String contacts_years_one(Object count) {
-    return '$count year';
+    return '$count ano';
   }
 
   @override
   String contacts_years_few(Object count) {
-    return '$count years';
+    return '$count anos';
   }
 
   @override
   String contacts_years_many(Object count) {
-    return '$count years';
+    return '$count anos';
   }
 
   @override
   String contacts_years_other(Object count) {
-    return '$count years';
+    return '$count anos';
   }
 
   @override
-  String get durak_entry_single_game => 'Single game';
+  String get durak_entry_single_game => 'Jogo único';
 
   @override
-  String get durak_entry_finish_game_tooltip => 'Finish game';
+  String get durak_entry_finish_game_tooltip => 'Terminar o jogo';
 
   @override
   String get durak_entry_tournament_games_dialog_title =>
-      'How many games in tournament?';
+      'Quantos jogos no torneio?';
 
   @override
   String get durak_entry_cancel => 'Cancelar';
 
   @override
-  String get durak_entry_create => 'Create';
+  String get durak_entry_create => 'Criar';
 
   @override
   String video_editor_load_failed(Object error) {
@@ -14787,25 +14862,25 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String video_editor_process_failed(Object error) {
-    return 'Failed to process video: $error';
+    return 'Falha ao processar o vídeo: $error';
   }
 
   @override
   String video_editor_duration(Object duration) {
-    return 'Duration: $duration';
+    return 'Duração: $duration';
   }
 
   @override
-  String get video_editor_brush => 'Brush';
+  String get video_editor_brush => 'Escovar';
 
   @override
   String get video_editor_caption_hint => 'Adicionar caption...';
 
   @override
-  String get share_location_title => 'Share location';
+  String get share_location_title => 'Compartilhar localização';
 
   @override
-  String get share_location_how => 'Sharing method';
+  String get share_location_how => 'Método de compartilhamento';
 
   @override
   String get share_location_cancel => 'Cancelar';
@@ -14823,7 +14898,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get photo_source_record_video => 'Gravar video';
 
   @override
-  String get video_attachment_media_kind => 'video';
+  String get video_attachment_media_kind => 'vídeo';
 
   @override
   String get video_attachment_title => 'Vídeo';
@@ -14841,45 +14916,46 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'A transmissão de localização deste contato terminou. A posição atual está indisponível.';
 
   @override
-  String get location_card_title => 'Location';
+  String get location_card_title => 'Localização';
 
   @override
   String location_card_accuracy(Object meters) {
-    return '±$meters m';
+    return '±${meters}m';
   }
 
   @override
   String get link_webview_copy_tooltip => 'Copiar link';
 
   @override
-  String get link_webview_copied_snackbar => 'Link copied';
+  String get link_webview_copied_snackbar => 'Link copiado';
 
   @override
   String get link_webview_open_browser_tooltip => 'Abrir in browser';
 
   @override
-  String get hold_record_pause => 'Paused';
+  String get hold_record_pause => 'Pausado';
 
   @override
-  String get hold_record_release_cancel => 'Release to cancel';
+  String get hold_record_release_cancel => 'Solte para cancelar';
 
   @override
-  String get hold_record_slide_hints => 'Slide left — cancel · Up — pause';
+  String get hold_record_slide_hints =>
+      'Deslize para a esquerda — cancelar · Para cima — pausar';
 
   @override
-  String get e2ee_badge_loading => 'Loading fingerprint…';
+  String get e2ee_badge_loading => 'Carregando impressão digital…';
 
   @override
   String e2ee_badge_error(Object error) {
-    return 'Failed to get fingerprint: $error';
+    return 'Falha ao obter impressão digital: $error';
   }
 
   @override
-  String get e2ee_badge_label => 'E2EE Fingerprint';
+  String get e2ee_badge_label => 'E2EE Impressão digital';
 
   @override
   String e2ee_badge_label_with_user(Object user) {
-    return 'E2EE Fingerprint • $user';
+    return 'E2EE Impressão digital • $user';
   }
 
   @override
@@ -14892,41 +14968,41 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String message_search_results_count(Object count) {
-    return 'SEARCH RESULTS: $count';
+    return 'RESULTADOS DE PESQUISA: $count';
   }
 
   @override
-  String get message_search_not_found => 'NOTHING FOUND';
+  String get message_search_not_found => 'NADA ENCONTRADO';
 
   @override
-  String get message_search_participant_fallback => 'Participant';
+  String get message_search_participant_fallback => 'Participante';
 
   @override
-  String get wallpaper_purple => 'Purple';
+  String get wallpaper_purple => 'Roxo';
 
   @override
-  String get wallpaper_pink => 'Pink';
+  String get wallpaper_pink => 'Rosa';
 
   @override
-  String get wallpaper_blue => 'Blue';
+  String get wallpaper_blue => 'Azul';
 
   @override
-  String get wallpaper_green => 'Green';
+  String get wallpaper_green => 'Verde';
 
   @override
-  String get wallpaper_sunset => 'Sunset';
+  String get wallpaper_sunset => 'Pôr do sol';
 
   @override
-  String get wallpaper_tender => 'Tender';
+  String get wallpaper_tender => 'Macio';
 
   @override
-  String get wallpaper_lime => 'Lime';
+  String get wallpaper_lime => 'Lima';
 
   @override
-  String get wallpaper_graphite => 'Graphite';
+  String get wallpaper_graphite => 'Grafite';
 
   @override
-  String get avatar_crop_title => 'Adjust avatar';
+  String get avatar_crop_title => 'Ajustar avatar';
 
   @override
   String get avatar_crop_hint =>
@@ -14950,7 +15026,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
-  String get meeting_entry_participant_fallback => 'Participant';
+  String get meeting_entry_participant_fallback => 'Participante';
 
   @override
   String get meeting_entry_back => 'Voltar';
@@ -14968,35 +15044,36 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get meeting_chat_deleted => 'Mensagem deleted';
 
   @override
-  String get meeting_chat_edited_mark => '• edited';
+  String get meeting_chat_edited_mark => '• editado';
 
   @override
-  String get e2ee_decrypt_image_failed => 'Failed to decrypt image';
+  String get e2ee_decrypt_image_failed => 'Falha ao descriptografar a imagem';
 
   @override
-  String get e2ee_decrypt_video_failed => 'Failed to decrypt video';
+  String get e2ee_decrypt_video_failed => 'Falha ao descriptografar o vídeo';
 
   @override
-  String get e2ee_decrypt_audio_failed => 'Failed to decrypt audio';
+  String get e2ee_decrypt_audio_failed => 'Falha ao descriptografar o áudio';
 
   @override
-  String get e2ee_decrypt_attachment_failed => 'Failed to decrypt attachment';
+  String get e2ee_decrypt_attachment_failed =>
+      'Falha ao descriptografar o anexo';
 
   @override
-  String get search_preview_attachment => 'Attachment';
+  String get search_preview_attachment => 'Anexo';
 
   @override
-  String get search_preview_location => 'Location';
+  String get search_preview_location => 'Localização';
 
   @override
   String get search_preview_message => 'Mensagem';
 
   @override
-  String get outbox_attachment_singular => 'Attachment';
+  String get outbox_attachment_singular => 'Anexo';
 
   @override
   String outbox_attachments_count(int count) {
-    return 'Attachments ($count)';
+    return 'Anexos ($count)';
   }
 
   @override
@@ -15008,7 +15085,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
-  String get nav_chats => 'Chats';
+  String get nav_chats => 'Bate-papos';
 
   @override
   String get nav_contacts => 'Contatos';
@@ -15020,29 +15097,32 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get nav_calls => 'Chamadas';
 
   @override
-  String get e2ee_media_decrypt_failed_image => 'Failed to decrypt image';
+  String get e2ee_media_decrypt_failed_image =>
+      'Falha ao descriptografar a imagem';
 
   @override
-  String get e2ee_media_decrypt_failed_video => 'Failed to decrypt video';
+  String get e2ee_media_decrypt_failed_video =>
+      'Falha ao descriptografar o vídeo';
 
   @override
-  String get e2ee_media_decrypt_failed_audio => 'Failed to decrypt audio';
+  String get e2ee_media_decrypt_failed_audio =>
+      'Falha ao descriptografar o áudio';
 
   @override
   String get e2ee_media_decrypt_failed_attachment =>
-      'Failed to decrypt attachment';
+      'Falha ao descriptografar o anexo';
 
   @override
-  String get chat_search_snippet_attachment => 'Attachment';
+  String get chat_search_snippet_attachment => 'Anexo';
 
   @override
-  String get chat_search_snippet_location => 'Location';
+  String get chat_search_snippet_location => 'Localização';
 
   @override
   String get chat_search_snippet_message => 'Mensagem';
 
   @override
-  String get bottom_nav_chats => 'Chats';
+  String get bottom_nav_chats => 'Bate-papos';
 
   @override
   String get bottom_nav_contacts => 'Contatos';
@@ -15054,37 +15134,37 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get bottom_nav_calls => 'Chamadas';
 
   @override
-  String get chat_list_swipe_folders => 'FOLDERS';
+  String get chat_list_swipe_folders => 'PASTAS';
 
   @override
-  String get chat_list_swipe_clear => 'CLEAR';
+  String get chat_list_swipe_clear => 'CLARO';
 
   @override
-  String get chat_list_swipe_delete => 'DELETE';
+  String get chat_list_swipe_delete => 'EXCLUIR';
 
   @override
-  String get composer_editing_title => 'EDITING MESSAGE';
+  String get composer_editing_title => 'EDITAR MENSAGEM';
 
   @override
   String get composer_editing_cancel_tooltip => 'Cancelar editing';
 
   @override
-  String get composer_formatting_title => 'FORMATTING';
+  String get composer_formatting_title => 'FORMATAÇÃO';
 
   @override
-  String get composer_link_preview_loading => 'Loading preview…';
+  String get composer_link_preview_loading => 'Carregando visualização…';
 
   @override
   String get composer_link_preview_hide_tooltip => 'Ocultar preview';
 
   @override
-  String get chat_invite_button => 'Invite';
+  String get chat_invite_button => 'Convidar';
 
   @override
-  String get forward_preview_unknown_sender => 'Unknown';
+  String get forward_preview_unknown_sender => 'Desconhecido';
 
   @override
-  String get forward_preview_attachment => 'Attachment';
+  String get forward_preview_attachment => 'Anexo';
 
   @override
   String get forward_preview_message => 'Mensagem';
@@ -15103,7 +15183,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get chat_message_deleted => 'Mensagem deleted';
 
   @override
-  String get profile_qr_share => 'Share';
+  String get profile_qr_share => 'Compartilhar';
 
   @override
   String get shared_location_open_browser_tooltip => 'Abrir in browser';
@@ -15112,11 +15192,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get reply_preview_message_fallback => 'Mensagem';
 
   @override
-  String get video_circle_media_kind => 'video';
+  String get video_circle_media_kind => 'vídeo';
 
   @override
   String reactions_rated_count(int count) {
-    return 'Reacted: $count';
+    return 'Reagiu: $count';
   }
 
   @override
@@ -15128,19 +15208,19 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get durak_create_timer_subtitle => 'Padrão 15 segundos';
 
   @override
-  String get dm_game_banner_active => 'Durak game in progress';
+  String get dm_game_banner_active => 'Jogo Durak em andamento';
 
   @override
-  String get dm_game_banner_created => 'Durak game created';
+  String get dm_game_banner_created => 'Jogo Durak criado';
 
   @override
-  String get chat_folder_favorites => 'Favorites';
+  String get chat_folder_favorites => 'Favoritos';
 
   @override
-  String get chat_folder_new => 'New';
+  String get chat_folder_new => 'Novo';
 
   @override
-  String get contact_profile_user_fallback => 'User';
+  String get contact_profile_user_fallback => 'Usuário';
 
   @override
   String contact_profile_error(String error) {
@@ -15151,10 +15231,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get conversation_threads_loading_title => 'Tópicos';
 
   @override
-  String get theme_label_light => 'Light';
+  String get theme_label_light => 'Luz';
 
   @override
-  String get theme_label_dark => 'Dark';
+  String get theme_label_dark => 'Escuro';
 
   @override
   String get theme_label_auto => 'Auto';
@@ -15169,7 +15249,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get contacts_fallback_name => 'Contato';
 
   @override
-  String get sticker_pack_default_name => 'My pack';
+  String get sticker_pack_default_name => 'Meu pacote';
 
   @override
   String get profile_error_phone_taken =>
@@ -15192,24 +15272,25 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
-  String get chat_attachment_decrypt_error => 'Failed to decrypt attachment';
+  String get chat_attachment_decrypt_error =>
+      'Falha ao descriptografar o anexo';
 
   @override
-  String get mention_fallback_label => 'member';
+  String get mention_fallback_label => 'membro';
 
   @override
   String get mention_fallback_label_capitalized => 'Membro';
 
   @override
-  String get meeting_speaking_label => 'Speaking';
+  String get meeting_speaking_label => 'Falando';
 
   @override
   String meeting_local_you_suffix(String name) {
-    return '$name (You)';
+    return '$name (Você)';
   }
 
   @override
-  String get video_crop_title => 'Crop';
+  String get video_crop_title => 'Cortar';
 
   @override
   String video_crop_load_error(String error) {
@@ -15220,10 +15301,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get gif_section_recent => 'RECENTES';
 
   @override
-  String get gif_section_trending => 'TRENDING';
+  String get gif_section_trending => 'TENDÊNCIAS';
 
   @override
-  String get auth_create_account_title => 'Create Account';
+  String get auth_create_account_title => 'Criar uma conta';
 
   @override
   String yandex_sign_in_yandex_error(String error) {
@@ -15231,22 +15312,22 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
-  String get call_status_missed => 'Missed';
+  String get call_status_missed => 'Perdido';
 
   @override
-  String get call_status_cancelled => 'Cancelled';
+  String get call_status_cancelled => 'Cancelado';
 
   @override
-  String get call_status_ended => 'Ended';
+  String get call_status_ended => 'Terminou';
 
   @override
-  String get presence_offline => 'Offline';
+  String get presence_offline => 'Off-line';
 
   @override
-  String get presence_online => 'Online';
+  String get presence_online => 'On-line';
 
   @override
-  String get dm_title_fallback => 'Chat';
+  String get dm_title_fallback => 'Bater papo';
 
   @override
   String get dm_title_partner_fallback => 'Contato';
@@ -15277,7 +15358,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get forward_group_fallback => 'Grupo';
 
   @override
-  String get forward_unknown_user => 'Unknown';
+  String get forward_unknown_user => 'Desconhecido';
 
   @override
   String get live_location_once => 'Apenas uma vez (somente esta mensagem)';
@@ -15304,15 +15385,15 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get live_location_1day => '1 dia';
 
   @override
-  String get live_location_forever => 'Forever (until I turn it off)';
+  String get live_location_forever => 'Para sempre (até eu desligar)';
 
   @override
   String get e2ee_send_too_many_files =>
-      'Too many attachments for encrypted send: maximum 5 files per message.';
+      'Muitos anexos para envio criptografado: máximo de 5 arquivos por mensagem.';
 
   @override
   String get e2ee_send_too_large =>
-      'Total attachment size too large: maximum 96 MB for one encrypted message.';
+      'Tamanho total do anexo muito grande: máximo de 96 MB para uma mensagem criptografada.';
 
   @override
   String get presence_last_seen_prefix => 'Visto por último ';
@@ -15321,10 +15402,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get presence_less_than_minute_ago => 'less than a minuto ago';
 
   @override
-  String get presence_yesterday => 'yesterday';
+  String get presence_yesterday => 'ontem';
 
   @override
-  String get dm_fallback_title => 'Chat';
+  String get dm_fallback_title => 'Bater papo';
 
   @override
   String get dm_fallback_partner => 'Contato';
@@ -15356,20 +15437,20 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Este nome de usuário já está em uso. Por favor, escolha outro.';
 
   @override
-  String get mention_fallback_participant => 'Participant';
+  String get mention_fallback_participant => 'Participante';
 
   @override
   String get sticker_gif_recent => 'RECENTES';
 
   @override
-  String get meeting_screen_sharing => 'Screen';
+  String get meeting_screen_sharing => 'Tela';
 
   @override
-  String get meeting_speaking => 'Speaking';
+  String get meeting_speaking => 'Falando';
 
   @override
   String auth_sign_in_failed(Object error) {
-    return 'Sign-in failed: $error';
+    return 'Falha no login: $error';
   }
 
   @override
@@ -15379,7 +15460,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String auth_error_prefix(Object error) {
-    return 'Auth error: $error';
+    return 'Erro de autenticação: $error';
   }
 
   @override
@@ -15448,35 +15529,35 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count years ago',
-      one: 'a year ago',
+      other: '$count anos atrás',
+      one: 'um ano atrás',
     );
     return '$_temp0';
   }
 
   @override
-  String get wallpaper_gradient_purple => 'Purple';
+  String get wallpaper_gradient_purple => 'Roxo';
 
   @override
-  String get wallpaper_gradient_pink => 'Pink';
+  String get wallpaper_gradient_pink => 'Rosa';
 
   @override
-  String get wallpaper_gradient_blue => 'Blue';
+  String get wallpaper_gradient_blue => 'Azul';
 
   @override
-  String get wallpaper_gradient_green => 'Green';
+  String get wallpaper_gradient_green => 'Verde';
 
   @override
-  String get wallpaper_gradient_sunset => 'Sunset';
+  String get wallpaper_gradient_sunset => 'Pôr do sol';
 
   @override
-  String get wallpaper_gradient_gentle => 'Gentle';
+  String get wallpaper_gradient_gentle => 'Gentil';
 
   @override
-  String get wallpaper_gradient_lime => 'Lime';
+  String get wallpaper_gradient_lime => 'Lima';
 
   @override
-  String get wallpaper_gradient_graphite => 'Graphite';
+  String get wallpaper_gradient_graphite => 'Grafite';
 
   @override
   String get sticker_tab_recent => 'RECENTES';
@@ -15501,24 +15582,24 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Este usuário restringiu a comunicação com você. Envio indisponível.';
 
   @override
-  String get forward_unknown_fallback => 'Unknown';
+  String get forward_unknown_fallback => 'Desconhecido';
 
   @override
-  String get dm_title_chat => 'Chat';
+  String get dm_title_chat => 'Bater papo';
 
   @override
-  String get dm_title_partner => 'Partner';
+  String get dm_title_partner => 'Parceiro';
 
   @override
   String get dm_title_group => 'Chat em grupo';
 
   @override
   String get e2ee_too_many_attachments =>
-      'Too many attachments for encrypted sending: maximum 5 files per message.';
+      'Muitos anexos para envio criptografado: máximo de 5 arquivos por mensagem.';
 
   @override
   String get e2ee_total_size_exceeded =>
-      'Total attachment size too large: maximum 96 MB per encrypted message.';
+      'Tamanho total do anexo muito grande: máximo de 96 MB por mensagem criptografada.';
 
   @override
   String yandex_sign_in_error_prefix(String error) {
@@ -15526,17 +15607,17 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
-  String get meeting_participant_screen => 'Screen';
+  String get meeting_participant_screen => 'Tela';
 
   @override
-  String get meeting_participant_speaking => 'Speaking';
+  String get meeting_participant_speaking => 'Falando';
 
   @override
-  String get nav_error_title => 'Navigation error';
+  String get nav_error_title => 'Erro de navegação';
 
   @override
   String get nav_error_invalid_secret_compose =>
-      'Invalid secret compose navigation';
+      'Navegação de composição secreta inválida';
 
   @override
   String get sign_in_title => 'Entrar';
@@ -15557,7 +15638,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String sign_in_auth_error(String error) {
-    return 'Auth error: $error';
+    return 'Erro de autenticação: $error';
   }
 
   @override
@@ -15572,18 +15653,34 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get storage_label_photo => 'Foto';
 
   @override
+  String get storage_label_audio => 'Áudio';
+
+  @override
   String get storage_label_files => 'Arquivos';
 
   @override
-  String get storage_label_other => 'Other';
+  String get storage_label_other => 'Outro';
+
+  @override
+  String get storage_label_recent_stickers => 'Figurinhas recentes';
+
+  @override
+  String get storage_label_giphy_search => 'GIPHY · cache de busca';
+
+  @override
+  String get storage_label_giphy_recent => 'GIPHY · GIFs recentes';
+
+  @override
+  String get storage_chat_unattributed => 'Não atribuído a um chat';
 
   @override
   String storage_label_draft(String key) {
-    return 'Draft · $key';
+    return 'Rascunho · $key';
   }
 
   @override
-  String get storage_label_offline_snapshot => 'Offline chat list snapshot';
+  String get storage_label_offline_snapshot =>
+      'Instantâneo da lista de bate-papo off-line';
 
   @override
   String storage_label_profile_cache(String name) {
@@ -15591,25 +15688,25 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
-  String get call_mini_end => 'End call';
+  String get call_mini_end => 'Encerrar chamada';
 
   @override
-  String get animation_quality_lite => 'Lite';
+  String get animation_quality_lite => 'Leve';
 
   @override
-  String get animation_quality_balanced => 'Balanced';
+  String get animation_quality_balanced => 'Equilibrado';
 
   @override
-  String get animation_quality_cinematic => 'Cinematic';
+  String get animation_quality_cinematic => 'Cinematográfico';
 
   @override
   String get crop_aspect_original => 'Original';
 
   @override
-  String get crop_aspect_square => 'Square';
+  String get crop_aspect_square => 'Quadrado';
 
   @override
-  String get push_notification_title => 'Allow notifications';
+  String get push_notification_title => 'Permitir notificações';
 
   @override
   String get push_notification_rationale =>
@@ -15620,7 +15717,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Ativar notifications to display incoming calls.';
 
   @override
-  String get push_notification_grant => 'Allow';
+  String get push_notification_grant => 'Permitir';
 
   @override
   String get push_call_accept => 'Aceitar';
@@ -15629,33 +15726,33 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get push_call_decline => 'Recusar';
 
   @override
-  String get push_channel_incoming_calls => 'Incoming calls';
+  String get push_channel_incoming_calls => 'Chamadas recebidas';
 
   @override
-  String get push_channel_missed_calls => 'Missed calls';
+  String get push_channel_missed_calls => 'Chamadas perdidas';
 
   @override
   String get push_channel_messages_desc => 'Novas mensagens nos chats';
 
   @override
-  String get push_channel_silent => 'Silent messages';
+  String get push_channel_silent => 'Mensagens silenciosas';
 
   @override
-  String get push_channel_silent_desc => 'Push without sound';
+  String get push_channel_silent_desc => 'Empurre sem som';
 
   @override
-  String get push_caller_unknown => 'Someone';
+  String get push_caller_unknown => 'Alguém';
 
   @override
-  String get outbox_attachment_single => 'Attachment';
+  String get outbox_attachment_single => 'Anexo';
 
   @override
   String outbox_attachment_count(int count) {
-    return 'Attachments ($count)';
+    return 'Anexos ($count)';
   }
 
   @override
-  String get bottom_nav_label_chats => 'Chats';
+  String get bottom_nav_label_chats => 'Bate-papos';
 
   @override
   String get bottom_nav_label_contacts => 'Contatos';
@@ -15673,28 +15770,30 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get welcomeBubbleSubtitle => 'O farol está aceso';
 
   @override
-  String get welcomeSkip => 'Skip';
+  String get welcomeSkip => 'Pular';
 
   @override
-  String get welcomeReplayDebugTile => 'Replay welcome animation (debug)';
+  String get welcomeReplayDebugTile =>
+      'Reproduzir animação de boas-vindas (depuração)';
 
   @override
-  String get sticker_scope_library => 'Library';
+  String get sticker_scope_library => 'Biblioteca';
 
   @override
   String get sticker_library_search_hint => 'Buscar stickers...';
 
   @override
-  String get account_menu_energy_saving => 'Power saving';
+  String get account_menu_energy_saving => 'Economia de energia';
 
   @override
   String get energy_saving_title => 'Economia de energia';
 
   @override
-  String get energy_saving_section_mode => 'Power saving mode';
+  String get energy_saving_section_mode => 'Modo de economia de energia';
 
   @override
-  String get energy_saving_section_resource_heavy => 'Resource-heavy processes';
+  String get energy_saving_section_resource_heavy =>
+      'Processos com muitos recursos';
 
   @override
   String get energy_saving_threshold_off => 'Desativado';
@@ -15703,10 +15802,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get energy_saving_threshold_always => 'Ativado';
 
   @override
-  String get energy_saving_threshold_off_full => 'Never';
+  String get energy_saving_threshold_off_full => 'Nunca';
 
   @override
-  String get energy_saving_threshold_always_full => 'Always';
+  String get energy_saving_threshold_always_full => 'Sempre';
 
   @override
   String energy_saving_threshold_at(int percent) {
@@ -15715,7 +15814,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get energy_saving_hint_off =>
-      'Resource-heavy effects are never auto-disabled.';
+      'Os efeitos com muitos recursos nunca são desativados automaticamente.';
 
   @override
   String get energy_saving_hint_always =>
@@ -15728,11 +15827,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String energy_saving_current_battery(int percent) {
-    return 'Current battery: $percent%';
+    return 'Bateria atual: $percent%';
   }
 
   @override
-  String get energy_saving_active_now => 'mode is active';
+  String get energy_saving_active_now => 'modo está ativo';
 
   @override
   String get energy_saving_active_threshold =>
@@ -15761,7 +15860,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get energy_saving_animated_stickers_subtitle =>
-      'Looped sticker animations and full-screen Premium sticker effects.';
+      'Animações de adesivos em loop e efeitos de adesivos Premium em tela cheia.';
 
   @override
   String get energy_saving_animated_emoji_title => 'Emoji animado';
@@ -15790,7 +15889,48 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get energy_saving_background_update_subtitle =>
-      'Quick chat updates when switching between apps.';
+      'Atualizações rápidas de bate-papo ao alternar entre aplicativos.';
+
+  @override
+  String get legal_index_title => 'Documentos legais';
+
+  @override
+  String get legal_index_subtitle =>
+      'Política de privacidade, termos de serviço e outros documentos legais que regem o uso do LighChat.';
+
+  @override
+  String get legal_settings_section_title => 'Informações legais';
+
+  @override
+  String get legal_settings_section_subtitle =>
+      'Política de privacidade, termos de serviço, EULA e mais.';
+
+  @override
+  String get legal_not_found => 'Documento não encontrado';
+
+  @override
+  String get legal_title_privacy_policy => 'Política de Privacidade';
+
+  @override
+  String get legal_title_terms_of_service => 'Termos de Serviço';
+
+  @override
+  String get legal_title_cookie_policy => 'Política de Cookies';
+
+  @override
+  String get legal_title_eula => 'Contrato de Licença de Usuário Final';
+
+  @override
+  String get legal_title_dpa => 'Acordo de Processamento de Dados';
+
+  @override
+  String get legal_title_children => 'Política para Crianças';
+
+  @override
+  String get legal_title_moderation => 'Política de Moderação de Conteúdo';
+
+  @override
+  String get legal_title_aup => 'Política de Uso Aceitável';
 
   @override
   String get chat_list_item_sender_you => 'Você';

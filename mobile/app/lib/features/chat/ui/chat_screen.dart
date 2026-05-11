@@ -1530,6 +1530,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
                     return Scaffold(
                       extendBodyBehindAppBar: true,
+                      resizeToAvoidBottomInset: false,
                       appBar: _selectedMessageIds.isEmpty
                           ? PreferredSize(
                               preferredSize: const Size.fromHeight(56),
@@ -2503,6 +2504,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                         () => _composerFormattingOpen = false,
                                       ),
                                     ),
+                                    if (!_stickersPanelOpen)
+                                      Builder(
+                                        builder: (context) {
+                                          final keyboardInset =
+                                              MediaQuery.viewInsetsOf(
+                                                context,
+                                              ).bottom;
+                                          if (keyboardInset <= 0) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          return SizedBox(
+                                            height: keyboardInset,
+                                          );
+                                        },
+                                      ),
                                     if (_stickersPanelOpen)
                                       Builder(
                                         builder: (context) {
@@ -2520,13 +2536,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                           final defaultH =
                                               mq.size.height * 0.42;
                                           final keyboardLikeH =
-                                              (_lastKeyboardHeight > 0
-                                                      ? _lastKeyboardHeight
-                                                      : defaultH)
-                                                  .clamp(
-                                                    mq.size.height * 0.34,
-                                                    mq.size.height * 0.62,
-                                                  );
+                                              _lastKeyboardHeight > 0
+                                              ? _lastKeyboardHeight
+                                              : defaultH;
                                           final fullScreenH =
                                               (mq.size.height * 0.92).clamp(
                                                 mq.size.height * 0.62,
@@ -2571,6 +2583,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                             },
                                             onEmojiTapped:
                                                 _handleEmojiPickFromStickersPanel,
+                                            onCustomEmojiTapped:
+                                                _handleCustomEmojiPickFromStickersPanel,
                                             onClose: () {
                                               _closeStickersPanel();
                                             },
@@ -4670,9 +4684,40 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     );
   }
 
+  void _insertHtmlIntoComposer(String html) {
+    final ctrl = _controller;
+    final sel = ctrl.selection;
+    final text = ctrl.text;
+    final start = sel.isValid ? sel.start : text.length;
+    final end = sel.isValid ? sel.end : text.length;
+    final newText = text.replaceRange(start, end, html);
+    final newOffset = start + html.length;
+    ctrl.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newOffset),
+    );
+  }
+
   void _handleEmojiPickFromStickersPanel(String emoji) {
     _closeStickersPanel();
     _insertEmojiIntoComposer(emoji);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _composerFocusNode.requestFocus();
+    });
+  }
+
+  void _handleCustomEmojiPickFromStickersPanel(
+    String emojiId,
+    String imageUrl,
+    String fallbackEmoji,
+  ) {
+    _closeStickersPanel();
+    final html = ComposerHtmlEditing.buildInlineCustomEmojiSpanHtml(
+      emojiId: emojiId,
+      imageUrl: imageUrl,
+      fallbackEmoji: fallbackEmoji,
+    );
+    _insertHtmlIntoComposer(html);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _composerFocusNode.requestFocus();
     });

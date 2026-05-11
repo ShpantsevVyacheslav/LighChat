@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../data/chat_link_normalization.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -14,9 +15,7 @@ class LinkWebViewScreen extends StatefulWidget {
 
   static void open(BuildContext context, String url) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => LinkWebViewScreen(url: url),
-      ),
+      MaterialPageRoute<void>(builder: (_) => LinkWebViewScreen(url: url)),
     );
   }
 
@@ -35,11 +34,14 @@ class _LinkWebViewScreenState extends State<LinkWebViewScreen> {
   @override
   void initState() {
     super.initState();
-    _currentUrl = widget.url;
+    final initialUri = tryParseHttpChatLink(widget.url);
+    _currentUrl = initialUri?.toString() ?? normalizeChatLinkUrl(widget.url);
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) '
-          'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1')
+      ..setUserAgent(
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) '
+        'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (request) {
@@ -76,7 +78,12 @@ class _LinkWebViewScreenState extends State<LinkWebViewScreen> {
           onWebResourceError: (_) {},
         ),
       );
-    unawaited(_controller.loadRequest(Uri.parse(widget.url)));
+    if (initialUri != null) {
+      unawaited(_controller.loadRequest(initialUri));
+    } else {
+      // Prevent a blank page when the link cannot be loaded in WebView.
+      unawaited(_launchExternal(_currentUrl));
+    }
   }
 
   Future<void> _updateNavState() async {
@@ -90,7 +97,7 @@ class _LinkWebViewScreenState extends State<LinkWebViewScreen> {
   }
 
   Future<void> _launchExternal(String url) async {
-    final uri = Uri.tryParse(url);
+    final uri = Uri.tryParse(url.trim()) ?? tryParseHttpChatLink(url);
     if (uri == null) return;
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
@@ -176,9 +183,7 @@ class _LinkWebViewScreenState extends State<LinkWebViewScreen> {
               ? scheme.surface.withValues(alpha: 0.95)
               : scheme.surfaceContainerHigh,
           border: Border(
-            top: BorderSide(
-              color: scheme.onSurface.withValues(alpha: 0.1),
-            ),
+            top: BorderSide(color: scheme.onSurface.withValues(alpha: 0.1)),
           ),
         ),
         child: SafeArea(

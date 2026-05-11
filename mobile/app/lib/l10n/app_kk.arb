@@ -418,7 +418,7 @@
   "common_close": "Жабу",
   "common_nothing_found": "Ничего не найдено",
   "common_retry": "Қайталап көру",
-  "auth_login_email_label": "Email",
+  "auth_login_email_label": "Электрондық пошта",
   "auth_login_password_label": "Құпиясөз",
   "auth_login_password_hint": "Құпиясөз",
   "auth_login_sign_in": "Кіру",
@@ -429,7 +429,7 @@
   "profile_full_name_label": "ФИО",
   "profile_full_name_hint": "Аты",
   "profile_username_label": "Логин",
-  "profile_email_label": "Email",
+  "profile_email_label": "Электрондық пошта",
   "profile_phone_label": "Телефон",
   "profile_birthdate_label": "Жәнеәсол рождения",
   "profile_about_label": "О себе",
@@ -440,7 +440,7 @@
   "profile_password_confirm_label": "Повторите құпиясөз",
   "profile_password_tooltip_show": "Показать құпиясөз",
   "profile_password_tooltip_hide": "Скрыть",
-  "profile_placeholder_username": "username",
+  "profile_placeholder_username": "пайдаланушы аты",
   "profile_placeholder_email": "name@example.com",
   "profile_placeholder_phone": "+7900 000-00-00",
   "profile_placeholder_birthdate": "ДД.ММ.ГГГГ",
@@ -905,11 +905,19 @@
   "share_picker_summary_text_only": "Мәтін",
   "share_picker_summary_files_count": "Файлдар: {count}",
   "@share_picker_summary_files_count": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "share_picker_summary_files_with_text": "Файлдар: {count} + мәтін",
   "@share_picker_summary_files_with_text": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "devices_title": "Можәне құрылғылар",
   "devices_subtitle": "Тізім құрылғылар, на которых опубликован сіздің публичный ключ шифрования. Отзыв автоматическжәне создаёт новую эпоху ключей во барлығых зашифрованных чаттыңх — отозванное құрылғы көбірек не увидит носізе хабарламалар.",
@@ -1370,7 +1378,7 @@
       "error": {}
     }
   },
-  "chat_conversation_error": "Conversation error: {error}",
+  "chat_conversation_error": "Әңгімелесу қатесі: {error}",
   "@chat_conversation_error": {
     "placeholders": {
       "error": {}
@@ -1543,7 +1551,7 @@
       "name": {}
     }
   },
-  "chat_selection_selected_count": "{count} selected",
+  "chat_selection_selected_count": "{count} таңдалды",
   "@chat_selection_selected_count": {
     "placeholders": {
       "count": {
@@ -1585,7 +1593,7 @@
   "register_hint_username": "Енгізіңіз логин",
   "register_label_phone": "Телефон",
   "register_hint_choose_country": "Сізберите страну",
-  "register_label_email": "Email",
+  "register_label_email": "Электрондық пошта",
   "register_hint_email": "Енгізіңіз email",
   "register_label_password": "Құпиясөз",
   "register_hint_password": "Енгізіңіз құпиясөз",
@@ -2965,7 +2973,7 @@
   "google_profile_name": "Аты",
   "google_profile_username": "Аты пользователя",
   "google_profile_phone": "Телефон",
-  "google_profile_email": "Email",
+  "google_profile_email": "Электрондық пошта",
   "google_profile_dob": "Жәнеәсол рождения",
   "google_profile_bio": "О себе",
   "google_profile_save": "Сақтау",
@@ -3090,7 +3098,7 @@
   "google_complete_name_label": "Аты",
   "google_complete_username_label": "Логин (@username)",
   "google_complete_phone_label": "Телефон (11 цифр)",
-  "google_complete_email_label": "Email",
+  "google_complete_email_label": "Электрондық пошта",
   "google_complete_email_hint": "you@example.com",
   "google_complete_dob_label": "Жәнеәсол рождения (YYYY-MM-DD, опционально)",
   "google_complete_bio_label": "О себе (до 200 символов, опционально)",
@@ -3173,7 +3181,7 @@
       "count": {}
     }
   },
-  "contacts_years_other": "{count} years",
+  "contacts_years_other": "{count} жыл",
   "@contacts_years_other": {
     "placeholders": {
       "count": {}
@@ -3433,7 +3441,7 @@
     }
   },
   "gif_section_recent": "НЕДАВНИЕ",
-  "gif_section_trending": "TRENDING",
+  "gif_section_trending": "ТРЕНДІ",
   "auth_create_account_title": "Аккаунт құру",
   "yandex_sign_in_yandex_error": "Менндекс: {error}",
   "@yandex_sign_in_yandex_error": {
@@ -3926,7 +3934,7 @@
   "welcomeBubbleTitle": "Добро пожаловать в LighChat",
   "welcomeBubbleSubtitle": "Маяк зажёгся",
   "welcomeSkip": "Өткізіп жіберу",
-  "welcomeReplayDebugTile": "Replay welcome animation (debug)",
+  "welcomeReplayDebugTile": "Сәлемдесу анимациясын қайталау (отладка)",
   "sticker_scope_library": "Библиотека",
   "sticker_library_search_hint": "Стикерлерді іздеу…",
   "account_menu_energy_saving": "Қуатты үнемдеу",
@@ -3995,5 +4003,37 @@
   "chat_preview_attachment": "Тіркеме",
   "@chat_preview_attachment": {
     "description": "Chat list preview: chat_preview_attachment"
-  }
+  },
+  "storage_category_stickers_gifs_emoji": "Стикерлер, GIF, эмодзи",
+  "storage_category_stickers_gifs_emoji_subtitle": "Соңғы стикерлер мен GIPHY кэші (gif/sticker/animated emoji).",
+  "storage_category_network_images": "Желідегі сурет кэші",
+  "storage_category_network_images_subtitle": "Аватарлар, превьюлер және желіден жүктелген басқа суреттер (libCachedImageData).",
+  "storage_media_type_audio": "Аудио",
+  "storage_settings_categories_title": "Санат бойынша",
+  "storage_settings_clear_category_title": "«{category}» тазалау керек пе?",
+  "storage_settings_clear_category_body": "{size} шамасында орын босайды. Бұл әрекетті қайтару мүмкін емес.",
+  "message_menu_action_create_sticker": "Стикер жасау",
+  "message_menu_action_save_to_my_stickers": "Стикерлеріме сақтау",
+  "meeting_notifications_button": "Белсенділік",
+  "meeting_pip_button": "Кішірейту",
+  "meeting_join_as_label": "Сіз мына атпен қосыласыз",
+  "meeting_lobby_camera_blocked": "Камераға рұқсат берілмеген. Сіз камера өшірулі күйде қосыласыз.",
+  "storage_label_audio": "Аудио",
+  "storage_label_recent_stickers": "Соңғы стикерлер",
+  "storage_label_giphy_search": "GIPHY · іздеу кэші",
+  "storage_label_giphy_recent": "GIPHY · соңғы GIF-тер",
+  "storage_chat_unattributed": "Чатқа байланыстырылмаған",
+  "legal_index_title": "Заңды құжаттар",
+  "legal_index_subtitle": "Құпиялылық саясаты, қызмет көрсету шарттары және LighChat пайдалануды реттейтін басқа заңды құжаттар.",
+  "legal_settings_section_title": "Заңды ақпарат",
+  "legal_settings_section_subtitle": "Құпиялылық саясаты, қызмет көрсету шарттары, EULA және т.б.",
+  "legal_not_found": "Құжат табылмады",
+  "legal_title_privacy_policy": "Құпиялылық саясаты",
+  "legal_title_terms_of_service": "Қызмет көрсету шарттары",
+  "legal_title_cookie_policy": "Cookie саясаты",
+  "legal_title_eula": "Соңғы пайдаланушы лицензиялық келісімі",
+  "legal_title_dpa": "Деректерді өңдеу келісімі",
+  "legal_title_children": "Балалар саясаты",
+  "legal_title_moderation": "Контентті модерациялау саясаты",
+  "legal_title_aup": "Қолайлы пайдалану саясаты"
 }

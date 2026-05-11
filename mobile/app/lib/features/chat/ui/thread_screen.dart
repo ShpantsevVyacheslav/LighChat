@@ -61,6 +61,7 @@ import 'chat_poll_create_sheet.dart';
 import 'chat_wallpaper_background.dart';
 import 'effective_chat_wallpaper.dart';
 import 'chat_composer.dart';
+import 'chat_html_composer_controller.dart';
 import 'chat_document_open.dart';
 import 'location_send_preview_sheet.dart';
 import 'share_location_sheet.dart';
@@ -135,7 +136,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
   static const bool _threadMessageListReversed = true;
 
   final _scrollController = ScrollController();
-  final _composerController = TextEditingController();
+  final _composerController = ChatHtmlComposerController();
   final _composerFocus = FocusNode();
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
@@ -736,9 +737,39 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
     );
   }
 
+  void _insertHtmlIntoThreadComposer(String html) {
+    final ctrl = _composerController;
+    final sel = ctrl.selection;
+    final text = ctrl.text;
+    final start = sel.isValid ? sel.start : text.length;
+    final end = sel.isValid ? sel.end : text.length;
+    final newText = text.replaceRange(start, end, html);
+    ctrl.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: start + html.length),
+    );
+  }
+
   void _handleEmojiPickFromStickersPanel(String emoji) {
     _closeStickersPanel();
     _insertEmojiIntoThreadComposer(emoji);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _composerFocus.requestFocus();
+    });
+  }
+
+  void _handleCustomEmojiPickFromStickersPanel(
+    String emojiId,
+    String imageUrl,
+    String fallbackEmoji,
+  ) {
+    _closeStickersPanel();
+    final html = ComposerHtmlEditing.buildInlineCustomEmojiSpanHtml(
+      emojiId: emojiId,
+      imageUrl: imageUrl,
+      fallbackEmoji: fallbackEmoji,
+    );
+    _insertHtmlIntoThreadComposer(html);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _composerFocus.requestFocus();
     });
@@ -2099,6 +2130,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
 
           return Scaffold(
             extendBodyBehindAppBar: true,
+            resizeToAvoidBottomInset: false,
             body: threadWallpaperBackdrop(
               ref: ref,
               userId: user.uid,
@@ -2738,6 +2770,18 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                       setState(() => _replyingTo = null),
                                 ),
                               if (_selectedMessageIds.isEmpty &&
+                                  !_stickersPanelOpen)
+                                Builder(
+                                  builder: (context) {
+                                    final keyboardInset =
+                                        MediaQuery.viewInsetsOf(context).bottom;
+                                    if (keyboardInset <= 0) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return SizedBox(height: keyboardInset);
+                                  },
+                                ),
+                              if (_selectedMessageIds.isEmpty &&
                                   _stickersPanelOpen)
                                 Builder(
                                   builder: (context) {
@@ -2753,13 +2797,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                     final mq = MediaQuery.of(context);
                                     final defaultH = mq.size.height * 0.42;
                                     final keyboardLikeH =
-                                        (_lastKeyboardHeight > 0
-                                                ? _lastKeyboardHeight
-                                                : defaultH)
-                                            .clamp(
-                                              mq.size.height * 0.34,
-                                              mq.size.height * 0.62,
-                                            );
+                                        _lastKeyboardHeight > 0
+                                        ? _lastKeyboardHeight
+                                        : defaultH;
                                     final fullScreenH = (mq.size.height * 0.92)
                                         .clamp(
                                           mq.size.height * 0.62,
@@ -2800,6 +2840,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                       },
                                       onEmojiTapped:
                                           _handleEmojiPickFromStickersPanel,
+                                      onCustomEmojiTapped:
+                                          _handleCustomEmojiPickFromStickersPanel,
                                       onClose: () {
                                         _closeStickersPanel();
                                       },

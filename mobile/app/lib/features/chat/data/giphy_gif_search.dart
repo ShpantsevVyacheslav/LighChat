@@ -229,9 +229,16 @@ String? giphyItemToEmojiText(GiphyGifItem item) {
 
 String? _extractEmojiFromHexLike(String? raw) {
   if (raw == null || raw.isEmpty) return null;
+  final candidate = raw.trim();
+  // Защита от ложных матчей: берем только строку, которая почти полностью
+  // состоит из hex-последовательности codepoint'ов.
+  final fullPattern = RegExp(
+    r'^(?:u\+?|U\+?)?[0-9a-fA-F]{2,6}(?:[-_](?:u\+?|U\+?)?[0-9a-fA-F]{2,6}){0,9}$',
+  );
+  if (!fullPattern.hasMatch(candidate)) return null;
   final m = RegExp(
     r'(?:u\+?|U\+?)?([0-9a-fA-F]{2,6}(?:[-_](?:u\+?|U\+?)?[0-9a-fA-F]{2,6}){0,9})',
-  ).firstMatch(raw);
+  ).firstMatch(candidate);
   if (m == null) return null;
   final seq = m.group(1);
   if (seq == null || seq.isEmpty) return null;
@@ -240,11 +247,17 @@ String? _extractEmojiFromHexLike(String? raw) {
       .map((p) => p.replaceAll(RegExp(r'^[uU]\+?'), ''))
       .toList(growable: false);
   final cps = <int>[];
+  bool hasEmojiBase = false;
   for (final p in parts) {
     final cp = int.tryParse(p, radix: 16);
     if (cp == null || cp <= 0 || cp > 0x10FFFF) return null;
+    final isJoiner = cp == 0x200D || cp == 0xFE0F;
+    final isEmojiBase =
+        (cp >= 0x1F000 && cp <= 0x1FAFF) || (cp >= 0x2600 && cp <= 0x27BF);
+    if (!(isJoiner || isEmojiBase)) return null;
+    if (isEmojiBase) hasEmojiBase = true;
     cps.add(cp);
   }
-  if (cps.isEmpty) return null;
+  if (cps.isEmpty || !hasEmojiBase) return null;
   return String.fromCharCodes(cps);
 }

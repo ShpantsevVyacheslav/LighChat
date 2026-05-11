@@ -29,7 +29,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Sematkan adalah wajib to Buka this Obrolan.';
 
   @override
-  String get secret_chat_unlock_action => 'Unlock';
+  String get secret_chat_unlock_action => 'Membuka kunci';
 
   @override
   String get secret_chat_set_pin_and_unlock => 'Set Sematkan dan unlock';
@@ -59,7 +59,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get secret_chat_remember_pin => 'Remember Sematkan on Perangkat ini';
 
   @override
-  String get secret_chat_unlock_biometric => 'Unlock with biometrics';
+  String get secret_chat_unlock_biometric => 'Buka kunci dengan biometrik';
 
   @override
   String get secret_chat_biometric_reason => 'Unlock Obrolan rahasia';
@@ -83,20 +83,20 @@ class AppLocalizationsId extends AppLocalizations {
       'This Obrolan adalah not a Obrolan rahasia';
 
   @override
-  String get secret_chat_settings_ttl => 'Lifetime';
+  String get secret_chat_settings_ttl => 'Seumur hidup';
 
   @override
   String secret_chat_settings_time_left(Object value) {
-    return 'Time left: $value';
+    return 'Waktu tersisa: $value';
   }
 
   @override
   String secret_chat_settings_expires_at(Object iso) {
-    return 'Expires at: $iso';
+    return 'Berakhir pada: $iso';
   }
 
   @override
-  String get secret_chat_settings_unlock_grant_ttl => 'Unlock duration';
+  String get secret_chat_settings_unlock_grant_ttl => 'Buka kunci durasi';
 
   @override
   String get secret_chat_settings_unlock_grant_ttl_subtitle =>
@@ -113,14 +113,14 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get secret_chat_settings_screenshot_protection =>
-      'Screenshot protection (Android)';
+      'Perlindungan tangkapan layar (Android)';
 
   @override
-  String get secret_chat_settings_media_views => 'Media view limits';
+  String get secret_chat_settings_media_views => 'Batas tampilan media';
 
   @override
   String get secret_chat_settings_media_views_subtitle =>
-      'Best-effort limits for recipient views';
+      'Batas upaya terbaik untuk tampilan penerima';
 
   @override
   String get secret_chat_media_type_image => 'Gambar';
@@ -138,7 +138,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get secret_chat_media_type_file => 'Berkas';
 
   @override
-  String get secret_chat_media_views_unlimited => 'Unlimited';
+  String get secret_chat_media_views_unlimited => 'Tak terbatas';
 
   @override
   String get secret_chat_compose_create => 'Buat Obrolan rahasia';
@@ -167,7 +167,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Pesan dan Media akan Dihapus for both participants.';
 
   @override
-  String get privacy_secret_vault_title => 'Secret vault';
+  String get privacy_secret_vault_title => 'Gudang rahasia';
 
   @override
   String get privacy_secret_vault_subtitle =>
@@ -199,7 +199,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get privacy_secret_vault_repeat_pin => 'Repeat Baru Sematkan';
 
   @override
-  String get privacy_secret_vault_pin_mismatch => 'PINs do not match';
+  String get privacy_secret_vault_pin_mismatch => 'PIN tidak cocok';
 
   @override
   String get privacy_secret_vault_pin_updated => 'Vault Sematkan Diperbarui';
@@ -209,7 +209,8 @@ class AppLocalizationsId extends AppLocalizations {
       'Biometric authentication adalah not available on Perangkat ini';
 
   @override
-  String get privacy_secret_vault_bio_verified => 'Biometric check passed';
+  String get privacy_secret_vault_bio_verified =>
+      'Pemeriksaan biometrik berhasil';
 
   @override
   String get privacy_secret_vault_setup_required =>
@@ -225,7 +226,7 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get tournament_title => 'Tournament';
+  String get tournament_title => 'Turnamen';
 
   @override
   String get tournament_subtitle => 'Standings dan Permainan series';
@@ -234,7 +235,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get tournament_new_game => 'Baru Permainan';
 
   @override
-  String get tournament_standings => 'Standings';
+  String get tournament_standings => 'Klasemen';
 
   @override
   String get tournament_standings_empty => 'Tidak ada hasil yet';
@@ -247,7 +248,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String tournament_points(Object pts) {
-    return '$pts pts';
+    return '$pts poin';
   }
 
   @override
@@ -267,7 +268,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String tournament_game_players(Object names) {
-    return 'Players: $names';
+    return 'Pemain: $names';
   }
 
   @override
@@ -275,12 +276,12 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String tournament_game_result_loser(Object name) {
-    return 'Result: durak — $name';
+    return 'Hasil: durak — $name';
   }
 
   @override
   String tournament_game_place(Object place) {
-    return 'Place $place';
+    return 'Tempatkan $place';
   }
 
   @override
@@ -291,16 +292,16 @@ class AppLocalizationsId extends AppLocalizations {
   String get durak_dm_lobby_open => 'Buka lobby';
 
   @override
-  String get conversation_game_lobby_cancel => 'End waiting';
+  String get conversation_game_lobby_cancel => 'Akhir menunggu';
 
   @override
   String conversation_game_lobby_cancel_failed(Object err) {
-    return 'Unable to end waiting: $err';
+    return 'Tidak dapat mengakhiri penantian: $err';
   }
 
   @override
   String secret_chat_media_views_count(Object count) {
-    return '$count views';
+    return '$count penayangan';
   }
 
   @override
@@ -328,7 +329,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get settings_language_system => 'Sistem';
 
   @override
-  String get settings_language_ru => 'Russian';
+  String get settings_language_ru => 'Rusia';
 
   @override
   String get settings_language_en => 'English';
@@ -341,7 +342,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get account_menu_profile => 'Profil';
 
   @override
-  String get account_menu_features => 'Features';
+  String get account_menu_features => 'Fitur';
 
   @override
   String get account_menu_chat_settings => 'Obrolan Pengaturan';
@@ -356,7 +357,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get account_menu_devices => 'Perangkat';
 
   @override
-  String get account_menu_blacklist => 'Blacklist';
+  String get account_menu_blacklist => 'Daftar Hitam';
 
   @override
   String get account_menu_language => 'Bahasa';
@@ -382,7 +383,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String storage_settings_budget_label(Object gb) {
-    return 'Cache limit: $gb GB';
+    return 'Batas cache: $gb GB';
   }
 
   @override
@@ -392,13 +393,14 @@ class AppLocalizationsId extends AppLocalizations {
   String get storage_settings_clear_all_button => 'Hapus Semua cache';
 
   @override
-  String get storage_settings_trim_button => 'Trim to budget';
+  String get storage_settings_trim_button => 'Pangkas sesuai anggaran';
 
   @override
-  String get storage_settings_policy_title => 'What to keep locally';
+  String get storage_settings_policy_title =>
+      'Apa yang harus disimpan secara lokal';
 
   @override
-  String get storage_settings_budget_slider_title => 'Cache budget';
+  String get storage_settings_budget_slider_title => 'Anggaran cache';
 
   @override
   String get storage_settings_breakdown_title => 'By Data type';
@@ -415,11 +417,11 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String storage_settings_chat_subtitle(Object count, Object size) {
-    return '$count items · $size';
+    return '$count item · $size';
   }
 
   @override
-  String get storage_settings_general_title => 'Unassigned cache';
+  String get storage_settings_general_title => 'Cache yang belum ditetapkan';
 
   @override
   String get storage_settings_general_hint =>
@@ -452,7 +454,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Only this Obrolan cache akan Dihapus. Pesan in cloud stay intact.';
 
   @override
-  String get storage_settings_snackbar_cleared => 'Local cache cleared';
+  String get storage_settings_snackbar_cleared => 'Cache lokal dibersihkan';
 
   @override
   String get storage_settings_snackbar_budget_already_ok =>
@@ -460,7 +462,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String storage_settings_snackbar_budget_trimmed(Object size) {
-    return 'Freed: $size';
+    return 'Dibebaskan: $size';
   }
 
   @override
@@ -475,7 +477,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Decrypted secret Media Berkas per Obrolan for faster reopening.';
 
   @override
-  String get storage_category_e2ee_text => 'E2EE text cache';
+  String get storage_category_e2ee_text => 'E2EE cache teks';
 
   @override
   String get storage_category_e2ee_text_subtitle =>
@@ -510,7 +512,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Locally downloaded Video from Galeri views.';
 
   @override
-  String get storage_category_video_thumbs => 'Video preview frames';
+  String get storage_category_video_thumbs => 'Bingkai pratinjau video';
 
   @override
   String get storage_category_video_thumbs_subtitle =>
@@ -524,18 +526,18 @@ class AppLocalizationsId extends AppLocalizations {
       'Cached Foto dan Stiker from Buka Obrolan.';
 
   @override
-  String get storage_category_stickers_gifs_emoji => 'Стикеры, GIF, эмодзи';
+  String get storage_category_stickers_gifs_emoji => 'Stiker, GIF, emoji';
 
   @override
   String get storage_category_stickers_gifs_emoji_subtitle =>
-      'Кэш недавних стикеров, GIPHY (gifs/stickers/emoji) и анимированных эмодзи.';
+      'Cache stiker terbaru dan GIPHY (gif/stiker/emoji animasi).';
 
   @override
-  String get storage_category_network_images => 'Кэш сетевых картинок';
+  String get storage_category_network_images => 'Cache gambar jaringan';
 
   @override
   String get storage_category_network_images_subtitle =>
-      'Аватары, превью и прочие изображения, скачанные из сети (libCachedImageData).';
+      'Avatar, pratinjau, dan gambar lain yang diambil dari jaringan (libCachedImageData).';
 
   @override
   String get storage_media_type_video => 'Video';
@@ -544,7 +546,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get storage_media_type_photo => 'Foto';
 
   @override
-  String get storage_media_type_audio => 'Аудио';
+  String get storage_media_type_audio => 'Audio';
 
   @override
   String get storage_media_type_files => 'Berkas';
@@ -562,16 +564,16 @@ class AppLocalizationsId extends AppLocalizations {
       'Semua Media will stay in cloud. Anda dapat re-Unduh any time.';
 
   @override
-  String get storage_settings_categories_title => 'По категориям';
+  String get storage_settings_categories_title => 'Berdasarkan kategori';
 
   @override
   String storage_settings_clear_category_title(String category) {
-    return 'Очистить «$category»?';
+    return 'Hapus \"$category\"?';
   }
 
   @override
   String storage_settings_clear_category_body(String size) {
-    return 'Будет освобождено около $size. Действие нельзя отменить.';
+    return 'Sekitar $size akan dibebaskan. Tindakan ini tidak dapat dibatalkan.';
   }
 
   @override
@@ -625,7 +627,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get storage_chat_detail_clear_button_empty => 'Pilih Berkas to Hapus';
 
   @override
-  String get storage_chat_detail_tab_empty => 'Nothing in this tab.';
+  String get storage_chat_detail_tab_empty => 'Tidak ada apa pun di tab ini.';
 
   @override
   String get storage_chat_detail_delete_title => 'Hapus Dipilih Berkas?';
@@ -698,7 +700,7 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get common_soon => 'Coming soon';
+  String get common_soon => 'Segera hadir';
 
   @override
   String common_theme_prefix(Object label) {
@@ -724,7 +726,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get notifications_title => 'Notifikasi';
 
   @override
-  String get notifications_section_main => 'Main';
+  String get notifications_section_main => 'Utama';
 
   @override
   String get notifications_mute_all_title => 'Turn off Semua';
@@ -733,13 +735,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get notifications_mute_all_subtitle => 'Nonaktifkan Semua Notifikasi.';
 
   @override
-  String get notifications_sound_title => 'Sound';
+  String get notifications_sound_title => 'Suara';
 
   @override
   String get notifications_sound_subtitle => 'Main a sound for Baru Pesan.';
 
   @override
-  String get notifications_preview_title => 'Preview';
+  String get notifications_preview_title => 'Pratinjau';
 
   @override
   String get notifications_preview_subtitle =>
@@ -812,7 +814,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Buat a Kata sandi Cadangan atau transfer  key via QR.';
 
   @override
-  String get privacy_visibility_section => 'Visibility';
+  String get privacy_visibility_section => 'Visibilitas';
 
   @override
   String get privacy_online_title => 'Daring Status';
@@ -850,7 +852,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get privacy_group_invites_nobody => 'Tidak ada';
 
   @override
-  String get privacy_global_search_section => 'Discoverability';
+  String get privacy_global_search_section => 'Kemampuan untuk ditemukan';
 
   @override
   String get privacy_global_search_subtitle =>
@@ -913,13 +915,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get common_close => 'Tutup';
 
   @override
-  String get common_nothing_found => 'Nothing found';
+  String get common_nothing_found => 'Tidak ada yang ditemukan';
 
   @override
   String get common_retry => 'Coba lagi';
 
   @override
-  String get auth_login_email_label => 'Email';
+  String get auth_login_email_label => 'E-mail';
 
   @override
   String get auth_login_password_label => 'Kata sandi';
@@ -941,22 +943,22 @@ class AppLocalizationsId extends AppLocalizations {
   String get profile_title => 'Profil';
 
   @override
-  String get profile_edit_tooltip => 'Edit';
+  String get profile_edit_tooltip => 'Sunting';
 
   @override
-  String get profile_full_name_label => 'Full name';
+  String get profile_full_name_label => 'Nama lengkap';
 
   @override
-  String get profile_full_name_hint => 'Name';
+  String get profile_full_name_hint => 'Nama';
 
   @override
   String get profile_username_label => 'Nama pengguna';
 
   @override
-  String get profile_email_label => 'Email';
+  String get profile_email_label => 'E-mail';
 
   @override
-  String get profile_phone_label => 'Phone';
+  String get profile_phone_label => 'Telepon';
 
   @override
   String get profile_birthdate_label => 'Date dari birth';
@@ -989,7 +991,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get profile_placeholder_username => 'Nama pengguna';
 
   @override
-  String get profile_placeholder_email => 'name@example.com';
+  String get profile_placeholder_email => 'nama@contoh.com';
 
   @override
   String get profile_placeholder_phone => '+7900 000-00-00';
@@ -1008,7 +1010,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get settings_chats_title => 'Obrolan Pengaturan';
 
   @override
-  String get settings_chats_preview => 'Preview';
+  String get settings_chats_preview => 'Pratinjau';
 
   @override
   String get settings_chats_outgoing => 'Outgoing Pesan';
@@ -1017,25 +1019,25 @@ class AppLocalizationsId extends AppLocalizations {
   String get settings_chats_incoming => 'Incoming Pesan';
 
   @override
-  String get settings_chats_font_size => 'Text size';
+  String get settings_chats_font_size => 'Ukuran teks';
 
   @override
-  String get settings_chats_font_small => 'Small';
+  String get settings_chats_font_small => 'Kecil';
 
   @override
-  String get settings_chats_font_medium => 'Medium';
+  String get settings_chats_font_medium => 'Sedang';
 
   @override
-  String get settings_chats_font_large => 'Large';
+  String get settings_chats_font_large => 'Besar';
 
   @override
-  String get settings_chats_bubble_shape => 'Bubble shape';
+  String get settings_chats_bubble_shape => 'Bentuk gelembung';
 
   @override
-  String get settings_chats_bubble_rounded => 'Rounded';
+  String get settings_chats_bubble_rounded => 'Bulat';
 
   @override
-  String get settings_chats_bubble_square => 'Square';
+  String get settings_chats_bubble_square => 'Persegi';
 
   @override
   String get settings_chats_chat_background => 'Obrolan Latar belakang';
@@ -1082,7 +1084,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String settings_chats_icon_picker_title(Object label) {
-    return 'Icon: “$label”';
+    return 'Ikon: “$label”';
   }
 
   @override
@@ -1119,7 +1121,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_list_search_hint => 'Cari…';
 
   @override
-  String get chat_list_loading_connecting => 'Connecting…';
+  String get chat_list_loading_connecting => 'Menghubungkan…';
 
   @override
   String get chat_list_loading_conversations => 'Memuat Percakapan…';
@@ -1128,7 +1130,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_list_loading_list => 'Memuat Obrolan list…';
 
   @override
-  String get chat_list_loading_sign_out => 'Signing out…';
+  String get chat_list_loading_sign_out => 'Keluar…';
 
   @override
   String get chat_list_empty_search_title => 'Tidak Obrolan found';
@@ -1164,7 +1166,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_list_action_close => 'Tutup';
 
   @override
-  String get chat_list_folders_title => 'Folders';
+  String get chat_list_folders_title => 'Folder';
 
   @override
   String get chat_list_folders_subtitle => 'Pilih folders for this Obrolan.';
@@ -1180,7 +1182,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Buat a folder to quickly Saring Anda Obrolan.';
 
   @override
-  String get chat_list_create_folder_name_label => 'FOLDER NAME';
+  String get chat_list_create_folder_name_label => 'NAMA FOLDER';
 
   @override
   String chat_list_create_folder_chats_label(Object count) {
@@ -1209,7 +1211,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_list_folder_default_new => 'Baru';
 
   @override
-  String get chat_list_folder_default_direct => 'Direct';
+  String get chat_list_folder_default_direct => 'Langsung';
 
   @override
   String get chat_list_folder_default_groups => 'Grup';
@@ -1240,7 +1242,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get chat_list_pin_not_available =>
-      'Pinning isn’t available in this folder.';
+      'Penyematan tidak tersedia di folder ini.';
 
   @override
   String chat_list_pin_pinned_in_folder(Object name) {
@@ -1298,7 +1300,7 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get chat_list_context_folders => 'Folders';
+  String get chat_list_context_folders => 'Folder';
 
   @override
   String get chat_list_context_unpin => 'Lepas sematan Obrolan';
@@ -1316,7 +1318,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_list_context_delete_chat => 'Hapus Obrolan';
 
   @override
-  String get chat_list_snackbar_history_cleared => 'History cleared.';
+  String get chat_list_snackbar_history_cleared => 'Sejarah dihapus.';
 
   @override
   String get chat_list_snackbar_marked_read => 'Marked as Dibaca.';
@@ -1336,7 +1338,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_calls_empty => 'Anda Panggilan history adalah Kosong.';
 
   @override
-  String get chat_calls_nothing_found => 'Nothing found.';
+  String get chat_calls_nothing_found => 'Tidak ada yang ditemukan.';
 
   @override
   String chat_calls_error_load(Object error) {
@@ -1366,12 +1368,12 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String chat_media_norm_pending_title(Object mediaKind) {
-    return 'Processing $mediaKind…';
+    return 'Memproses $mediaKind…';
   }
 
   @override
   String chat_media_norm_failed_title(Object mediaKind) {
-    return 'Couldn’t process $mediaKind';
+    return 'Tidak dapat memproses $mediaKind';
   }
 
   @override
@@ -1379,17 +1381,16 @@ class AppLocalizationsId extends AppLocalizations {
       ' Berkas akan available after server processing.';
 
   @override
-  String get chat_media_norm_failed_subtitle =>
-      'Try starting processing again.';
+  String get chat_media_norm_failed_subtitle => 'Coba mulai memproses lagi.';
 
   @override
-  String get conversation_threads_title => 'Threads';
+  String get conversation_threads_title => 'benang';
 
   @override
   String get conversation_threads_empty => 'Tidak threads yet';
 
   @override
-  String get conversation_threads_root_attachment => 'Attachment';
+  String get conversation_threads_root_attachment => 'Lampiran';
 
   @override
   String get conversation_threads_root_message => 'Pesan';
@@ -1417,7 +1418,7 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get chat_meetings_title => 'Meetings';
+  String get chat_meetings_title => 'Rapat';
 
   @override
   String get chat_meetings_subtitle =>
@@ -1430,10 +1431,11 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_meetings_field_title_label => 'Pertemuan title';
 
   @override
-  String get chat_meetings_field_title_hint => 'E.g., Logistics sync';
+  String get chat_meetings_field_title_hint =>
+      'Misalnya, sinkronisasi logistik';
 
   @override
-  String get chat_meetings_field_duration_label => 'Duration';
+  String get chat_meetings_field_duration_label => 'Lamanya';
 
   @override
   String get chat_meetings_duration_unlimited => 'Tidak limit';
@@ -1451,23 +1453,23 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_meetings_duration_90m => '1.5 jam';
 
   @override
-  String get chat_meetings_field_access_label => 'Access';
+  String get chat_meetings_field_access_label => 'Mengakses';
 
   @override
-  String get chat_meetings_access_private => 'Private';
+  String get chat_meetings_access_private => 'Pribadi';
 
   @override
-  String get chat_meetings_access_public => 'Public';
+  String get chat_meetings_access_public => 'Publik';
 
   @override
-  String get chat_meetings_waiting_room_title => 'Waiting room';
+  String get chat_meetings_waiting_room_title => 'Ruang tunggu';
 
   @override
   String get chat_meetings_waiting_room_desc =>
       'In waiting room mode, Anda control who joins. Until Anda tap “Admit”, guests will stay on  waiting screen.';
 
   @override
-  String get chat_meetings_backgrounds_title => 'Virtual backgrounds';
+  String get chat_meetings_backgrounds_title => 'Latar belakang maya';
 
   @override
   String get chat_meetings_backgrounds_desc =>
@@ -1500,13 +1502,13 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get chat_meetings_status_live => 'live';
+  String get chat_meetings_status_live => 'hidup';
 
   @override
-  String get chat_meetings_status_finished => 'finished';
+  String get chat_meetings_status_finished => 'selesai';
 
   @override
-  String get chat_meetings_badge_private => 'private';
+  String get chat_meetings_badge_private => 'pribadi';
 
   @override
   String get chat_contacts_search_hint => 'Cari Kontak…';
@@ -1547,7 +1549,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String chat_list_item_draft_line(Object line) {
-    return 'Draft · $line';
+    return 'Draf · $line';
   }
 
   @override
@@ -1557,11 +1559,11 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_list_item_no_messages_yet => 'Tidak Pesan yet';
 
   @override
-  String get chat_list_item_history_cleared => 'History cleared';
+  String get chat_list_item_history_cleared => 'Sejarah dihapus';
 
   @override
   String get chat_list_firebase_not_configured =>
-      'Firebase isn’t configured yet.';
+      'Firebase belum dikonfigurasi.';
 
   @override
   String get new_chat_title => 'Obrolan baru';
@@ -1608,7 +1610,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String new_group_error_auth_session(Object error) {
-    return 'Couldn’t verify sign-in: $error';
+    return 'Tidak dapat memverifikasi login: $error';
   }
 
   @override
@@ -1632,7 +1634,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get new_group_name_label => 'Nama grup';
 
   @override
-  String get new_group_name_hint => 'Name';
+  String get new_group_name_hint => 'Nama';
 
   @override
   String get new_group_description_label => 'Deskripsi';
@@ -1692,7 +1694,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get group_members_make_admin => 'Pengguna promoted to Admin';
 
   @override
-  String get auth_brand_tagline => 'A safer messenger';
+  String get auth_brand_tagline => 'Utusan yang lebih aman';
 
   @override
   String get auth_firebase_not_ready =>
@@ -1722,17 +1724,17 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String auth_qr_refresh_in(int seconds) {
-    return 'Refreshes in ${seconds}s';
+    return 'Disegarkan dalam ${seconds}dtk';
   }
 
   @override
   String get auth_qr_other_method => 'Masuk another way';
 
   @override
-  String get auth_qr_approving => 'Signing in…';
+  String get auth_qr_approving => 'Masuk…';
 
   @override
-  String get auth_qr_rejected => 'Request rejected';
+  String get auth_qr_rejected => 'Permintaan ditolak';
 
   @override
   String get auth_qr_retry => 'Coba lagi';
@@ -1760,7 +1762,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get voice_transcript_copy => 'Salin';
 
   @override
-  String get voice_transcript_loading => 'Transcribing…';
+  String get voice_transcript_loading => 'Mentranskripsikan…';
 
   @override
   String get voice_transcript_failed => 'Couldn’t get  text.';
@@ -1769,14 +1771,14 @@ class AppLocalizationsId extends AppLocalizations {
   String get voice_attachment_media_kind_audio => 'Audio';
 
   @override
-  String get voice_attachment_load_failed => 'Couldn’t load';
+  String get voice_attachment_load_failed => 'Tidak dapat memuat';
 
   @override
   String get voice_attachment_title_voice_message => 'Pesan suara';
 
   @override
   String voice_transcript_error(Object error) {
-    return 'Couldn’t transcribe: $error';
+    return 'Tidak dapat menyalin: $error';
   }
 
   @override
@@ -1824,10 +1826,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get video_call_connecting => 'Panggilan Video…';
 
   @override
-  String get video_call_pip_tooltip => 'Picture in picture';
+  String get video_call_pip_tooltip => 'Gambar dalam gambar';
 
   @override
-  String get video_call_mini_window_tooltip => 'Mini window';
+  String get video_call_mini_window_tooltip => 'jendela kecil';
 
   @override
   String get chat_delete_message_title_single => 'Hapus pesan?';
@@ -1858,7 +1860,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get forward_empty_no_messages => 'Tidak Pesan to Teruskan';
 
   @override
-  String get forward_error_not_authorized => 'Not signed in';
+  String get forward_error_not_authorized => 'Tidak masuk';
 
   @override
   String get forward_empty_no_recipients =>
@@ -1872,7 +1874,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Tidak available recipients.\nAnda dapat only Teruskan to Kontak dan Anda Aktif Obrolan.';
 
   @override
-  String get forward_empty_not_found => 'Nothing found';
+  String get forward_empty_not_found => 'Tidak ada yang ditemukan';
 
   @override
   String get forward_action_pick_recipients => 'Pilih recipients';
@@ -1886,7 +1888,7 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get forward_sender_fallback => 'Participant';
+  String get forward_sender_fallback => 'Peserta';
 
   @override
   String get forward_error_profiles_load =>
@@ -1940,10 +1942,10 @@ class AppLocalizationsId extends AppLocalizations {
       'Make sure this adalah Anda own Perangkat that just showed  Kode QR.';
 
   @override
-  String get devices_approve_allow => 'Allow';
+  String get devices_approve_allow => 'Mengizinkan';
 
   @override
-  String get devices_approve_deny => 'Deny';
+  String get devices_approve_deny => 'Membantah';
 
   @override
   String get devices_handover_progress_title => 'Syncing encrypted Obrolan…';
@@ -1954,7 +1956,7 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get devices_handover_progress_starting => 'Starting…';
+  String get devices_handover_progress_starting => 'Mulai…';
 
   @override
   String get devices_handover_success_title => 'Baru Perangkat linked';
@@ -1973,7 +1975,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get devices_chip_current => 'Perangkat ini';
 
   @override
-  String get devices_chip_revoked => 'Revoked';
+  String get devices_chip_revoked => 'Dicabut';
 
   @override
   String devices_meta_created_activity(Object createdAt, Object lastSeenAt) {
@@ -1982,24 +1984,24 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String devices_meta_revoked_at(Object revokedAt) {
-    return 'Revoked: $revokedAt';
+    return 'Dicabut: $revokedAt';
   }
 
   @override
-  String get devices_action_rename => 'Rename';
+  String get devices_action_rename => 'Ganti nama';
 
   @override
-  String get devices_action_revoke => 'Revoke';
+  String get devices_action_revoke => 'Menarik kembali';
 
   @override
   String get devices_dialog_rename_title => 'Rename Perangkat';
 
   @override
-  String get devices_dialog_rename_hint => 'e.g. iPhone 15 — Safari';
+  String get devices_dialog_rename_hint => 'misalnya iPhone 15 — Safari';
 
   @override
   String devices_error_rename_failed(Object error) {
-    return 'Couldn’t rename: $error';
+    return 'Tidak dapat mengganti nama: $error';
   }
 
   @override
@@ -2020,7 +2022,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String devices_snackbar_failed_suffix(Object count) {
-    return ', errors: $count';
+    return ', kesalahan: $count';
   }
 
   @override
@@ -2039,11 +2041,11 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String e2ee_password_min_length(Object count) {
-    return 'At least $count characters';
+    return 'Setidaknya $count karakter';
   }
 
   @override
-  String get e2ee_password_mismatch => 'Passwords don’t match';
+  String get e2ee_password_mismatch => 'Kata sandi tidak cocok';
 
   @override
   String get e2ee_backup_create_title => 'Buat key Cadangan';
@@ -2095,7 +2097,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get e2ee_backup_already_have => 'I already have a Cadangan';
 
   @override
-  String get e2ee_qr_transfer_title => 'Transfer key via QR';
+  String get e2ee_qr_transfer_title => 'Transfer kunci melalui QR';
 
   @override
   String get e2ee_qr_transfer_description =>
@@ -2128,7 +2130,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get media_viewer_error_share_unavailable_web =>
-      'Sharing isn’t available on web';
+      'Berbagi tidak tersedia di web';
 
   @override
   String get media_viewer_error_file_not_found => 'Berkas Tidak ditemukan';
@@ -2137,7 +2139,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get media_viewer_error_bad_media_url => 'Bad Media URL';
 
   @override
-  String get media_viewer_error_bad_url => 'Bad URL';
+  String get media_viewer_error_bad_url => 'URL buruk';
 
   @override
   String get media_viewer_error_unsupported_media_scheme =>
@@ -2159,17 +2161,17 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get media_viewer_video_playback_speed => 'Playback speed';
+  String get media_viewer_video_playback_speed => 'Kecepatan pemutaran';
 
   @override
-  String get media_viewer_video_quality => 'Quality';
+  String get media_viewer_video_quality => 'Kualitas';
 
   @override
-  String get media_viewer_video_quality_auto => 'Auto';
+  String get media_viewer_video_quality_auto => 'Mobil';
 
   @override
   String get media_viewer_error_quality_switch_failed =>
-      'Couldn’t switch quality';
+      'Tidak dapat mengubah kualitas';
 
   @override
   String get media_viewer_error_pip_open_failed => 'Couldn’t Buka PiP';
@@ -2227,13 +2229,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get disappearing_messages_snackbar_updated => 'Timer Diperbarui.';
 
   @override
-  String get disappearing_preset_off => 'Off';
+  String get disappearing_preset_off => 'Mati';
 
   @override
-  String get disappearing_preset_1h => '1 h';
+  String get disappearing_preset_1h => '1 jam';
 
   @override
-  String get disappearing_preset_24h => '24 h';
+  String get disappearing_preset_24h => '24 jam';
 
   @override
   String get disappearing_preset_7d => '7 hari';
@@ -2242,11 +2244,11 @@ class AppLocalizationsId extends AppLocalizations {
   String get disappearing_preset_30d => '30 hari';
 
   @override
-  String get disappearing_ttl_summary_off => 'Off';
+  String get disappearing_ttl_summary_off => 'Mati';
 
   @override
   String disappearing_ttl_minutes(Object count) {
-    return '$count min';
+    return '$count mnt';
   }
 
   @override
@@ -2261,14 +2263,14 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String disappearing_ttl_weeks(Object count) {
-    return '$count wk';
+    return '$count minggu';
   }
 
   @override
-  String get conversation_profile_e2ee_on => 'On';
+  String get conversation_profile_e2ee_on => 'Pada';
 
   @override
-  String get conversation_profile_e2ee_off => 'Off';
+  String get conversation_profile_e2ee_off => 'Mati';
 
   @override
   String get conversation_profile_e2ee_subtitle_on =>
@@ -2306,7 +2308,7 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get partner_profile_call_peer_fallback => 'Peer';
+  String get partner_profile_call_peer_fallback => 'Rekan';
 
   @override
   String get partner_profile_chat_not_created => ' Obrolan isn’t Dibuat yet';
@@ -2360,7 +2362,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get partner_profile_tooltip_close => 'Tutup';
 
   @override
-  String get partner_profile_edit_contact_short => 'Edit';
+  String get partner_profile_edit_contact_short => 'Sunting';
 
   @override
   String get partner_profile_tooltip_copy_chat_id => 'Salin Obrolan ID';
@@ -2378,7 +2380,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get partner_profile_action_share => 'Bagikan';
 
   @override
-  String get partner_profile_action_notifications => 'Alerts';
+  String get partner_profile_action_notifications => 'Peringatan';
 
   @override
   String get partner_profile_menu_members => 'Anggota';
@@ -2394,7 +2396,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get partner_profile_menu_starred => 'Berbintang';
 
   @override
-  String get partner_profile_menu_threads => 'Threads';
+  String get partner_profile_menu_threads => 'benang';
 
   @override
   String get partner_profile_menu_games => 'Permainan';
@@ -2439,13 +2441,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get partner_profile_field_system_role => 'Sistem role';
 
   @override
-  String get partner_profile_field_email => 'Email';
+  String get partner_profile_field_email => 'E-mail';
 
   @override
-  String get partner_profile_field_phone => 'Phone';
+  String get partner_profile_field_phone => 'Telepon';
 
   @override
-  String get partner_profile_field_birthday => 'Birthday';
+  String get partner_profile_field_birthday => 'Hari ulang tahun';
 
   @override
   String get partner_profile_field_bio => 'Tentang';
@@ -2481,7 +2483,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get thread_message_not_found => 'Pesan Tidak ditemukan';
 
   @override
-  String get thread_screen_title_fallback => 'Thread';
+  String get thread_screen_title_fallback => 'Benang';
 
   @override
   String thread_load_replies_error(Object error) {
@@ -2514,7 +2516,7 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get chat_service_unavailable => 'Service unavailable';
+  String get chat_service_unavailable => 'Layanan tidak tersedia';
 
   @override
   String get chat_repository_unavailable => 'Obrolan service unavailable';
@@ -2583,7 +2585,8 @@ class AppLocalizationsId extends AppLocalizations {
       'Pesan wasn’t found in  loaded history';
 
   @override
-  String get chat_finish_editing_first => 'Finish editing first';
+  String get chat_finish_editing_first =>
+      'Selesaikan pengeditan terlebih dahulu';
 
   @override
   String chat_send_voice_failed(Object error) {
@@ -2634,7 +2637,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get chat_edit_attachments_not_allowed =>
-      'Attachments aren’t available while editing';
+      'Lampiran tidak tersedia saat mengedit';
 
   @override
   String get chat_edit_text_empty => 'Text dapat’t be Kosong';
@@ -2665,13 +2668,13 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get chat_poll_label => 'Poll';
+  String get chat_poll_label => 'Pemilihan';
 
   @override
   String get chat_location_label => 'Lokasi';
 
   @override
-  String get chat_attachment_label => 'Attachment';
+  String get chat_attachment_label => 'Lampiran';
 
   @override
   String chat_media_pick_failed(Object error) {
@@ -2699,13 +2702,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get message_menu_action_reply => 'Balas';
 
   @override
-  String get message_menu_action_thread => 'Thread';
+  String get message_menu_action_thread => 'Benang';
 
   @override
   String get message_menu_action_copy => 'Salin';
 
   @override
-  String get message_menu_action_edit => 'Edit';
+  String get message_menu_action_edit => 'Sunting';
 
   @override
   String get message_menu_action_pin => 'Sematkan';
@@ -2717,11 +2720,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get message_menu_action_star_remove => 'Hapus from Berbintang';
 
   @override
-  String get message_menu_action_create_sticker => 'Создать стикер';
+  String get message_menu_action_create_sticker => 'Buat stiker';
 
   @override
-  String get message_menu_action_save_to_my_stickers =>
-      'Добавить в мои стикеры';
+  String get message_menu_action_save_to_my_stickers => 'Simpan ke stiker saya';
 
   @override
   String get message_menu_action_forward => 'Teruskan';
@@ -2742,13 +2744,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get message_menu_header_read => 'Dibaca:';
 
   @override
-  String get message_menu_header_expire_at => 'DISAPPEARS:';
+  String get message_menu_header_expire_at => 'HILANG:';
 
   @override
   String get chat_header_search_hint => 'Cari Pesan…';
 
   @override
-  String get chat_header_tooltip_threads => 'Threads';
+  String get chat_header_tooltip_threads => 'benang';
 
   @override
   String get chat_header_tooltip_search => 'Cari';
@@ -2769,7 +2771,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get conversation_games_durak_subtitle => 'Buat lobby';
 
   @override
-  String get conversation_game_lobby_title => 'Lobby';
+  String get conversation_game_lobby_title => 'Lobi';
 
   @override
   String get conversation_game_lobby_not_found => 'Permainan Tidak ditemukan';
@@ -2796,7 +2798,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String conversation_game_lobby_players(Object count, Object max) {
-    return 'Players: $count/$max';
+    return 'Pemain: $count/$max';
   }
 
   @override
@@ -2816,48 +2818,48 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get conversation_game_send_test_move => 'Test move';
+  String get conversation_game_send_test_move => 'Langkah uji';
 
   @override
   String conversation_game_move_failed(Object error) {
-    return 'Move rejected: $error';
+    return 'Pemindahan ditolak: $error';
   }
 
   @override
-  String get conversation_durak_table_title => 'Table';
+  String get conversation_durak_table_title => 'Meja';
 
   @override
-  String get conversation_durak_hand_title => 'Hand';
+  String get conversation_durak_hand_title => 'Tangan';
 
   @override
-  String get conversation_durak_role_attacker => 'Attacking';
+  String get conversation_durak_role_attacker => 'Menyerang';
 
   @override
-  String get conversation_durak_role_defender => 'Defending';
+  String get conversation_durak_role_defender => 'Membela';
 
   @override
-  String get conversation_durak_role_thrower => 'Throwing in';
+  String get conversation_durak_role_thrower => 'Melempar ke dalam';
 
   @override
-  String get conversation_durak_action_attack => 'Attack';
+  String get conversation_durak_action_attack => 'Menyerang';
 
   @override
-  String get conversation_durak_action_defend => 'Defend';
+  String get conversation_durak_action_defend => 'Membela';
 
   @override
-  String get conversation_durak_action_take => 'Take';
+  String get conversation_durak_action_take => 'Mengambil';
 
   @override
-  String get conversation_durak_action_beat => 'Beat';
+  String get conversation_durak_action_beat => 'Mengalahkan';
 
   @override
   String get conversation_durak_action_transfer => 'Transfer';
 
   @override
-  String get conversation_durak_action_pass => 'Pass';
+  String get conversation_durak_action_pass => 'Lulus';
 
   @override
-  String get conversation_durak_badge_taking => 'I\'ll take';
+  String get conversation_durak_badge_taking => 'saya akan ambil';
 
   @override
   String get conversation_durak_game_finished_title => 'Permainan finished';
@@ -2868,16 +2870,16 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String conversation_durak_game_finished_loser(Object uid) {
-    return 'Loser: $uid';
+    return 'Yang kalah: $uid';
   }
 
   @override
   String conversation_durak_game_finished_winners(Object uids) {
-    return 'Winners: $uids';
+    return 'Pemenang: $uids';
   }
 
   @override
-  String get conversation_durak_winner => 'Winner!';
+  String get conversation_durak_winner => 'Pemenang!';
 
   @override
   String get conversation_durak_play_again => 'Main again';
@@ -2901,25 +2903,25 @@ class AppLocalizationsId extends AppLocalizations {
   String get durak_mode_perevodnoy => 'Perevodnoy';
 
   @override
-  String get durak_settings_max_players => 'Players';
+  String get durak_settings_max_players => 'Pemain';
 
   @override
-  String get durak_settings_deck => 'Deck';
+  String get durak_settings_deck => 'Dek';
 
   @override
-  String get durak_deck_36 => '36 cards';
+  String get durak_deck_36 => '36 kartu';
 
   @override
-  String get durak_deck_52 => '52 cards';
+  String get durak_deck_52 => '52 kartu';
 
   @override
-  String get durak_settings_with_jokers => 'Jokers';
+  String get durak_settings_with_jokers => 'Pelawak';
 
   @override
-  String get durak_settings_turn_timer => 'Turn timer';
+  String get durak_settings_turn_timer => 'Putar pengatur waktu';
 
   @override
-  String get durak_turn_timer_off => 'Off';
+  String get durak_turn_timer_off => 'Mati';
 
   @override
   String get durak_settings_throw_in_policy => 'Who dapat throw in';
@@ -2928,44 +2930,44 @@ class AppLocalizationsId extends AppLocalizations {
   String get durak_throw_in_policy_all => 'Semua players (except defender)';
 
   @override
-  String get durak_throw_in_policy_neighbors => 'Only defender\'s neighbors';
+  String get durak_throw_in_policy_neighbors => 'Hanya tetangga pembela';
 
   @override
-  String get durak_settings_shuler => 'Shuler mode';
+  String get durak_settings_shuler => 'Modus Shuler';
 
   @override
   String get durak_settings_shuler_subtitle =>
       'Allows illegal moves unless someone Panggilan foul.';
 
   @override
-  String get conversation_durak_action_foul => 'Foul!';
+  String get conversation_durak_action_foul => 'Busuk!';
 
   @override
   String get conversation_durak_action_resolve => 'Konfirmasi Beat';
 
   @override
-  String get conversation_durak_foul_toast => 'Foul! Cheater penalized.';
+  String get conversation_durak_foul_toast => 'Busuk! Penipu dihukum.';
 
   @override
-  String get durak_phase_prefix => 'Phase';
+  String get durak_phase_prefix => 'Fase';
 
   @override
-  String get durak_phase_attack => 'Attack';
+  String get durak_phase_attack => 'Menyerang';
 
   @override
-  String get durak_phase_defense => 'Defense';
+  String get durak_phase_defense => 'Pertahanan';
 
   @override
-  String get durak_phase_throw_in => 'Throw-in';
+  String get durak_phase_throw_in => 'Lemparan ke dalam';
 
   @override
-  String get durak_phase_resolution => 'Resolution';
+  String get durak_phase_resolution => 'Resolusi';
 
   @override
-  String get durak_phase_finished => 'Finished';
+  String get durak_phase_finished => 'Selesai';
 
   @override
-  String get durak_phase_pending_foul => 'Pending foul after Beat';
+  String get durak_phase_pending_foul => 'Menunggu pelanggaran setelah Beat';
 
   @override
   String get durak_phase_pending_foul_hint_attacker =>
@@ -2988,7 +2990,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String chat_selection_selected_count(int count) {
-    return '$count selected';
+    return '$count dipilih';
   }
 
   @override
@@ -3004,7 +3006,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_composer_tooltip_stickers => 'Stiker';
 
   @override
-  String get chat_composer_tooltip_attachments => 'Attachments';
+  String get chat_composer_tooltip_attachments => 'Lampiran';
 
   @override
   String get chat_list_unread_separator => 'Belum dibaca Pesan';
@@ -3018,7 +3020,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String chat_forwarded_from(Object name) {
-    return 'Forwarded from $name';
+    return 'Diteruskan dari $name';
   }
 
   @override
@@ -3031,7 +3033,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_outbox_cancel => 'Batal';
 
   @override
-  String get chat_message_edited_badge_short => 'EDITED';
+  String get chat_message_edited_badge_short => 'DIEDIT';
 
   @override
   String get register_error_enter_name => 'Masukkan Anda name.';
@@ -3067,7 +3069,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Kebijakan privasi acceptance adalah wajib';
 
   @override
-  String get register_label_name => 'Name';
+  String get register_label_name => 'Nama';
 
   @override
   String get register_hint_name => 'Masukkan Anda name';
@@ -3079,13 +3081,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get register_hint_username => 'Masukkan a Nama pengguna';
 
   @override
-  String get register_label_phone => 'Phone';
+  String get register_label_phone => 'Telepon';
 
   @override
   String get register_hint_choose_country => 'Pilih a country';
 
   @override
-  String get register_label_email => 'Email';
+  String get register_label_email => 'E-mail';
 
   @override
   String get register_hint_email => 'Masukkan Anda Email';
@@ -3106,7 +3108,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get register_label_dob => 'Date dari birth';
 
   @override
-  String get register_hint_dob => 'dd.mm.yyyy';
+  String get register_hint_dob => 'hh.mm.yyyy';
 
   @override
   String get register_label_bio => 'Tentang';
@@ -3157,7 +3159,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get edit_group_name_label => 'Nama grup';
 
   @override
-  String get edit_group_name_hint => 'Name';
+  String get edit_group_name_hint => 'Nama';
 
   @override
   String get edit_group_description_label => 'Deskripsi';
@@ -3196,14 +3198,14 @@ class AppLocalizationsId extends AppLocalizations {
       'Allow Anggota to Teruskan Pesan from this Grup.';
 
   @override
-  String get edit_group_privacy_screenshots => 'Screenshots';
+  String get edit_group_privacy_screenshots => 'Tangkapan layar';
 
   @override
   String get edit_group_privacy_screenshots_desc =>
       'Allow screenshots in this Grup (platform-dependent).';
 
   @override
-  String get edit_group_privacy_copy => 'Text copying';
+  String get edit_group_privacy_copy => 'Penyalinan teks';
 
   @override
   String get edit_group_privacy_copy_desc => 'Allow copying Pesan text.';
@@ -3255,7 +3257,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get schedule_message_cancel => 'Batal';
 
   @override
-  String get schedule_message_confirm => 'Schedule';
+  String get schedule_message_confirm => 'Jadwal';
 
   @override
   String get schedule_message_save => 'Simpan';
@@ -3269,7 +3271,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String schedule_message_scheduled_toast(String datetime) {
-    return 'Scheduled: $datetime';
+    return 'Dijadwalkan: $datetime';
   }
 
   @override
@@ -3304,17 +3306,17 @@ class AppLocalizationsId extends AppLocalizations {
       ' scheduled Pesan akan Dihapus.';
 
   @override
-  String get scheduled_messages_cancel_dialog_keep => 'Keep';
+  String get scheduled_messages_cancel_dialog_keep => 'Menyimpan';
 
   @override
   String get scheduled_messages_cancel_dialog_confirm => 'Batal';
 
   @override
-  String get scheduled_messages_canceled_toast => 'Canceled';
+  String get scheduled_messages_canceled_toast => 'Dibatalkan';
 
   @override
   String scheduled_messages_time_changed_toast(String datetime) {
-    return 'Time changed: $datetime';
+    return 'Waktu berubah: $datetime';
   }
 
   @override
@@ -3323,25 +3325,25 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get scheduled_messages_tile_edit_tooltip => 'Change time';
+  String get scheduled_messages_tile_edit_tooltip => 'Ubah waktu';
 
   @override
   String get scheduled_messages_tile_cancel_tooltip => 'Batal';
 
   @override
   String scheduled_messages_preview_poll(String question) {
-    return 'Poll: $question';
+    return 'Jajak pendapat: $question';
   }
 
   @override
   String get scheduled_messages_preview_location => 'Lokasi';
 
   @override
-  String get scheduled_messages_preview_attachment => 'Attachment';
+  String get scheduled_messages_preview_attachment => 'Lampiran';
 
   @override
   String scheduled_messages_preview_attachment_count(int count) {
-    return 'Attachment (×$count)';
+    return 'Lampiran (×$count)';
   }
 
   @override
@@ -3351,10 +3353,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_header_tooltip_scheduled => 'Scheduled Pesan';
 
   @override
-  String get schedule_date_label => 'Date';
+  String get schedule_date_label => 'Tanggal';
 
   @override
-  String get schedule_time_label => 'Time';
+  String get schedule_time_label => 'Waktu';
 
   @override
   String get common_done => 'Selesai';
@@ -3372,19 +3374,19 @@ class AppLocalizationsId extends AppLocalizations {
   String get common_search => 'Cari';
 
   @override
-  String get common_edit => 'Edit';
+  String get common_edit => 'Sunting';
 
   @override
   String get common_next => 'Berikutnya';
 
   @override
-  String get common_ok => 'OK';
+  String get common_ok => 'OKE';
 
   @override
   String get common_confirm => 'Konfirmasi';
 
   @override
-  String get common_ready => 'Ready';
+  String get common_ready => 'Siap';
 
   @override
   String get common_error => 'Kesalahan';
@@ -3420,7 +3422,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get common_yesterday => 'Kemarin';
 
   @override
-  String get e2ee_qr_title => 'QR key pairing';
+  String get e2ee_qr_title => 'pasangan kunci QR';
 
   @override
   String get e2ee_qr_uid_error => 'Gagal to get Pengguna uid.';
@@ -3531,11 +3533,11 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String e2ee_encrypt_switch_on(int epoch) {
-    return 'Enabled (key epoch: $epoch)';
+    return 'Diaktifkan (masa kunci: $epoch)';
   }
 
   @override
-  String get e2ee_encrypt_switch_off => 'Disabled';
+  String get e2ee_encrypt_switch_off => 'Dengan disabilitas';
 
   @override
   String get e2ee_encrypt_already_on_toast =>
@@ -3556,7 +3558,7 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get e2ee_encrypt_data_types_title => 'Data types';
+  String get e2ee_encrypt_data_types_title => 'Tipe data';
 
   @override
   String get e2ee_encrypt_data_types_description =>
@@ -3584,13 +3586,13 @@ class AppLocalizationsId extends AppLocalizations {
       'To change for this Obrolan — Aktifkan  override.';
 
   @override
-  String get sticker_default_pack_name => 'My pack';
+  String get sticker_default_pack_name => 'Paket saya';
 
   @override
   String get sticker_new_pack_dialog_title => 'Baru Stiker pack';
 
   @override
-  String get sticker_pack_name_hint => 'Name';
+  String get sticker_pack_name_hint => 'Nama';
 
   @override
   String get sticker_save_to_pack => 'Simpan to Stiker pack';
@@ -3639,10 +3641,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get sticker_tab_gif => 'GIF';
 
   @override
-  String get sticker_scope_my => 'My';
+  String get sticker_scope_my => '-ku';
 
   @override
-  String get sticker_scope_public => 'Public';
+  String get sticker_scope_public => 'Publik';
 
   @override
   String get sticker_new_pack_tooltip => 'Baru pack';
@@ -3657,7 +3659,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get sticker_public_packs_empty => 'Tidak public packs configured';
 
   @override
-  String get sticker_section_recent => 'RECENT';
+  String get sticker_section_recent => 'TERKINI';
 
   @override
   String get sticker_pack_empty_hint =>
@@ -3681,7 +3683,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String gif_translated_hint(String query) {
-    return 'Searched: $query';
+    return 'Ditelusuri: $query';
   }
 
   @override
@@ -3692,7 +3694,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get gif_filter_all => 'Semua';
 
   @override
-  String get sticker_section_animated => 'ANIMATED';
+  String get sticker_section_animated => 'ANIMASI';
 
   @override
   String get sticker_emoji_unavailable =>
@@ -3702,8 +3704,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get sticker_create_pack_hint => 'Buat a pack with  + button';
 
   @override
-  String get sticker_public_packs_unavailable =>
-      'Public packs not available yet';
+  String get sticker_public_packs_unavailable => 'Paket publik belum tersedia';
 
   @override
   String get composer_link_title => 'Tautan';
@@ -3712,7 +3713,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get composer_link_apply => 'Terapkan';
 
   @override
-  String get composer_attach_title => 'Attach';
+  String get composer_attach_title => 'Menempel';
 
   @override
   String get composer_attach_photo_video => 'Foto/Video';
@@ -3721,22 +3722,22 @@ class AppLocalizationsId extends AppLocalizations {
   String get composer_attach_files => 'Berkas';
 
   @override
-  String get composer_attach_video_circle => 'Video circle';
+  String get composer_attach_video_circle => 'Lingkaran video';
 
   @override
   String get composer_attach_location => 'Lokasi';
 
   @override
-  String get composer_attach_poll => 'Poll';
+  String get composer_attach_poll => 'Pemilihan';
 
   @override
   String get composer_attach_stickers => 'Stiker';
 
   @override
-  String get composer_attach_clipboard => 'Clipboard';
+  String get composer_attach_clipboard => 'papan klip';
 
   @override
-  String get composer_attach_text => 'Text';
+  String get composer_attach_text => 'Teks';
 
   @override
   String get meeting_create_poll => 'Buat poll';
@@ -3758,21 +3759,21 @@ class AppLocalizationsId extends AppLocalizations {
   String get meeting_no_polls_yet => 'Tidak polls yet';
 
   @override
-  String get meeting_question_label => 'Question';
+  String get meeting_question_label => 'Pertanyaan';
 
   @override
-  String get meeting_options_label => 'Options';
+  String get meeting_options_label => 'Pilihan';
 
   @override
   String meeting_option_hint(int index) {
-    return 'Option $index';
+    return 'Opsi $index';
   }
 
   @override
   String get meeting_add_option => 'Tambah option';
 
   @override
-  String get meeting_anonymous => 'Anonymous';
+  String get meeting_anonymous => 'Anonim';
 
   @override
   String get meeting_anonymous_subtitle => 'Who dapat see others\' choices';
@@ -3781,52 +3782,52 @@ class AppLocalizationsId extends AppLocalizations {
   String get meeting_save_as_draft => 'Simpan as draft';
 
   @override
-  String get meeting_publish => 'Publish';
+  String get meeting_publish => 'Menerbitkan';
 
   @override
   String get meeting_action_start => 'Mulai';
 
   @override
-  String get meeting_action_change_vote => 'Change vote';
+  String get meeting_action_change_vote => 'Ubah suara';
 
   @override
-  String get meeting_action_restart => 'Restart';
+  String get meeting_action_restart => 'Mulai ulang';
 
   @override
   String get meeting_action_stop => 'Berhenti';
 
   @override
   String meeting_vote_failed(String details) {
-    return 'Vote not counted: $details';
+    return 'Suara tidak dihitung: $details';
   }
 
   @override
-  String get meeting_status_ended => 'Ended';
+  String get meeting_status_ended => 'Berakhir';
 
   @override
-  String get meeting_status_draft => 'Draft';
+  String get meeting_status_draft => 'Draf';
 
   @override
   String get meeting_status_active => 'Aktif';
 
   @override
-  String get meeting_status_public => 'Public';
+  String get meeting_status_public => 'Publik';
 
   @override
   String meeting_votes_count(int count) {
-    return '$count votes';
+    return '$count suara';
   }
 
   @override
   String meeting_goal_count(int count) {
-    return 'Goal: $count';
+    return 'Sasaran: $count';
   }
 
   @override
   String get meeting_hide => 'Sembunyikan';
 
   @override
-  String get meeting_who_voted => 'Who voted';
+  String get meeting_who_voted => 'Siapa yang memilih';
 
   @override
   String meeting_participants_tab(int count) {
@@ -3835,11 +3836,11 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String meeting_polls_tab_active(int count) {
-    return 'Polls ($count)';
+    return 'Jajak Pendapat ($count)';
   }
 
   @override
-  String get meeting_polls_tab => 'Polls';
+  String get meeting_polls_tab => 'Jajak pendapat';
 
   @override
   String meeting_chat_tab_unread(int count) {
@@ -3851,7 +3852,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String meeting_requests_tab(int count) {
-    return 'Requests ($count)';
+    return 'Permintaan ($count)';
   }
 
   @override
@@ -3860,7 +3861,7 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get meeting_host_label => 'Host';
+  String get meeting_host_label => 'Tuan rumah';
 
   @override
   String get meeting_force_mute_mic => 'Bisukan Mikrofon';
@@ -3919,13 +3920,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get meeting_message_deleted => 'Pesan Dihapus';
 
   @override
-  String get meeting_message_edited => '• edited';
+  String get meeting_message_edited => '• diedit';
 
   @override
   String get meeting_copy_action => 'Salin';
 
   @override
-  String get meeting_edit_action => 'Edit';
+  String get meeting_edit_action => 'Sunting';
 
   @override
   String get meeting_join_title => 'Gabung';
@@ -3953,7 +3954,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get meeting_enter_name_error => 'Masukkan Anda name';
 
   @override
-  String get meeting_guest_name => 'Guest';
+  String get meeting_guest_name => 'Tamu';
 
   @override
   String get meeting_enter_room => 'Masukkan room';
@@ -3962,19 +3963,19 @@ class AppLocalizationsId extends AppLocalizations {
   String get meeting_request_join => 'Request to Gabung';
 
   @override
-  String get meeting_approved_title => 'Approved';
+  String get meeting_approved_title => 'Disetujui';
 
   @override
-  String get meeting_approved_subtitle => 'Redirecting to room…';
+  String get meeting_approved_subtitle => 'Mengarahkan ke kamar…';
 
   @override
-  String get meeting_denied_title => 'Denied';
+  String get meeting_denied_title => 'Ditolak';
 
   @override
   String get meeting_denied_subtitle => ' host denied Anda request.';
 
   @override
-  String get meeting_pending_title => 'Waiting for approval';
+  String get meeting_pending_title => 'Menunggu persetujuan';
 
   @override
   String get meeting_pending_subtitle =>
@@ -4016,7 +4017,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get meeting_tooltip_speaker_mode => 'Pengeras suara mode';
 
   @override
-  String get meeting_tooltip_grid_mode => 'Grid mode';
+  String get meeting_tooltip_grid_mode => 'Modus jaringan';
 
   @override
   String get meeting_tooltip_copy_link => 'Salin Tautan (browser Gabung)';
@@ -4034,28 +4035,28 @@ class AppLocalizationsId extends AppLocalizations {
   String get meeting_camera_off => 'Kamera off';
 
   @override
-  String get meeting_switch_camera => 'Switch';
+  String get meeting_switch_camera => 'Mengalihkan';
 
   @override
-  String get meeting_hand_lower => 'Lower';
+  String get meeting_hand_lower => 'Lebih rendah';
 
   @override
-  String get meeting_hand_raise => 'Hand';
+  String get meeting_hand_raise => 'Tangan';
 
   @override
-  String get meeting_reaction => 'Reaction';
+  String get meeting_reaction => 'Reaksi';
 
   @override
   String get meeting_screen_stop => 'Berhenti';
 
   @override
-  String get meeting_screen_label => 'Screen';
+  String get meeting_screen_label => 'Layar';
 
   @override
   String get meeting_bg_off => 'BG';
 
   @override
-  String get meeting_bg_blur => 'Blur';
+  String get meeting_bg_blur => 'Mengaburkan';
 
   @override
   String get meeting_bg_image => 'Gambar';
@@ -4064,20 +4065,20 @@ class AppLocalizationsId extends AppLocalizations {
   String get meeting_participants_button => 'Anggota';
 
   @override
-  String get meeting_notifications_button => 'Активность';
+  String get meeting_notifications_button => 'Aktivitas';
 
   @override
-  String get meeting_pip_button => 'Свернуть';
+  String get meeting_pip_button => 'Minimalkan';
 
   @override
-  String get settings_chats_bottom_nav_icons_title => 'Bottom navigation icons';
+  String get settings_chats_bottom_nav_icons_title => 'Ikon navigasi bawah';
 
   @override
   String get settings_chats_bottom_nav_icons_subtitle =>
       'Pilih icons dan visual style Suka on  web.';
 
   @override
-  String get settings_chats_nav_colorful => 'Colorful';
+  String get settings_chats_nav_colorful => 'Berwarna-warni';
 
   @override
   String get settings_chats_nav_minimal => 'Minimal';
@@ -4096,19 +4097,19 @@ class AppLocalizationsId extends AppLocalizations {
   String get settings_chats_collapse => 'Ciutkan';
 
   @override
-  String get settings_chats_customize => 'Customize';
+  String get settings_chats_customize => 'Sesuaikan';
 
   @override
   String get settings_chats_reset_item_tooltip => 'Atur ulang';
 
   @override
-  String get settings_chats_style_tooltip => 'Style';
+  String get settings_chats_style_tooltip => 'Gaya';
 
   @override
-  String get settings_chats_icon_size => 'Icon size';
+  String get settings_chats_icon_size => 'Ukuran ikon';
 
   @override
-  String get settings_chats_stroke_width => 'Stroke width';
+  String get settings_chats_stroke_width => 'Lebar goresan';
 
   @override
   String get settings_chats_default => 'Bawaan';
@@ -4117,7 +4118,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get settings_chats_icon_search_hint_en => 'Cari by name...';
 
   @override
-  String get settings_chats_emoji_effects => 'Emoji effects';
+  String get settings_chats_emoji_effects => 'Efek emoji';
 
   @override
   String get settings_chats_emoji_effects_subtitle =>
@@ -4139,10 +4140,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get settings_chats_preview_incoming_msg => 'Hey! How adalah Anda?';
 
   @override
-  String get settings_chats_preview_outgoing_msg => 'Great, thanks!';
+  String get settings_chats_preview_outgoing_msg => 'Bagus, terima kasih!';
 
   @override
-  String get settings_chats_preview_hello => 'Hello';
+  String get settings_chats_preview_hello => 'Halo';
 
   @override
   String get chat_theme_title => 'Obrolan Tema';
@@ -4180,7 +4181,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_theme_default_global => 'bawaan (global Pengaturan)';
 
   @override
-  String get chat_theme_presets => 'Presets';
+  String get chat_theme_presets => 'Preset';
 
   @override
   String get chat_theme_global_tile => 'Global';
@@ -4294,13 +4295,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get add_contact_country_search_hint => 'Cari country atau code';
 
   @override
-  String get add_contact_sync_with_phone => 'Sync with phone';
+  String get add_contact_sync_with_phone => 'Sinkronkan dengan telepon';
 
   @override
   String get add_contact_add_by_qr => 'Tambah by Kode QR';
 
   @override
-  String get add_contact_results_unavailable => 'Results not available yet';
+  String get add_contact_results_unavailable => 'Hasil belum tersedia';
 
   @override
   String add_contact_profile_load_error(String error) {
@@ -4317,7 +4318,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get add_contact_badge_new => 'Baru Kontak';
 
   @override
-  String get add_contact_badge_unavailable => 'Unavailable';
+  String get add_contact_badge_unavailable => 'Tidak tersedia';
 
   @override
   String get add_contact_open_contact => 'Buka Kontak';
@@ -4326,7 +4327,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get add_contact_add_to_contacts => 'Tambah to Kontak';
 
   @override
-  String get add_contact_add_unavailable => 'Adding unavailable';
+  String get add_contact_add_unavailable => 'Menambahkan tidak tersedia';
 
   @override
   String get add_contact_searching => 'Searching for Kontak...';
@@ -4335,7 +4336,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get add_contact_scan_qr_title => 'Pindai kode QR';
 
   @override
-  String get add_contact_flash_tooltip => 'Flash';
+  String get add_contact_flash_tooltip => 'Kilatan';
 
   @override
   String get add_contact_scan_qr_hint =>
@@ -4350,10 +4351,10 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get contacts_edit_first_name_hint => 'First name';
+  String get contacts_edit_first_name_hint => 'Nama depan';
 
   @override
-  String get contacts_edit_last_name_hint => 'Last name';
+  String get contacts_edit_last_name_hint => 'Nama belakang';
 
   @override
   String get contacts_edit_name_disclaimer =>
@@ -4368,55 +4369,55 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_settings_color_default => 'Bawaan';
 
   @override
-  String get chat_settings_color_lilac => 'Lilac';
+  String get chat_settings_color_lilac => 'Ungu';
 
   @override
-  String get chat_settings_color_pink => 'Pink';
+  String get chat_settings_color_pink => 'Berwarna merah muda';
 
   @override
-  String get chat_settings_color_green => 'Green';
+  String get chat_settings_color_green => 'Hijau';
 
   @override
-  String get chat_settings_color_coral => 'Coral';
+  String get chat_settings_color_coral => 'Karang';
 
   @override
-  String get chat_settings_color_mint => 'Mint';
+  String get chat_settings_color_mint => 'daun mint';
 
   @override
-  String get chat_settings_color_sky => 'Sky';
+  String get chat_settings_color_sky => 'Langit';
 
   @override
-  String get chat_settings_color_purple => 'Purple';
+  String get chat_settings_color_purple => 'Ungu';
 
   @override
-  String get chat_settings_color_crimson => 'Crimson';
+  String get chat_settings_color_crimson => 'Merah tua';
 
   @override
   String get chat_settings_color_tiffany => 'Tiffany';
 
   @override
-  String get chat_settings_color_yellow => 'Yellow';
+  String get chat_settings_color_yellow => 'Kuning';
 
   @override
-  String get chat_settings_color_powder => 'Powder';
+  String get chat_settings_color_powder => 'Bubuk';
 
   @override
-  String get chat_settings_color_turquoise => 'Turquoise';
+  String get chat_settings_color_turquoise => 'Pirus';
 
   @override
-  String get chat_settings_color_blue => 'Blue';
+  String get chat_settings_color_blue => 'Biru';
 
   @override
-  String get chat_settings_color_sunset => 'Sunset';
+  String get chat_settings_color_sunset => 'Matahari terbenam';
 
   @override
-  String get chat_settings_color_tender => 'Tender';
+  String get chat_settings_color_tender => 'Lembut';
 
   @override
-  String get chat_settings_color_lime => 'Lime';
+  String get chat_settings_color_lime => 'Kapur';
 
   @override
-  String get chat_settings_color_graphite => 'Graphite';
+  String get chat_settings_color_graphite => 'Grafit';
 
   @override
   String get chat_settings_color_no_bg => 'Tidak Latar belakang';
@@ -4425,16 +4426,16 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_settings_icon_color => 'Icon Warna';
 
   @override
-  String get chat_settings_icon_size => 'Icon size';
+  String get chat_settings_icon_size => 'Ukuran ikon';
 
   @override
-  String get chat_settings_stroke_width => 'Stroke width';
+  String get chat_settings_stroke_width => 'Lebar goresan';
 
   @override
   String get chat_settings_tile_background => 'Tile Latar belakang';
 
   @override
-  String get chat_settings_bottom_nav_icons => 'Bottom navigation icons';
+  String get chat_settings_bottom_nav_icons => 'Ikon navigasi bawah';
 
   @override
   String get chat_settings_bottom_nav_description =>
@@ -4445,7 +4446,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Shared layer: Warna, size, stroke dan tile Latar belakang.';
 
   @override
-  String get chat_settings_colorful => 'Colorful';
+  String get chat_settings_colorful => 'Berwarna-warni';
 
   @override
   String get chat_settings_minimalism => 'Minimal';
@@ -4454,7 +4455,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_settings_for_all_icons => 'For Semua icons';
 
   @override
-  String get chat_settings_customize => 'Customize';
+  String get chat_settings_customize => 'Sesuaikan';
 
   @override
   String get chat_settings_hide => 'Sembunyikan';
@@ -4466,7 +4467,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_settings_reset_item => 'Atur ulang';
 
   @override
-  String get chat_settings_style => 'Style';
+  String get chat_settings_style => 'Gaya';
 
   @override
   String get chat_settings_select => 'Pilih';
@@ -4481,7 +4482,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_settings_default_gradient => 'bawaan gradient';
 
   @override
-  String get chat_settings_inherit_global => 'Inherit from global';
+  String get chat_settings_inherit_global => 'Mewarisi dari global';
 
   @override
   String get chat_settings_no_bg_on => 'Tidak Latar belakang (on)';
@@ -4499,22 +4500,22 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_settings_font_size => 'Ukuran font';
 
   @override
-  String get chat_settings_font_small => 'Small';
+  String get chat_settings_font_small => 'Kecil';
 
   @override
-  String get chat_settings_font_medium => 'Medium';
+  String get chat_settings_font_medium => 'Sedang';
 
   @override
-  String get chat_settings_font_large => 'Large';
+  String get chat_settings_font_large => 'Besar';
 
   @override
-  String get chat_settings_bubble_shape => 'Bubble shape';
+  String get chat_settings_bubble_shape => 'Bentuk gelembung';
 
   @override
-  String get chat_settings_bubble_rounded => 'Rounded';
+  String get chat_settings_bubble_rounded => 'Bulat';
 
   @override
-  String get chat_settings_bubble_square => 'Square';
+  String get chat_settings_bubble_square => 'Persegi';
 
   @override
   String get chat_settings_chat_background => 'Obrolan Latar belakang';
@@ -4524,7 +4525,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Pilih a Foto from Galeri atau customize';
 
   @override
-  String get chat_settings_emoji_effects => 'Emoji effects';
+  String get chat_settings_emoji_effects => 'Efek emoji';
 
   @override
   String get chat_settings_emoji_description =>
@@ -4543,7 +4544,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Balanced: automatic compromise between performance dan expressiveness.';
 
   @override
-  String get chat_settings_additional => 'Additional';
+  String get chat_settings_additional => 'Tambahan';
 
   @override
   String get chat_settings_show_time => 'Tampilkan time';
@@ -4558,14 +4559,14 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_settings_preview_incoming => 'Hi! How adalah Anda?';
 
   @override
-  String get chat_settings_preview_outgoing => 'Great, thanks!';
+  String get chat_settings_preview_outgoing => 'Bagus, terima kasih!';
 
   @override
-  String get chat_settings_preview_hello => 'Hello';
+  String get chat_settings_preview_hello => 'Halo';
 
   @override
   String chat_settings_icon_picker_title(String label) {
-    return 'Icon: \"$label\"';
+    return 'Ikon: \"$label\"';
   }
 
   @override
@@ -4577,11 +4578,11 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get meeting_tab_polls => 'Polls';
+  String get meeting_tab_polls => 'Jajak pendapat';
 
   @override
   String meeting_tab_polls_count(Object count) {
-    return 'Polls ($count)';
+    return 'Jajak Pendapat ($count)';
   }
 
   @override
@@ -4594,7 +4595,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String meeting_tab_requests(Object count) {
-    return 'Requests ($count)';
+    return 'Permintaan ($count)';
   }
 
   @override
@@ -4627,14 +4628,14 @@ class AppLocalizationsId extends AppLocalizations {
   String get meeting_join_enter_name => 'Masukkan Anda name';
 
   @override
-  String get meeting_join_guest => 'Guest';
+  String get meeting_join_guest => 'Tamu';
 
   @override
-  String get meeting_join_as_label => 'Вы войдёте как';
+  String get meeting_join_as_label => 'Anda akan bergabung sebagai';
 
   @override
   String get meeting_lobby_camera_blocked =>
-      'Доступ к камере не выдан. Вы войдёте с выключенной камерой.';
+      'Izin kamera ditolak. Anda akan bergabung dengan kamera mati.';
 
   @override
   String get meeting_join_button => 'Gabung';
@@ -4656,7 +4657,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get meeting_name_label => 'Anda name';
 
   @override
-  String get meeting_waiting_title => 'Waiting for approval';
+  String get meeting_waiting_title => 'Menunggu persetujuan';
 
   @override
   String get meeting_waiting_subtitle =>
@@ -4664,7 +4665,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get meeting_screen_share_ios_hint =>
-      'Screen sharing on iOS requires a Broadcast Extension (in development).';
+      'Berbagi layar di iOS memerlukan Ekstensi Siaran (dalam pengembangan).';
 
   @override
   String meeting_screen_share_error(Object error) {
@@ -4675,7 +4676,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get meeting_speaker_mode => 'Pengeras suara mode';
 
   @override
-  String get meeting_grid_mode => 'Grid mode';
+  String get meeting_grid_mode => 'Modus jaringan';
 
   @override
   String get meeting_copy_link_tooltip => 'Salin Tautan (browser entry)';
@@ -4691,7 +4692,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String group_members_total_count(int count) {
-    return 'Total: $count';
+    return 'Jumlah: $count';
   }
 
   @override
@@ -4728,10 +4729,10 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get group_members_revoke_admin_action => 'Revoke';
+  String get group_members_revoke_admin_action => 'Menarik kembali';
 
   @override
-  String get group_members_grant_admin_action => 'Grant';
+  String get group_members_grant_admin_action => 'Menganugerahkan';
 
   @override
   String get group_members_remove_title => 'Hapus anggota?';
@@ -4757,7 +4758,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get group_members_menu_remove => 'Hapus from Grup';
 
   @override
-  String get group_members_creator_badge => 'CREATOR';
+  String get group_members_creator_badge => 'PENCIPTA';
 
   @override
   String get group_members_add_title => 'Tambah anggota';
@@ -4808,33 +4809,33 @@ class AppLocalizationsId extends AppLocalizations {
   String get poll_create_title => 'Obrolan poll';
 
   @override
-  String get poll_question_label => 'Question';
+  String get poll_question_label => 'Pertanyaan';
 
   @override
-  String get poll_question_hint => 'E.g.: What time shall we meet?';
+  String get poll_question_hint => 'Misalnya: Jam berapa kita akan bertemu?';
 
   @override
   String get poll_description_label => 'Deskripsi (opsional)';
 
   @override
-  String get poll_options_title => 'Options';
+  String get poll_options_title => 'Pilihan';
 
   @override
   String poll_option_hint(int index) {
-    return 'Option $index';
+    return 'Opsi $index';
   }
 
   @override
   String get poll_add_option => 'Tambah option';
 
   @override
-  String get poll_switch_anonymous => 'Anonymous voting';
+  String get poll_switch_anonymous => 'Pemungutan suara anonim';
 
   @override
   String get poll_switch_anonymous_sub => 'Do not Tampilkan who voted for what';
 
   @override
-  String get poll_switch_multi => 'Multiple answers';
+  String get poll_switch_multi => 'Banyak jawaban';
 
   @override
   String get poll_switch_multi_sub => 'Multiple options dapat be Dipilih';
@@ -4850,22 +4851,23 @@ class AppLocalizationsId extends AppLocalizations {
   String get poll_switch_revote => 'dapat change vote';
 
   @override
-  String get poll_switch_revote_sub => 'Revote allowed until poll closes';
+  String get poll_switch_revote_sub =>
+      'Pemungutan suara ulang diperbolehkan sampai pemungutan suara ditutup';
 
   @override
-  String get poll_switch_shuffle => 'Shuffle options';
+  String get poll_switch_shuffle => 'Opsi acak';
 
   @override
-  String get poll_switch_shuffle_sub => 'Different order for each participant';
+  String get poll_switch_shuffle_sub => 'Urutan berbeda untuk setiap peserta';
 
   @override
-  String get poll_switch_quiz => 'Quiz mode';
+  String get poll_switch_quiz => 'Modus kuis';
 
   @override
   String get poll_switch_quiz_sub => 'One correct Jawab';
 
   @override
-  String get poll_correct_option_label => 'Correct option';
+  String get poll_correct_option_label => 'Pilihan yang benar';
 
   @override
   String get poll_quiz_explanation_label => 'Explanation (opsional)';
@@ -4874,13 +4876,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get poll_close_by_time => 'Tutup by time';
 
   @override
-  String get poll_close_not_set => 'Not set';
+  String get poll_close_not_set => 'Tidak disetel';
 
   @override
   String get poll_close_reset => 'Atur ulang deadline';
 
   @override
-  String get poll_publish => 'Publish';
+  String get poll_publish => 'Menerbitkan';
 
   @override
   String get poll_error_empty_question => 'Masukkan a question';
@@ -4895,7 +4897,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get poll_error_future_time => 'Closing time must be in  future';
 
   @override
-  String get poll_unavailable => 'Poll unavailable';
+  String get poll_unavailable => 'Jajak pendapat tidak tersedia';
 
   @override
   String get poll_loading => 'Memuat poll…';
@@ -4904,31 +4906,31 @@ class AppLocalizationsId extends AppLocalizations {
   String get poll_not_found => 'Poll Tidak ditemukan';
 
   @override
-  String get poll_status_cancelled => 'Cancelled';
+  String get poll_status_cancelled => 'Dibatalkan';
 
   @override
-  String get poll_status_ended => 'Ended';
+  String get poll_status_ended => 'Berakhir';
 
   @override
-  String get poll_status_draft => 'Draft';
+  String get poll_status_draft => 'Draf';
 
   @override
   String get poll_status_active => 'Aktif';
 
   @override
-  String get poll_badge_public => 'Public';
+  String get poll_badge_public => 'Publik';
 
   @override
-  String get poll_badge_multi => 'Multiple answers';
+  String get poll_badge_multi => 'Banyak jawaban';
 
   @override
-  String get poll_badge_quiz => 'Quiz';
+  String get poll_badge_quiz => 'Kuis';
 
   @override
-  String get poll_menu_restart => 'Restart';
+  String get poll_menu_restart => 'Mulai ulang';
 
   @override
-  String get poll_menu_end => 'End';
+  String get poll_menu_end => 'Akhir';
 
   @override
   String get poll_menu_delete => 'Hapus';
@@ -4937,18 +4939,18 @@ class AppLocalizationsId extends AppLocalizations {
   String get poll_submit_vote => 'Kirim vote';
 
   @override
-  String get poll_suggest_option_hint => 'Suggest an option';
+  String get poll_suggest_option_hint => 'Sarankan sebuah opsi';
 
   @override
-  String get poll_revote => 'Change vote';
+  String get poll_revote => 'Ubah suara';
 
   @override
   String poll_votes_count(int count) {
-    return '$count votes';
+    return '$count suara';
   }
 
   @override
-  String get poll_show_voters => 'Who voted';
+  String get poll_show_voters => 'Siapa yang memilih';
 
   @override
   String get poll_hide_voters => 'Sembunyikan';
@@ -4966,7 +4968,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get durak_your_turn => 'Giliran Anda';
 
   @override
-  String get durak_winner_label => 'Winner';
+  String get durak_winner_label => 'Pemenang';
 
   @override
   String get durak_rematch => 'Main again';
@@ -4978,22 +4980,22 @@ class AppLocalizationsId extends AppLocalizations {
   String get durak_close_tooltip => 'Tutup';
 
   @override
-  String get durak_fx_took => 'Took';
+  String get durak_fx_took => 'Telah mengambil';
 
   @override
-  String get durak_fx_beat => 'Beaten';
+  String get durak_fx_beat => 'Dipukuli';
 
   @override
   String get durak_opponent_role_defend => 'DEF';
 
   @override
-  String get durak_opponent_role_attack => 'ATK';
+  String get durak_opponent_role_attack => 'serangan';
 
   @override
   String get durak_opponent_role_throwin => 'THR';
 
   @override
-  String get durak_foul_banner_title => 'Cheater! Missed:';
+  String get durak_foul_banner_title => 'Penipu! Dirindukan:';
 
   @override
   String get durak_pending_resolution_attacker =>
@@ -5009,7 +5011,7 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get durak_tournament_finished => 'Tournament finished';
+  String get durak_tournament_finished => 'Turnamen selesai';
 
   @override
   String get durak_tournament_next => 'Berikutnya tournament Permainan';
@@ -5038,13 +5040,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get durak_lobby_start => 'Mulai Permainan';
 
   @override
-  String get durak_lobby_waiting_short => 'Waiting…';
+  String get durak_lobby_waiting_short => 'Menunggu…';
 
   @override
-  String get durak_lobby_ready => 'Ready';
+  String get durak_lobby_ready => 'Siap';
 
   @override
-  String get durak_lobby_empty_slot => 'Waiting…';
+  String get durak_lobby_empty_slot => 'Menunggu…';
 
   @override
   String get durak_settings_timer_subtitle => '15 detik by bawaan';
@@ -5080,7 +5082,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get group_avatar_add_photo => 'Tambah Foto';
 
   @override
-  String get group_avatar_change => 'Change avatar';
+  String get group_avatar_change => 'Ubah avatar';
 
   @override
   String get group_avatar_remove => 'Hapus avatar';
@@ -5098,7 +5100,7 @@ class AppLocalizationsId extends AppLocalizations {
       'This card does not beat  attacking card';
 
   @override
-  String get durak_error_only_attacker_first => 'Attacker goes first';
+  String get durak_error_only_attacker_first => 'Penyerang pergi duluan';
 
   @override
   String get durak_error_defender_cannot_attack =>
@@ -5145,7 +5147,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Permainan adalah Tidak longer Aktif';
 
   @override
-  String get durak_error_not_in_lobby => 'Lobby has already started';
+  String get durak_error_not_in_lobby => 'Lobi sudah dimulai';
 
   @override
   String get durak_error_game_already_active => 'Permainan has already started';
@@ -5169,7 +5171,7 @@ class AppLocalizationsId extends AppLocalizations {
       'This action adalah not available to Anda';
 
   @override
-  String get durak_error_invalid_argument => 'Invalid move';
+  String get durak_error_invalid_argument => 'Langkah tidak valid';
 
   @override
   String get durak_error_failed_precondition =>
@@ -5196,13 +5198,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get pinned_type_video => 'Video';
 
   @override
-  String get pinned_type_video_circle => 'Video circle';
+  String get pinned_type_video_circle => 'Lingkaran video';
 
   @override
   String get pinned_type_voice => 'Pesan suara';
 
   @override
-  String get pinned_type_poll => 'Poll';
+  String get pinned_type_poll => 'Pemilihan';
 
   @override
   String get pinned_type_link => 'Tautan';
@@ -5241,7 +5243,7 @@ class AppLocalizationsId extends AppLocalizations {
       'This Panggilan adalah Tidak longer available. Returning to Panggilan…';
 
   @override
-  String get call_entry_caller_fallback => 'Caller';
+  String get call_entry_caller_fallback => 'Penelepon';
 
   @override
   String get call_entry_opening_title => 'Opening Panggilan…';
@@ -5374,10 +5376,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get video_circle_retry => 'Coba lagi';
 
   @override
-  String get video_circle_sending => 'Sending...';
+  String get video_circle_sending => 'Mengirim...';
 
   @override
-  String get video_circle_recorded => 'Circle recorded';
+  String get video_circle_recorded => 'Lingkaran direkam';
 
   @override
   String get video_circle_swipe_cancel => 'Swipe left to Batal';
@@ -5394,13 +5396,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get media_tab_media => 'Media';
 
   @override
-  String get media_tab_circles => 'Circles';
+  String get media_tab_circles => 'lingkaran';
 
   @override
   String get media_tab_files => 'Berkas';
 
   @override
-  String get media_tab_links => 'Links';
+  String get media_tab_links => 'Tautan';
 
   @override
   String get media_empty_files => 'Tidak Berkas';
@@ -5409,7 +5411,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get media_empty_media => 'Tidak Media';
 
   @override
-  String get media_attachment_fallback => 'Attachment';
+  String get media_attachment_fallback => 'Lampiran';
 
   @override
   String get media_empty_circles => 'Tidak circles';
@@ -5421,7 +5423,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get media_sender_you => 'Anda';
 
   @override
-  String get media_sender_fallback => 'Participant';
+  String get media_sender_fallback => 'Peserta';
 
   @override
   String get call_detail_login_required => 'Login wajib.';
@@ -5431,7 +5433,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Panggilan Tidak ditemukan atau Tidak access.';
 
   @override
-  String get call_detail_unknown => 'Unknown';
+  String get call_detail_unknown => 'Tidak dikenal';
 
   @override
   String get call_detail_title => 'Panggilan details';
@@ -5443,16 +5445,16 @@ class AppLocalizationsId extends AppLocalizations {
   String get call_detail_audio => 'Panggilan audio';
 
   @override
-  String get call_detail_outgoing => 'Outgoing';
+  String get call_detail_outgoing => 'Keluar';
 
   @override
-  String get call_detail_incoming => 'Incoming';
+  String get call_detail_incoming => 'Masuk';
 
   @override
-  String get call_detail_date_label => 'Date:';
+  String get call_detail_date_label => 'Tanggal:';
 
   @override
-  String get call_detail_duration_label => 'Duration:';
+  String get call_detail_duration_label => 'Lamanya:';
 
   @override
   String get call_detail_call_button => 'Panggilan';
@@ -5466,10 +5468,10 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get durak_took => 'Took';
+  String get durak_took => 'Telah mengambil';
 
   @override
-  String get durak_beaten => 'Beaten';
+  String get durak_beaten => 'Dipukuli';
 
   @override
   String get durak_end_game_tooltip => 'End Permainan';
@@ -5478,13 +5480,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get durak_role_beats => 'DEF';
 
   @override
-  String get durak_role_move => 'MOVE';
+  String get durak_role_move => 'BERGERAK';
 
   @override
   String get durak_role_throw => 'THR';
 
   @override
-  String get durak_cheater_label => 'Cheater! Missed:';
+  String get durak_cheater_label => 'Penipu! Dirindukan:';
 
   @override
   String get durak_waiting_foll_confirm =>
@@ -5495,7 +5497,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Waiting for foul Panggilan… Anda dapat Sekarang press \"Foul!\" if Anda noticed cheating.';
 
   @override
-  String get durak_winner => 'Winner';
+  String get durak_winner => 'Pemenang';
 
   @override
   String get durak_play_again => 'Main again';
@@ -5550,7 +5552,7 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get privacy_visibility => 'Visibility';
+  String get privacy_visibility => 'Visibilitas';
 
   @override
   String get privacy_online_status => 'Daring Status';
@@ -5568,7 +5570,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get privacy_phone_number => 'Nomor telepon';
 
   @override
-  String get privacy_birthday => 'Birthday';
+  String get privacy_birthday => 'Hari ulang tahun';
 
   @override
   String get privacy_about => 'Tentang';
@@ -5591,16 +5593,16 @@ class AppLocalizationsId extends AppLocalizations {
   String get starred_sender_you => 'Anda';
 
   @override
-  String get starred_sender_fallback => 'Participant';
+  String get starred_sender_fallback => 'Peserta';
 
   @override
-  String get starred_type_poll => 'Poll';
+  String get starred_type_poll => 'Pemilihan';
 
   @override
   String get starred_type_location => 'Lokasi';
 
   @override
-  String get starred_type_attachment => 'Attachment';
+  String get starred_type_attachment => 'Lampiran';
 
   @override
   String starred_today_prefix(Object time) {
@@ -5619,10 +5621,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get contact_edit_user_fallback => 'Pengguna';
 
   @override
-  String get contact_edit_first_name_hint => 'First name';
+  String get contact_edit_first_name_hint => 'Nama depan';
 
   @override
-  String get contact_edit_last_name_hint => 'Last name';
+  String get contact_edit_last_name_hint => 'Nama belakang';
 
   @override
   String get contact_edit_description =>
@@ -5667,25 +5669,25 @@ class AppLocalizationsId extends AppLocalizations {
   String get attach_files => 'Berkas';
 
   @override
-  String get attach_circle => 'Circle';
+  String get attach_circle => 'Lingkaran';
 
   @override
   String get attach_location => 'Lokasi';
 
   @override
-  String get attach_poll => 'Poll';
+  String get attach_poll => 'Pemilihan';
 
   @override
   String get attach_stickers => 'Stiker';
 
   @override
-  String get attach_clipboard => 'Clipboard';
+  String get attach_clipboard => 'papan klip';
 
   @override
-  String get attach_text => 'Text';
+  String get attach_text => 'Teks';
 
   @override
-  String get attach_title => 'Attach';
+  String get attach_title => 'Menempel';
 
   @override
   String notif_save_error(Object error) {
@@ -5729,7 +5731,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get poll_create_future_time => 'Tutup time must be in  future';
 
   @override
-  String get poll_create_question_label => 'Question';
+  String get poll_create_question_label => 'Pertanyaan';
 
   @override
   String get poll_create_question_hint =>
@@ -5739,25 +5741,25 @@ class AppLocalizationsId extends AppLocalizations {
   String get poll_create_explanation_label => 'Explanation (opsional)';
 
   @override
-  String get poll_create_options_title => 'Options';
+  String get poll_create_options_title => 'Pilihan';
 
   @override
   String poll_create_option_hint(Object index) {
-    return 'Option $index';
+    return 'Opsi $index';
   }
 
   @override
   String get poll_create_add_option => 'Tambah option';
 
   @override
-  String get poll_create_anonymous_title => 'Anonymous voting';
+  String get poll_create_anonymous_title => 'Pemungutan suara anonim';
 
   @override
   String get poll_create_anonymous_subtitle =>
       'Don\'t Tampilkan who voted for what';
 
   @override
-  String get poll_create_multi_title => 'Multiple answers';
+  String get poll_create_multi_title => 'Banyak jawaban';
 
   @override
   String get poll_create_multi_subtitle => 'dapat Pilih multiple options';
@@ -5770,60 +5772,60 @@ class AppLocalizationsId extends AppLocalizations {
       'Participants dapat suggest their own option';
 
   @override
-  String get poll_create_revote_title => 'Allow revote';
+  String get poll_create_revote_title => 'Izinkan pemungutan suara ulang';
 
   @override
   String get poll_create_revote_subtitle =>
       'dapat change vote until poll closes';
 
   @override
-  String get poll_create_shuffle_title => 'Shuffle options';
+  String get poll_create_shuffle_title => 'Opsi acak';
 
   @override
   String get poll_create_shuffle_subtitle =>
-      'Each participant sees a different order';
+      'Setiap peserta melihat urutan yang berbeda';
 
   @override
-  String get poll_create_quiz_title => 'Quiz mode';
+  String get poll_create_quiz_title => 'Modus kuis';
 
   @override
   String get poll_create_quiz_subtitle => 'One correct Jawab';
 
   @override
-  String get poll_create_correct_option_label => 'Correct option';
+  String get poll_create_correct_option_label => 'Pilihan yang benar';
 
   @override
   String get poll_create_close_by_time => 'Tutup by time';
 
   @override
-  String get poll_create_not_set => 'Not set';
+  String get poll_create_not_set => 'Tidak disetel';
 
   @override
   String get poll_create_reset_deadline => 'Atur ulang deadline';
 
   @override
-  String get poll_create_publish => 'Publish';
+  String get poll_create_publish => 'Menerbitkan';
 
   @override
   String get poll_error => 'Kesalahan';
 
   @override
-  String get poll_status_finished => 'Finished';
+  String get poll_status_finished => 'Selesai';
 
   @override
-  String get poll_restart => 'Restart';
+  String get poll_restart => 'Mulai ulang';
 
   @override
-  String get poll_finish => 'Finish';
+  String get poll_finish => 'Menyelesaikan';
 
   @override
-  String get poll_suggest_hint => 'Suggest an option';
+  String get poll_suggest_hint => 'Sarankan sebuah opsi';
 
   @override
   String get poll_voters_toggle_hide => 'Sembunyikan';
 
   @override
-  String get poll_voters_toggle_show => 'Who voted';
+  String get poll_voters_toggle_show => 'Siapa yang memilih';
 
   @override
   String get e2ee_disable_title => 'Nonaktifkan Enkripsi?';
@@ -5860,14 +5862,14 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String e2ee_status_enabled(Object epoch) {
-    return 'Enabled (key epoch: $epoch)';
+    return 'Diaktifkan (masa kunci: $epoch)';
   }
 
   @override
-  String get e2ee_status_disabled => 'Disabled';
+  String get e2ee_status_disabled => 'Dengan disabilitas';
 
   @override
-  String get e2ee_data_types_title => 'Data types';
+  String get e2ee_data_types_title => 'Tipe data';
 
   @override
   String get e2ee_data_types_info =>
@@ -5894,7 +5896,7 @@ class AppLocalizationsId extends AppLocalizations {
       'To change for this Obrolan — Aktifkan \"Override\".';
 
   @override
-  String get group_member_fallback => 'Participant';
+  String get group_member_fallback => 'Peserta';
 
   @override
   String get group_role_creator => 'Grup creator';
@@ -5904,7 +5906,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String group_total_count(Object count) {
-    return 'Total: $count';
+    return 'Jumlah: $count';
   }
 
   @override
@@ -5936,7 +5938,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get group_demote_button => 'Hapus rights';
 
   @override
-  String get group_promote_button => 'Promote';
+  String get group_promote_button => 'Mendorong';
 
   @override
   String get group_kick_confirm => 'Hapus anggota?';
@@ -5948,7 +5950,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get group_member_kicked => 'Anggota Dihapus';
 
   @override
-  String get group_badge_creator => 'CREATOR';
+  String get group_badge_creator => 'PENCIPTA';
 
   @override
   String get group_demote_action => 'Hapus Admin';
@@ -6021,7 +6023,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get add_contact_country_search => 'Cari country atau code';
 
   @override
-  String get add_contact_sync_phone => 'Sync with phone';
+  String get add_contact_sync_phone => 'Sinkronkan dengan telepon';
 
   @override
   String get add_contact_qr_button => 'Tambah by Kode QR';
@@ -6041,7 +6043,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get add_contact_new => 'Baru Kontak';
 
   @override
-  String get add_contact_unavailable => 'Unavailable';
+  String get add_contact_unavailable => 'Tidak tersedia';
 
   @override
   String get add_contact_scan_qr => 'Pindai kode QR';
@@ -6050,8 +6052,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get add_contact_scan_hint => 'Point Kamera at LighChat Profil Kode QR';
 
   @override
-  String get auth_validate_name_min_length =>
-      'Name must be at least 2 characters';
+  String get auth_validate_name_min_length => 'Nama minimal harus 2 karakter';
 
   @override
   String get auth_validate_username_min_length =>
@@ -6077,14 +6078,14 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get auth_validate_bio_max_length =>
-      'Bio must not exceed 200 characters';
+      'Bio tidak boleh melebihi 200 karakter';
 
   @override
   String get auth_validate_password_min_length =>
       'Kata sandi must be at least 6 characters';
 
   @override
-  String get auth_validate_passwords_mismatch => 'Passwords do not match';
+  String get auth_validate_passwords_mismatch => 'Kata sandi tidak cocok';
 
   @override
   String get sticker_new_pack => 'Baru pack…';
@@ -6104,33 +6105,34 @@ class AppLocalizationsId extends AppLocalizations {
   String get sticker_save_failed => 'Gagal to Unduh atau Simpan GIF';
 
   @override
-  String get sticker_tab_my => 'My';
+  String get sticker_tab_my => '-ku';
 
   @override
-  String get sticker_tab_shared => 'Shared';
+  String get sticker_tab_shared => 'Dibagikan';
 
   @override
   String get sticker_no_packs => 'Tidak Stiker packs. Buat a Baru one.';
 
   @override
-  String get sticker_shared_not_configured => 'Shared packs not configured';
+  String get sticker_shared_not_configured =>
+      'Paket bersama tidak dikonfigurasi';
 
   @override
-  String get sticker_recent => 'RECENT';
+  String get sticker_recent => 'TERKINI';
 
   @override
   String get sticker_gallery_description =>
       'Foto, PNG, GIF from Perangkat — straight to Obrolan';
 
   @override
-  String get sticker_shared_unavailable => 'Shared packs not yet available';
+  String get sticker_shared_unavailable => 'Paket bersama belum tersedia';
 
   @override
   String get sticker_gif_search_hint => 'Cari GIF…';
 
   @override
   String sticker_gif_searched(Object query) {
-    return 'Searched: $query';
+    return 'Ditelusuri: $query';
   }
 
   @override
@@ -6138,13 +6140,13 @@ class AppLocalizationsId extends AppLocalizations {
       'GIF Cari temporarily unavailable.';
 
   @override
-  String get sticker_gif_nothing_found => 'Nothing found';
+  String get sticker_gif_nothing_found => 'Tidak ada yang ditemukan';
 
   @override
   String get sticker_gif_all => 'Semua';
 
   @override
-  String get sticker_gif_animated => 'ANIMATED';
+  String get sticker_gif_animated => 'ANIMASI';
 
   @override
   String get sticker_emoji_text_unavailable =>
@@ -6205,7 +6207,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String system_event_name_changed(Object name) {
-    return 'Name changed to \"$name\"';
+    return 'Nama diubah menjadi \"$name\"';
   }
 
   @override
@@ -6218,16 +6220,16 @@ class AppLocalizationsId extends AppLocalizations {
   String get image_editor_clear => 'Hapus';
 
   @override
-  String get image_editor_pen => 'Brush';
+  String get image_editor_pen => 'Sikat';
 
   @override
-  String get image_editor_text => 'Text';
+  String get image_editor_text => 'Teks';
 
   @override
-  String get image_editor_crop => 'Crop';
+  String get image_editor_crop => 'Tanaman';
 
   @override
-  String get image_editor_rotate => 'Rotate';
+  String get image_editor_rotate => 'Memutar';
 
   @override
   String get location_title => 'Kirim Lokasi';
@@ -6239,7 +6241,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get location_send_button => 'Kirim';
 
   @override
-  String get location_live_label => 'Live';
+  String get location_live_label => 'Hidup';
 
   @override
   String get location_error => 'Gagal to load map';
@@ -6251,7 +6253,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get group_member_admin => 'Admin';
 
   @override
-  String get group_member_creator => 'Creator';
+  String get group_member_creator => 'Pencipta';
 
   @override
   String get group_member_member => 'Anggota';
@@ -6287,13 +6289,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get voice_preview_send => 'Kirim';
 
   @override
-  String get voice_preview_recorded => 'Recorded';
+  String get voice_preview_recorded => 'Tercatat';
 
   @override
-  String get voice_preview_playing => 'Playing…';
+  String get voice_preview_playing => 'Bermain…';
 
   @override
-  String get voice_preview_paused => 'Paused';
+  String get voice_preview_paused => 'Dijeda';
 
   @override
   String get group_avatar_camera => 'Kamera';
@@ -6314,7 +6316,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get avatar_picker_gallery => 'Galeri';
 
   @override
-  String get avatar_picker_crop => 'Crop';
+  String get avatar_picker_crop => 'Tanaman';
 
   @override
   String get avatar_picker_save => 'Simpan';
@@ -6374,16 +6376,16 @@ class AppLocalizationsId extends AppLocalizations {
   String get google_profile_title => 'Complete Anda Profil';
 
   @override
-  String get google_profile_name => 'Name';
+  String get google_profile_name => 'Nama';
 
   @override
   String get google_profile_username => 'Nama pengguna';
 
   @override
-  String get google_profile_phone => 'Phone';
+  String get google_profile_phone => 'Telepon';
 
   @override
-  String get google_profile_email => 'Email';
+  String get google_profile_email => 'E-mail';
 
   @override
   String get google_profile_dob => 'Date dari birth';
@@ -6437,22 +6439,22 @@ class AppLocalizationsId extends AppLocalizations {
   String get image_editor_draw_hint => 'Drawing mode: swipe across  Gambar';
 
   @override
-  String get image_editor_crop_title => 'Crop';
+  String get image_editor_crop_title => 'Tanaman';
 
   @override
   String get location_preview_title => 'Lokasi';
 
   @override
-  String get location_preview_accuracy_unknown => 'Accuracy: —';
+  String get location_preview_accuracy_unknown => 'Akurasi: —';
 
   @override
   String location_preview_accuracy_meters(String meters) {
-    return 'Accuracy: ~$meters m';
+    return 'Akurasi: ~$meters m';
   }
 
   @override
   String location_preview_accuracy_km(String km) {
-    return 'Accuracy: ~$km km';
+    return 'Akurasi: ~$km km';
   }
 
   @override
@@ -6484,10 +6486,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get conversation_game_lobby_start_game => 'Mulai Permainan';
 
   @override
-  String get conversation_game_lobby_waiting_short => 'Waiting…';
+  String get conversation_game_lobby_waiting_short => 'Menunggu…';
 
   @override
-  String get conversation_game_lobby_ready => 'Ready';
+  String get conversation_game_lobby_ready => 'Siap';
 
   @override
   String get voice_preview_trim_confirm_title => 'Keep only  Dipilih fragment?';
@@ -6503,7 +6505,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get voice_preview_continue_recording => 'Lanjutkan Merekam';
 
   @override
-  String get group_avatar_change_short => 'Change';
+  String get group_avatar_change_short => 'Mengubah';
 
   @override
   String get avatar_picker_cancel => 'Batal';
@@ -6521,7 +6523,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get avatar_picker_choose_avatar => 'Pilih avatar';
 
   @override
-  String get avatar_picker_change_avatar => 'Change avatar';
+  String get avatar_picker_change_avatar => 'Ubah avatar';
 
   @override
   String get avatar_picker_remove_tooltip => 'Hapus';
@@ -6543,7 +6545,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get telegram_sign_in_login_error => 'Telegram sign-in Kesalahan.';
 
   @override
-  String get telegram_sign_in_firebase_not_ready => 'Firebase not ready.';
+  String get telegram_sign_in_firebase_not_ready => 'Firebase belum siap.';
 
   @override
   String get telegram_sign_in_browser_failed => 'Gagal to Buka browser.';
@@ -6566,7 +6568,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get yandex_sign_in_login_error => 'Yandex sign-in Kesalahan.';
 
   @override
-  String get yandex_sign_in_firebase_not_ready => 'Firebase not ready.';
+  String get yandex_sign_in_firebase_not_ready => 'Firebase belum siap.';
 
   @override
   String get yandex_sign_in_browser_failed => 'Gagal to Buka browser.';
@@ -6577,23 +6579,23 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get google_complete_title => 'Complete registration';
+  String get google_complete_title => 'Pendaftaran lengkap';
 
   @override
   String get google_complete_subtitle =>
       'After signing in with Google, Silakan fill in Anda Profil as on  web Versi.';
 
   @override
-  String get google_complete_name_label => 'Name';
+  String get google_complete_name_label => 'Nama';
 
   @override
   String get google_complete_username_label => 'Nama pengguna (@Nama pengguna)';
 
   @override
-  String get google_complete_phone_label => 'Phone (11 digits)';
+  String get google_complete_phone_label => 'Telepon (11 digit)';
 
   @override
-  String get google_complete_email_label => 'Email';
+  String get google_complete_email_label => 'E-mail';
 
   @override
   String get google_complete_email_hint => 'Anda@example.com';
@@ -6686,7 +6688,7 @@ class AppLocalizationsId extends AppLocalizations {
       'This action adalah not available to Anda';
 
   @override
-  String get game_error_invalid_argument => 'Invalid move';
+  String get game_error_invalid_argument => 'Langkah tidak valid';
 
   @override
   String get game_error_precondition =>
@@ -6702,7 +6704,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get reply_gif => 'GIF';
 
   @override
-  String get reply_video_circle => 'Video circle';
+  String get reply_video_circle => 'Lingkaran video';
 
   @override
   String get reply_voice_message => 'Pesan suara';
@@ -6720,7 +6722,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get reply_location => 'Lokasi';
 
   @override
-  String get reply_poll => 'Poll';
+  String get reply_poll => 'Pemilihan';
 
   @override
   String get reply_link => 'Tautan';
@@ -6741,16 +6743,16 @@ class AppLocalizationsId extends AppLocalizations {
   String get call_format_yesterday => 'Kemarin';
 
   @override
-  String get call_format_second_short => 's';
+  String get call_format_second_short => 'S';
 
   @override
-  String get call_format_minute_short => 'm';
+  String get call_format_minute_short => 'M';
 
   @override
-  String get call_format_hour_short => 'h';
+  String get call_format_hour_short => 'H';
 
   @override
-  String get call_format_day_short => 'd';
+  String get call_format_day_short => 'D';
 
   @override
   String get call_month_january => 'Januari';
@@ -6851,11 +6853,11 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String video_editor_duration(Object duration) {
-    return 'Duration: $duration';
+    return 'Durasi: $duration';
   }
 
   @override
-  String get video_editor_brush => 'Brush';
+  String get video_editor_brush => 'Sikat';
 
   @override
   String get video_editor_caption_hint => 'Tambah caption...';
@@ -6873,7 +6875,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get share_location_title => 'Bagikan Lokasi';
 
   @override
-  String get share_location_how => 'Sharing method';
+  String get share_location_how => 'Metode berbagi';
 
   @override
   String get share_location_cancel => 'Batal';
@@ -6926,7 +6928,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get link_webview_open_browser_tooltip => 'Buka in browser';
 
   @override
-  String get hold_record_pause => 'Paused';
+  String get hold_record_pause => 'Dijeda';
 
   @override
   String get hold_record_release_cancel => 'Release to Batal';
@@ -6952,7 +6954,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String e2ee_badge_devices(Object count) {
-    return '$count dev.';
+    return '$count pengembang.';
   }
 
   @override
@@ -6964,37 +6966,37 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get message_search_not_found => 'NOTHING FOUND';
+  String get message_search_not_found => 'TIDAK ADA YANG DITEMUKAN';
 
   @override
-  String get message_search_participant_fallback => 'Participant';
+  String get message_search_participant_fallback => 'Peserta';
 
   @override
-  String get wallpaper_purple => 'Purple';
+  String get wallpaper_purple => 'Ungu';
 
   @override
-  String get wallpaper_pink => 'Pink';
+  String get wallpaper_pink => 'Berwarna merah muda';
 
   @override
-  String get wallpaper_blue => 'Blue';
+  String get wallpaper_blue => 'Biru';
 
   @override
-  String get wallpaper_green => 'Green';
+  String get wallpaper_green => 'Hijau';
 
   @override
-  String get wallpaper_sunset => 'Sunset';
+  String get wallpaper_sunset => 'Matahari terbenam';
 
   @override
-  String get wallpaper_tender => 'Tender';
+  String get wallpaper_tender => 'Lembut';
 
   @override
-  String get wallpaper_lime => 'Lime';
+  String get wallpaper_lime => 'Kapur';
 
   @override
-  String get wallpaper_graphite => 'Graphite';
+  String get wallpaper_graphite => 'Grafit';
 
   @override
-  String get avatar_crop_title => 'Adjust avatar';
+  String get avatar_crop_title => 'Sesuaikan avatar';
 
   @override
   String get avatar_crop_hint =>
@@ -7018,7 +7020,7 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get meeting_entry_participant_fallback => 'Participant';
+  String get meeting_entry_participant_fallback => 'Peserta';
 
   @override
   String get meeting_entry_back => 'Kembali';
@@ -7027,7 +7029,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get meeting_chat_copy => 'Salin';
 
   @override
-  String get meeting_chat_edit => 'Edit';
+  String get meeting_chat_edit => 'Sunting';
 
   @override
   String get meeting_chat_delete => 'Hapus';
@@ -7036,7 +7038,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get meeting_chat_deleted => 'Pesan Dihapus';
 
   @override
-  String get meeting_chat_edited_mark => '• edited';
+  String get meeting_chat_edited_mark => '• diedit';
 
   @override
   String get e2ee_decrypt_image_failed => 'Gagal to decrypt Gambar';
@@ -7051,7 +7053,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get e2ee_decrypt_attachment_failed => 'Gagal to decrypt attachment';
 
   @override
-  String get search_preview_attachment => 'Attachment';
+  String get search_preview_attachment => 'Lampiran';
 
   @override
   String get search_preview_location => 'Lokasi';
@@ -7060,11 +7062,11 @@ class AppLocalizationsId extends AppLocalizations {
   String get search_preview_message => 'Pesan';
 
   @override
-  String get outbox_attachment_singular => 'Attachment';
+  String get outbox_attachment_singular => 'Lampiran';
 
   @override
   String outbox_attachments_count(int count) {
-    return 'Attachments ($count)';
+    return 'Lampiran ($count)';
   }
 
   @override
@@ -7082,7 +7084,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get nav_contacts => 'Kontak';
 
   @override
-  String get nav_meetings => 'Meetings';
+  String get nav_meetings => 'Rapat';
 
   @override
   String get nav_calls => 'Panggilan';
@@ -7101,7 +7103,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Gagal to decrypt attachment';
 
   @override
-  String get chat_search_snippet_attachment => 'Attachment';
+  String get chat_search_snippet_attachment => 'Lampiran';
 
   @override
   String get chat_search_snippet_location => 'Lokasi';
@@ -7116,13 +7118,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get bottom_nav_contacts => 'Kontak';
 
   @override
-  String get bottom_nav_meetings => 'Meetings';
+  String get bottom_nav_meetings => 'Rapat';
 
   @override
   String get bottom_nav_calls => 'Panggilan';
 
   @override
-  String get chat_list_swipe_folders => 'FOLDERS';
+  String get chat_list_swipe_folders => 'FOLDER';
 
   @override
   String get chat_list_swipe_clear => 'Hapus';
@@ -7137,7 +7139,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get composer_editing_cancel_tooltip => 'Batal editing';
 
   @override
-  String get composer_formatting_title => 'FORMATTING';
+  String get composer_formatting_title => 'MEMFORMAT';
 
   @override
   String get composer_link_preview_loading => 'Memuat preview…';
@@ -7149,10 +7151,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_invite_button => 'Undang';
 
   @override
-  String get forward_preview_unknown_sender => 'Unknown';
+  String get forward_preview_unknown_sender => 'Tidak dikenal';
 
   @override
-  String get forward_preview_attachment => 'Attachment';
+  String get forward_preview_attachment => 'Lampiran';
 
   @override
   String get forward_preview_message => 'Pesan';
@@ -7183,7 +7185,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String reactions_rated_count(int count) {
-    return 'Reacted: $count';
+    return 'Bereaksi: $count';
   }
 
   @override
@@ -7201,7 +7203,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get dm_game_banner_created => 'Durak Permainan Dibuat';
 
   @override
-  String get chat_folder_favorites => 'Favorites';
+  String get chat_folder_favorites => 'Favorit';
 
   @override
   String get chat_folder_new => 'Baru';
@@ -7215,7 +7217,7 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get conversation_threads_loading_title => 'Threads';
+  String get conversation_threads_loading_title => 'benang';
 
   @override
   String get theme_label_light => 'Terang';
@@ -7224,7 +7226,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get theme_label_dark => 'Gelap';
 
   @override
-  String get theme_label_auto => 'Auto';
+  String get theme_label_auto => 'Mobil';
 
   @override
   String get chat_draft_reply_fallback => 'Balas';
@@ -7236,7 +7238,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get contacts_fallback_name => 'Kontak';
 
   @override
-  String get sticker_pack_default_name => 'My pack';
+  String get sticker_pack_default_name => 'Paket saya';
 
   @override
   String get profile_error_phone_taken =>
@@ -7268,7 +7270,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get mention_fallback_label_capitalized => 'Anggota';
 
   @override
-  String get meeting_speaking_label => 'Speaking';
+  String get meeting_speaking_label => 'Berbicara';
 
   @override
   String meeting_local_you_suffix(String name) {
@@ -7276,7 +7278,7 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get video_crop_title => 'Crop';
+  String get video_crop_title => 'Tanaman';
 
   @override
   String video_crop_load_error(String error) {
@@ -7284,10 +7286,10 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get gif_section_recent => 'RECENT';
+  String get gif_section_recent => 'TERKINI';
 
   @override
-  String get gif_section_trending => 'TRENDING';
+  String get gif_section_trending => 'TREN';
 
   @override
   String get auth_create_account_title => 'Buat Akun';
@@ -7298,13 +7300,13 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get call_status_missed => 'Missed';
+  String get call_status_missed => 'Dirindukan';
 
   @override
-  String get call_status_cancelled => 'Cancelled';
+  String get call_status_cancelled => 'Dibatalkan';
 
   @override
-  String get call_status_ended => 'Ended';
+  String get call_status_ended => 'Berakhir';
 
   @override
   String get presence_offline => 'Luring';
@@ -7344,7 +7346,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get forward_group_fallback => 'Grup';
 
   @override
-  String get forward_unknown_user => 'Unknown';
+  String get forward_unknown_user => 'Tidak dikenal';
 
   @override
   String get live_location_once => 'One-time (this Pesan only)';
@@ -7371,7 +7373,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get live_location_1day => '1 hari';
 
   @override
-  String get live_location_forever => 'Forever (until I turn it off)';
+  String get live_location_forever => 'Selamanya (sampai saya mematikannya)';
 
   @override
   String get e2ee_send_too_many_files =>
@@ -7424,16 +7426,16 @@ class AppLocalizationsId extends AppLocalizations {
       'This Nama pengguna adalah already taken. Silakan Pilih a different one.';
 
   @override
-  String get mention_fallback_participant => 'Participant';
+  String get mention_fallback_participant => 'Peserta';
 
   @override
-  String get sticker_gif_recent => 'RECENT';
+  String get sticker_gif_recent => 'TERKINI';
 
   @override
-  String get meeting_screen_sharing => 'Screen';
+  String get meeting_screen_sharing => 'Layar';
 
   @override
-  String get meeting_speaking => 'Speaking';
+  String get meeting_speaking => 'Berbicara';
 
   @override
   String auth_sign_in_failed(Object error) {
@@ -7523,31 +7525,31 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get wallpaper_gradient_purple => 'Purple';
+  String get wallpaper_gradient_purple => 'Ungu';
 
   @override
-  String get wallpaper_gradient_pink => 'Pink';
+  String get wallpaper_gradient_pink => 'Berwarna merah muda';
 
   @override
-  String get wallpaper_gradient_blue => 'Blue';
+  String get wallpaper_gradient_blue => 'Biru';
 
   @override
-  String get wallpaper_gradient_green => 'Green';
+  String get wallpaper_gradient_green => 'Hijau';
 
   @override
-  String get wallpaper_gradient_sunset => 'Sunset';
+  String get wallpaper_gradient_sunset => 'Matahari terbenam';
 
   @override
-  String get wallpaper_gradient_gentle => 'Gentle';
+  String get wallpaper_gradient_gentle => 'Lembut';
 
   @override
-  String get wallpaper_gradient_lime => 'Lime';
+  String get wallpaper_gradient_lime => 'Kapur';
 
   @override
-  String get wallpaper_gradient_graphite => 'Graphite';
+  String get wallpaper_gradient_graphite => 'Grafit';
 
   @override
-  String get sticker_tab_recent => 'RECENT';
+  String get sticker_tab_recent => 'TERKINI';
 
   @override
   String get block_call_you_blocked =>
@@ -7569,13 +7571,13 @@ class AppLocalizationsId extends AppLocalizations {
       'This Pengguna restricted communication with Anda. Sending unavailable.';
 
   @override
-  String get forward_unknown_fallback => 'Unknown';
+  String get forward_unknown_fallback => 'Tidak dikenal';
 
   @override
   String get dm_title_chat => 'Obrolan';
 
   @override
-  String get dm_title_partner => 'Partner';
+  String get dm_title_partner => 'Mitra';
 
   @override
   String get dm_title_group => 'Obrolan grup';
@@ -7594,17 +7596,17 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get meeting_participant_screen => 'Screen';
+  String get meeting_participant_screen => 'Layar';
 
   @override
-  String get meeting_participant_speaking => 'Speaking';
+  String get meeting_participant_speaking => 'Berbicara';
 
   @override
   String get nav_error_title => 'Navigation Kesalahan';
 
   @override
   String get nav_error_invalid_secret_compose =>
-      'Invalid secret compose navigation';
+      'Navigasi penulisan rahasia tidak valid';
 
   @override
   String get sign_in_title => 'Masuk';
@@ -7640,7 +7642,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get storage_label_photo => 'Foto';
 
   @override
-  String get storage_label_audio => 'Аудио';
+  String get storage_label_audio => 'Audio';
 
   @override
   String get storage_label_files => 'Berkas';
@@ -7649,20 +7651,20 @@ class AppLocalizationsId extends AppLocalizations {
   String get storage_label_other => 'Lainnya';
 
   @override
-  String get storage_label_recent_stickers => 'Недавние стикеры';
+  String get storage_label_recent_stickers => 'Stiker terbaru';
 
   @override
-  String get storage_label_giphy_search => 'GIPHY · поисковый кэш';
+  String get storage_label_giphy_search => 'GIPHY · cache pencarian';
 
   @override
-  String get storage_label_giphy_recent => 'GIPHY · недавние GIF';
+  String get storage_label_giphy_recent => 'GIPHY · GIF terbaru';
 
   @override
-  String get storage_chat_unattributed => 'Без привязки к чату';
+  String get storage_chat_unattributed => 'Tidak terkait dengan chat';
 
   @override
   String storage_label_draft(String key) {
-    return 'Draft · $key';
+    return 'Draf · $key';
   }
 
   @override
@@ -7677,19 +7679,19 @@ class AppLocalizationsId extends AppLocalizations {
   String get call_mini_end => 'Akhiri panggilan';
 
   @override
-  String get animation_quality_lite => 'Lite';
+  String get animation_quality_lite => 'ringan';
 
   @override
-  String get animation_quality_balanced => 'Balanced';
+  String get animation_quality_balanced => 'Seimbang';
 
   @override
-  String get animation_quality_cinematic => 'Cinematic';
+  String get animation_quality_cinematic => 'Sinematik';
 
   @override
-  String get crop_aspect_original => 'Original';
+  String get crop_aspect_original => 'Asli';
 
   @override
-  String get crop_aspect_square => 'Square';
+  String get crop_aspect_square => 'Persegi';
 
   @override
   String get push_notification_title => 'Allow Notifikasi';
@@ -7703,7 +7705,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Aktifkan Notifikasi to display incoming Panggilan.';
 
   @override
-  String get push_notification_grant => 'Allow';
+  String get push_notification_grant => 'Mengizinkan';
 
   @override
   String get push_call_accept => 'Terima';
@@ -7724,17 +7726,17 @@ class AppLocalizationsId extends AppLocalizations {
   String get push_channel_silent => 'Silent Pesan';
 
   @override
-  String get push_channel_silent_desc => 'Push without sound';
+  String get push_channel_silent_desc => 'Dorong tanpa suara';
 
   @override
-  String get push_caller_unknown => 'Someone';
+  String get push_caller_unknown => 'Seseorang';
 
   @override
-  String get outbox_attachment_single => 'Attachment';
+  String get outbox_attachment_single => 'Lampiran';
 
   @override
   String outbox_attachment_count(int count) {
-    return 'Attachments ($count)';
+    return 'Lampiran ($count)';
   }
 
   @override
@@ -7744,13 +7746,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get bottom_nav_label_contacts => 'Kontak';
 
   @override
-  String get bottom_nav_label_conferences => 'Conferences';
+  String get bottom_nav_label_conferences => 'Konferensi';
 
   @override
   String get bottom_nav_label_calls => 'Panggilan';
 
   @override
-  String get welcomeBubbleTitle => 'Welcome to LighChat';
+  String get welcomeBubbleTitle => 'Selamat datang di LighChat';
 
   @override
   String get welcomeBubbleSubtitle => ' lighthouse adalah lit';
@@ -7759,31 +7761,33 @@ class AppLocalizationsId extends AppLocalizations {
   String get welcomeSkip => 'Lewati';
 
   @override
-  String get welcomeReplayDebugTile => 'Replay welcome animation (debug)';
+  String get welcomeReplayDebugTile =>
+      'Putar ulang animasi selamat datang (debug)';
 
   @override
-  String get sticker_scope_library => 'Library';
+  String get sticker_scope_library => 'Perpustakaan';
 
   @override
   String get sticker_library_search_hint => 'Cari Stiker...';
 
   @override
-  String get account_menu_energy_saving => 'Power saving';
+  String get account_menu_energy_saving => 'Hemat daya';
 
   @override
-  String get energy_saving_title => 'Power saving';
+  String get energy_saving_title => 'Hemat daya';
 
   @override
-  String get energy_saving_section_mode => 'Power saving mode';
+  String get energy_saving_section_mode => 'Modus hemat daya';
 
   @override
-  String get energy_saving_section_resource_heavy => 'Resource-heavy processes';
+  String get energy_saving_section_resource_heavy =>
+      'Proses yang membutuhkan banyak sumber daya';
 
   @override
-  String get energy_saving_threshold_off => 'Off';
+  String get energy_saving_threshold_off => 'Mati';
 
   @override
-  String get energy_saving_threshold_always => 'On';
+  String get energy_saving_threshold_always => 'Pada';
 
   @override
   String get energy_saving_threshold_off_full => 'Tidak pernah';
@@ -7811,7 +7815,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String energy_saving_current_battery(int percent) {
-    return 'Current battery: $percent%';
+    return 'Baterai saat ini: $percent%';
   }
 
   @override
@@ -7833,7 +7837,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Autoplay dan loop Video Pesan dan Video in Obrolan.';
 
   @override
-  String get energy_saving_autoplay_gif_title => 'Autoplay GIFs';
+  String get energy_saving_autoplay_gif_title => 'Putar otomatis GIF';
 
   @override
   String get energy_saving_autoplay_gif_subtitle =>
@@ -7854,14 +7858,14 @@ class AppLocalizationsId extends AppLocalizations {
       'Looped Emoji animation in Pesan, reactions dan statuses.';
 
   @override
-  String get energy_saving_interface_animations_title => 'Interface animations';
+  String get energy_saving_interface_animations_title => 'Animasi antarmuka';
 
   @override
   String get energy_saving_interface_animations_subtitle =>
       'Effects dan animations that make LighChat smoother dan Lainnya expressive.';
 
   @override
-  String get energy_saving_media_preload_title => 'Media preload';
+  String get energy_saving_media_preload_title => 'Pramuat media';
 
   @override
   String get energy_saving_media_preload_subtitle =>
@@ -7875,45 +7879,45 @@ class AppLocalizationsId extends AppLocalizations {
       'Quick Obrolan updates when switching between apps.';
 
   @override
-  String get legal_index_title => 'Юридические документы';
+  String get legal_index_title => 'Dokumen hukum';
 
   @override
   String get legal_index_subtitle =>
-      'Политика конфиденциальности, пользовательское соглашение и другие юридические документы, регулирующие использование LighChat.';
+      'Kebijakan privasi, syarat layanan, dan dokumen hukum lain yang mengatur penggunaan LighChat.';
 
   @override
-  String get legal_settings_section_title => 'Правовая информация';
+  String get legal_settings_section_title => 'Informasi hukum';
 
   @override
   String get legal_settings_section_subtitle =>
-      'Политика конфиденциальности, пользовательское соглашение, EULA и другие документы.';
+      'Kebijakan privasi, syarat layanan, EULA, dan lainnya.';
 
   @override
-  String get legal_not_found => 'Документ не найден';
+  String get legal_not_found => 'Dokumen tidak ditemukan';
 
   @override
-  String get legal_title_privacy_policy => 'Политика конфиденциальности';
+  String get legal_title_privacy_policy => 'Kebijakan Privasi';
 
   @override
-  String get legal_title_terms_of_service => 'Пользовательское соглашение';
+  String get legal_title_terms_of_service => 'Ketentuan Layanan';
 
   @override
-  String get legal_title_cookie_policy => 'Политика использования cookies';
+  String get legal_title_cookie_policy => 'Kebijakan Cookie';
 
   @override
-  String get legal_title_eula => 'Лицензионное соглашение (EULA)';
+  String get legal_title_eula => 'Perjanjian Lisensi Pengguna Akhir';
 
   @override
-  String get legal_title_dpa => 'Соглашение об обработке данных (DPA)';
+  String get legal_title_dpa => 'Perjanjian Pemrosesan Data';
 
   @override
-  String get legal_title_children => 'Политика в отношении несовершеннолетних';
+  String get legal_title_children => 'Kebijakan Anak';
 
   @override
-  String get legal_title_moderation => 'Политика модерации контента';
+  String get legal_title_moderation => 'Kebijakan Moderasi Konten';
 
   @override
-  String get legal_title_aup => 'Правила допустимого использования';
+  String get legal_title_aup => 'Kebijakan Penggunaan yang Dapat Diterima';
 
   @override
   String get chat_list_item_sender_you => 'Anda';

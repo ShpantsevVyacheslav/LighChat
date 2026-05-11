@@ -70,6 +70,10 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
   double _dragDx = 0;
   double _dragDy = 0;
   VoiceMessageRecordResult? _continuePrefix;
+  Timer? _holdStartTimer;
+  int? _holdPointerId;
+  bool _micPermissionChecked = false;
+  bool _micPermissionGranted = false;
 
   /// Точка старта long press (глобальные координаты) — для `Listener` на весь экран,
   /// пока палец ушёл с маленькой кнопки микрофона.
@@ -84,10 +88,13 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
   static const double _kCancelDx = -80;
   static const double _kPauseUpDy = -44;
   static const double _kResumeDownDy = -28;
+  static const Duration _kHoldStartDelay = Duration(milliseconds: 250);
 
   @override
   void dispose() {
     _ticker?.cancel();
+    _holdStartTimer?.cancel();
+    _holdStartTimer = null;
     _recOverlay?.remove();
     _recOverlay = null;
     _previewOverlay?.remove();
@@ -140,6 +147,29 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
     try {
       await HapticFeedback.lightImpact();
     } catch (_) {}
+  }
+
+  Future<void> _startHaptic() async {
+    try {
+      await HapticFeedback.mediumImpact();
+      await Future<void>.delayed(const Duration(milliseconds: 24));
+      await HapticFeedback.selectionClick();
+      return;
+    } catch (_) {}
+    try {
+      await HapticFeedback.lightImpact();
+    } catch (_) {}
+  }
+
+  Future<bool> _ensureMicPermission() async {
+    if (_micPermissionChecked) return _micPermissionGranted;
+    try {
+      _micPermissionGranted = await _recorder.hasPermission();
+    } catch (_) {
+      _micPermissionGranted = false;
+    }
+    _micPermissionChecked = true;
+    return _micPermissionGranted;
   }
 
   void _startTicker() {
@@ -359,7 +389,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
       _elapsed = baseElapsed;
     });
     try {
-      final ok = await _recorder.hasPermission();
+      final ok = await _ensureMicPermission();
       if (!ok) return;
       final path = await _newTempPath();
       await _recorder.start(
@@ -370,10 +400,19 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
         ),
         path: path,
       );
+      if (!tapMode && _holdPointerId == null) {
+        try {
+          final stale = await _recorder.stop();
+          if (stale != null && stale.trim().isNotEmpty) {
+            await _deleteSilently(stale);
+          }
+        } catch (_) {}
+        return;
+      }
       if (!mounted) return;
       _activeRunStartedAt = DateTime.now();
       _recording = true;
-      unawaited(_lightHaptic());
+      unawaited(_startHaptic());
       _showRecordingOverlay();
       _startTicker();
       setState(() {});
@@ -608,41 +647,72 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
 
   // ───────────────────────────── Gesture surface ───────────────────────────
 
+  void _scheduleHoldStart(PointerDownEvent e) {
+    if (!widget.enabled || _busy || _recording || _previewOverlay != null) return;
+    _holdPointerId = e.pointer;
+    _dragOriginGlobal = e.position;
+    _holdStartTimer?.cancel();
+    _holdStartTimer = Timer(_kHoldStartDelay, () {
+      _holdStartTimer = null;
+      if (!mounted) return;
+      if (_holdPointerId != e.pointer) return;
+      if (_recording || _busy || _previewOverlay != null) return;
+      unawaited(_start(tapMode: false));
+    });
+  }
+
+  void _handleHoldMove(PointerMoveEvent e) {
+    if (_holdPointerId != e.pointer || _tapMode || !_recording) return;
+    final o = _dragOriginGlobal;
+    if (o == null) return;
+    final delta = e.position - o;
+    _updateRecordingDrag(delta.dx, delta.dy);
+  }
+
+  void _handleHoldRelease(int pointerId) {
+    if (_holdPointerId != pointerId) return;
+    _holdStartTimer?.cancel();
+    _holdStartTimer = null;
+    _holdPointerId = null;
+    if (_tapMode) return;
+    if (_cancelArmed) {
+      unawaited(_cancel());
+      return;
+    }
+    // На паузе отпускание пальца не завершает запись — показываем полный
+    // ряд кнопок (стоп / отмена), как в tap-to-record.
+    if (_paused) {
+      if (mounted) {
+        setState(() => _tapMode = true);
+        _recOverlay?.markNeedsBuild();
+      }
+      return;
+    }
+    unawaited(_finish());
+  }
+
+  void _handleTap() {
+    if (!widget.enabled || _recording || _previewOverlay != null) return;
+    if (widget.tapToRecord) {
+      unawaited(_start(tapMode: true));
+    } else {
+      widget.onTap();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Listener(
       behavior: HitTestBehavior.opaque,
-      onTap: widget.enabled && !_recording && _previewOverlay == null
-          ? (widget.tapToRecord
-                ? () => unawaited(_start(tapMode: true))
-                : widget.onTap)
-          : null,
-      onLongPressStart: (d) {
-        _dragOriginGlobal = d.globalPosition;
-        unawaited(_start(tapMode: false));
-      },
-      onLongPressMoveUpdate: (d) {
-        if (!_recording || _tapMode) return;
-        _updateRecordingDrag(d.offsetFromOrigin.dx, d.offsetFromOrigin.dy);
-      },
-      onLongPressEnd: (_) {
-        if (_tapMode) return;
-        if (_cancelArmed) {
-          unawaited(_cancel());
-          return;
-        }
-        // На паузе отпускание пальца не завершает запись — показываем полный
-        // ряд кнопок (стоп / отмена), как в tap-to-record.
-        if (_paused) {
-          if (mounted) {
-            setState(() => _tapMode = true);
-            _recOverlay?.markNeedsBuild();
-          }
-          return;
-        }
-        unawaited(_finish());
-      },
-      child: widget.child,
+      onPointerDown: _scheduleHoldStart,
+      onPointerMove: _handleHoldMove,
+      onPointerUp: (e) => _handleHoldRelease(e.pointer),
+      onPointerCancel: (e) => _handleHoldRelease(e.pointer),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _handleTap,
+        child: widget.child,
+      ),
     );
   }
 

@@ -30,6 +30,8 @@ Future<void> showComposerStickerGifSheet({
   required UserStickerPacksRepository repo,
   required void Function(ChatAttachment attachment) onPickAttachment,
   void Function(String emoji)? onEmojiTapped,
+  void Function(String emojiId, String imageUrl, String fallbackEmoji)?
+  onCustomEmojiTapped,
   String? directUploadConversationId,
 }) {
   return showModalBottomSheet<void>(
@@ -47,6 +49,7 @@ Future<void> showComposerStickerGifSheet({
           directUploadConversationId: directUploadConversationId,
           onPickAttachment: onPickAttachment,
           onEmojiTapped: onEmojiTapped,
+          onCustomEmojiTapped: onCustomEmojiTapped,
           onClose: () => Navigator.of(ctx).pop(),
         ),
       );
@@ -65,6 +68,7 @@ class ComposerStickerGifPanel extends ConsumerStatefulWidget {
     this.onSearchHintChanged,
     this.onFullscreenModeChanged,
     this.onEmojiTapped,
+    this.onCustomEmojiTapped,
     this.directUploadConversationId,
   });
 
@@ -73,6 +77,8 @@ class ComposerStickerGifPanel extends ConsumerStatefulWidget {
   final String? directUploadConversationId;
   final void Function(ChatAttachment attachment) onPickAttachment;
   final void Function(String emoji)? onEmojiTapped;
+  final void Function(String emojiId, String imageUrl, String fallbackEmoji)?
+  onCustomEmojiTapped;
   final String sharedSearchQuery;
   final ValueChanged<String>? onSearchHintChanged;
   final ValueChanged<bool>? onFullscreenModeChanged;
@@ -748,17 +754,24 @@ class _ComposerStickerGifPanelState
     return best;
   }
 
-  /// Telegram-like: анимированный эмодзи не отправляется мгновенно как
-  /// стикер-вложение. Вместо этого вставляем unicode-эмодзи в композер,
-  /// чтобы его можно было комбинировать с текстом и отправлять одной строкой.
-  ///
-  /// Если символ не удалось извлечь из GIPHY-элемента — даём мягкий fallback:
-  /// ничего не отправляем автоматически и показываем системную подсказку.
+  /// Анимированный эмодзи вставляется как inline custom-emoji span (id + url),
+  /// чтобы в отправленном сообщении он рендерился анимированным внутри текста.
+  /// Fallback в unicode остаётся для случаев без callback'a на старом экране.
   void _onPickAnimEmoji(GiphyGifItem item) {
-    final emoji =
-        giphyItemToEmojiText(item) ?? _resolveEmojiFromLabel(item.label);
-    if (emoji != null && emoji.isNotEmpty) {
-      widget.onEmojiTapped?.call(emoji);
+    final fallbackEmoji =
+        giphyItemToEmojiText(item) ??
+        _resolveEmojiFromLabel(item.label) ??
+        item.emoji?.trim() ??
+        '🙂';
+    final onCustom = widget.onCustomEmojiTapped;
+    if (onCustom != null) {
+      onCustom(item.id, item.url, fallbackEmoji);
+      HapticFeedback.selectionClick();
+      return;
+    }
+    final onEmoji = widget.onEmojiTapped;
+    if (onEmoji != null && fallbackEmoji.isNotEmpty) {
+      onEmoji(fallbackEmoji);
       HapticFeedback.selectionClick();
       return;
     }
@@ -1360,10 +1373,7 @@ class _ComposerStickerGifPanelState
           ),
           Expanded(
             child: _showPackManager
-                ? Container(
-                    color: const Color(0xFF11141A),
-                    child: _packManagerView(),
-                  )
+                ? _packManagerView()
                 : _libraryStickersBody(),
           ),
         ],

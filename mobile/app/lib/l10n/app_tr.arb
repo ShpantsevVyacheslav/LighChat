@@ -181,7 +181,7 @@
       "gb": {}
     }
   },
-  "storage_unit_gb": "GB",
+  "storage_unit_gb": "Büyük Britanya",
   "storage_settings_clear_all_button": "Tüm önbelleği temizle",
   "storage_settings_trim_button": "Bütçeye göre kırp",
   "storage_settings_policy_title": "Yerel olarak ne saklanacak",
@@ -905,11 +905,19 @@
   "share_picker_summary_text_only": "Metin",
   "share_picker_summary_files_count": "Dosyalar: {count}",
   "@share_picker_summary_files_count": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "share_picker_summary_files_with_text": "Dosyalar: {count} + metin",
   "@share_picker_summary_files_with_text": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "devices_title": "Cihazlarım",
   "devices_subtitle": "Şifreleme açık anahtarınızın yayınlandığı cihazlar. İptal etme, tüm şifreli sohbetler için yeni bir anahtar dönemi oluşturur — iptal edilen cihaz yeni mesajları okuyamaz.",
@@ -2276,7 +2284,7 @@
   "chat_settings_bottom_nav_description": "Web'deki gibi simgeler ve görsel stil seçin.",
   "chat_settings_bottom_nav_global_description": "Paylaşılan katman: renk, boyut, kalınlık ve döşeme arka planı.",
   "chat_settings_colorful": "Renkli",
-  "chat_settings_minimalism": "Minimal",
+  "chat_settings_minimalism": "Asgari",
   "chat_settings_for_all_icons": "Tüm simgeler için",
   "chat_settings_customize": "Özelleştir",
   "chat_settings_hide": "Gizle",
@@ -2939,7 +2947,7 @@
   "group_avatar_camera": "Kamera",
   "group_avatar_gallery": "Galeri",
   "group_avatar_upload_error": "Yükleme hatası",
-  "avatar_picker_title": "Avatar",
+  "avatar_picker_title": "avatar",
   "avatar_picker_camera": "Kamera",
   "avatar_picker_gallery": "Galeri",
   "avatar_picker_crop": "Kırp",
@@ -3570,7 +3578,7 @@
   "block_send_they_blocked": "Bu kullanıcı sizinle iletişimi kısıtladı. Gönderim kullanılamıyor.",
   "forward_unknown_fallback": "Bilinmeyen",
   "dm_title_chat": "Sohbet",
-  "dm_title_partner": "Partner",
+  "dm_title_partner": "Ortak",
   "dm_title_group": "Grup sohbeti",
   "e2ee_too_many_attachments": "Şifreli gönderim için çok fazla ek: mesaj başına en fazla 5 dosya.",
   "e2ee_total_size_exceeded": "Toplam ek boyutu çok büyük: şifreli mesaj başına en fazla 96 MB.",
@@ -3807,7 +3815,7 @@
   "settings_chats_nav_colorful": "Renkli",
   "settings_chats_nav_global_subtitle": "Genel katman: renk, boyut, kalınlık ve döşeme arka planı.",
   "settings_chats_nav_global_title": "Tüm simgeler için",
-  "settings_chats_nav_minimal": "Minimal",
+  "settings_chats_nav_minimal": "Asgari",
   "settings_chats_preview_hello": "Merhaba",
   "settings_chats_preview_incoming_msg": "Selam! Nasılsın?",
   "settings_chats_preview_outgoing_msg": "Harika, teşekkürler!",
@@ -3995,5 +4003,37 @@
   "chat_preview_attachment": "Ek",
   "@chat_preview_attachment": {
     "description": "Chat list preview: chat_preview_attachment"
-  }
+  },
+  "storage_category_stickers_gifs_emoji": "Çıkartmalar, GIF'ler, emoji",
+  "storage_category_stickers_gifs_emoji_subtitle": "Son kullanılan çıkartmalar ve GIPHY (gif/çıkartma/animasyonlu emoji) önbelleği.",
+  "storage_category_network_images": "Ağ görüntü önbelleği",
+  "storage_category_network_images_subtitle": "Avatarlar, önizlemeler ve ağdan alınan diğer görseller (libCachedImageData).",
+  "storage_media_type_audio": "Ses",
+  "storage_settings_categories_title": "Kategoriye göre",
+  "storage_settings_clear_category_title": "\"{category}\" temizlensin mi?",
+  "storage_settings_clear_category_body": "Yaklaşık {size} boşaltılacak. Bu işlem geri alınamaz.",
+  "message_menu_action_create_sticker": "Çıkartma oluştur",
+  "message_menu_action_save_to_my_stickers": "Çıkartmalarıma kaydet",
+  "meeting_notifications_button": "Etkinlik",
+  "meeting_pip_button": "Küçült",
+  "meeting_join_as_label": "Şu adla katılacaksınız",
+  "meeting_lobby_camera_blocked": "Kamera izni reddedildi. Kameranız kapalı şekilde katılacaksınız.",
+  "storage_label_audio": "Ses",
+  "storage_label_recent_stickers": "Son kullanılan çıkartmalar",
+  "storage_label_giphy_search": "GIPHY · arama önbelleği",
+  "storage_label_giphy_recent": "GIPHY · son GIF'ler",
+  "storage_chat_unattributed": "Sohbete atanmamış",
+  "legal_index_title": "Hukuki belgeler",
+  "legal_index_subtitle": "Gizlilik politikası, hizmet şartları ve LighChat kullanımını düzenleyen diğer hukuki belgeler.",
+  "legal_settings_section_title": "Hukuki bilgiler",
+  "legal_settings_section_subtitle": "Gizlilik politikası, hizmet şartları, EULA ve daha fazlası.",
+  "legal_not_found": "Belge bulunamadı",
+  "legal_title_privacy_policy": "Gizlilik Politikası",
+  "legal_title_terms_of_service": "Hizmet Şartları",
+  "legal_title_cookie_policy": "Çerez Politikası",
+  "legal_title_eula": "Son Kullanıcı Lisans Sözleşmesi",
+  "legal_title_dpa": "Veri İşleme Sözleşmesi",
+  "legal_title_children": "Çocuk Politikası",
+  "legal_title_moderation": "İçerik Moderasyon Politikası",
+  "legal_title_aup": "Kabul Edilebilir Kullanım Politikası"
 }

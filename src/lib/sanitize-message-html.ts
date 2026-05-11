@@ -43,7 +43,18 @@ export function sanitizeMessageHtml(html: string | undefined | null): string {
       'h3',
       'h4',
     ],
-    ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class', 'data-chat-mention', 'data-user-id'],
+    ALLOWED_ATTR: [
+      'href',
+      'title',
+      'target',
+      'rel',
+      'class',
+      'data-chat-mention',
+      'data-user-id',
+      'data-chat-custom-emoji',
+      'data-emoji-id',
+      'data-emoji-src',
+    ],
     ALLOW_DATA_ATTR: false,
   });
 }

@@ -262,7 +262,7 @@
       "pct": {}
     }
   },
-  "storage_chat_detail_media_tab": "Media",
+  "storage_chat_detail_media_tab": "OAV",
   "storage_chat_detail_select_all": "Hammasini tanlash",
   "storage_chat_detail_deselect_all": "Barchasini bekor qilish",
   "storage_chat_detail_clear_button": "Keshni tozalash {size}",
@@ -905,11 +905,19 @@
   "share_picker_summary_text_only": "Matn",
   "share_picker_summary_files_count": "Fayllar: {count}",
   "@share_picker_summary_files_count": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "share_picker_summary_files_with_text": "Fayllar: {count} + matn",
   "@share_picker_summary_files_with_text": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "devices_title": "Mening qurilmalarim",
   "devices_subtitle": "Shifrlash ochiq kalitingiz eʼlon qilingan qurilmalar. Bekor qilish barcha shifrlangan chatlar uchun yangi kalit davrini yaratadi — bekor qilingan qurilma yangi xabarlarni oʻqiy olmaydi.",
@@ -1742,7 +1750,7 @@
   "common_search": "Qidirish",
   "common_edit": "Tahrirlash",
   "common_next": "Keyingi",
-  "common_ok": "OK",
+  "common_ok": "KELISHDIKMI",
   "common_confirm": "Tasdiqlash",
   "common_ready": "Tayyor",
   "common_error": "Xatolik",
@@ -2463,7 +2471,7 @@
   "date_month_2": "Fevral",
   "date_month_3": "Mart",
   "date_month_4": "Aprel",
-  "date_month_5": "May",
+  "date_month_5": "may",
   "date_month_6": "Iyun",
   "date_month_7": "Iyul",
   "date_month_8": "Avgust",
@@ -2523,7 +2531,7 @@
     }
   },
   "media_screen_title": "Media, havolalar va fayllar",
-  "media_tab_media": "Media",
+  "media_tab_media": "OAV",
   "media_tab_circles": "Doiralar",
   "media_tab_files": "Fayllar",
   "media_tab_links": "Havolalar",
@@ -3142,7 +3150,7 @@
   "call_month_february": "Fevral",
   "call_month_march": "Mart",
   "call_month_april": "Aprel",
-  "call_month_may": "May",
+  "call_month_may": "may",
   "call_month_june": "Iyun",
   "call_month_july": "Iyul",
   "call_month_august": "Avgust",
@@ -3995,5 +4003,37 @@
   "chat_preview_attachment": "Ilova",
   "@chat_preview_attachment": {
     "description": "Chat list preview: chat_preview_attachment"
-  }
+  },
+  "storage_category_stickers_gifs_emoji": "Stikerlar, GIF va emoji",
+  "storage_category_stickers_gifs_emoji_subtitle": "So‘nggi stikerlar va GIPHY keshi (gif/sticker/animated emoji).",
+  "storage_category_network_images": "Tarmoq rasmlari keshi",
+  "storage_category_network_images_subtitle": "Avatarlar, prevyular va tarmoqdan yuklangan boshqa rasmlar (libCachedImageData).",
+  "storage_media_type_audio": "Audio",
+  "storage_settings_categories_title": "Toifa bo‘yicha",
+  "storage_settings_clear_category_title": "“{category}” tozalansinmi?",
+  "storage_settings_clear_category_body": "{size} atrofida joy bo‘shaydi. Bu amalni bekor qilib bo‘lmaydi.",
+  "message_menu_action_create_sticker": "Stiker yaratish",
+  "message_menu_action_save_to_my_stickers": "Stikerlarimga saqlash",
+  "meeting_notifications_button": "Faollik",
+  "meeting_pip_button": "Kichraytirish",
+  "meeting_join_as_label": "Siz quyidagi nom bilan qo‘shilasiz",
+  "meeting_lobby_camera_blocked": "Kamera uchun ruxsat berilmagan. Siz kamera o‘chiq holda qo‘shilasiz.",
+  "storage_label_audio": "Audio",
+  "storage_label_recent_stickers": "So‘nggi stikerlar",
+  "storage_label_giphy_search": "GIPHY · qidiruv keshi",
+  "storage_label_giphy_recent": "GIPHY · so‘nggi GIFlar",
+  "storage_chat_unattributed": "Chatga biriktirilmagan",
+  "legal_index_title": "Yuridik hujjatlar",
+  "legal_index_subtitle": "Maxfiylik siyosati, xizmat ko‘rsatish shartlari va LighChat’dan foydalanishni tartibga soluvchi boshqa yuridik hujjatlar.",
+  "legal_settings_section_title": "Yuridik ma’lumot",
+  "legal_settings_section_subtitle": "Maxfiylik siyosati, xizmat ko‘rsatish shartlari, EULA va boshqalar.",
+  "legal_not_found": "Hujjat topilmadi",
+  "legal_title_privacy_policy": "Maxfiylik siyosati",
+  "legal_title_terms_of_service": "Xizmat ko‘rsatish shartlari",
+  "legal_title_cookie_policy": "Cookie siyosati",
+  "legal_title_eula": "Yakuniy foydalanuvchi litsenziya kelishuvi",
+  "legal_title_dpa": "Ma’lumotlarni qayta ishlash kelishuvi",
+  "legal_title_children": "Bolalar siyosati",
+  "legal_title_moderation": "Kontent moderatsiyasi siyosati",
+  "legal_title_aup": "Qabul qilinadigan foydalanish siyosati"
 }

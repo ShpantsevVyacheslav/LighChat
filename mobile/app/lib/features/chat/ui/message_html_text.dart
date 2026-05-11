@@ -1,12 +1,14 @@
 import 'dart:async' show unawaited;
 import 'dart:ui' show ImageFilter;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../data/chat_link_normalization.dart';
 import '../data/link_preview_url_extractor.dart';
 
 String messageHtmlToPlainText(String input) {
@@ -170,11 +172,8 @@ String _flattenText(dom.Node n) {
 }
 
 Future<void> _openExternalUrl(String href) async {
-  final u = Uri.tryParse(href);
-  if (u == null ||
-      !(u.hasScheme && (u.isScheme('http') || u.isScheme('https')))) {
-    return;
-  }
+  final u = tryParseHttpChatLink(href);
+  if (u == null) return;
   await launchUrl(u, mode: LaunchMode.externalApplication);
 }
 
@@ -234,7 +233,12 @@ List<InlineSpan> messageHtmlToStyledSpans(
 }) {
   if (input.trim().isEmpty) return const [];
   if (!input.contains('<')) {
-    return _plainTextToLinkSpans(input, base, linkColor: linkColor, onLinkTap: onLinkTap);
+    return _plainTextToLinkSpans(
+      input,
+      base,
+      linkColor: linkColor,
+      onLinkTap: onLinkTap,
+    );
   }
   try {
     final frag = html_parser.parseFragment(input);
@@ -337,7 +341,12 @@ List<InlineSpan> _nodesToSpans(
       }
       if (rec == null && !st.mention && display.contains('.')) {
         out.addAll(
-          _plainTextToLinkSpans(display, style, linkColor: opts.linkColor, onLinkTap: opts.onLinkTap),
+          _plainTextToLinkSpans(
+            display,
+            style,
+            linkColor: opts.linkColor,
+            onLinkTap: opts.onLinkTap,
+          ),
         );
       } else {
         out.add(TextSpan(text: display, style: style, recognizer: rec));
@@ -475,13 +484,44 @@ List<InlineSpan> _elementToSpans(
   }
 
   if (tag == 'a') {
-    final href = el.attributes['href'] ?? '';
+    final href = normalizeChatLinkUrl(el.attributes['href'] ?? '');
     return _nodesToSpans(
       el.nodes,
       base,
       st.copyWith(linkHref: href, clearLink: false),
       opts,
     );
+  }
+
+  if (tag == 'span' && el.attributes.containsKey('data-chat-custom-emoji')) {
+    final src = (el.attributes['data-emoji-src'] ?? '').trim();
+    final fallbackRaw = _flattenText(el).trim();
+    final fallback = fallbackRaw.isNotEmpty ? fallbackRaw : '🙂';
+    final textStyle = st.toTextStyle(base, opts);
+    if (src.isEmpty) {
+      return [TextSpan(text: fallback, style: textStyle)];
+    }
+    final rawFont = textStyle.fontSize ?? base.fontSize ?? 16;
+    final size = (rawFont * 1.35).clamp(16.0, 28.0).toDouble();
+    return [
+      WidgetSpan(
+        alignment: PlaceholderAlignment.middle,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 0.5),
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: CachedNetworkImage(
+              imageUrl: src,
+              fit: BoxFit.contain,
+              placeholder: (_, _) => const SizedBox.shrink(),
+              errorWidget: (_, _, _) =>
+                  Center(child: Text(fallback, style: textStyle)),
+            ),
+          ),
+        ),
+      ),
+    ];
   }
 
   if (tag == 'span' &&
@@ -499,7 +539,9 @@ List<InlineSpan> _elementToSpans(
     final resolved = resolvedRaw.replaceFirst(RegExp(r'^@+'), '').trim();
     final display = resolved.isNotEmpty
         ? resolved
-        : (fallbackLabel.isNotEmpty ? fallbackLabel : (opts.mentionFallbackLabel ?? 'member'));
+        : (fallbackLabel.isNotEmpty
+              ? fallbackLabel
+              : (opts.mentionFallbackLabel ?? 'member'));
     final style = st
         .copyWith(mention: true, mentionUserId: uid, clearMentionUserId: false)
         .toTextStyle(base, opts);

@@ -83,7 +83,7 @@
   "tournament_standings_empty": "Ainda não há resultados",
   "tournament_games": "Jogos",
   "tournament_games_empty": "Ainda não há jogos",
-  "tournament_points": "{pts} pts",
+  "tournament_points": "{pts} pontos",
   "@tournament_points": {
     "placeholders": {
       "pts": {}
@@ -418,7 +418,7 @@
   "common_close": "Fechar",
   "common_nothing_found": "Nada encontrado",
   "common_retry": "Tentar de novo",
-  "auth_login_email_label": "Email",
+  "auth_login_email_label": "E-mail",
   "auth_login_password_label": "Senha",
   "auth_login_password_hint": "Senha",
   "auth_login_sign_in": "Entrar",
@@ -429,7 +429,7 @@
   "profile_full_name_label": "Nome completo",
   "profile_full_name_hint": "Nome",
   "profile_username_label": "Nome de usuário",
-  "profile_email_label": "Email",
+  "profile_email_label": "E-mail",
   "profile_phone_label": "Telefone",
   "profile_birthdate_label": "Data de nascimento",
   "profile_about_label": "Sobre",
@@ -440,7 +440,7 @@
   "profile_password_confirm_label": "Confirmar senha",
   "profile_password_tooltip_show": "Mostrar senha",
   "profile_password_tooltip_hide": "Ocultar",
-  "profile_placeholder_username": "username",
+  "profile_placeholder_username": "nome de usuário",
   "profile_placeholder_email": "nome@exemplo.com",
   "profile_placeholder_phone": "+55 11 90000-0000",
   "profile_placeholder_birthdate": "DD.MM.AAAA",
@@ -498,7 +498,7 @@
   "settings_chats_inherit_global": "Usar configurações globais",
   "settings_chats_no_background": "Sem plano de fundo",
   "settings_chats_no_background_on": "Sem plano de fundo (ativado)",
-  "chat_list_title": "Chats",
+  "chat_list_title": "Bate-papos",
   "chat_list_search_hint": "Buscar…",
   "chat_list_loading_connecting": "Conectando…",
   "chat_list_loading_conversations": "Carregando conversas…",
@@ -520,7 +520,7 @@
   "chat_list_create_folder_title": "Nova pasta",
   "chat_list_create_folder_subtitle": "Crie uma pasta para filtrar seus chats rapidamente.",
   "chat_list_create_folder_name_label": "NOME DA PASTA",
-  "chat_list_create_folder_chats_label": "CHATS ({count})",
+  "chat_list_create_folder_chats_label": "CONVERSAS ({count})",
   "@chat_list_create_folder_chats_label": {
     "placeholders": {
       "count": {}
@@ -763,7 +763,7 @@
     }
   },
   "new_chat_fallback_user_display_name": "Usuário",
-  "new_group_role_badge_admin": "ADMIN",
+  "new_group_role_badge_admin": "ADMINISTRADOR",
   "new_group_role_badge_worker": "MEMBRO",
   "new_group_error_auth_session": "Não foi possível verificar o login: {error}",
   "@new_group_error_auth_session": {
@@ -794,7 +794,7 @@
   "new_group_action_create": "Criar",
   "group_members_title": "Membros",
   "group_members_invite_link": "Convidar via link",
-  "group_members_admin_badge": "ADMIN",
+  "group_members_admin_badge": "ADMINISTRADOR",
   "group_members_invite_text": "Entre no grupo {groupName} no LighChat: {inviteLink}",
   "@group_members_invite_text": {
     "placeholders": {
@@ -868,7 +868,7 @@
   },
   "video_call_incoming": "Chamada de vídeo recebida",
   "video_call_connecting": "Chamada de vídeo…",
-  "video_call_pip_tooltip": "Picture in picture",
+  "video_call_pip_tooltip": "Imagem em imagem",
   "video_call_mini_window_tooltip": "Mini janela",
   "chat_delete_message_title_single": "Excluir mensagem?",
   "chat_delete_message_title_multi": "Excluir mensagens?",
@@ -905,11 +905,19 @@
   "share_picker_summary_text_only": "Texto",
   "share_picker_summary_files_count": "Ficheiros: {count}",
   "@share_picker_summary_files_count": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "share_picker_summary_files_with_text": "Ficheiros: {count} + texto",
   "@share_picker_summary_files_with_text": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "devices_title": "Meus dispositivos",
   "devices_subtitle": "Dispositivos onde sua chave pública de criptografia está publicada. Revogar cria uma nova época de chave para todos os chats criptografados — o dispositivo revogado não poderá ler novas mensagens.",
@@ -1093,8 +1101,8 @@
   "disappearing_messages_snackbar_off": "Mensagens temporárias desativadas.",
   "disappearing_messages_snackbar_updated": "Temporizador atualizado.",
   "disappearing_preset_off": "Desativado",
-  "disappearing_preset_1h": "1 h",
-  "disappearing_preset_24h": "24 h",
+  "disappearing_preset_1h": "1 hora",
+  "disappearing_preset_24h": "24 horas",
   "disappearing_preset_7d": "7 dias",
   "disappearing_preset_30d": "30 dias",
   "disappearing_ttl_summary_off": "Desativado",
@@ -1128,7 +1136,7 @@
   "conversation_profile_e2ee_subtitle_off": "A criptografia de ponta a ponta está desativada. Toque para ativar.",
   "partner_profile_title_fallback_group": "Chat em grupo",
   "partner_profile_title_fallback_saved": "Mensagens salvas",
-  "partner_profile_title_fallback_chat": "Chat",
+  "partner_profile_title_fallback_chat": "Bater papo",
   "partner_profile_subtitle_group_member_count": "{count} membros",
   "@partner_profile_subtitle_group_member_count": {
     "placeholders": {
@@ -1175,7 +1183,7 @@
   "partner_profile_tooltip_close": "Fechar",
   "partner_profile_edit_contact_short": "Editar",
   "partner_profile_tooltip_copy_chat_id": "Copiar ID do chat",
-  "partner_profile_action_chats": "Chats",
+  "partner_profile_action_chats": "Bate-papos",
   "partner_profile_action_voice_call": "Ligar",
   "partner_profile_action_video": "Vídeo",
   "partner_profile_action_share": "Compartilhar",
@@ -1203,7 +1211,7 @@
   "partner_profile_leave_group": "Sair do grupo",
   "partner_profile_contacts_and_data": "Informações de contato",
   "partner_profile_field_system_role": "Função no sistema",
-  "partner_profile_field_email": "Email",
+  "partner_profile_field_email": "E-mail",
   "partner_profile_field_phone": "Telefone",
   "partner_profile_field_birthday": "Aniversário",
   "partner_profile_field_bio": "Sobre",
@@ -1423,7 +1431,7 @@
   "conversation_games_title": "Jogos",
   "conversation_games_durak": "Durak",
   "conversation_games_durak_subtitle": "Criar lobby",
-  "conversation_game_lobby_title": "Lobby",
+  "conversation_game_lobby_title": "Salão",
   "conversation_game_lobby_not_found": "Jogo não encontrado",
   "conversation_game_lobby_error": "Erro: {error}",
   "@conversation_game_lobby_error": {
@@ -1543,7 +1551,7 @@
       "name": {}
     }
   },
-  "chat_selection_selected_count": "{count} selected",
+  "chat_selection_selected_count": "{count} selecionado",
   "@chat_selection_selected_count": {
     "placeholders": {
       "count": {
@@ -1585,7 +1593,7 @@
   "register_hint_username": "Digite um nome de usuário",
   "register_label_phone": "Telefone",
   "register_hint_choose_country": "Escolha um país",
-  "register_label_email": "Email",
+  "register_label_email": "E-mail",
   "register_hint_email": "Digite seu email",
   "register_label_password": "Senha",
   "register_hint_password": "Digite sua senha",
@@ -1983,7 +1991,7 @@
     }
   },
   "meeting_polls_tab": "Enquetes",
-  "meeting_chat_tab_unread": "Chat ({count})",
+  "meeting_chat_tab_unread": "Bate-papo ({count})",
   "@meeting_chat_tab_unread": {
     "placeholders": {
       "count": {
@@ -1991,7 +1999,7 @@
       }
     }
   },
-  "meeting_chat_tab": "Chat",
+  "meeting_chat_tab": "Bater papo",
   "meeting_requests_tab": "Solicitações ({count})",
   "@meeting_requests_tab": {
     "placeholders": {
@@ -2132,7 +2140,7 @@
   "meeting_reaction": "Reação",
   "meeting_screen_stop": "Parar",
   "meeting_screen_label": "Tela",
-  "meeting_bg_off": "BG",
+  "meeting_bg_off": "GB",
   "meeting_bg_blur": "Desfoque",
   "meeting_bg_image": "Imagem",
   "meeting_participants_button": "Membros",
@@ -2140,7 +2148,7 @@
   "contacts_add_phone_prompt": "Adicione um número de telefone no seu perfil para buscar contatos por número.",
   "contacts_fallback_profile": "Perfil",
   "contacts_fallback_user": "Usuário",
-  "contacts_status_online": "online",
+  "contacts_status_online": "on-line",
   "contacts_status_recently": "Visto recentemente",
   "contacts_status_today_at": "Visto às {time}",
   "@contacts_status_today_at": {
@@ -2227,7 +2235,7 @@
   "add_contact_add_unavailable": "Adicionar indisponível",
   "add_contact_searching": "Procurando contato...",
   "add_contact_scan_qr_title": "Escanear QR code",
-  "add_contact_flash_tooltip": "Flash",
+  "add_contact_flash_tooltip": "Clarão",
   "add_contact_scan_qr_hint": "Aponte sua câmera para um QR code de perfil do LighChat",
   "contacts_edit_enter_name": "Digite o nome do contato.",
   "contacts_edit_save_error": "Não foi possível salvar o contato: {error}",
@@ -2335,8 +2343,8 @@
       "count": {}
     }
   },
-  "meeting_tab_chat": "Chat",
-  "meeting_tab_chat_count": "Chat ({count})",
+  "meeting_tab_chat": "Bater papo",
+  "meeting_tab_chat_count": "Bate-papo ({count})",
   "@meeting_tab_chat_count": {
     "placeholders": {
       "count": {}
@@ -2526,7 +2534,7 @@
   "media_tab_media": "Mídia",
   "media_tab_circles": "Notas em vídeo",
   "media_tab_files": "Arquivos",
-  "media_tab_links": "Links",
+  "media_tab_links": "Ligações",
   "media_empty_files": "Não files",
   "media_empty_media": "Não media",
   "media_attachment_fallback": "Anexo",
@@ -2726,7 +2734,7 @@
   "poll_status_active": "Ativo",
   "poll_badge_public": "Pública",
   "poll_badge_multi": "Múltiplas respostas",
-  "poll_badge_quiz": "Quiz",
+  "poll_badge_quiz": "Questionário",
   "poll_restart": "Reiniciar",
   "poll_finish": "Encerrar",
   "poll_submit_vote": "Enviar voto",
@@ -2874,7 +2882,7 @@
   "sticker_send_error": "Falha ao enviar: {error}",
   "sticker_saved": "Salvo to sticker pack",
   "sticker_save_failed": "Falha ao baixar or save GIF",
-  "sticker_tab_my": "My",
+  "sticker_tab_my": "Meu",
   "sticker_tab_shared": "Compartilhados",
   "sticker_no_packs": "Não sticker packs. Create a new one.",
   "sticker_shared_not_configured": "Pacotes compartilhados não configurados",
@@ -2917,7 +2925,7 @@
   "location_live_label": "Ao vivo",
   "location_error": "Falha ao carregar map",
   "location_no_permission": "Não location access",
-  "group_member_admin": "Admin",
+  "group_member_admin": "Administrador",
   "group_member_creator": "Criador",
   "group_member_member": "Membro",
   "group_member_open_chat": "Mensagem",
@@ -2939,7 +2947,7 @@
   "group_avatar_camera": "Câmera",
   "group_avatar_gallery": "Galeria",
   "group_avatar_upload_error": "Erro de upload",
-  "avatar_picker_title": "Avatar",
+  "avatar_picker_title": "avatar",
   "avatar_picker_camera": "Câmera",
   "avatar_picker_gallery": "Galeria",
   "avatar_picker_crop": "Recortar",
@@ -2965,7 +2973,7 @@
   "google_profile_name": "Nome",
   "google_profile_username": "Nome de usuário",
   "google_profile_phone": "Telefone",
-  "google_profile_email": "Email",
+  "google_profile_email": "E-mail",
   "google_profile_dob": "Data de nascimento",
   "google_profile_bio": "Sobre",
   "google_profile_save": "Salvar e continuar",
@@ -3090,14 +3098,14 @@
   "google_complete_name_label": "Nome",
   "google_complete_username_label": "Nome de usuário",
   "google_complete_phone_label": "Telefone",
-  "google_complete_email_label": "Email",
+  "google_complete_email_label": "E-mail",
   "google_complete_email_hint": "voce@exemplo.com",
   "google_complete_dob_label": "Data de nascimento",
   "google_complete_bio_label": "Sobre (up to 200 caracteres, optional)",
   "google_complete_save": "Salvar e continuar",
   "google_complete_back": "Voltar para entrar",
   "game_error_defense_not_beat": "Esta carta não bate a carta do ataque",
-  "game_error_attacker_first": "The attacker moves first",
+  "game_error_attacker_first": "O atacante se move primeiro",
   "game_error_defender_no_attack": "O defensor não pode atacar agora",
   "game_error_not_allowed_throwin": "Você não pode jogar extras nesta rodada",
   "game_error_throwin_not_turn": "Outro jogador está jogando extras agora",
@@ -3112,11 +3120,11 @@
   "game_error_not_in_lobby": "O lobby já começou",
   "game_error_game_already_active": "O jogo já começou",
   "game_error_active_exists": "Já existe um jogo ativo neste chat",
-  "game_error_round_pending": "Finish the contested move first",
+  "game_error_round_pending": "Termine o movimento contestado primeiro",
   "game_error_rematch_failed": "Failed to prepare rematch. Tente novamente",
   "game_error_unauthenticated": "Você precisa entrar",
   "game_error_permission_denied": "Esta ação não está disponível para você",
-  "game_error_invalid_argument": "Invalid move",
+  "game_error_invalid_argument": "Movimento inválido",
   "game_error_precondition": "A jogada não está disponível agora",
   "game_error_server": "Failed to make move. Tente novamente",
   "reply_sticker": "Figurinha",
@@ -3126,118 +3134,118 @@
   "reply_video": "Vídeo",
   "reply_photo": "Foto",
   "reply_file": "Arquivo",
-  "reply_location": "Location",
-  "reply_poll": "Poll",
+  "reply_location": "Localização",
+  "reply_poll": "Enquete",
   "reply_link": "Link",
   "reply_message": "Mensagem",
-  "reply_sender_you": "You",
+  "reply_sender_you": "Você",
   "reply_sender_member": "Membro",
   "call_format_today": "Hoje",
   "call_format_yesterday": "Ontem",
-  "call_format_second_short": "s",
-  "call_format_minute_short": "m",
+  "call_format_second_short": "é",
+  "call_format_minute_short": "eu",
   "call_format_hour_short": "h",
   "call_format_day_short": "d",
-  "call_month_january": "January",
-  "call_month_february": "February",
-  "call_month_march": "March",
-  "call_month_april": "April",
-  "call_month_may": "May",
-  "call_month_june": "June",
-  "call_month_july": "July",
-  "call_month_august": "August",
-  "call_month_september": "September",
-  "call_month_october": "October",
-  "call_month_november": "November",
-  "call_month_december": "December",
-  "push_incoming_call": "Incoming call",
+  "call_month_january": "Janeiro",
+  "call_month_february": "Fevereiro",
+  "call_month_march": "Marchar",
+  "call_month_april": "abril",
+  "call_month_may": "Poderia",
+  "call_month_june": "Junho",
+  "call_month_july": "Julho",
+  "call_month_august": "Agosto",
+  "call_month_september": "Setembro",
+  "call_month_october": "outubro",
+  "call_month_november": "novembro",
+  "call_month_december": "dezembro",
+  "push_incoming_call": "Chamada recebida",
   "push_incoming_video_call": "Chamada de vídeo recebida",
   "push_new_message": "Nova mensagem",
   "push_channel_calls": "Chamadas",
   "push_channel_messages": "Mensagens",
-  "contacts_years_one": "{count} year",
+  "contacts_years_one": "{count} ano",
   "@contacts_years_one": {
     "placeholders": {
       "count": {}
     }
   },
-  "contacts_years_few": "{count} years",
+  "contacts_years_few": "{count} anos",
   "@contacts_years_few": {
     "placeholders": {
       "count": {}
     }
   },
-  "contacts_years_many": "{count} years",
+  "contacts_years_many": "{count} anos",
   "@contacts_years_many": {
     "placeholders": {
       "count": {}
     }
   },
-  "contacts_years_other": "{count} years",
+  "contacts_years_other": "{count} anos",
   "@contacts_years_other": {
     "placeholders": {
       "count": {}
     }
   },
-  "durak_entry_single_game": "Single game",
-  "durak_entry_finish_game_tooltip": "Finish game",
-  "durak_entry_tournament_games_dialog_title": "How many games in tournament?",
+  "durak_entry_single_game": "Jogo único",
+  "durak_entry_finish_game_tooltip": "Terminar o jogo",
+  "durak_entry_tournament_games_dialog_title": "Quantos jogos no torneio?",
   "durak_entry_cancel": "Cancelar",
-  "durak_entry_create": "Create",
+  "durak_entry_create": "Criar",
   "video_editor_load_failed": "Falha ao carregar video: {error}",
   "@video_editor_load_failed": {
     "placeholders": {
       "error": {}
     }
   },
-  "video_editor_process_failed": "Failed to process video: {error}",
+  "video_editor_process_failed": "Falha ao processar o vídeo: {error}",
   "@video_editor_process_failed": {
     "placeholders": {
       "error": {}
     }
   },
-  "video_editor_duration": "Duration: {duration}",
+  "video_editor_duration": "Duração: {duration}",
   "@video_editor_duration": {
     "placeholders": {
       "duration": {}
     }
   },
-  "video_editor_brush": "Brush",
+  "video_editor_brush": "Escovar",
   "video_editor_caption_hint": "Adicionar caption...",
-  "share_location_title": "Share location",
-  "share_location_how": "Sharing method",
+  "share_location_title": "Compartilhar localização",
+  "share_location_how": "Método de compartilhamento",
   "share_location_cancel": "Cancelar",
   "share_location_send": "Enviar",
   "photo_source_gallery": "Galeria",
   "photo_source_take_photo": "Pegar photo",
   "photo_source_record_video": "Gravar video",
-  "video_attachment_media_kind": "video",
+  "video_attachment_media_kind": "vídeo",
   "video_attachment_title": "Vídeo",
   "video_attachment_playback_error": "Não foi possível reproduzir o vídeo. Verifique o link e a conexão.",
   "location_card_broadcast_ended_mine": "Transmissão de localização encerrada. A outra pessoa não pode mais ver sua localização atual.",
   "location_card_broadcast_ended_other": "A transmissão de localização deste contato terminou. A posição atual está indisponível.",
-  "location_card_title": "Location",
-  "location_card_accuracy": "±{meters} m",
+  "location_card_title": "Localização",
+  "location_card_accuracy": "±{meters}m",
   "@location_card_accuracy": {
     "placeholders": {
       "meters": {}
     }
   },
   "link_webview_copy_tooltip": "Copiar link",
-  "link_webview_copied_snackbar": "Link copied",
+  "link_webview_copied_snackbar": "Link copiado",
   "link_webview_open_browser_tooltip": "Abrir in browser",
-  "hold_record_pause": "Paused",
-  "hold_record_release_cancel": "Release to cancel",
-  "hold_record_slide_hints": "Slide left — cancel · Up — pause",
-  "e2ee_badge_loading": "Loading fingerprint…",
-  "e2ee_badge_error": "Failed to get fingerprint: {error}",
+  "hold_record_pause": "Pausado",
+  "hold_record_release_cancel": "Solte para cancelar",
+  "hold_record_slide_hints": "Deslize para a esquerda — cancelar · Para cima — pausar",
+  "e2ee_badge_loading": "Carregando impressão digital…",
+  "e2ee_badge_error": "Falha ao obter impressão digital: {error}",
   "@e2ee_badge_error": {
     "placeholders": {
       "error": {}
     }
   },
-  "e2ee_badge_label": "E2EE Fingerprint",
-  "e2ee_badge_label_with_user": "E2EE Fingerprint • {user}",
+  "e2ee_badge_label": "E2EE Impressão digital",
+  "e2ee_badge_label_with_user": "E2EE Impressão digital • {user}",
   "@e2ee_badge_label_with_user": {
     "placeholders": {
       "user": {}
@@ -3250,23 +3258,23 @@
     }
   },
   "composer_link_cancel": "Cancelar",
-  "message_search_results_count": "SEARCH RESULTS: {count}",
+  "message_search_results_count": "RESULTADOS DE PESQUISA: {count}",
   "@message_search_results_count": {
     "placeholders": {
       "count": {}
     }
   },
-  "message_search_not_found": "NOTHING FOUND",
-  "message_search_participant_fallback": "Participant",
-  "wallpaper_purple": "Purple",
-  "wallpaper_pink": "Pink",
-  "wallpaper_blue": "Blue",
-  "wallpaper_green": "Green",
-  "wallpaper_sunset": "Sunset",
-  "wallpaper_tender": "Tender",
-  "wallpaper_lime": "Lime",
-  "wallpaper_graphite": "Graphite",
-  "avatar_crop_title": "Adjust avatar",
+  "message_search_not_found": "NADA ENCONTRADO",
+  "message_search_participant_fallback": "Participante",
+  "wallpaper_purple": "Roxo",
+  "wallpaper_pink": "Rosa",
+  "wallpaper_blue": "Azul",
+  "wallpaper_green": "Verde",
+  "wallpaper_sunset": "Pôr do sol",
+  "wallpaper_tender": "Macio",
+  "wallpaper_lime": "Lima",
+  "wallpaper_graphite": "Grafite",
+  "avatar_crop_title": "Ajustar avatar",
   "avatar_crop_hint": "Arraste e dê zoom — o círculo aparece nas listas e mensagens; o frame completo fica para o perfil.",
   "avatar_crop_cancel": "Cancelar",
   "avatar_crop_reset": "Restaurar",
@@ -3278,22 +3286,22 @@
       "error": {}
     }
   },
-  "meeting_entry_participant_fallback": "Participant",
+  "meeting_entry_participant_fallback": "Participante",
   "meeting_entry_back": "Voltar",
   "meeting_chat_copy": "Copiar",
   "meeting_chat_edit": "Editar",
   "meeting_chat_delete": "Excluir",
   "meeting_chat_deleted": "Mensagem deleted",
-  "meeting_chat_edited_mark": "• edited",
-  "e2ee_decrypt_image_failed": "Failed to decrypt image",
-  "e2ee_decrypt_video_failed": "Failed to decrypt video",
-  "e2ee_decrypt_audio_failed": "Failed to decrypt audio",
-  "e2ee_decrypt_attachment_failed": "Failed to decrypt attachment",
-  "search_preview_attachment": "Attachment",
-  "search_preview_location": "Location",
+  "meeting_chat_edited_mark": "• editado",
+  "e2ee_decrypt_image_failed": "Falha ao descriptografar a imagem",
+  "e2ee_decrypt_video_failed": "Falha ao descriptografar o vídeo",
+  "e2ee_decrypt_audio_failed": "Falha ao descriptografar o áudio",
+  "e2ee_decrypt_attachment_failed": "Falha ao descriptografar o anexo",
+  "search_preview_attachment": "Anexo",
+  "search_preview_location": "Localização",
   "search_preview_message": "Mensagem",
-  "outbox_attachment_singular": "Attachment",
-  "outbox_attachments_count": "Attachments ({count})",
+  "outbox_attachment_singular": "Anexo",
+  "outbox_attachments_count": "Anexos ({count})",
   "@outbox_attachments_count": {
     "placeholders": {
       "count": {
@@ -3310,42 +3318,42 @@
       }
     }
   },
-  "nav_chats": "Chats",
+  "nav_chats": "Bate-papos",
   "nav_contacts": "Contatos",
   "nav_meetings": "Reuniões",
   "nav_calls": "Chamadas",
-  "e2ee_media_decrypt_failed_image": "Failed to decrypt image",
-  "e2ee_media_decrypt_failed_video": "Failed to decrypt video",
-  "e2ee_media_decrypt_failed_audio": "Failed to decrypt audio",
-  "e2ee_media_decrypt_failed_attachment": "Failed to decrypt attachment",
-  "chat_search_snippet_attachment": "Attachment",
-  "chat_search_snippet_location": "Location",
+  "e2ee_media_decrypt_failed_image": "Falha ao descriptografar a imagem",
+  "e2ee_media_decrypt_failed_video": "Falha ao descriptografar o vídeo",
+  "e2ee_media_decrypt_failed_audio": "Falha ao descriptografar o áudio",
+  "e2ee_media_decrypt_failed_attachment": "Falha ao descriptografar o anexo",
+  "chat_search_snippet_attachment": "Anexo",
+  "chat_search_snippet_location": "Localização",
   "chat_search_snippet_message": "Mensagem",
-  "bottom_nav_chats": "Chats",
+  "bottom_nav_chats": "Bate-papos",
   "bottom_nav_contacts": "Contatos",
   "bottom_nav_meetings": "Reuniões",
   "bottom_nav_calls": "Chamadas",
-  "chat_list_swipe_folders": "FOLDERS",
-  "chat_list_swipe_clear": "CLEAR",
-  "chat_list_swipe_delete": "DELETE",
-  "composer_editing_title": "EDITING MESSAGE",
+  "chat_list_swipe_folders": "PASTAS",
+  "chat_list_swipe_clear": "CLARO",
+  "chat_list_swipe_delete": "EXCLUIR",
+  "composer_editing_title": "EDITAR MENSAGEM",
   "composer_editing_cancel_tooltip": "Cancelar editing",
-  "composer_formatting_title": "FORMATTING",
-  "composer_link_preview_loading": "Loading preview…",
+  "composer_formatting_title": "FORMATAÇÃO",
+  "composer_link_preview_loading": "Carregando visualização…",
   "composer_link_preview_hide_tooltip": "Ocultar preview",
-  "chat_invite_button": "Invite",
-  "forward_preview_unknown_sender": "Unknown",
-  "forward_preview_attachment": "Attachment",
+  "chat_invite_button": "Convidar",
+  "forward_preview_unknown_sender": "Desconhecido",
+  "forward_preview_attachment": "Anexo",
   "forward_preview_message": "Mensagem",
   "chat_mention_no_matches": "Não matches",
   "live_location_sharing": "Você está compartilhando sua localização",
   "live_location_stop": "Parar",
   "chat_message_deleted": "Mensagem deleted",
-  "profile_qr_share": "Share",
+  "profile_qr_share": "Compartilhar",
   "shared_location_open_browser_tooltip": "Abrir in browser",
   "reply_preview_message_fallback": "Mensagem",
-  "video_circle_media_kind": "video",
-  "reactions_rated_count": "Reacted: {count}",
+  "video_circle_media_kind": "vídeo",
+  "reactions_rated_count": "Reagiu: {count}",
   "@reactions_rated_count": {
     "placeholders": {
       "count": {
@@ -3362,11 +3370,11 @@
     }
   },
   "durak_create_timer_subtitle": "Padrão 15 segundos",
-  "dm_game_banner_active": "Durak game in progress",
-  "dm_game_banner_created": "Durak game created",
-  "chat_folder_favorites": "Favorites",
-  "chat_folder_new": "New",
-  "contact_profile_user_fallback": "User",
+  "dm_game_banner_active": "Jogo Durak em andamento",
+  "dm_game_banner_created": "Jogo Durak criado",
+  "chat_folder_favorites": "Favoritos",
+  "chat_folder_new": "Novo",
+  "contact_profile_user_fallback": "Usuário",
   "contact_profile_error": "Erro: {error}",
   "@contact_profile_error": {
     "placeholders": {
@@ -3376,13 +3384,13 @@
     }
   },
   "conversation_threads_loading_title": "Tópicos",
-  "theme_label_light": "Light",
-  "theme_label_dark": "Dark",
+  "theme_label_light": "Luz",
+  "theme_label_dark": "Escuro",
   "theme_label_auto": "Auto",
   "chat_draft_reply_fallback": "Responder",
   "mention_default_label": "Membro",
   "contacts_fallback_name": "Contato",
-  "sticker_pack_default_name": "My pack",
+  "sticker_pack_default_name": "Meu pacote",
   "profile_error_phone_taken": "Este número de telefone já está cadastrado. Por favor, use outro número.",
   "profile_error_email_taken": "Este email já está em uso. Por favor, use outro endereço.",
   "profile_error_username_taken": "Este nome de usuário já está em uso. Por favor, escolha outro.",
@@ -3395,8 +3403,8 @@
       }
     }
   },
-  "chat_attachment_decrypt_error": "Failed to decrypt attachment",
-  "group_avatar_process_error": "Failed to process photo: {error}",
+  "chat_attachment_decrypt_error": "Falha ao descriptografar o anexo",
+  "group_avatar_process_error": "Falha ao processar foto: {error}",
   "@group_avatar_process_error": {
     "placeholders": {
       "error": {
@@ -3404,7 +3412,7 @@
       }
     }
   },
-  "group_member_open_dm_error": "Failed to open direct chat: {error}",
+  "group_member_open_dm_error": "Falha ao abrir o chat direto: {error}",
   "@group_member_open_dm_error": {
     "placeholders": {
       "error": {
@@ -3412,10 +3420,10 @@
       }
     }
   },
-  "mention_fallback_label": "member",
+  "mention_fallback_label": "membro",
   "mention_fallback_label_capitalized": "Membro",
-  "meeting_speaking_label": "Speaking",
-  "meeting_local_you_suffix": "{name} (You)",
+  "meeting_speaking_label": "Falando",
+  "meeting_local_you_suffix": "{name} (Você)",
   "@meeting_local_you_suffix": {
     "placeholders": {
       "name": {
@@ -3423,7 +3431,7 @@
       }
     }
   },
-  "video_crop_title": "Crop",
+  "video_crop_title": "Cortar",
   "video_crop_load_error": "Falha ao carregar video: {error}",
   "@video_crop_load_error": {
     "placeholders": {
@@ -3433,8 +3441,8 @@
     }
   },
   "gif_section_recent": "RECENTES",
-  "gif_section_trending": "TRENDING",
-  "auth_create_account_title": "Create Account",
+  "gif_section_trending": "TENDÊNCIAS",
+  "auth_create_account_title": "Criar uma conta",
   "yandex_sign_in_yandex_error": "Yandex: {error}",
   "@yandex_sign_in_yandex_error": {
     "placeholders": {
@@ -3443,12 +3451,12 @@
       }
     }
   },
-  "call_status_missed": "Missed",
-  "call_status_cancelled": "Cancelled",
-  "call_status_ended": "Ended",
-  "presence_offline": "Offline",
-  "presence_online": "Online",
-  "dm_title_fallback": "Chat",
+  "call_status_missed": "Perdido",
+  "call_status_cancelled": "Cancelado",
+  "call_status_ended": "Terminou",
+  "presence_offline": "Off-line",
+  "presence_online": "On-line",
+  "dm_title_fallback": "Bater papo",
   "dm_title_partner_fallback": "Contato",
   "group_title_fallback": "Chat em grupo",
   "block_call_viewer_blocked": "Você bloqueou este usuário. Chamada indisponível — desbloqueie em Perfil → Bloqueados.",
@@ -3457,7 +3465,7 @@
   "block_composer_viewer_blocked": "Você bloqueou este usuário. Envio indisponível — desbloqueie em Perfil → Bloqueados.",
   "block_composer_partner_blocked": "Este usuário restringiu a comunicação com você. Envio indisponível.",
   "forward_group_fallback": "Grupo",
-  "forward_unknown_user": "Unknown",
+  "forward_unknown_user": "Desconhecido",
   "live_location_once": "Apenas uma vez (somente esta mensagem)",
   "live_location_5min": "5 minutos",
   "live_location_15min": "15 minutos",
@@ -3466,13 +3474,13 @@
   "live_location_2hours": "2 horas",
   "live_location_6hours": "6 horas",
   "live_location_1day": "1 dia",
-  "live_location_forever": "Forever (until I turn it off)",
-  "e2ee_send_too_many_files": "Too many attachments for encrypted send: maximum 5 files per message.",
-  "e2ee_send_too_large": "Total attachment size too large: maximum 96 MB for one encrypted message.",
+  "live_location_forever": "Para sempre (até eu desligar)",
+  "e2ee_send_too_many_files": "Muitos anexos para envio criptografado: máximo de 5 arquivos por mensagem.",
+  "e2ee_send_too_large": "Tamanho total do anexo muito grande: máximo de 96 MB para uma mensagem criptografada.",
   "presence_last_seen_prefix": "Visto por último ",
   "presence_less_than_minute_ago": "less than a minuto ago",
-  "presence_yesterday": "yesterday",
-  "dm_fallback_title": "Chat",
+  "presence_yesterday": "ontem",
+  "dm_fallback_title": "Bater papo",
   "dm_fallback_partner": "Contato",
   "group_fallback_title": "Chat em grupo",
   "block_send_viewer_blocked": "Você bloqueou este usuário. Envio indisponível — desbloqueie em Perfil → Bloqueados.",
@@ -3481,11 +3489,11 @@
   "profile_conflict_phone": "Este número de telefone já está cadastrado. Por favor, use outro número.",
   "profile_conflict_email": "Este email já está em uso. Por favor, use outro endereço.",
   "profile_conflict_username": "Este nome de usuário já está em uso. Por favor, escolha outro.",
-  "mention_fallback_participant": "Participant",
+  "mention_fallback_participant": "Participante",
   "sticker_gif_recent": "RECENTES",
-  "meeting_screen_sharing": "Screen",
-  "meeting_speaking": "Speaking",
-  "auth_sign_in_failed": "Sign-in failed: {error}",
+  "meeting_screen_sharing": "Tela",
+  "meeting_speaking": "Falando",
+  "auth_sign_in_failed": "Falha no login: {error}",
   "@auth_sign_in_failed": {
     "placeholders": {
       "error": {}
@@ -3497,7 +3505,7 @@
       "error": {}
     }
   },
-  "auth_error_prefix": "Auth error: {error}",
+  "auth_error_prefix": "Erro de autenticação: {error}",
   "@auth_error_prefix": {
     "placeholders": {
       "error": {}
@@ -3546,7 +3554,7 @@
       }
     }
   },
-  "presence_years_ago": "{count,plural, =1{a year ago} other{{count} years ago}}",
+  "presence_years_ago": "{count,plural, =1{um ano atrás} other{{count} anos atrás}}",
   "@presence_years_ago": {
     "placeholders": {
       "count": {
@@ -3554,26 +3562,26 @@
       }
     }
   },
-  "wallpaper_gradient_purple": "Purple",
-  "wallpaper_gradient_pink": "Pink",
-  "wallpaper_gradient_blue": "Blue",
-  "wallpaper_gradient_green": "Green",
-  "wallpaper_gradient_sunset": "Sunset",
-  "wallpaper_gradient_gentle": "Gentle",
-  "wallpaper_gradient_lime": "Lime",
-  "wallpaper_gradient_graphite": "Graphite",
+  "wallpaper_gradient_purple": "Roxo",
+  "wallpaper_gradient_pink": "Rosa",
+  "wallpaper_gradient_blue": "Azul",
+  "wallpaper_gradient_green": "Verde",
+  "wallpaper_gradient_sunset": "Pôr do sol",
+  "wallpaper_gradient_gentle": "Gentil",
+  "wallpaper_gradient_lime": "Lima",
+  "wallpaper_gradient_graphite": "Grafite",
   "sticker_tab_recent": "RECENTES",
   "block_call_you_blocked": "Você bloqueou este usuário. Chamada indisponível — desbloqueie em Perfil → Bloqueados.",
   "block_call_they_blocked": "Este usuário restringiu a comunicação com você. Chamada indisponível.",
   "block_call_generic": "Chamada unavailable.",
   "block_send_you_blocked": "Você bloqueou este usuário. Envio indisponível — desbloqueie em Perfil → Bloqueados.",
   "block_send_they_blocked": "Este usuário restringiu a comunicação com você. Envio indisponível.",
-  "forward_unknown_fallback": "Unknown",
-  "dm_title_chat": "Chat",
-  "dm_title_partner": "Partner",
+  "forward_unknown_fallback": "Desconhecido",
+  "dm_title_chat": "Bater papo",
+  "dm_title_partner": "Parceiro",
   "dm_title_group": "Chat em grupo",
-  "e2ee_too_many_attachments": "Too many attachments for encrypted sending: maximum 5 files per message.",
-  "e2ee_total_size_exceeded": "Total attachment size too large: maximum 96 MB per encrypted message.",
+  "e2ee_too_many_attachments": "Muitos anexos para envio criptografado: máximo de 5 arquivos por mensagem.",
+  "e2ee_total_size_exceeded": "Tamanho total do anexo muito grande: máximo de 96 MB por mensagem criptografada.",
   "yandex_sign_in_error_prefix": "Yandex: {error}",
   "@yandex_sign_in_error_prefix": {
     "placeholders": {
@@ -3582,16 +3590,16 @@
       }
     }
   },
-  "meeting_participant_screen": "Screen",
-  "meeting_participant_speaking": "Speaking",
-  "nav_error_title": "Navigation error",
-  "nav_error_invalid_secret_compose": "Invalid secret compose navigation",
+  "meeting_participant_screen": "Tela",
+  "meeting_participant_speaking": "Falando",
+  "nav_error_title": "Erro de navegação",
+  "nav_error_invalid_secret_compose": "Navegação de composição secreta inválida",
   "sign_in_title": "Entrar",
   "sign_in_firebase_ready": "Firebase inicializado. Você pode entrar.",
   "sign_in_firebase_not_ready": "O Firebase não está pronto. Verifique os logs e o firebase_options.dart.",
   "sign_in_continue": "Continuar",
   "sign_in_anonymously": "Entrar anonymously",
-  "sign_in_auth_error": "Auth error: {error}",
+  "sign_in_auth_error": "Erro de autenticação: {error}",
   "@sign_in_auth_error": {
     "placeholders": {
       "error": {
@@ -3612,8 +3620,8 @@
   "storage_label_video": "Vídeo",
   "storage_label_photo": "Foto",
   "storage_label_files": "Arquivos",
-  "storage_label_other": "Other",
-  "storage_label_draft": "Draft · {key}",
+  "storage_label_other": "Outro",
+  "storage_label_draft": "Rascunho · {key}",
   "@storage_label_draft": {
     "placeholders": {
       "key": {
@@ -3621,7 +3629,7 @@
       }
     }
   },
-  "storage_label_offline_snapshot": "Offline chat list snapshot",
+  "storage_label_offline_snapshot": "Instantâneo da lista de bate-papo off-line",
   "storage_label_profile_cache": "Perfil cache · {name}",
   "@storage_label_profile_cache": {
     "placeholders": {
@@ -3630,26 +3638,26 @@
       }
     }
   },
-  "call_mini_end": "End call",
-  "animation_quality_lite": "Lite",
-  "animation_quality_balanced": "Balanced",
-  "animation_quality_cinematic": "Cinematic",
+  "call_mini_end": "Encerrar chamada",
+  "animation_quality_lite": "Leve",
+  "animation_quality_balanced": "Equilibrado",
+  "animation_quality_cinematic": "Cinematográfico",
   "crop_aspect_original": "Original",
-  "crop_aspect_square": "Square",
-  "push_notification_title": "Allow notifications",
+  "crop_aspect_square": "Quadrado",
+  "push_notification_title": "Permitir notificações",
   "push_notification_rationale": "O app precisa de notificações para chamadas recebidas.",
   "push_notification_required": "Ativar notifications to display incoming calls.",
-  "push_notification_grant": "Allow",
+  "push_notification_grant": "Permitir",
   "push_call_accept": "Aceitar",
   "push_call_decline": "Recusar",
-  "push_channel_incoming_calls": "Incoming calls",
-  "push_channel_missed_calls": "Missed calls",
+  "push_channel_incoming_calls": "Chamadas recebidas",
+  "push_channel_missed_calls": "Chamadas perdidas",
   "push_channel_messages_desc": "Novas mensagens nos chats",
-  "push_channel_silent": "Silent messages",
-  "push_channel_silent_desc": "Push without sound",
-  "push_caller_unknown": "Someone",
-  "outbox_attachment_single": "Attachment",
-  "outbox_attachment_count": "Attachments ({count})",
+  "push_channel_silent": "Mensagens silenciosas",
+  "push_channel_silent_desc": "Empurre sem som",
+  "push_caller_unknown": "Alguém",
+  "outbox_attachment_single": "Anexo",
+  "outbox_attachment_count": "Anexos ({count})",
   "@outbox_attachment_count": {
     "placeholders": {
       "count": {
@@ -3657,7 +3665,7 @@
       }
     }
   },
-  "bottom_nav_label_chats": "Chats",
+  "bottom_nav_label_chats": "Bate-papos",
   "bottom_nav_label_contacts": "Contatos",
   "bottom_nav_label_conferences": "Conferências",
   "bottom_nav_label_calls": "Chamadas",
@@ -3668,55 +3676,55 @@
   "chat_theme_error_upload": "Plano de fundo upload error: {error}",
   "chat_theme_global_tile": "Global",
   "chat_theme_pick_hint": "Escolher a preset or photo from gallery",
-  "durak_dm_game_active": "Durak game in progress",
-  "durak_dm_game_created": "Durak game created",
+  "durak_dm_game_active": "Jogo Durak em andamento",
+  "durak_dm_game_created": "Jogo Durak criado",
   "durak_error_active_game_exists": "Já existe um jogo ativo neste chat",
-  "durak_error_already_defended": "This card is already defended",
+  "durak_error_already_defended": "Esta carta já está defendida",
   "durak_error_bad_attack_index": "Selecionar an attacking card to defend against",
-  "durak_error_cannot_throw_in": "Cannot throw in more cards",
+  "durak_error_cannot_throw_in": "Não é possível adicionar mais cartas",
   "durak_error_card_not_in_hand": "Esta carta não está mais na sua mão",
-  "durak_error_defender_already_taking": "Defender is already taking cards",
-  "durak_error_defender_cannot_attack": "Defender cannot throw in right now",
+  "durak_error_defender_already_taking": "Defensor já está aceitando cartões",
+  "durak_error_defender_cannot_attack": "O defensor não pode lançar agora",
   "durak_error_defense_does_not_beat": "Esta carta não bate a carta do ataque",
   "durak_error_failed_precondition": "A jogada não está disponível agora",
   "durak_error_game_already_active": "Jogo has already started",
   "durak_error_game_not_active": "Jogo is no longer active",
-  "durak_error_invalid_argument": "Invalid move",
+  "durak_error_invalid_argument": "Movimento inválido",
   "durak_error_not_allowed_throwin": "Você não pode jogar extras nesta rodada",
-  "durak_error_not_in_lobby": "Lobby has already started",
-  "durak_error_only_attacker_first": "Attacker goes first",
-  "durak_error_only_defender": "Another player is defending now",
+  "durak_error_not_in_lobby": "O lobby já começou",
+  "durak_error_only_attacker_first": "O atacante vai primeiro",
+  "durak_error_only_defender": "Outro jogador está defendendo agora",
   "durak_error_permission_denied": "Esta ação não está disponível para você",
   "durak_error_rank_not_allowed": "Você só pode jogar cartas do mesmo valor",
-  "durak_error_rematch_failed": "Failed to prepare rematch. Please try again",
-  "durak_error_resolution_pending": "Finish the disputed move first",
-  "durak_error_server": "Failed to execute move. Please try again",
+  "durak_error_rematch_failed": "Falha ao preparar a revanche. Por favor, tente novamente",
+  "durak_error_resolution_pending": "Termine o movimento disputado primeiro",
+  "durak_error_server": "Falha ao executar a movimentação. Por favor, tente novamente",
   "durak_error_throwin_not_your_turn": "Outro jogador está jogando extras agora",
   "durak_error_unauthenticated": "Você precisa entrar",
-  "durak_finish_game_tooltip": "End game",
+  "durak_finish_game_tooltip": "Fim do jogo",
   "durak_foul_banner_title": "Trapaceiro! Missed:",
-  "durak_fx_beat": "Beaten",
-  "durak_fx_took": "Took",
+  "durak_fx_beat": "Espancado",
+  "durak_fx_took": "Pegou",
   "durak_lobby_back_tooltip": "Voltar",
-  "durak_lobby_empty_slot": "Waiting…",
+  "durak_lobby_empty_slot": "Esperando…",
   "durak_lobby_game_unavailable": "Jogo indisponível ou foi excluído",
   "durak_lobby_ready": "Pronto",
   "durak_lobby_start": "Iniciar game",
-  "durak_lobby_waiting_short": "Waiting…",
-  "durak_opponent_role_attack": "ATK",
+  "durak_lobby_waiting_short": "Esperando…",
+  "durak_opponent_role_attack": "ATQ",
   "durak_opponent_role_defend": "DEF",
   "durak_opponent_role_throwin": "THR",
   "durak_pending_resolution_attacker": "Waiting for foul check… Press \"Confirmar Beaten\" if everyone agrees.",
   "durak_pending_resolution_other": "Aguardando verificação de falta… Você pode pressionar \"Falta!\" se notou trapaça.",
-  "durak_rematch": "Play again",
+  "durak_rematch": "Jogue novamente",
   "durak_settings_timer_subtitle": "15 segundos by default",
-  "durak_single_game": "Single game",
-  "durak_surrender_tooltip": "End game",
+  "durak_single_game": "Jogo único",
+  "durak_surrender_tooltip": "Fim do jogo",
   "durak_tournament_next": "Próximo tournament game",
-  "durak_tournament_played": "Played {finished} of {total}",
+  "durak_tournament_played": "Jogado {finished} de {total}",
   "durak_tournament_total_games_title": "Quantos jogos no torneio?",
   "durak_winner_label": "Vencedor",
-  "game_durak_subtitle": "Single game or tournament",
+  "game_durak_subtitle": "Jogo único ou torneio",
   "group_avatar_add_photo": "Adicionar photo",
   "group_avatar_photo_title": "Foto do grupo",
   "group_member_open_dm_hint": "Abrir direct chat with member",
@@ -3727,93 +3735,93 @@
   "group_members_add_member_tooltip": "Adicionar member",
   "group_members_add_title": "Adicionar membros",
   "group_members_all_in_group": "Todos os seus contatos já estão no grupo.",
-  "group_members_auth_error": "Authorization error: {error}",
+  "group_members_auth_error": "Erro de autorização: {error}",
   "group_members_contacts_load_error": "Falha ao carregar contacts: {error}",
   "group_members_copy_invite_tooltip": "Copiar invite link",
   "group_members_copy_link_error": "Falha ao copiar link: {error}",
-  "group_members_creator_badge": "CREATOR",
-  "group_members_grant_admin_action": "Grant",
+  "group_members_creator_badge": "CRIADOR",
+  "group_members_grant_admin_action": "Conceder",
   "group_members_grant_admin_body": "{name} receberá privilégios de admin: poderá editar o grupo, remover membros e gerenciar mensagens.",
-  "group_members_grant_admin_title": "Grant admin privileges?",
-  "group_members_invite_copied": "Invite link copied",
+  "group_members_grant_admin_title": "Conceder privilégios de administrador?",
+  "group_members_invite_copied": "Link de convite copiado",
   "group_members_menu_grant_admin": "Tornar admin",
   "group_members_menu_remove": "Remover do grupo",
-  "group_members_menu_revoke_admin": "Remove admin",
-  "group_members_nobody_found": "Nobody found.",
-  "group_members_remove_action": "Remove",
+  "group_members_menu_revoke_admin": "Remover administrador",
+  "group_members_nobody_found": "Ninguém encontrou.",
+  "group_members_remove_action": "Remover",
   "group_members_remove_body": "{name} será removido do grupo. Você pode desfazer adicionando o membro novamente.",
-  "group_members_remove_title": "Remove member?",
+  "group_members_remove_title": "Remover membro?",
   "group_members_removed": "Membro removed",
-  "group_members_revoke_admin_action": "Revoke",
+  "group_members_revoke_admin_action": "Revogar",
   "group_members_revoke_admin_body": "{name} perderá os privilégios de admin. Continuará no grupo como membro comum.",
-  "group_members_revoke_admin_title": "Revoke admin privileges?",
+  "group_members_revoke_admin_title": "Revogar privilégios de administrador?",
   "group_members_search_contacts": "Buscar contatos",
   "group_members_select_members": "Selecionar members",
   "group_members_subtitle_admin": "Administrador",
   "group_members_subtitle_creator": "Grupo creator",
   "group_members_subtitle_member": "Membro",
   "group_members_total_count": "Total: {count}",
-  "group_members_user_fallback": "User",
+  "group_members_user_fallback": "Usuário",
   "group_mention_no_matches": "Não matches",
   "poll_add_option": "Adicionar option",
   "poll_close_by_time": "Fechar by time",
-  "poll_close_not_set": "Not set",
+  "poll_close_not_set": "Não definido",
   "poll_close_reset": "Restaurar deadline",
-  "poll_correct_option_label": "Correct option",
+  "poll_correct_option_label": "Opção correta",
   "poll_description_label": "Descrição (optional)",
-  "poll_error_empty_question": "Enter a question",
+  "poll_error_empty_question": "Insira uma pergunta",
   "poll_error_future_time": "O horário de fechamento deve ser no futuro",
   "poll_error_generic": "Erro",
   "poll_error_min_options": "São necessárias pelo menos 2 opções",
   "poll_error_select_correct": "Selecionar the correct option",
   "poll_hide_voters": "Ocultar",
   "poll_menu_delete": "Excluir",
-  "poll_menu_end": "End",
-  "poll_menu_restart": "Restart",
-  "poll_option_hint": "Option {index}",
-  "poll_options_title": "Options",
-  "poll_publish": "Publish",
-  "poll_question_hint": "E.g.: What time shall we meet?",
-  "poll_question_label": "Question",
-  "poll_quiz_explanation_label": "Explanation (optional)",
-  "poll_show_voters": "Who voted",
-  "poll_status_ended": "Ended",
-  "poll_suggest_option_hint": "Suggest an option",
+  "poll_menu_end": "Fim",
+  "poll_menu_restart": "Reiniciar",
+  "poll_option_hint": "Opção {index}",
+  "poll_options_title": "Opções",
+  "poll_publish": "Publicar",
+  "poll_question_hint": "Ex.: A que horas nos encontraremos?",
+  "poll_question_label": "Pergunta",
+  "poll_quiz_explanation_label": "Explicação (opcional)",
+  "poll_show_voters": "Quem votou",
+  "poll_status_ended": "Terminou",
+  "poll_suggest_option_hint": "Sugira uma opção",
   "poll_switch_add_options": "Adicionar options",
   "poll_switch_add_options_sub": "Os participantes podem sugerir opções próprias",
   "poll_switch_anonymous": "Anônimo voting",
   "poll_switch_anonymous_sub": "Não mostrar quem votou em quê",
-  "poll_switch_multi": "Multiple answers",
+  "poll_switch_multi": "Múltiplas respostas",
   "poll_switch_multi_sub": "Várias opções podem ser selecionadas",
-  "poll_switch_quiz": "Quiz mode",
-  "poll_switch_quiz_sub": "One correct answer",
-  "poll_switch_revote": "Can change vote",
-  "poll_switch_revote_sub": "Revote allowed until poll closes",
-  "poll_switch_shuffle": "Shuffle options",
+  "poll_switch_quiz": "Modo de teste",
+  "poll_switch_quiz_sub": "Uma resposta correta",
+  "poll_switch_revote": "Pode mudar o voto",
+  "poll_switch_revote_sub": "Revogação permitida até o encerramento da enquete",
+  "poll_switch_shuffle": "Opções aleatórias",
   "poll_switch_shuffle_sub": "Ordem diferente para cada participante",
-  "poll_votes_count": "{count} votes",
+  "poll_votes_count": "{count} votos",
   "settings_chats_bottom_nav_icons_subtitle": "Escolha ícones e estilo visual como na web.",
-  "settings_chats_bottom_nav_icons_title": "Bottom navigation icons",
-  "settings_chats_collapse": "Collapse",
+  "settings_chats_bottom_nav_icons_title": "Ícones de navegação inferiores",
+  "settings_chats_collapse": "Colapso",
   "settings_chats_customize": "Personalizar",
   "settings_chats_default": "Padrão",
-  "settings_chats_emoji_balanced_desc": "Balanced: automatic compromise between performance and expressiveness.",
+  "settings_chats_emoji_balanced_desc": "Equilibrado: compromisso automático entre performance e expressividade.",
   "settings_chats_emoji_cinematic_desc": "Cinematic: máximo de partículas e profundidade para um efeito uau.",
-  "settings_chats_emoji_effects": "Emoji effects",
+  "settings_chats_emoji_effects": "Efeitos de emojis",
   "settings_chats_emoji_effects_subtitle": "Perfil de animação para o efeito de emoji em tela cheia ao tocar em um único emoji no chat.",
   "settings_chats_emoji_lite_desc": "Lite: carga mínima e fluidez máxima em dispositivos modestos.",
   "settings_chats_icon_search_hint_en": "Buscar por nome...",
-  "settings_chats_icon_size": "Icon size",
-  "settings_chats_nav_colorful": "Colorful",
-  "settings_chats_nav_global_subtitle": "Global layer: color, size, stroke width, and tile background.",
+  "settings_chats_icon_size": "Tamanho do ícone",
+  "settings_chats_nav_colorful": "Colorido",
+  "settings_chats_nav_global_subtitle": "Camada global: cor, tamanho, largura do traço e fundo do bloco.",
   "settings_chats_nav_global_title": "Para todos os ícones",
-  "settings_chats_nav_minimal": "Minimal",
+  "settings_chats_nav_minimal": "Mínimo",
   "settings_chats_preview_hello": "Olá",
   "settings_chats_preview_incoming_msg": "Oi! Tudo bem?",
-  "settings_chats_preview_outgoing_msg": "Great, thanks!",
+  "settings_chats_preview_outgoing_msg": "Ótimo, obrigado!",
   "settings_chats_reset_item_tooltip": "Restaurar",
   "settings_chats_reset_tooltip": "Restaurar",
-  "settings_chats_stroke_width": "Stroke width",
+  "settings_chats_stroke_width": "Largura do traço",
   "settings_chats_style_tooltip": "Estilo",
   "@chat_theme_error_delete": {
     "placeholders": {
@@ -3925,18 +3933,18 @@
   },
   "welcomeBubbleTitle": "Bem-vindo ao LighChat",
   "welcomeBubbleSubtitle": "O farol está aceso",
-  "welcomeSkip": "Skip",
-  "welcomeReplayDebugTile": "Replay welcome animation (debug)",
-  "sticker_scope_library": "Library",
+  "welcomeSkip": "Pular",
+  "welcomeReplayDebugTile": "Reproduzir animação de boas-vindas (depuração)",
+  "sticker_scope_library": "Biblioteca",
   "sticker_library_search_hint": "Buscar stickers...",
-  "account_menu_energy_saving": "Power saving",
+  "account_menu_energy_saving": "Economia de energia",
   "energy_saving_title": "Economia de energia",
-  "energy_saving_section_mode": "Power saving mode",
-  "energy_saving_section_resource_heavy": "Resource-heavy processes",
+  "energy_saving_section_mode": "Modo de economia de energia",
+  "energy_saving_section_resource_heavy": "Processos com muitos recursos",
   "energy_saving_threshold_off": "Desativado",
   "energy_saving_threshold_always": "Ativado",
-  "energy_saving_threshold_off_full": "Never",
-  "energy_saving_threshold_always_full": "Always",
+  "energy_saving_threshold_off_full": "Nunca",
+  "energy_saving_threshold_always_full": "Sempre",
   "energy_saving_threshold_at": "Quando a bateria estiver abaixo de {percent}%",
   "@energy_saving_threshold_at": {
     "placeholders": {
@@ -3945,7 +3953,7 @@
       }
     }
   },
-  "energy_saving_hint_off": "Resource-heavy effects are never auto-disabled.",
+  "energy_saving_hint_off": "Os efeitos com muitos recursos nunca são desativados automaticamente.",
   "energy_saving_hint_always": "Os efeitos pesados ficam sempre desativados, independentemente do nível da bateria.",
   "energy_saving_hint_threshold": "Desativar automaticamente todos os processos pesados quando a bateria cair abaixo de {percent}%.",
   "@energy_saving_hint_threshold": {
@@ -3955,7 +3963,7 @@
       }
     }
   },
-  "energy_saving_current_battery": "Current battery: {percent}%",
+  "energy_saving_current_battery": "Bateria atual: {percent}%",
   "@energy_saving_current_battery": {
     "placeholders": {
       "percent": {
@@ -3963,7 +3971,7 @@
       }
     }
   },
-  "energy_saving_active_now": "mode is active",
+  "energy_saving_active_now": "modo está ativo",
   "energy_saving_active_threshold": "A bateria atingiu o limite — todo efeito abaixo fica temporariamente desativado.",
   "energy_saving_active_system": "Economia de energia do sistema está ativa — todo efeito abaixo fica temporariamente desativado.",
   "energy_saving_autoplay_video_title": "Auto-reprodução de vídeo",
@@ -3971,7 +3979,7 @@
   "energy_saving_autoplay_gif_title": "Auto-reprodução de GIF",
   "energy_saving_autoplay_gif_subtitle": "Reproduzir e repetir GIFs automaticamente nos chats e no teclado.",
   "energy_saving_animated_stickers_title": "Animadas stickers",
-  "energy_saving_animated_stickers_subtitle": "Looped sticker animations and full-screen Premium sticker effects.",
+  "energy_saving_animated_stickers_subtitle": "Animações de adesivos em loop e efeitos de adesivos Premium em tela cheia.",
   "energy_saving_animated_emoji_title": "Emoji animado",
   "energy_saving_animated_emoji_subtitle": "Animação de emoji em loop em mensagens, reações e status.",
   "energy_saving_interface_animations_title": "Animações da interface",
@@ -3979,7 +3987,7 @@
   "energy_saving_media_preload_title": "Pré-carregar mídia",
   "energy_saving_media_preload_subtitle": "Começar a baixar arquivos de mídia ao abrir a lista de chats.",
   "energy_saving_background_update_title": "Plano de fundo update",
-  "energy_saving_background_update_subtitle": "Quick chat updates when switching between apps.",
+  "energy_saving_background_update_subtitle": "Atualizações rápidas de bate-papo ao alternar entre aplicativos.",
   "chat_list_item_sender_you": "Você",
   "@chat_list_item_sender_you": {
     "description": "Label for current user as sender in chat list preview"
@@ -3995,5 +4003,37 @@
   "chat_preview_attachment": "Anexo",
   "@chat_preview_attachment": {
     "description": "Chat list preview: chat_preview_attachment"
-  }
+  },
+  "storage_category_stickers_gifs_emoji": "Figurinhas, GIFs e emoji",
+  "storage_category_stickers_gifs_emoji_subtitle": "Cache de figurinhas recentes e do GIPHY (gifs/figurinhas/emojis animados).",
+  "storage_category_network_images": "Cache de imagens de rede",
+  "storage_category_network_images_subtitle": "Avatares, prévias e outras imagens buscadas pela rede (libCachedImageData).",
+  "storage_media_type_audio": "Áudio",
+  "storage_settings_categories_title": "Por categoria",
+  "storage_settings_clear_category_title": "Limpar \"{category}\"?",
+  "storage_settings_clear_category_body": "Cerca de {size} será liberado. Esta ação não pode ser desfeita.",
+  "message_menu_action_create_sticker": "Criar figurinha",
+  "message_menu_action_save_to_my_stickers": "Salvar nas minhas figurinhas",
+  "meeting_notifications_button": "Atividade",
+  "meeting_pip_button": "Minimizar",
+  "meeting_join_as_label": "Você entrará como",
+  "meeting_lobby_camera_blocked": "A permissão da câmera foi negada. Você entrará com a câmera desligada.",
+  "storage_label_audio": "Áudio",
+  "storage_label_recent_stickers": "Figurinhas recentes",
+  "storage_label_giphy_search": "GIPHY · cache de busca",
+  "storage_label_giphy_recent": "GIPHY · GIFs recentes",
+  "storage_chat_unattributed": "Não atribuído a um chat",
+  "legal_index_title": "Documentos legais",
+  "legal_index_subtitle": "Política de privacidade, termos de serviço e outros documentos legais que regem o uso do LighChat.",
+  "legal_settings_section_title": "Informações legais",
+  "legal_settings_section_subtitle": "Política de privacidade, termos de serviço, EULA e mais.",
+  "legal_not_found": "Documento não encontrado",
+  "legal_title_privacy_policy": "Política de Privacidade",
+  "legal_title_terms_of_service": "Termos de Serviço",
+  "legal_title_cookie_policy": "Política de Cookies",
+  "legal_title_eula": "Contrato de Licença de Usuário Final",
+  "legal_title_dpa": "Acordo de Processamento de Dados",
+  "legal_title_children": "Política para Crianças",
+  "legal_title_moderation": "Política de Moderação de Conteúdo",
+  "legal_title_aup": "Política de Uso Aceitável"
 }

@@ -625,7 +625,7 @@ class _ChatComposerState extends State<ChatComposer> {
               const SizedBox(height: 8),
             ],
             if (widget.stickerSuggestionBuilder != null &&
-                keyboardOpen &&
+                !keyboardOpen &&
                 !widget.stickersPanelOpen &&
                 !_hasTypedText &&
                 widget.pendingAttachments.isEmpty &&

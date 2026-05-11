@@ -523,18 +523,18 @@ class AppLocalizationsUz extends AppLocalizations {
       'Ochiq chatlardan keshlangan rasmlar va stikerlar.';
 
   @override
-  String get storage_category_stickers_gifs_emoji => 'Стикеры, GIF, эмодзи';
+  String get storage_category_stickers_gifs_emoji => 'Stikerlar, GIF va emoji';
 
   @override
   String get storage_category_stickers_gifs_emoji_subtitle =>
-      'Кэш недавних стикеров, GIPHY (gifs/stickers/emoji) и анимированных эмодзи.';
+      'So‘nggi stikerlar va GIPHY keshi (gif/sticker/animated emoji).';
 
   @override
-  String get storage_category_network_images => 'Кэш сетевых картинок';
+  String get storage_category_network_images => 'Tarmoq rasmlari keshi';
 
   @override
   String get storage_category_network_images_subtitle =>
-      'Аватары, превью и прочие изображения, скачанные из сети (libCachedImageData).';
+      'Avatarlar, prevyular va tarmoqdan yuklangan boshqa rasmlar (libCachedImageData).';
 
   @override
   String get storage_media_type_video => 'Video';
@@ -543,7 +543,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get storage_media_type_photo => 'Rasmlar';
 
   @override
-  String get storage_media_type_audio => 'Аудио';
+  String get storage_media_type_audio => 'Audio';
 
   @override
   String get storage_media_type_files => 'Fayllar';
@@ -561,16 +561,16 @@ class AppLocalizationsUz extends AppLocalizations {
       'Barcha media bulutda qoladi. Istalgan vaqtda qayta yuklab olishingiz mumkin.';
 
   @override
-  String get storage_settings_categories_title => 'По категориям';
+  String get storage_settings_categories_title => 'Toifa bo‘yicha';
 
   @override
   String storage_settings_clear_category_title(String category) {
-    return 'Очистить «$category»?';
+    return '“$category” tozalansinmi?';
   }
 
   @override
   String storage_settings_clear_category_body(String size) {
-    return 'Будет освобождено около $size. Действие нельзя отменить.';
+    return '$size atrofida joy bo‘shaydi. Bu amalni bekor qilib bo‘lmaydi.';
   }
 
   @override
@@ -608,7 +608,7 @@ class AppLocalizationsUz extends AppLocalizations {
   }
 
   @override
-  String get storage_chat_detail_media_tab => 'Media';
+  String get storage_chat_detail_media_tab => 'OAV';
 
   @override
   String get storage_chat_detail_select_all => 'Hammasini tanlash';
@@ -2736,11 +2736,10 @@ class AppLocalizationsUz extends AppLocalizations {
   String get message_menu_action_star_remove => 'Sevimlilardan olib tashlash';
 
   @override
-  String get message_menu_action_create_sticker => 'Создать стикер';
+  String get message_menu_action_create_sticker => 'Stiker yaratish';
 
   @override
-  String get message_menu_action_save_to_my_stickers =>
-      'Добавить в мои стикеры';
+  String get message_menu_action_save_to_my_stickers => 'Stikerlarimga saqlash';
 
   @override
   String get message_menu_action_forward => 'Uzatish';
@@ -3407,7 +3406,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get common_next => 'Keyingi';
 
   @override
-  String get common_ok => 'OK';
+  String get common_ok => 'KELISHDIKMI';
 
   @override
   String get common_confirm => 'Tasdiqlash';
@@ -4095,10 +4094,10 @@ class AppLocalizationsUz extends AppLocalizations {
   String get meeting_participants_button => 'Aʻzolar';
 
   @override
-  String get meeting_notifications_button => 'Активность';
+  String get meeting_notifications_button => 'Faollik';
 
   @override
-  String get meeting_pip_button => 'Свернуть';
+  String get meeting_pip_button => 'Kichraytirish';
 
   @override
   String get settings_chats_bottom_nav_icons_title =>
@@ -4665,11 +4664,11 @@ class AppLocalizationsUz extends AppLocalizations {
   String get meeting_join_guest => 'Mehmon';
 
   @override
-  String get meeting_join_as_label => 'Вы войдёте как';
+  String get meeting_join_as_label => 'Siz quyidagi nom bilan qo‘shilasiz';
 
   @override
   String get meeting_lobby_camera_blocked =>
-      'Доступ к камере не выдан. Вы войдёте с выключенной камерой.';
+      'Kamera uchun ruxsat berilmagan. Siz kamera o‘chiq holda qo‘shilasiz.';
 
   @override
   String get meeting_join_button => 'Qoʻshilish';
@@ -5343,7 +5342,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get date_month_4 => 'Aprel';
 
   @override
-  String get date_month_5 => 'May';
+  String get date_month_5 => 'may';
 
   @override
   String get date_month_6 => 'Iyun';
@@ -5429,7 +5428,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get media_screen_title => 'Media, havolalar va fayllar';
 
   @override
-  String get media_tab_media => 'Media';
+  String get media_tab_media => 'OAV';
 
   @override
   String get media_tab_circles => 'Doiralar';
@@ -6805,7 +6804,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get call_month_april => 'Aprel';
 
   @override
-  String get call_month_may => 'May';
+  String get call_month_may => 'may';
 
   @override
   String get call_month_june => 'Iyun';
@@ -7682,7 +7681,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get storage_label_photo => 'Rasm';
 
   @override
-  String get storage_label_audio => 'Аудио';
+  String get storage_label_audio => 'Audio';
 
   @override
   String get storage_label_files => 'Fayllar';
@@ -7691,16 +7690,16 @@ class AppLocalizationsUz extends AppLocalizations {
   String get storage_label_other => 'Boshqa';
 
   @override
-  String get storage_label_recent_stickers => 'Недавние стикеры';
+  String get storage_label_recent_stickers => 'So‘nggi stikerlar';
 
   @override
-  String get storage_label_giphy_search => 'GIPHY · поисковый кэш';
+  String get storage_label_giphy_search => 'GIPHY · qidiruv keshi';
 
   @override
-  String get storage_label_giphy_recent => 'GIPHY · недавние GIF';
+  String get storage_label_giphy_recent => 'GIPHY · so‘nggi GIFlar';
 
   @override
-  String get storage_chat_unattributed => 'Без привязки к чату';
+  String get storage_chat_unattributed => 'Chatga biriktirilmagan';
 
   @override
   String storage_label_draft(String key) {
@@ -7920,45 +7919,45 @@ class AppLocalizationsUz extends AppLocalizations {
       'Ilovalar orasida almashganda tezkor chat yangilanishlari.';
 
   @override
-  String get legal_index_title => 'Юридические документы';
+  String get legal_index_title => 'Yuridik hujjatlar';
 
   @override
   String get legal_index_subtitle =>
-      'Политика конфиденциальности, пользовательское соглашение и другие юридические документы, регулирующие использование LighChat.';
+      'Maxfiylik siyosati, xizmat ko‘rsatish shartlari va LighChat’dan foydalanishni tartibga soluvchi boshqa yuridik hujjatlar.';
 
   @override
-  String get legal_settings_section_title => 'Правовая информация';
+  String get legal_settings_section_title => 'Yuridik ma’lumot';
 
   @override
   String get legal_settings_section_subtitle =>
-      'Политика конфиденциальности, пользовательское соглашение, EULA и другие документы.';
+      'Maxfiylik siyosati, xizmat ko‘rsatish shartlari, EULA va boshqalar.';
 
   @override
-  String get legal_not_found => 'Документ не найден';
+  String get legal_not_found => 'Hujjat topilmadi';
 
   @override
-  String get legal_title_privacy_policy => 'Политика конфиденциальности';
+  String get legal_title_privacy_policy => 'Maxfiylik siyosati';
 
   @override
-  String get legal_title_terms_of_service => 'Пользовательское соглашение';
+  String get legal_title_terms_of_service => 'Xizmat ko‘rsatish shartlari';
 
   @override
-  String get legal_title_cookie_policy => 'Политика использования cookies';
+  String get legal_title_cookie_policy => 'Cookie siyosati';
 
   @override
-  String get legal_title_eula => 'Лицензионное соглашение (EULA)';
+  String get legal_title_eula => 'Yakuniy foydalanuvchi litsenziya kelishuvi';
 
   @override
-  String get legal_title_dpa => 'Соглашение об обработке данных (DPA)';
+  String get legal_title_dpa => 'Ma’lumotlarni qayta ishlash kelishuvi';
 
   @override
-  String get legal_title_children => 'Политика в отношении несовершеннолетних';
+  String get legal_title_children => 'Bolalar siyosati';
 
   @override
-  String get legal_title_moderation => 'Политика модерации контента';
+  String get legal_title_moderation => 'Kontent moderatsiyasi siyosati';
 
   @override
-  String get legal_title_aup => 'Правила допустимого использования';
+  String get legal_title_aup => 'Qabul qilinadigan foydalanish siyosati';
 
   @override
   String get chat_list_item_sender_you => 'Siz';

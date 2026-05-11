@@ -128,7 +128,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get secret_chat_media_type_image => 'Imágenes';
 
   @override
-  String get secret_chat_media_type_video => 'Videos';
+  String get secret_chat_media_type_video => 'Vídeos';
 
   @override
   String get secret_chat_media_type_voice => 'Mensajes de voz';
@@ -250,7 +250,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String tournament_points(Object pts) {
-    return '$pts pts';
+    return '$pts puntos';
   }
 
   @override
@@ -389,7 +389,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get storage_unit_gb => 'GB';
+  String get storage_unit_gb => 'ES';
 
   @override
   String get storage_settings_clear_all_button => 'Borrar toda la caché';
@@ -531,18 +531,18 @@ class AppLocalizationsEs extends AppLocalizations {
       'Fotos y stickers en caché de chats abiertos.';
 
   @override
-  String get storage_category_stickers_gifs_emoji => 'Стикеры, GIF, эмодзи';
+  String get storage_category_stickers_gifs_emoji => 'Stickers, GIF y emoji';
 
   @override
   String get storage_category_stickers_gifs_emoji_subtitle =>
-      'Кэш недавних стикеров, GIPHY (gifs/stickers/emoji) и анимированных эмодзи.';
+      'Caché de stickers recientes y de GIPHY (gif/stickers/emoji animados).';
 
   @override
-  String get storage_category_network_images => 'Кэш сетевых картинок';
+  String get storage_category_network_images => 'Caché de imágenes de red';
 
   @override
   String get storage_category_network_images_subtitle =>
-      'Аватары, превью и прочие изображения, скачанные из сети (libCachedImageData).';
+      'Avatares, vistas previas y otras imágenes obtenidas por red (libCachedImageData).';
 
   @override
   String get storage_media_type_video => 'Video';
@@ -551,7 +551,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get storage_media_type_photo => 'Fotos';
 
   @override
-  String get storage_media_type_audio => 'Аудио';
+  String get storage_media_type_audio => 'Audio';
 
   @override
   String get storage_media_type_files => 'Archivos';
@@ -569,16 +569,16 @@ class AppLocalizationsEs extends AppLocalizations {
       'Toda la multimedia permanece en la nube. Puedes volver a descargarla en cualquier momento.';
 
   @override
-  String get storage_settings_categories_title => 'По категориям';
+  String get storage_settings_categories_title => 'Por categoría';
 
   @override
   String storage_settings_clear_category_title(String category) {
-    return 'Очистить «$category»?';
+    return '¿Borrar \"$category\"?';
   }
 
   @override
   String storage_settings_clear_category_body(String size) {
-    return 'Будет освобождено около $size. Действие нельзя отменить.';
+    return 'Se liberarán aproximadamente $size. Esta acción no se puede deshacer.';
   }
 
   @override
@@ -1129,7 +1129,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settings_chats_no_background_on => 'Sin fondo (activado)';
 
   @override
-  String get chat_list_title => 'Chats';
+  String get chat_list_title => 'Charlas';
 
   @override
   String get chat_list_search_hint => 'Buscar…';
@@ -1620,7 +1620,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get new_chat_fallback_user_display_name => 'Usuario';
 
   @override
-  String get new_group_role_badge_admin => 'ADMIN';
+  String get new_group_role_badge_admin => 'ADMINISTRACIÓN';
 
   @override
   String get new_group_role_badge_worker => 'MIEMBRO';
@@ -1690,7 +1690,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get group_members_invite_link => 'Invitar por enlace';
 
   @override
-  String get group_members_admin_badge => 'ADMIN';
+  String get group_members_admin_badge => 'ADMINISTRACIÓN';
 
   @override
   String group_members_invite_text(Object groupName, Object inviteLink) {
@@ -2255,10 +2255,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get disappearing_preset_off => 'Desactivado';
 
   @override
-  String get disappearing_preset_1h => '1 h';
+  String get disappearing_preset_1h => '1 hora';
 
   @override
-  String get disappearing_preset_24h => '24 h';
+  String get disappearing_preset_24h => '24 horas';
 
   @override
   String get disappearing_preset_7d => '7 días';
@@ -2310,7 +2310,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get partner_profile_title_fallback_saved => 'Mensajes guardados';
 
   @override
-  String get partner_profile_title_fallback_chat => 'Chat';
+  String get partner_profile_title_fallback_chat => 'Charlar';
 
   @override
   String partner_profile_subtitle_group_member_count(Object count) {
@@ -2393,7 +2393,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get partner_profile_tooltip_copy_chat_id => 'Copiar ID del chat';
 
   @override
-  String get partner_profile_action_chats => 'Chats';
+  String get partner_profile_action_chats => 'Charlas';
 
   @override
   String get partner_profile_action_voice_call => 'Llamar';
@@ -2746,11 +2746,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get message_menu_action_star_remove => 'Eliminar de Destacados';
 
   @override
-  String get message_menu_action_create_sticker => 'Создать стикер';
+  String get message_menu_action_create_sticker => 'Crear sticker';
 
   @override
   String get message_menu_action_save_to_my_stickers =>
-      'Добавить в мои стикеры';
+      'Guardar en mis stickers';
 
   @override
   String get message_menu_action_forward => 'Reenviar';
@@ -3032,7 +3032,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get chat_composer_hint_message => 'Escribe un mensaje…';
 
   @override
-  String get chat_composer_tooltip_stickers => 'Stickers';
+  String get chat_composer_tooltip_stickers => 'Pegatinas';
 
   @override
   String get chat_composer_tooltip_attachments => 'Adjuntos';
@@ -3668,10 +3668,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sticker_pack_delete_failed => 'Error al eliminar el paquete';
 
   @override
-  String get sticker_tab_emoji => 'EMOJI';
+  String get sticker_tab_emoji => 'emojis';
 
   @override
-  String get sticker_tab_stickers => 'STICKERS';
+  String get sticker_tab_stickers => 'PEGATINAS';
 
   @override
   String get sticker_tab_gif => 'GIF';
@@ -3769,7 +3769,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get composer_attach_poll => 'Encuesta';
 
   @override
-  String get composer_attach_stickers => 'Stickers';
+  String get composer_attach_stickers => 'Pegatinas';
 
   @override
   String get composer_attach_clipboard => 'Portapapeles';
@@ -3888,7 +3888,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get meeting_chat_tab => 'Chat';
+  String get meeting_chat_tab => 'Charlar';
 
   @override
   String meeting_requests_tab(int count) {
@@ -4106,10 +4106,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get meeting_participants_button => 'Miembros';
 
   @override
-  String get meeting_notifications_button => 'Активность';
+  String get meeting_notifications_button => 'Actividad';
 
   @override
-  String get meeting_pip_button => 'Свернуть';
+  String get meeting_pip_button => 'Minimizar';
 
   @override
   String get settings_chats_bottom_nav_icons_title =>
@@ -4224,7 +4224,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Predeterminado (configuración global)';
 
   @override
-  String get chat_theme_presets => 'Presets';
+  String get chat_theme_presets => 'Preajustes';
 
   @override
   String get chat_theme_global_tile => 'Global';
@@ -4383,7 +4383,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get add_contact_scan_qr_title => 'Escanear código QR';
 
   @override
-  String get add_contact_flash_tooltip => 'Flash';
+  String get add_contact_flash_tooltip => 'Destello';
 
   @override
   String get add_contact_scan_qr_hint =>
@@ -4440,7 +4440,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get chat_settings_color_crimson => 'Carmesí';
 
   @override
-  String get chat_settings_color_tiffany => 'Tiffany';
+  String get chat_settings_color_tiffany => 'tiffany';
 
   @override
   String get chat_settings_color_yellow => 'Amarillo';
@@ -4634,7 +4634,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get meeting_tab_chat => 'Chat';
+  String get meeting_tab_chat => 'Charlar';
 
   @override
   String meeting_tab_chat_count(Object count) {
@@ -4679,11 +4679,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get meeting_join_guest => 'Invitado';
 
   @override
-  String get meeting_join_as_label => 'Вы войдёте как';
+  String get meeting_join_as_label => 'Te unirás como';
 
   @override
   String get meeting_lobby_camera_blocked =>
-      'Доступ к камере не выдан. Вы войдёте с выключенной камерой.';
+      'El permiso de la cámara está denegado. Te unirás con la cámara apagada.';
 
   @override
   String get meeting_join_button => 'Unirse';
@@ -4976,7 +4976,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get poll_badge_multi => 'Respuestas múltiples';
 
   @override
-  String get poll_badge_quiz => 'Quiz';
+  String get poll_badge_quiz => 'Prueba';
 
   @override
   String get poll_menu_restart => 'Reiniciar';
@@ -5262,7 +5262,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get pinned_type_location => 'Ubicación';
 
   @override
-  String get pinned_type_sticker => 'Sticker';
+  String get pinned_type_sticker => 'Etiqueta engomada';
 
   @override
   String get pinned_type_file => 'Archivo';
@@ -5729,7 +5729,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get attach_poll => 'Encuesta';
 
   @override
-  String get attach_stickers => 'Stickers';
+  String get attach_stickers => 'Pegatinas';
 
   @override
   String get attach_clipboard => 'Portapapeles';
@@ -6306,7 +6306,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get location_no_permission => 'Sin acceso a la ubicación';
 
   @override
-  String get group_member_admin => 'Admin';
+  String get group_member_admin => 'Administración';
 
   @override
   String get group_member_creator => 'Creador';
@@ -6754,7 +6754,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Error al hacer el movimiento. Intenta de nuevo';
 
   @override
-  String get reply_sticker => 'Sticker';
+  String get reply_sticker => 'Etiqueta engomada';
 
   @override
   String get reply_gif => 'GIF';
@@ -6802,7 +6802,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get call_format_second_short => 's';
 
   @override
-  String get call_format_minute_short => 'm';
+  String get call_format_minute_short => 'metro';
 
   @override
   String get call_format_hour_short => 'h';
@@ -7135,7 +7135,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get nav_chats => 'Chats';
+  String get nav_chats => 'Charlas';
 
   @override
   String get nav_contacts => 'Contactos';
@@ -7169,7 +7169,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get chat_search_snippet_message => 'Mensaje';
 
   @override
-  String get bottom_nav_chats => 'Chats';
+  String get bottom_nav_chats => 'Charlas';
 
   @override
   String get bottom_nav_contacts => 'Contactos';
@@ -7372,7 +7372,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get presence_online => 'En línea';
 
   @override
-  String get dm_title_fallback => 'Chat';
+  String get dm_title_fallback => 'Charlar';
 
   @override
   String get dm_title_partner_fallback => 'Contacto';
@@ -7450,7 +7450,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get presence_yesterday => 'ayer';
 
   @override
-  String get dm_fallback_title => 'Chat';
+  String get dm_fallback_title => 'Charlar';
 
   @override
   String get dm_fallback_partner => 'Contacto';
@@ -7630,7 +7630,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get forward_unknown_fallback => 'Desconocido';
 
   @override
-  String get dm_title_chat => 'Chat';
+  String get dm_title_chat => 'Charlar';
 
   @override
   String get dm_title_partner => 'Compañero';
@@ -7698,7 +7698,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get storage_label_photo => 'Foto';
 
   @override
-  String get storage_label_audio => 'Аудио';
+  String get storage_label_audio => 'Audio';
 
   @override
   String get storage_label_files => 'Archivos';
@@ -7707,16 +7707,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get storage_label_other => 'Otros';
 
   @override
-  String get storage_label_recent_stickers => 'Недавние стикеры';
+  String get storage_label_recent_stickers => 'Stickers recientes';
 
   @override
-  String get storage_label_giphy_search => 'GIPHY · поисковый кэш';
+  String get storage_label_giphy_search => 'GIPHY · caché de búsqueda';
 
   @override
-  String get storage_label_giphy_recent => 'GIPHY · недавние GIF';
+  String get storage_label_giphy_recent => 'GIPHY · GIF recientes';
 
   @override
-  String get storage_chat_unattributed => 'Без привязки к чату';
+  String get storage_chat_unattributed => 'No atribuido a un chat';
 
   @override
   String storage_label_draft(String key) {
@@ -7736,7 +7736,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get call_mini_end => 'Finalizar llamada';
 
   @override
-  String get animation_quality_lite => 'Lite';
+  String get animation_quality_lite => 'ligero';
 
   @override
   String get animation_quality_balanced => 'Equilibrado';
@@ -7797,7 +7797,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get bottom_nav_label_chats => 'Chats';
+  String get bottom_nav_label_chats => 'Charlas';
 
   @override
   String get bottom_nav_label_contacts => 'Contactos';
@@ -7939,45 +7939,45 @@ class AppLocalizationsEs extends AppLocalizations {
       'Actualizaciones rápidas del chat al cambiar entre apps.';
 
   @override
-  String get legal_index_title => 'Юридические документы';
+  String get legal_index_title => 'Documentos legales';
 
   @override
   String get legal_index_subtitle =>
-      'Политика конфиденциальности, пользовательское соглашение и другие юридические документы, регулирующие использование LighChat.';
+      'Política de privacidad, términos de servicio y otros documentos legales que regulan el uso de LighChat.';
 
   @override
-  String get legal_settings_section_title => 'Правовая информация';
+  String get legal_settings_section_title => 'Información legal';
 
   @override
   String get legal_settings_section_subtitle =>
-      'Политика конфиденциальности, пользовательское соглашение, EULA и другие документы.';
+      'Política de privacidad, términos de servicio, EULA y más.';
 
   @override
-  String get legal_not_found => 'Документ не найден';
+  String get legal_not_found => 'Documento no encontrado';
 
   @override
-  String get legal_title_privacy_policy => 'Политика конфиденциальности';
+  String get legal_title_privacy_policy => 'Política de Privacidad';
 
   @override
-  String get legal_title_terms_of_service => 'Пользовательское соглашение';
+  String get legal_title_terms_of_service => 'Términos de Servicio';
 
   @override
-  String get legal_title_cookie_policy => 'Политика использования cookies';
+  String get legal_title_cookie_policy => 'Política de Cookies';
 
   @override
-  String get legal_title_eula => 'Лицензионное соглашение (EULA)';
+  String get legal_title_eula => 'Acuerdo de Licencia de Usuario Final';
 
   @override
-  String get legal_title_dpa => 'Соглашение об обработке данных (DPA)';
+  String get legal_title_dpa => 'Acuerdo de Procesamiento de Datos';
 
   @override
-  String get legal_title_children => 'Политика в отношении несовершеннолетних';
+  String get legal_title_children => 'Política para Niños';
 
   @override
-  String get legal_title_moderation => 'Политика модерации контента';
+  String get legal_title_moderation => 'Política de Moderación de Contenido';
 
   @override
-  String get legal_title_aup => 'Правила допустимого использования';
+  String get legal_title_aup => 'Política de Uso Aceptable';
 
   @override
   String get chat_list_item_sender_you => 'Tú';
@@ -7986,7 +7986,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get chat_preview_message => 'Mensaje';
 
   @override
-  String get chat_preview_sticker => 'Sticker';
+  String get chat_preview_sticker => 'Etiqueta engomada';
 
   @override
   String get chat_preview_attachment => 'Adjunto';
@@ -8116,7 +8116,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get secret_chat_media_type_image => 'Imágenes';
 
   @override
-  String get secret_chat_media_type_video => 'Videos';
+  String get secret_chat_media_type_video => 'Vídeos';
 
   @override
   String get secret_chat_media_type_voice => 'Mensajes de voz';
@@ -8238,7 +8238,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String tournament_points(Object pts) {
-    return '$pts pts';
+    return '$pts puntos';
   }
 
   @override
@@ -8377,7 +8377,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   }
 
   @override
-  String get storage_unit_gb => 'GB';
+  String get storage_unit_gb => 'ES';
 
   @override
   String get storage_settings_clear_all_button => 'Borrar toda la caché';
@@ -8519,10 +8519,27 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
       'Fotos y stickers en caché de chats abiertos.';
 
   @override
+  String get storage_category_stickers_gifs_emoji => 'Stickers, GIF y emoji';
+
+  @override
+  String get storage_category_stickers_gifs_emoji_subtitle =>
+      'Caché de stickers recientes y de GIPHY (gif/stickers/emoji animados).';
+
+  @override
+  String get storage_category_network_images => 'Caché de imágenes de red';
+
+  @override
+  String get storage_category_network_images_subtitle =>
+      'Avatares, vistas previas y otras imágenes obtenidas por red (libCachedImageData).';
+
+  @override
   String get storage_media_type_video => 'Video';
 
   @override
   String get storage_media_type_photo => 'Fotos';
+
+  @override
+  String get storage_media_type_audio => 'Audio';
 
   @override
   String get storage_media_type_files => 'Archivos';
@@ -8538,6 +8555,19 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   @override
   String get storage_settings_clear_all_hint =>
       'Toda la multimedia permanece en la nube. Puedes volver a descargarla en cualquier momento.';
+
+  @override
+  String get storage_settings_categories_title => 'Por categoría';
+
+  @override
+  String storage_settings_clear_category_title(String category) {
+    return '¿Borrar \"$category\"?';
+  }
+
+  @override
+  String storage_settings_clear_category_body(String size) {
+    return 'Se liberarán aproximadamente $size. Esta acción no se puede deshacer.';
+  }
 
   @override
   String get storage_auto_delete_title =>
@@ -9087,7 +9117,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get settings_chats_no_background_on => 'Sin fondo (activado)';
 
   @override
-  String get chat_list_title => 'Chats';
+  String get chat_list_title => 'Charlas';
 
   @override
   String get chat_list_search_hint => 'Buscar…';
@@ -9578,7 +9608,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get new_chat_fallback_user_display_name => 'Usuario';
 
   @override
-  String get new_group_role_badge_admin => 'ADMIN';
+  String get new_group_role_badge_admin => 'ADMINISTRACIÓN';
 
   @override
   String get new_group_role_badge_worker => 'MIEMBRO';
@@ -9648,7 +9678,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get group_members_invite_link => 'Invitar por enlace';
 
   @override
-  String get group_members_admin_badge => 'ADMIN';
+  String get group_members_admin_badge => 'ADMINISTRACIÓN';
 
   @override
   String group_members_invite_text(Object groupName, Object inviteLink) {
@@ -10213,10 +10243,10 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get disappearing_preset_off => 'Desactivado';
 
   @override
-  String get disappearing_preset_1h => '1 h';
+  String get disappearing_preset_1h => '1 hora';
 
   @override
-  String get disappearing_preset_24h => '24 h';
+  String get disappearing_preset_24h => '24 horas';
 
   @override
   String get disappearing_preset_7d => '7 días';
@@ -10268,7 +10298,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get partner_profile_title_fallback_saved => 'Mensajes guardados';
 
   @override
-  String get partner_profile_title_fallback_chat => 'Chat';
+  String get partner_profile_title_fallback_chat => 'Charlar';
 
   @override
   String partner_profile_subtitle_group_member_count(Object count) {
@@ -10351,7 +10381,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get partner_profile_tooltip_copy_chat_id => 'Copiar ID del chat';
 
   @override
-  String get partner_profile_action_chats => 'Chats';
+  String get partner_profile_action_chats => 'Charlas';
 
   @override
   String get partner_profile_action_voice_call => 'Llamar';
@@ -10704,6 +10734,13 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get message_menu_action_star_remove => 'Eliminar de Destacados';
 
   @override
+  String get message_menu_action_create_sticker => 'Crear sticker';
+
+  @override
+  String get message_menu_action_save_to_my_stickers =>
+      'Guardar en mis stickers';
+
+  @override
   String get message_menu_action_forward => 'Reenviar';
 
   @override
@@ -10983,7 +11020,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get chat_composer_hint_message => 'Escribe un mensaje…';
 
   @override
-  String get chat_composer_tooltip_stickers => 'Stickers';
+  String get chat_composer_tooltip_stickers => 'Pegatinas';
 
   @override
   String get chat_composer_tooltip_attachments => 'Adjuntos';
@@ -11619,10 +11656,10 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get sticker_pack_delete_failed => 'Error al eliminar el paquete';
 
   @override
-  String get sticker_tab_emoji => 'EMOJI';
+  String get sticker_tab_emoji => 'emojis';
 
   @override
-  String get sticker_tab_stickers => 'STICKERS';
+  String get sticker_tab_stickers => 'PEGATINAS';
 
   @override
   String get sticker_tab_gif => 'GIF';
@@ -11720,7 +11757,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get composer_attach_poll => 'Encuesta';
 
   @override
-  String get composer_attach_stickers => 'Stickers';
+  String get composer_attach_stickers => 'Pegatinas';
 
   @override
   String get composer_attach_clipboard => 'Portapapeles';
@@ -11839,7 +11876,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   }
 
   @override
-  String get meeting_chat_tab => 'Chat';
+  String get meeting_chat_tab => 'Charlar';
 
   @override
   String meeting_requests_tab(int count) {
@@ -12057,6 +12094,12 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get meeting_participants_button => 'Miembros';
 
   @override
+  String get meeting_notifications_button => 'Actividad';
+
+  @override
+  String get meeting_pip_button => 'Minimizar';
+
+  @override
   String get settings_chats_bottom_nav_icons_title =>
       'Iconos de navegación inferior';
 
@@ -12169,7 +12212,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
       'Predeterminado (configuración global)';
 
   @override
-  String get chat_theme_presets => 'Presets';
+  String get chat_theme_presets => 'Preajustes';
 
   @override
   String get chat_theme_global_tile => 'Global';
@@ -12328,7 +12371,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get add_contact_scan_qr_title => 'Escanear código QR';
 
   @override
-  String get add_contact_flash_tooltip => 'Flash';
+  String get add_contact_flash_tooltip => 'Destello';
 
   @override
   String get add_contact_scan_qr_hint =>
@@ -12385,7 +12428,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get chat_settings_color_crimson => 'Carmesí';
 
   @override
-  String get chat_settings_color_tiffany => 'Tiffany';
+  String get chat_settings_color_tiffany => 'tiffany';
 
   @override
   String get chat_settings_color_yellow => 'Amarillo';
@@ -12579,7 +12622,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   }
 
   @override
-  String get meeting_tab_chat => 'Chat';
+  String get meeting_tab_chat => 'Charlar';
 
   @override
   String meeting_tab_chat_count(Object count) {
@@ -12622,6 +12665,13 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get meeting_join_guest => 'Invitado';
+
+  @override
+  String get meeting_join_as_label => 'Te unirás como';
+
+  @override
+  String get meeting_lobby_camera_blocked =>
+      'El permiso de la cámara está denegado. Te unirás con la cámara apagada.';
 
   @override
   String get meeting_join_button => 'Unirse';
@@ -12914,7 +12964,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get poll_badge_multi => 'Respuestas múltiples';
 
   @override
-  String get poll_badge_quiz => 'Quiz';
+  String get poll_badge_quiz => 'Prueba';
 
   @override
   String get poll_menu_restart => 'Reiniciar';
@@ -13200,7 +13250,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get pinned_type_location => 'Ubicación';
 
   @override
-  String get pinned_type_sticker => 'Sticker';
+  String get pinned_type_sticker => 'Etiqueta engomada';
 
   @override
   String get pinned_type_file => 'Archivo';
@@ -13667,7 +13717,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get attach_poll => 'Encuesta';
 
   @override
-  String get attach_stickers => 'Stickers';
+  String get attach_stickers => 'Pegatinas';
 
   @override
   String get attach_clipboard => 'Portapapeles';
@@ -14244,7 +14294,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get location_no_permission => 'Sin acceso a la ubicación';
 
   @override
-  String get group_member_admin => 'Admin';
+  String get group_member_admin => 'Administración';
 
   @override
   String get group_member_creator => 'Creador';
@@ -14692,7 +14742,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
       'Error al hacer el movimiento. Intenta de nuevo';
 
   @override
-  String get reply_sticker => 'Sticker';
+  String get reply_sticker => 'Etiqueta engomada';
 
   @override
   String get reply_gif => 'GIF';
@@ -14740,7 +14790,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get call_format_second_short => 's';
 
   @override
-  String get call_format_minute_short => 'm';
+  String get call_format_minute_short => 'metro';
 
   @override
   String get call_format_hour_short => 'h';
@@ -15064,7 +15114,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   }
 
   @override
-  String get nav_chats => 'Chats';
+  String get nav_chats => 'Charlas';
 
   @override
   String get nav_contacts => 'Contactos';
@@ -15098,7 +15148,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get chat_search_snippet_message => 'Mensaje';
 
   @override
-  String get bottom_nav_chats => 'Chats';
+  String get bottom_nav_chats => 'Charlas';
 
   @override
   String get bottom_nav_contacts => 'Contactos';
@@ -15301,7 +15351,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get presence_online => 'En línea';
 
   @override
-  String get dm_title_fallback => 'Chat';
+  String get dm_title_fallback => 'Charlar';
 
   @override
   String get dm_title_partner_fallback => 'Contacto';
@@ -15379,7 +15429,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get presence_yesterday => 'ayer';
 
   @override
-  String get dm_fallback_title => 'Chat';
+  String get dm_fallback_title => 'Charlar';
 
   @override
   String get dm_fallback_partner => 'Contacto';
@@ -15559,7 +15609,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get forward_unknown_fallback => 'Desconocido';
 
   @override
-  String get dm_title_chat => 'Chat';
+  String get dm_title_chat => 'Charlar';
 
   @override
   String get dm_title_partner => 'Compañero';
@@ -15627,10 +15677,25 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get storage_label_photo => 'Foto';
 
   @override
+  String get storage_label_audio => 'Audio';
+
+  @override
   String get storage_label_files => 'Archivos';
 
   @override
   String get storage_label_other => 'Otros';
+
+  @override
+  String get storage_label_recent_stickers => 'Stickers recientes';
+
+  @override
+  String get storage_label_giphy_search => 'GIPHY · caché de búsqueda';
+
+  @override
+  String get storage_label_giphy_recent => 'GIPHY · GIF recientes';
+
+  @override
+  String get storage_chat_unattributed => 'No atribuido a un chat';
 
   @override
   String storage_label_draft(String key) {
@@ -15650,7 +15715,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get call_mini_end => 'Finalizar llamada';
 
   @override
-  String get animation_quality_lite => 'Lite';
+  String get animation_quality_lite => 'ligero';
 
   @override
   String get animation_quality_balanced => 'Equilibrado';
@@ -15711,7 +15776,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   }
 
   @override
-  String get bottom_nav_label_chats => 'Chats';
+  String get bottom_nav_label_chats => 'Charlas';
 
   @override
   String get bottom_nav_label_contacts => 'Contactos';
@@ -15853,13 +15918,54 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
       'Actualizaciones rápidas del chat al cambiar entre apps.';
 
   @override
+  String get legal_index_title => 'Documentos legales';
+
+  @override
+  String get legal_index_subtitle =>
+      'Política de privacidad, términos de servicio y otros documentos legales que regulan el uso de LighChat.';
+
+  @override
+  String get legal_settings_section_title => 'Información legal';
+
+  @override
+  String get legal_settings_section_subtitle =>
+      'Política de privacidad, términos de servicio, EULA y más.';
+
+  @override
+  String get legal_not_found => 'Documento no encontrado';
+
+  @override
+  String get legal_title_privacy_policy => 'Política de Privacidad';
+
+  @override
+  String get legal_title_terms_of_service => 'Términos de Servicio';
+
+  @override
+  String get legal_title_cookie_policy => 'Política de Cookies';
+
+  @override
+  String get legal_title_eula => 'Acuerdo de Licencia de Usuario Final';
+
+  @override
+  String get legal_title_dpa => 'Acuerdo de Procesamiento de Datos';
+
+  @override
+  String get legal_title_children => 'Política para Niños';
+
+  @override
+  String get legal_title_moderation => 'Política de Moderación de Contenido';
+
+  @override
+  String get legal_title_aup => 'Política de Uso Aceptable';
+
+  @override
   String get chat_list_item_sender_you => 'Tú';
 
   @override
   String get chat_preview_message => 'Mensaje';
 
   @override
-  String get chat_preview_sticker => 'Sticker';
+  String get chat_preview_sticker => 'Etiqueta engomada';
 
   @override
   String get chat_preview_attachment => 'Adjunto';

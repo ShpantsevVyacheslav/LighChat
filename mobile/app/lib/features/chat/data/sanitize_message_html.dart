@@ -35,7 +35,11 @@ bool _attrAllowed(String tag, String attrLower) {
     case 'a':
       return {'href', 'title', 'target', 'rel'}.contains(attrLower);
     case 'span':
-      return attrLower == 'data-chat-mention' || attrLower == 'data-user-id';
+      return attrLower == 'data-chat-mention' ||
+          attrLower == 'data-user-id' ||
+          attrLower == 'data-chat-custom-emoji' ||
+          attrLower == 'data-emoji-id' ||
+          attrLower == 'data-emoji-src';
     default:
       return false;
   }
