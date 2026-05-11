@@ -163,6 +163,7 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
   late PageController _pageController;
   late int _index;
   final Map<int, TransformationController> _imageTransforms = {};
+  final Map<int, TransformationController> _videoTransforms = {};
   final GlobalKey _topChromeKey = GlobalKey();
   double _topChromeMeasuredHeight = 0;
   bool _zoomed = false;
@@ -192,11 +193,29 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
     for (final c in _imageTransforms.values) {
       c.dispose();
     }
+    for (final c in _videoTransforms.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
   TransformationController _transformFor(int pageIndex) {
     return _imageTransforms.putIfAbsent(pageIndex, () {
+      final c = TransformationController();
+      c.addListener(() {
+        if (!mounted || _index != pageIndex) return;
+        final s = c.value.getMaxScaleOnAxis();
+        final z = s > 1.05;
+        if (z != _zoomed) {
+          setState(() => _zoomed = z);
+        }
+      });
+      return c;
+    });
+  }
+
+  TransformationController _videoTransformFor(int pageIndex) {
+    return _videoTransforms.putIfAbsent(pageIndex, () {
       final c = TransformationController();
       c.addListener(() {
         if (!mounted || _index != pageIndex) return;
@@ -537,6 +556,11 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                             e.value.value = Matrix4.identity();
                           }
                         }
+                        for (final e in _videoTransforms.entries) {
+                          if (e.key != i) {
+                            e.value.value = Matrix4.identity();
+                          }
+                        }
                       },
                       itemCount: _items.length,
                       itemBuilder: (context, i) {
@@ -547,6 +571,7 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                             key: ValueKey<String>('v-${att.url}'),
                             pageIndex: i,
                             url: att.url,
+                            transformationController: _videoTransformFor(i),
                             conversationId: widget.conversationId,
                             messageId: it.message.id,
                             attachmentName: att.name,
@@ -1023,6 +1048,7 @@ class _GalleryVideoPage extends StatefulWidget {
     super.key,
     required this.pageIndex,
     required this.url,
+    required this.transformationController,
     this.conversationId,
     this.messageId,
     this.attachmentName,
@@ -1037,6 +1063,7 @@ class _GalleryVideoPage extends StatefulWidget {
 
   final int pageIndex;
   final String url;
+  final TransformationController transformationController;
   final String? conversationId;
   final String? messageId;
   final String? attachmentName;
@@ -1052,7 +1079,11 @@ class _GalleryVideoPage extends StatefulWidget {
   State<_GalleryVideoPage> createState() => _GalleryVideoPageState();
 }
 
-class _GalleryVideoPageState extends State<_GalleryVideoPage> {
+class _GalleryVideoPageState extends State<_GalleryVideoPage>
+    with SingleTickerProviderStateMixin {
+  static const double _videoDoubleTapScale = 2.5;
+  static const double _videoZoomedThreshold = 1.01;
+
   VideoPlayerController? _av;
   bool _failed = false;
   bool _controlsVisible = true;
@@ -1064,7 +1095,9 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
   _ViewerVideoQuality _quality = _ViewerVideoQuality.auto;
   String _activeUrl = '';
   Timer? _hideControlsTimer;
-  final TransformationController _videoZoom = TransformationController();
+
+  late final AnimationController _zoomAnim;
+  VoidCallback? _zoomTickListener;
 
   /// Прогресс сохранения в локальный кэш (0..1) или `null`, если полоска не нужна.
   double? _cacheProgress;
@@ -1078,9 +1111,62 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
   @override
   void initState() {
     super.initState();
+    _zoomAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
     _activeUrl = _urlForQuality(_quality);
     _PictureInPictureBridge.ensureDartInboundForPipFinished();
     unawaited(_initAv(url: _activeUrl));
+  }
+
+  void _disposeZoomAnimListener() {
+    final l = _zoomTickListener;
+    if (l != null) {
+      _zoomAnim.removeListener(l);
+      _zoomTickListener = null;
+    }
+  }
+
+  void _animateZoomTo(Matrix4 target) {
+    _disposeZoomAnimListener();
+    final c = widget.transformationController;
+    final anim = Matrix4Tween(begin: c.value, end: target).animate(
+      CurvedAnimation(parent: _zoomAnim, curve: Curves.easeOutCubic),
+    );
+    void l() {
+      c.value = anim.value;
+    }
+    _zoomTickListener = l;
+    _zoomAnim
+      ..removeStatusListener(_onZoomAnimStatus)
+      ..addStatusListener(_onZoomAnimStatus);
+    _zoomAnim.addListener(l);
+    _zoomAnim
+      ..value = 0
+      ..forward();
+  }
+
+  void _onZoomAnimStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed ||
+        status == AnimationStatus.dismissed) {
+      _disposeZoomAnimListener();
+    }
+  }
+
+  void _handleVideoDoubleTap(TapDownDetails d) {
+    final c = widget.transformationController;
+    final scale = c.value.getMaxScaleOnAxis();
+    if (scale > _videoZoomedThreshold) {
+      _animateZoomTo(Matrix4.identity());
+      return;
+    }
+    final focal = d.localPosition;
+    final target = Matrix4.identity()
+      ..translateByDouble(focal.dx, focal.dy, 0, 1)
+      ..scaleByDouble(_videoDoubleTapScale, _videoDoubleTapScale, 1.0, 1)
+      ..translateByDouble(-focal.dx, -focal.dy, 0, 1);
+    _animateZoomTo(target);
   }
 
   Future<void> _initAv({required String url}) async {
@@ -1172,7 +1258,8 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
     _downloadCancelled = true;
     _hideControlsTimer?.cancel();
     _av?.dispose();
-    _videoZoom.dispose();
+    _disposeZoomAnimListener();
+    _zoomAnim.dispose();
     super.dispose();
   }
 
@@ -1682,30 +1769,40 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
                   sliderMax,
                 );
 
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    if (_controlsVisible) {
-                      if (value.isPlaying) {
-                        _hideControlsNow();
-                      } else {
-                        unawaited(_togglePlayPause());
-                      }
-                    } else {
-                      _showControlsTemporarily(force: true);
-                    }
-                  },
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      InteractiveViewer(
-                        clipBehavior: Clip.hardEdge,
-                        transformationController: _videoZoom,
-                        minScale: 1,
-                        maxScale: 4,
-                        panEnabled: false,
-                        child: VideoPlayer(c),
-                      ),
+                return AnimatedBuilder(
+                  animation: widget.transformationController,
+                  builder: (context, _) {
+                    final zoomed = widget.transformationController.value
+                            .getMaxScaleOnAxis() >
+                        _videoZoomedThreshold;
+                    return GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        if (_controlsVisible) {
+                          if (value.isPlaying) {
+                            _hideControlsNow();
+                          } else {
+                            unawaited(_togglePlayPause());
+                          }
+                        } else {
+                          _showControlsTemporarily(force: true);
+                        }
+                      },
+                      onDoubleTapDown: _handleVideoDoubleTap,
+                      onDoubleTap: () {},
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          InteractiveViewer(
+                            clipBehavior: Clip.hardEdge,
+                            transformationController:
+                                widget.transformationController,
+                            minScale: 1,
+                            maxScale: 4,
+                            panEnabled: zoomed,
+                            scaleEnabled: true,
+                            child: VideoPlayer(c),
+                          ),
                       if (_switchingQuality)
                         Positioned.fill(
                           child: ColoredBox(
@@ -1884,8 +1981,10 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage> {
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                        ],
+                      ),
+                    );
+                  },
                 );
               },
             ),
