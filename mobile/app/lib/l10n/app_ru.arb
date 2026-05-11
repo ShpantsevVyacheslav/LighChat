@@ -925,11 +925,19 @@
   "share_picker_summary_text_only": "Текст",
   "share_picker_summary_files_count": "Файлов: {count}",
   "@share_picker_summary_files_count": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "share_picker_summary_files_with_text": "Файлов: {count} + текст",
   "@share_picker_summary_files_with_text": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "devices_title": "Мои устройства",
   "devices_subtitle": "Список устройств, на которых опубликован ваш публичный ключ шифрования. Отзыв автоматически создаёт новую эпоху ключей во всех зашифрованных чатах — отозванное устройство больше не увидит новые сообщения.",
@@ -3904,6 +3912,32 @@
   "dm_title_group": "Групповой чат",
   "e2ee_too_many_attachments": "Слишком много вложений для зашифрованной отправки: максимум 5 файлов за сообщение.",
   "e2ee_total_size_exceeded": "Слишком большой общий размер вложений: максимум 96 МБ для одного зашифрованного сообщения.",
+  "composer_limit_too_many_files": "Слишком много вложений: {current}/{max}. Удалите {diff}, чтобы отправить.",
+  "@composer_limit_too_many_files": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      },
+      "diff": {
+        "type": "int"
+      }
+    }
+  },
+  "composer_limit_total_size_exceeded": "Слишком большой размер вложений: {currentMb} МБ / {maxMb} МБ. Удалите часть, чтобы отправить.",
+  "@composer_limit_total_size_exceeded": {
+    "placeholders": {
+      "currentMb": {
+        "type": "String"
+      },
+      "maxMb": {
+        "type": "String"
+      }
+    }
+  },
+  "composer_limit_blocking_send": "Превышен лимит вложений",
   "yandex_sign_in_error_prefix": "Яндекс: {error}",
   "@yandex_sign_in_error_prefix": {
     "placeholders": {

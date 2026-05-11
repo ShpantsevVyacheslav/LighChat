@@ -6869,13 +6869,13 @@ class AppLocalizationsTr extends AppLocalizations {
   String get video_editor_caption_hint => 'Açıklama ekle...';
 
   @override
-  String get video_effects_speed => 'Hız';
+  String get video_effects_speed => 'Скорость';
 
   @override
-  String get video_filter_none => 'Orijinal';
+  String get video_filter_none => 'Оригинал';
 
   @override
-  String get video_filter_enhance => 'Geliştir';
+  String get video_filter_enhance => 'Улучшить';
 
   @override
   String get share_location_title => 'Konum paylaş';
@@ -7594,6 +7594,19 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get e2ee_total_size_exceeded =>
       'Toplam ek boyutu çok büyük: şifreli mesaj başına en fazla 96 MB.';
+
+  @override
+  String composer_limit_too_many_files(int current, int max, int diff) {
+    return 'Çok fazla ek: $current/$max. Göndermek için $diff tanesini kaldırın.';
+  }
+
+  @override
+  String composer_limit_total_size_exceeded(String currentMb, String maxMb) {
+    return 'Ekler çok büyük: $currentMb MB / $maxMb MB. Göndermek için bazılarını kaldırın.';
+  }
+
+  @override
+  String get composer_limit_blocking_send => 'Ek sınırı aşıldı';
 
   @override
   String yandex_sign_in_error_prefix(String error) {

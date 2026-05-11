@@ -6,6 +6,7 @@ import 'package:flutter/services.dart' show HapticFeedback, SystemChannels;
 import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../data/composer_attachment_limits.dart';
 import '../data/composer_html_editing.dart';
 import '../data/link_preview_url_extractor.dart';
 import '../../../l10n/app_localizations.dart';
@@ -42,6 +43,8 @@ class ChatComposer extends StatefulWidget {
     required this.onEditPending,
     required this.attachmentsEnabled,
     required this.sendBusy,
+    this.limitsState,
+    this.sendBlockedByLimits = false,
     required this.onMicTap,
     required this.onStickersTap,
     this.onKeyboardTap,
@@ -76,6 +79,16 @@ class ChatComposer extends StatefulWidget {
   final Future<void> Function(int index) onEditPending;
   final bool attachmentsEnabled;
   final bool sendBusy;
+
+  /// Снимок лимитов вложений для текущего черновика. Когда `isOverLimit`,
+  /// под полосой превью показываем предупреждение, а send-кнопку блокируем
+  /// через [sendBlockedByLimits].
+  final ComposerLimitsState? limitsState;
+
+  /// Когда `true`, кнопка отправки рендерится в disabled-виде с тултипом.
+  /// Не используем `sendBusy` для этого — там визуально прогресс-индикатор,
+  /// и пользователь не поймёт, что причина именно в лимите.
+  final bool sendBlockedByLimits;
   final VoidCallback onMicTap;
   final VoidCallback onStickersTap;
   final VoidCallback? onKeyboardTap;
@@ -623,6 +636,7 @@ class _ChatComposerState extends State<ChatComposer> {
               files: widget.pendingAttachments,
               onRemoveAt: widget.onRemovePending,
               onEditAt: (i) => unawaited(widget.onEditPending(i)),
+              limitsState: widget.limitsState,
             ),
             if (widget.showFormattingToolbar &&
                 widget.onCloseFormattingToolbar != null) ...[
@@ -739,7 +753,9 @@ class _ChatComposerState extends State<ChatComposer> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: showSendButton
-                            ? const Color(0xFF2A79FF)
+                            ? (widget.sendBlockedByLimits
+                                ? scheme.onSurface.withValues(alpha: 0.18)
+                                : const Color(0xFF2A79FF))
                             : Colors.black.withValues(
                                 alpha:
                                     chatWallpaperPrefersLightForeground(
@@ -749,9 +765,13 @@ class _ChatComposerState extends State<ChatComposer> {
                                     : (dark ? 0.06 : 0.08),
                               ),
                         border: showSendButton
-                            ? null
+                            ? (widget.sendBlockedByLimits
+                                ? Border.all(
+                                    color: fg.withValues(alpha: 0.18),
+                                  )
+                                : null)
                             : Border.all(color: fg.withValues(alpha: 0.18)),
-                        boxShadow: showSendButton
+                        boxShadow: showSendButton && !widget.sendBlockedByLimits
                             ? [
                                 BoxShadow(
                                   color: const Color(
@@ -776,16 +796,27 @@ class _ChatComposerState extends State<ChatComposer> {
                             )
                           : (showSendButton
                                 ? GestureDetector(
-                                    onLongPress: widget.onSendLongPress == null
+                                    onLongPress: widget.onSendLongPress == null ||
+                                            widget.sendBlockedByLimits
                                         ? null
                                         : _showSendLongPressMenu,
-                                    child: IconButton(
-                                      key: _sendButtonKey,
-                                      onPressed: widget.onSend,
-                                      iconSize: 18,
-                                      icon: const Icon(
-                                        Icons.send_rounded,
-                                        color: Colors.white,
+                                    child: Tooltip(
+                                      message: widget.sendBlockedByLimits
+                                          ? l10n.composer_limit_blocking_send
+                                          : '',
+                                      child: IconButton(
+                                        key: _sendButtonKey,
+                                        onPressed: widget.sendBlockedByLimits
+                                            ? null
+                                            : widget.onSend,
+                                        iconSize: 18,
+                                        icon: Icon(
+                                          Icons.send_rounded,
+                                          color: widget.sendBlockedByLimits
+                                              ? scheme.onSurface
+                                                    .withValues(alpha: 0.38)
+                                              : Colors.white,
+                                        ),
                                       ),
                                     ),
                                   )

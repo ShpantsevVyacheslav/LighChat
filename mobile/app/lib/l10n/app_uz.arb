@@ -520,6 +520,7 @@
   "chat_list_create_folder_title": "Yangi papka",
   "chat_list_create_folder_subtitle": "Chatlaringizni tez saralash uchun papka yarating.",
   "chat_list_create_folder_name_label": "PAPKA NOMI",
+  "chat_list_create_folder_name_hint": "Papka nomi",
   "chat_list_create_folder_chats_label": "CHATLAR ({count})",
   "@chat_list_create_folder_chats_label": {
     "placeholders": {
@@ -3584,6 +3585,32 @@
   "dm_title_group": "Guruh chat",
   "e2ee_too_many_attachments": "Shifrlangan yuborish uchun juda koʻp ilova: har bir xabar uchun maksimum 5 ta fayl.",
   "e2ee_total_size_exceeded": "Jami ilova hajmi juda katta: bitta shifrlangan xabar uchun maksimum 96 MB.",
+  "composer_limit_too_many_files": "Juda koʻp ilova: {current}/{max}. Yuborish uchun {diff} tasini olib tashlang.",
+  "@composer_limit_too_many_files": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      },
+      "diff": {
+        "type": "int"
+      }
+    }
+  },
+  "composer_limit_total_size_exceeded": "Ilovalar juda katta: {currentMb} MB / {maxMb} MB. Yuborish uchun bir qismini olib tashlang.",
+  "@composer_limit_total_size_exceeded": {
+    "placeholders": {
+      "currentMb": {
+        "type": "String"
+      },
+      "maxMb": {
+        "type": "String"
+      }
+    }
+  },
+  "composer_limit_blocking_send": "Ilova chegarasi oshirildi",
   "yandex_sign_in_error_prefix": "Yandex: {error}",
   "@yandex_sign_in_error_prefix": {
     "placeholders": {
@@ -4037,7 +4064,7 @@
   "legal_title_dpa": "Ma’lumotlarni qayta ishlash kelishuvi",
   "legal_title_children": "Bolalar siyosati",
   "legal_title_moderation": "Kontent moderatsiyasi siyosati",
-  "legal_title_aup": "Qabul qilinadigan foydalanish siyosati"
+  "legal_title_aup": "Qabul qilinadigan foydalanish siyosati",
   "contacts_disclosure_title": "LighChat'da tanishlarni topish",
   "@contacts_disclosure_title": {
     "description": "Contacts prominent disclosure dialog title"

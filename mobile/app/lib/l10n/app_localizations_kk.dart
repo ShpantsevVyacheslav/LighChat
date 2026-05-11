@@ -6875,13 +6875,13 @@ class AppLocalizationsKk extends AppLocalizations {
   String get video_editor_caption_hint => 'Қосу подпись...';
 
   @override
-  String get video_effects_speed => 'Жылдамдық';
+  String get video_effects_speed => 'Скорость';
 
   @override
-  String get video_filter_none => 'Түпнұсқа';
+  String get video_filter_none => 'Оригинал';
 
   @override
-  String get video_filter_enhance => 'Жақсарту';
+  String get video_filter_enhance => 'Улучшить';
 
   @override
   String get share_location_title => 'Бөлісу геолокацией';
@@ -7616,6 +7616,19 @@ class AppLocalizationsKk extends AppLocalizations {
       'Слишком большой общий өлшем вложений: ең көп 96 МБ для одного зашифрованного хабарламалар.';
 
   @override
+  String composer_limit_too_many_files(int current, int max, int diff) {
+    return 'Тым көп тіркеме: $current/$max. Жіберу үшін $diff жойыңыз.';
+  }
+
+  @override
+  String composer_limit_total_size_exceeded(String currentMb, String maxMb) {
+    return 'Тіркемелер тым үлкен: $currentMb МБ / $maxMb МБ. Жіберу үшін кейбірін жойыңыз.';
+  }
+
+  @override
+  String get composer_limit_blocking_send => 'Тіркеме шегі асырылды';
+
+  @override
   String yandex_sign_in_error_prefix(String error) {
     return 'Менндекс: $error';
   }
@@ -7713,7 +7726,7 @@ class AppLocalizationsKk extends AppLocalizations {
   String get animation_quality_cinematic => 'Кинематографический';
 
   @override
-  String get crop_aspect_original => 'Түпнұсқа';
+  String get crop_aspect_original => 'Оригинал';
 
   @override
   String get crop_aspect_square => 'Квадрат';

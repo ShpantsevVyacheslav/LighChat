@@ -4171,6 +4171,37 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     final int? e2eeEpoch = conv?.e2eeKeyEpoch;
 
     if (_sendBusy) return;
+
+    // Защитный guard: пользователь мог отправить через keyboard, пока кнопка
+    // ещё не успела перерисоваться, или экспериментально через accessibility-
+    // shortcut. Не пускаем дальше, если лимит вложений превышен — иначе:
+    //  * E2EE: упадём с E2eeAttachmentSendLimitException в outbox-пайплайне;
+    //  * обычный чат: получим PERMISSION_DENIED от firestore.rules после
+    //    загрузки в Storage (бесполезный трафик и failed-message).
+    final limitsSnapshot = _composerLimitsState;
+    if (limitsSnapshot != null &&
+        limitsSnapshot.isOverLimit &&
+        _pendingAttachments.isNotEmpty) {
+      final l10n = AppLocalizations.of(context)!;
+      final String msg;
+      if (limitsSnapshot.isOverFiles) {
+        msg = l10n.composer_limit_too_many_files(
+          limitsSnapshot.currentCount,
+          limitsSnapshot.limits.maxFiles,
+          limitsSnapshot.excessFiles,
+        );
+      } else {
+        final cap = limitsSnapshot.limits.maxTotalBytes ?? 0;
+        final used = limitsSnapshot.currentBytes ?? 0;
+        msg = l10n.composer_limit_total_size_exceeded(
+          formatComposerBytesMb(used),
+          formatComposerBytesMb(cap),
+        );
+      }
+      _toast(msg);
+      return;
+    }
+
     final rawComposer = _controller.text;
     final prepared = ComposerHtmlEditing.prepareChatMessageHtmlForSend(
       rawComposer,

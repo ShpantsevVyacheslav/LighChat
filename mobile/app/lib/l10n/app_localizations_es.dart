@@ -6925,13 +6925,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get video_editor_caption_hint => 'Agregar descripción...';
 
   @override
-  String get video_effects_speed => 'Velocidad';
+  String get video_effects_speed => 'Скорость';
 
   @override
-  String get video_filter_none => 'Original';
+  String get video_filter_none => 'Оригинал';
 
   @override
-  String get video_filter_enhance => 'Mejorar';
+  String get video_filter_enhance => 'Улучшить';
 
   @override
   String get share_location_title => 'Compartir ubicación';
@@ -7651,6 +7651,19 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get e2ee_total_size_exceeded =>
       'Tamaño total de adjuntos demasiado grande: máximo 96 MB por mensaje cifrado.';
+
+  @override
+  String composer_limit_too_many_files(int current, int max, int diff) {
+    return 'Demasiados adjuntos: $current/$max. Elimina $diff para enviar.';
+  }
+
+  @override
+  String composer_limit_total_size_exceeded(String currentMb, String maxMb) {
+    return 'Adjuntos demasiado grandes: $currentMb MB / $maxMb MB. Elimina algunos para enviar.';
+  }
+
+  @override
+  String get composer_limit_blocking_send => 'Límite de adjuntos superado';
 
   @override
   String yandex_sign_in_error_prefix(String error) {
@@ -15691,6 +15704,19 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   @override
   String get e2ee_total_size_exceeded =>
       'Tamaño total de adjuntos demasiado grande: máximo 96 MB por mensaje cifrado.';
+
+  @override
+  String composer_limit_too_many_files(int current, int max, int diff) {
+    return 'Demasiados adjuntos: $current/$max. Elimina $diff para enviar.';
+  }
+
+  @override
+  String composer_limit_total_size_exceeded(String currentMb, String maxMb) {
+    return 'Adjuntos demasiado grandes: $currentMb MB / $maxMb MB. Elimina algunos para enviar.';
+  }
+
+  @override
+  String get composer_limit_blocking_send => 'Límite de adjuntos superado';
 
   @override
   String yandex_sign_in_error_prefix(String error) {

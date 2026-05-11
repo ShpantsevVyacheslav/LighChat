@@ -13348,6 +13348,24 @@ abstract class AppLocalizations {
   /// **'Слишком большой общий размер вложений: максимум 96 МБ для одного зашифрованного сообщения.'**
   String get e2ee_total_size_exceeded;
 
+  /// No description provided for @composer_limit_too_many_files.
+  ///
+  /// In ru, this message translates to:
+  /// **'Слишком много вложений: {current}/{max}. Удалите {diff}, чтобы отправить.'**
+  String composer_limit_too_many_files(int current, int max, int diff);
+
+  /// No description provided for @composer_limit_total_size_exceeded.
+  ///
+  /// In ru, this message translates to:
+  /// **'Слишком большой размер вложений: {currentMb} МБ / {maxMb} МБ. Удалите часть, чтобы отправить.'**
+  String composer_limit_total_size_exceeded(String currentMb, String maxMb);
+
+  /// No description provided for @composer_limit_blocking_send.
+  ///
+  /// In ru, this message translates to:
+  /// **'Превышен лимит вложений'**
+  String get composer_limit_blocking_send;
+
   /// No description provided for @yandex_sign_in_error_prefix.
   ///
   /// In ru, this message translates to:

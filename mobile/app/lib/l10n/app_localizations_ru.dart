@@ -7605,6 +7605,19 @@ class AppLocalizationsRu extends AppLocalizations {
       'Слишком большой общий размер вложений: максимум 96 МБ для одного зашифрованного сообщения.';
 
   @override
+  String composer_limit_too_many_files(int current, int max, int diff) {
+    return 'Слишком много вложений: $current/$max. Удалите $diff, чтобы отправить.';
+  }
+
+  @override
+  String composer_limit_total_size_exceeded(String currentMb, String maxMb) {
+    return 'Слишком большой размер вложений: $currentMb МБ / $maxMb МБ. Удалите часть, чтобы отправить.';
+  }
+
+  @override
+  String get composer_limit_blocking_send => 'Превышен лимит вложений';
+
+  @override
   String yandex_sign_in_error_prefix(String error) {
     return 'Яндекс: $error';
   }

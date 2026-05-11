@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../l10n/app_localizations.dart';
+import '../data/composer_attachment_limits.dart';
 import 'video_first_frame.dart';
 
 bool _looksLikeImage(String path, String? mime) {
@@ -35,39 +37,104 @@ class ComposerPendingAttachmentsStrip extends StatelessWidget {
     required this.files,
     required this.onRemoveAt,
     this.onEditAt,
+    this.limitsState,
   });
 
   final List<XFile> files;
   final void Function(int index) onRemoveAt;
   final void Function(int index)? onEditAt;
 
+  /// Снимок состояния лимитов из родителя. Если `isOverLimit == true` —
+  /// под полосой превью рисуем inline-warning, чтобы пользователь увидел
+  /// причину блокировки кнопки send (см. ChatComposer.sendBlockedByLimits).
+  final ComposerLimitsState? limitsState;
+
   static const double thumb = 56;
 
   @override
   Widget build(BuildContext context) {
     if (files.isEmpty) return const SizedBox.shrink();
+    final overLimit = limitsState?.isOverLimit ?? false;
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
-      child: SizedBox(
-        height: thumb + 8,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          itemCount: files.length,
-          separatorBuilder: (context, index) => const SizedBox(width: 8),
-          itemBuilder: (ctx, i) {
-            final f = files[i];
-            final isImage = _looksLikeImage(f.path, f.mimeType);
-            final isVideo = !isImage && _looksLikeVideo(f.path, f.mimeType);
-            final canEdit = (isImage || isVideo) && onEditAt != null;
-            return _Thumb(
-              file: f,
-              showAsImage: isImage,
-              isVideo: isVideo,
-              onRemove: () => onRemoveAt(i),
-              onEdit: canEdit ? () => onEditAt!(i) : null,
-            );
-          },
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: thumb + 8,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: files.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemBuilder: (ctx, i) {
+                final f = files[i];
+                final isImage = _looksLikeImage(f.path, f.mimeType);
+                final isVideo = !isImage && _looksLikeVideo(f.path, f.mimeType);
+                final canEdit = (isImage || isVideo) && onEditAt != null;
+                return _Thumb(
+                  file: f,
+                  showAsImage: isImage,
+                  isVideo: isVideo,
+                  onRemove: () => onRemoveAt(i),
+                  onEdit: canEdit ? () => onEditAt!(i) : null,
+                );
+              },
+            ),
+          ),
+          if (overLimit) _LimitWarningRow(state: limitsState!),
+        ],
+      ),
+    );
+  }
+}
+
+class _LimitWarningRow extends StatelessWidget {
+  const _LimitWarningRow({required this.state});
+
+  final ComposerLimitsState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    final String message;
+    if (state.isOverFiles) {
+      message = l10n.composer_limit_too_many_files(
+        state.currentCount,
+        state.limits.maxFiles,
+        state.excessFiles,
+      );
+    } else {
+      final cap = state.limits.maxTotalBytes ?? 0;
+      final used = state.currentBytes ?? 0;
+      message = l10n.composer_limit_total_size_exceeded(
+        formatComposerBytesMb(used),
+        formatComposerBytesMb(cap),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.error_outline_rounded,
+            size: 16,
+            color: scheme.error,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.25,
+                color: scheme.error,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

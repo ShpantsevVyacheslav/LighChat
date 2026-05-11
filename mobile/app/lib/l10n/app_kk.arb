@@ -520,6 +520,7 @@
   "chat_list_create_folder_title": "Жаңа папка",
   "chat_list_create_folder_subtitle": "Создайте папку для быстрой фильтрацижәне чатов.",
   "chat_list_create_folder_name_label": "НАЗВАНИЕ ПАПКИ",
+  "chat_list_create_folder_name_hint": "Қалта атауы",
   "chat_list_create_folder_chats_label": "ЧАТЫ ({count})",
   "@chat_list_create_folder_chats_label": {
     "placeholders": {
@@ -3584,6 +3585,32 @@
   "dm_title_group": "Групповой чат",
   "e2ee_too_many_attachments": "Слишком көп вложений для зашифрованной отправки: ең көп 5 файлов за хабарлама.",
   "e2ee_total_size_exceeded": "Слишком большой общий өлшем вложений: ең көп 96 МБ для одного зашифрованного хабарламалар.",
+  "composer_limit_too_many_files": "Тым көп тіркеме: {current}/{max}. Жіберу үшін {diff} жойыңыз.",
+  "@composer_limit_too_many_files": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      },
+      "diff": {
+        "type": "int"
+      }
+    }
+  },
+  "composer_limit_total_size_exceeded": "Тіркемелер тым үлкен: {currentMb} МБ / {maxMb} МБ. Жіберу үшін кейбірін жойыңыз.",
+  "@composer_limit_total_size_exceeded": {
+    "placeholders": {
+      "currentMb": {
+        "type": "String"
+      },
+      "maxMb": {
+        "type": "String"
+      }
+    }
+  },
+  "composer_limit_blocking_send": "Тіркеме шегі асырылды",
   "yandex_sign_in_error_prefix": "Менндекс: {error}",
   "@yandex_sign_in_error_prefix": {
     "placeholders": {
@@ -4037,7 +4064,7 @@
   "legal_title_dpa": "Деректерді өңдеу келісімі",
   "legal_title_children": "Балалар саясаты",
   "legal_title_moderation": "Контентті модерациялау саясаты",
-  "legal_title_aup": "Қолайлы пайдалану саясаты"
+  "legal_title_aup": "Қолайлы пайдалану саясаты",
   "contacts_disclosure_title": "LighChat-та таныстарды табу",
   "@contacts_disclosure_title": {
     "description": "Contacts prominent disclosure dialog title"

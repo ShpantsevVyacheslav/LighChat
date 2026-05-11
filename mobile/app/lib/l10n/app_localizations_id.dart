@@ -6869,13 +6869,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get video_editor_caption_hint => 'Tambah caption...';
 
   @override
-  String get video_effects_speed => 'Kecepatan';
+  String get video_effects_speed => 'Скорость';
 
   @override
-  String get video_filter_none => 'Asli';
+  String get video_filter_none => 'Оригинал';
 
   @override
-  String get video_filter_enhance => 'Tingkatkan';
+  String get video_filter_enhance => 'Улучшить';
 
   @override
   String get share_location_title => 'Bagikan Lokasi';
@@ -7595,6 +7595,19 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get e2ee_total_size_exceeded =>
       'Total attachment size too large: maksimum 96 MB per encrypted Pesan.';
+
+  @override
+  String composer_limit_too_many_files(int current, int max, int diff) {
+    return 'Terlalu banyak lampiran: $current/$max. Hapus $diff untuk mengirim.';
+  }
+
+  @override
+  String composer_limit_total_size_exceeded(String currentMb, String maxMb) {
+    return 'Lampiran terlalu besar: $currentMb MB / $maxMb MB. Hapus sebagian untuk mengirim.';
+  }
+
+  @override
+  String get composer_limit_blocking_send => 'Batas lampiran terlampaui';
 
   @override
   String yandex_sign_in_error_prefix(String error) {

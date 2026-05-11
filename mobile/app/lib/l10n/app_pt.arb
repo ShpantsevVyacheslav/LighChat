@@ -520,6 +520,7 @@
   "chat_list_create_folder_title": "Nova pasta",
   "chat_list_create_folder_subtitle": "Crie uma pasta para filtrar seus chats rapidamente.",
   "chat_list_create_folder_name_label": "NOME DA PASTA",
+  "chat_list_create_folder_name_hint": "Nome da pasta",
   "chat_list_create_folder_chats_label": "CONVERSAS ({count})",
   "@chat_list_create_folder_chats_label": {
     "placeholders": {
@@ -3584,6 +3585,32 @@
   "dm_title_group": "Chat em grupo",
   "e2ee_too_many_attachments": "Muitos anexos para envio criptografado: máximo de 5 arquivos por mensagem.",
   "e2ee_total_size_exceeded": "Tamanho total do anexo muito grande: máximo de 96 MB por mensagem criptografada.",
+  "composer_limit_too_many_files": "Muitos anexos: {current}/{max}. Remova {diff} para enviar.",
+  "@composer_limit_too_many_files": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      },
+      "diff": {
+        "type": "int"
+      }
+    }
+  },
+  "composer_limit_total_size_exceeded": "Anexos muito grandes: {currentMb} MB / {maxMb} MB. Remova alguns para enviar.",
+  "@composer_limit_total_size_exceeded": {
+    "placeholders": {
+      "currentMb": {
+        "type": "String"
+      },
+      "maxMb": {
+        "type": "String"
+      }
+    }
+  },
+  "composer_limit_blocking_send": "Limite de anexos excedido",
   "yandex_sign_in_error_prefix": "Yandex: {error}",
   "@yandex_sign_in_error_prefix": {
     "placeholders": {
@@ -4037,7 +4064,7 @@
   "legal_title_dpa": "Acordo de Processamento de Dados",
   "legal_title_children": "Política para Crianças",
   "legal_title_moderation": "Política de Moderação de Conteúdo",
-  "legal_title_aup": "Política de Uso Aceitável"
+  "legal_title_aup": "Política de Uso Aceitável",
   "contacts_disclosure_title": "Encontrar amigos no LighChat",
   "@contacts_disclosure_title": {
     "description": "Contacts prominent disclosure dialog title"

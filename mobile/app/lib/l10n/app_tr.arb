@@ -520,6 +520,7 @@
   "chat_list_create_folder_title": "Yeni klasör",
   "chat_list_create_folder_subtitle": "Sohbetlerinizi hızla filtrelemek için bir klasör oluşturun.",
   "chat_list_create_folder_name_label": "KLASÖR ADI",
+  "chat_list_create_folder_name_hint": "Klasör adı",
   "chat_list_create_folder_chats_label": "SOHBETLER ({count})",
   "@chat_list_create_folder_chats_label": {
     "placeholders": {
@@ -3584,6 +3585,32 @@
   "dm_title_group": "Grup sohbeti",
   "e2ee_too_many_attachments": "Şifreli gönderim için çok fazla ek: mesaj başına en fazla 5 dosya.",
   "e2ee_total_size_exceeded": "Toplam ek boyutu çok büyük: şifreli mesaj başına en fazla 96 MB.",
+  "composer_limit_too_many_files": "Çok fazla ek: {current}/{max}. Göndermek için {diff} tanesini kaldırın.",
+  "@composer_limit_too_many_files": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      },
+      "diff": {
+        "type": "int"
+      }
+    }
+  },
+  "composer_limit_total_size_exceeded": "Ekler çok büyük: {currentMb} MB / {maxMb} MB. Göndermek için bazılarını kaldırın.",
+  "@composer_limit_total_size_exceeded": {
+    "placeholders": {
+      "currentMb": {
+        "type": "String"
+      },
+      "maxMb": {
+        "type": "String"
+      }
+    }
+  },
+  "composer_limit_blocking_send": "Ek sınırı aşıldı",
   "yandex_sign_in_error_prefix": "Yandex: {error}",
   "@yandex_sign_in_error_prefix": {
     "placeholders": {
@@ -4037,7 +4064,7 @@
   "legal_title_dpa": "Veri İşleme Sözleşmesi",
   "legal_title_children": "Çocuk Politikası",
   "legal_title_moderation": "İçerik Moderasyon Politikası",
-  "legal_title_aup": "Kabul Edilebilir Kullanım Politikası"
+  "legal_title_aup": "Kabul Edilebilir Kullanım Politikası",
   "contacts_disclosure_title": "LighChat'ta tanıdıkları bul",
   "@contacts_disclosure_title": {
     "description": "Contacts prominent disclosure dialog title"

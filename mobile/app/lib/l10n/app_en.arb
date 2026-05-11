@@ -542,6 +542,7 @@
   "chat_list_create_folder_title": "New folder",
   "chat_list_create_folder_subtitle": "Create a folder to quickly filter your chats.",
   "chat_list_create_folder_name_label": "FOLDER NAME",
+  "chat_list_create_folder_name_hint": "Folder name",
   "chat_list_create_folder_chats_label": "CHATS ({count})",
   "@chat_list_create_folder_chats_label": {
     "placeholders": {
@@ -925,11 +926,19 @@
   "share_picker_summary_text_only": "Text",
   "share_picker_summary_files_count": "Files: {count}",
   "@share_picker_summary_files_count": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "share_picker_summary_files_with_text": "Files: {count} + text",
   "@share_picker_summary_files_with_text": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "devices_title": "My devices",
   "devices_subtitle": "Devices where your encryption public key is published. Revoking creates a new key epoch for all encrypted chats — the revoked device won’t be able to read new messages.",
@@ -3605,6 +3614,32 @@
   "dm_title_group": "Group chat",
   "e2ee_too_many_attachments": "Too many attachments for encrypted sending: maximum 5 files per message.",
   "e2ee_total_size_exceeded": "Total attachment size too large: maximum 96 MB per encrypted message.",
+  "composer_limit_too_many_files": "Too many attachments: {current}/{max}. Remove {diff} to send.",
+  "@composer_limit_too_many_files": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      },
+      "diff": {
+        "type": "int"
+      }
+    }
+  },
+  "composer_limit_total_size_exceeded": "Attachments too large: {currentMb} MB / {maxMb} MB. Remove some to send.",
+  "@composer_limit_total_size_exceeded": {
+    "placeholders": {
+      "currentMb": {
+        "type": "String"
+      },
+      "maxMb": {
+        "type": "String"
+      }
+    }
+  },
+  "composer_limit_blocking_send": "Attachment limit exceeded",
   "yandex_sign_in_error_prefix": "Yandex: {error}",
   "@yandex_sign_in_error_prefix": {
     "placeholders": {

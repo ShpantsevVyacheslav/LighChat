@@ -7567,6 +7567,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Total attachment size too large: maximum 96 MB per encrypted message.';
 
   @override
+  String composer_limit_too_many_files(int current, int max, int diff) {
+    return 'Too many attachments: $current/$max. Remove $diff to send.';
+  }
+
+  @override
+  String composer_limit_total_size_exceeded(String currentMb, String maxMb) {
+    return 'Attachments too large: $currentMb MB / $maxMb MB. Remove some to send.';
+  }
+
+  @override
+  String get composer_limit_blocking_send => 'Attachment limit exceeded';
+
+  @override
   String yandex_sign_in_error_prefix(String error) {
     return 'Yandex: $error';
   }

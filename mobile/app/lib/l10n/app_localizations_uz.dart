@@ -6906,13 +6906,13 @@ class AppLocalizationsUz extends AppLocalizations {
   String get video_editor_caption_hint => 'Izoh qoʻshing...';
 
   @override
-  String get video_effects_speed => 'Tezlik';
+  String get video_effects_speed => 'Скорость';
 
   @override
-  String get video_filter_none => 'Asl nusxa';
+  String get video_filter_none => 'Оригинал';
 
   @override
-  String get video_filter_enhance => 'Yaxshilash';
+  String get video_filter_enhance => 'Улучшить';
 
   @override
   String get share_location_title => 'Joylashuvni ulashish';
@@ -7634,6 +7634,19 @@ class AppLocalizationsUz extends AppLocalizations {
   @override
   String get e2ee_total_size_exceeded =>
       'Jami ilova hajmi juda katta: bitta shifrlangan xabar uchun maksimum 96 MB.';
+
+  @override
+  String composer_limit_too_many_files(int current, int max, int diff) {
+    return 'Juda koʻp ilova: $current/$max. Yuborish uchun $diff tasini olib tashlang.';
+  }
+
+  @override
+  String composer_limit_total_size_exceeded(String currentMb, String maxMb) {
+    return 'Ilovalar juda katta: $currentMb MB / $maxMb MB. Yuborish uchun bir qismini olib tashlang.';
+  }
+
+  @override
+  String get composer_limit_blocking_send => 'Ilova chegarasi oshirildi';
 
   @override
   String yandex_sign_in_error_prefix(String error) {

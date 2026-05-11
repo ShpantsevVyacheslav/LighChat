@@ -6908,13 +6908,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get video_editor_caption_hint => 'Adicionar caption...';
 
   @override
-  String get video_effects_speed => 'Velocidade';
+  String get video_effects_speed => 'Скорость';
 
   @override
-  String get video_filter_none => 'Original';
+  String get video_filter_none => 'Оригинал';
 
   @override
-  String get video_filter_enhance => 'Melhorar';
+  String get video_filter_enhance => 'Улучшить';
 
   @override
   String get share_location_title => 'Compartilhar localização';
@@ -7640,6 +7640,19 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get e2ee_total_size_exceeded =>
       'Tamanho total do anexo muito grande: máximo de 96 MB por mensagem criptografada.';
+
+  @override
+  String composer_limit_too_many_files(int current, int max, int diff) {
+    return 'Muitos anexos: $current/$max. Remova $diff para enviar.';
+  }
+
+  @override
+  String composer_limit_total_size_exceeded(String currentMb, String maxMb) {
+    return 'Anexos muito grandes: $currentMb MB / $maxMb MB. Remova alguns para enviar.';
+  }
+
+  @override
+  String get composer_limit_blocking_send => 'Limite de anexos excedido';
 
   @override
   String yandex_sign_in_error_prefix(String error) {
@@ -15667,6 +15680,19 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get e2ee_total_size_exceeded =>
       'Tamanho total do anexo muito grande: máximo de 96 MB por mensagem criptografada.';
+
+  @override
+  String composer_limit_too_many_files(int current, int max, int diff) {
+    return 'Muitos anexos: $current/$max. Remova $diff para enviar.';
+  }
+
+  @override
+  String composer_limit_total_size_exceeded(String currentMb, String maxMb) {
+    return 'Anexos muito grandes: $currentMb MB / $maxMb MB. Remova alguns para enviar.';
+  }
+
+  @override
+  String get composer_limit_blocking_send => 'Limite de anexos excedido';
 
   @override
   String yandex_sign_in_error_prefix(String error) {

@@ -520,6 +520,7 @@
   "chat_list_create_folder_title": "Baru folder",
   "chat_list_create_folder_subtitle": "Buat a folder to quickly Saring Anda Obrolan.",
   "chat_list_create_folder_name_label": "NAMA FOLDER",
+  "chat_list_create_folder_name_hint": "Nama folder",
   "chat_list_create_folder_chats_label": "Obrolan ({count})",
   "@chat_list_create_folder_chats_label": {
     "placeholders": {
@@ -3584,6 +3585,32 @@
   "dm_title_group": "Obrolan grup",
   "e2ee_too_many_attachments": "Too many attachments for encrypted sending: maksimum 5 Berkas per Pesan.",
   "e2ee_total_size_exceeded": "Total attachment size too large: maksimum 96 MB per encrypted Pesan.",
+  "composer_limit_too_many_files": "Terlalu banyak lampiran: {current}/{max}. Hapus {diff} untuk mengirim.",
+  "@composer_limit_too_many_files": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      },
+      "diff": {
+        "type": "int"
+      }
+    }
+  },
+  "composer_limit_total_size_exceeded": "Lampiran terlalu besar: {currentMb} MB / {maxMb} MB. Hapus sebagian untuk mengirim.",
+  "@composer_limit_total_size_exceeded": {
+    "placeholders": {
+      "currentMb": {
+        "type": "String"
+      },
+      "maxMb": {
+        "type": "String"
+      }
+    }
+  },
+  "composer_limit_blocking_send": "Batas lampiran terlampaui",
   "yandex_sign_in_error_prefix": "Yandex: {error}",
   "@yandex_sign_in_error_prefix": {
     "placeholders": {
@@ -4037,7 +4064,7 @@
   "legal_title_dpa": "Perjanjian Pemrosesan Data",
   "legal_title_children": "Kebijakan Anak",
   "legal_title_moderation": "Kebijakan Moderasi Konten",
-  "legal_title_aup": "Kebijakan Penggunaan yang Dapat Diterima"
+  "legal_title_aup": "Kebijakan Penggunaan yang Dapat Diterima",
   "contacts_disclosure_title": "Temukan teman di LighChat",
   "@contacts_disclosure_title": {
     "description": "Contacts prominent disclosure dialog title"
