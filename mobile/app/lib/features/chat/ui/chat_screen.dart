@@ -197,6 +197,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   // клавиатуро-эквивалентной высоты шторки стикеров без скачков.
   double _lastKeyboardHeight = 0;
 
+  /// Минимальная резервируемая высота под composer'ом на время
+  /// переключений keyboard ↔ sticker panel. Пока выставлена, footer
+  /// держит эту высоту, чтобы поле ввода не «прыгало» вниз пока
+  /// клавиатура убирается / шторка появляется. Сбрасывается таймером
+  /// после короткой задержки (когда iOS успевает закончить анимацию).
+  double _stickersTransitionFooterFloor = 0;
+  Timer? _stickersTransitionFooterTimer;
+
   /// Поиск по сообщениям в открытом чате (паритет веб `ChatSearchOverlay`).
   bool _inChatSearch = false;
   final _chatSearchController = TextEditingController();
@@ -933,6 +941,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     }
     _flashHighlightTimer?.cancel();
     _hideUnreadSeparatorTimer?.cancel();
+    _stickersTransitionFooterTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _scrollController.removeListener(_onPinnedBarScrollSync);
     _controller.removeListener(_scheduleChatDraftSave);
@@ -2267,6 +2276,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                       controller: _controller,
                                       focusNode: _composerFocusNode,
                                       stickersPanelOpen: _stickersPanelOpen,
+                                      stickersPanelHideSideButtons:
+                                          _stickersPanelOpen &&
+                                          _stickersPanelFullscreen,
+                                      hasFooterBelow:
+                                          _stickersPanelOpen ||
+                                          _stickersTransitionFooterFloor > 0 ||
+                                          MediaQuery.viewInsetsOf(
+                                                context,
+                                              ).bottom >
+                                              0,
                                       onKeyboardTap:
                                           _switchFromStickersToKeyboard,
                                       stickersSearchHint: _stickersSearchHint,
@@ -2504,97 +2523,105 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                         () => _composerFormattingOpen = false,
                                       ),
                                     ),
-                                    if (!_stickersPanelOpen)
-                                      Builder(
-                                        builder: (context) {
-                                          final keyboardInset =
-                                              MediaQuery.viewInsetsOf(
-                                                context,
-                                              ).bottom;
-                                          if (keyboardInset <= 0) {
+                                    Builder(
+                                      builder: (context) {
+                                        final keyboardInset =
+                                            MediaQuery.viewInsetsOf(
+                                              context,
+                                            ).bottom;
+                                        final mq = MediaQuery.of(context);
+                                        final defaultH =
+                                            mq.size.height * 0.42;
+                                        final keyboardLikeH =
+                                            _lastKeyboardHeight > 0
+                                            ? _lastKeyboardHeight
+                                            : defaultH;
+                                        final fullScreenH =
+                                            (mq.size.height * 0.92).clamp(
+                                              mq.size.height * 0.62,
+                                              mq.size.height - 1,
+                                            );
+                                        final panelHeight =
+                                            _stickersPanelOpen
+                                            ? (_stickersPanelFullscreen
+                                                  ? fullScreenH
+                                                  : keyboardLikeH)
+                                            : 0.0;
+                                        // Объединяем: панель открыта → её
+                                        // высота; иначе — высота клавиатуры
+                                        // (с зарезервированным «полом» на
+                                        // время перехода keyboard↔panel,
+                                        // чтобы composer не прыгал).
+                                        final footerHeight = [
+                                          panelHeight,
+                                          keyboardInset,
+                                          _stickersTransitionFooterFloor,
+                                        ].reduce(
+                                          (a, b) => a > b ? a : b,
+                                        );
+                                        if (!_stickersPanelOpen) {
+                                          if (footerHeight <= 0) {
                                             return const SizedBox.shrink();
                                           }
                                           return SizedBox(
-                                            height: keyboardInset,
+                                            height: footerHeight,
                                           );
-                                        },
-                                      ),
-                                    if (_stickersPanelOpen)
-                                      Builder(
-                                        builder: (context) {
-                                          final stickerRepo = ref.read(
-                                            userStickerPacksRepositoryProvider,
-                                          );
-                                          final chatRepo = ref.read(
-                                            chatRepositoryProvider,
-                                          );
-                                          if (stickerRepo == null ||
-                                              chatRepo == null) {
-                                            return const SizedBox.shrink();
-                                          }
-                                          final mq = MediaQuery.of(context);
-                                          final defaultH =
-                                              mq.size.height * 0.42;
-                                          final keyboardLikeH =
-                                              _lastKeyboardHeight > 0
-                                              ? _lastKeyboardHeight
-                                              : defaultH;
-                                          final fullScreenH =
-                                              (mq.size.height * 0.92).clamp(
-                                                mq.size.height * 0.62,
-                                                mq.size.height - 1,
-                                              );
-                                          final panelHeight =
-                                              _stickersPanelFullscreen
-                                              ? fullScreenH
-                                              : keyboardLikeH;
-                                          final panel = ComposerStickerGifPanel(
-                                            userId: user.uid,
-                                            repo: stickerRepo,
-                                            directUploadConversationId:
-                                                widget.conversationId,
-                                            sharedSearchQuery:
-                                                _stickersSearchQuery,
-                                            onSearchHintChanged: (hint) {
-                                              if (!mounted) return;
-                                              setState(
-                                                () =>
-                                                    _stickersSearchHint = hint,
-                                              );
-                                            },
-                                            onFullscreenModeChanged: (v) {
-                                              if (!mounted ||
-                                                  _stickersPanelFullscreen ==
-                                                      v) {
-                                                return;
-                                              }
-                                              setState(() {
-                                                _stickersPanelFullscreen = v;
-                                              });
-                                            },
-                                            onPickAttachment: (att) {
-                                              unawaited(
-                                                _sendStickerOrGifAttachment(
-                                                  user.uid,
-                                                  chatRepo,
-                                                  att,
-                                                ),
-                                              );
-                                            },
-                                            onEmojiTapped:
-                                                _handleEmojiPickFromStickersPanel,
-                                            onCustomEmojiTapped:
-                                                _handleCustomEmojiPickFromStickersPanel,
-                                            onClose: () {
-                                              _closeStickersPanel();
-                                            },
-                                          );
+                                        }
+                                        final stickerRepo = ref.read(
+                                          userStickerPacksRepositoryProvider,
+                                        );
+                                        final chatRepo = ref.read(
+                                          chatRepositoryProvider,
+                                        );
+                                        if (stickerRepo == null ||
+                                            chatRepo == null) {
                                           return SizedBox(
-                                            height: panelHeight,
-                                            child: panel,
+                                            height: footerHeight,
                                           );
-                                        },
-                                      ),
+                                        }
+                                        final panel = ComposerStickerGifPanel(
+                                          userId: user.uid,
+                                          repo: stickerRepo,
+                                          directUploadConversationId:
+                                              widget.conversationId,
+                                          sharedSearchQuery:
+                                              _stickersSearchQuery,
+                                          onSearchHintChanged: (hint) {
+                                            if (!mounted) return;
+                                            setState(
+                                              () => _stickersSearchHint = hint,
+                                            );
+                                          },
+                                          onFullscreenModeChanged: (v) {
+                                            if (!mounted ||
+                                                _stickersPanelFullscreen == v) {
+                                              return;
+                                            }
+                                            setState(() {
+                                              _stickersPanelFullscreen = v;
+                                            });
+                                          },
+                                          onPickAttachment: (att) {
+                                            unawaited(
+                                              _sendStickerOrGifAttachment(
+                                                user.uid,
+                                                chatRepo,
+                                                att,
+                                              ),
+                                            );
+                                          },
+                                          onEmojiTapped:
+                                              _handleEmojiPickFromStickersPanel,
+                                          onClose: () {
+                                            _closeStickersPanel();
+                                          },
+                                        );
+                                        return SizedBox(
+                                          height: footerHeight,
+                                          child: panel,
+                                        );
+                                      },
+                                    ),
                                   ],
                                 ],
                               ),
@@ -4625,6 +4652,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   void _openStickersGifPanel() {
+    unawaited(_openStickersGifPanelImpl());
+  }
+
+  /// Удерживает «пол» под composer'ом на время переключения keyboard↔panel,
+  /// чтобы поле ввода не уезжало вниз и не было видно «прыжка» содержимого
+  /// чата (Bug #1/#3). Через [hold] таймер сбрасывает пол до 0.
+  void _holdStickersFooterTransition(
+    double height, {
+    Duration hold = const Duration(milliseconds: 380),
+  }) {
+    if (!mounted || height <= 0) return;
+    _stickersTransitionFooterTimer?.cancel();
+    setState(() => _stickersTransitionFooterFloor = height);
+    _stickersTransitionFooterTimer = Timer(hold, () {
+      if (!mounted) return;
+      setState(() => _stickersTransitionFooterFloor = 0);
+    });
+  }
+
+  Future<void> _openStickersGifPanelImpl() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
       _toast(AppLocalizations.of(context)!.forward_error_not_authorized);
@@ -4636,8 +4683,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       _toast(AppLocalizations.of(context)!.chat_service_unavailable);
       return;
     }
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    if (keyboardInset > 0 &&
+        (keyboardInset - _lastKeyboardHeight).abs() > 0.5) {
+      _lastKeyboardHeight = keyboardInset;
+    }
     _captureKeyboardHeight();
-    FocusManager.instance.primaryFocus?.unfocus();
+    final hadKeyboard = keyboardInset > 0;
+    // Открываем шторку СНАЧАЛА (с keyboard-equivalent height) — она
+    // окажется «под» клавиатурой. Затем гасим клавиатуру, и пока iOS
+    // анимирует её исчезновение, пол держится за счёт viewInsets, а
+    // потом — за счёт panelHeight. Это даёт seamless-переход без
+    // схлопывания composer'a.
     if (mounted) {
       setState(() {
         _composerTextBeforeStickerSearch = _controller.text;
@@ -4647,9 +4704,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         _stickersPanelOpen = true;
       });
     }
+    if (hadKeyboard) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+    }
   }
 
   void _switchFromStickersToKeyboard() {
+    // Перед закрытием шторки фиксируем «пол» равный последней высоте
+    // клавиатуры/шторки. Пока iOS поднимает клавиатуру, footer держится
+    // на этой высоте, composer не падает вниз и тут же поднимается
+    // обратно (без прыжков чата).
+    final hold = _lastKeyboardHeight > 0
+        ? _lastKeyboardHeight
+        : MediaQuery.of(context).size.height * 0.42;
+    _holdStickersFooterTransition(hold);
     _closeStickersPanel();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _composerFocusNode.requestFocus();
@@ -4684,40 +4753,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     );
   }
 
-  void _insertHtmlIntoComposer(String html) {
-    final ctrl = _controller;
-    final sel = ctrl.selection;
-    final text = ctrl.text;
-    final start = sel.isValid ? sel.start : text.length;
-    final end = sel.isValid ? sel.end : text.length;
-    final newText = text.replaceRange(start, end, html);
-    final newOffset = start + html.length;
-    ctrl.value = TextEditingValue(
-      text: newText,
-      selection: TextSelection.collapsed(offset: newOffset),
-    );
-  }
-
   void _handleEmojiPickFromStickersPanel(String emoji) {
     _closeStickersPanel();
     _insertEmojiIntoComposer(emoji);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _composerFocusNode.requestFocus();
-    });
-  }
-
-  void _handleCustomEmojiPickFromStickersPanel(
-    String emojiId,
-    String imageUrl,
-    String fallbackEmoji,
-  ) {
-    _closeStickersPanel();
-    final html = ComposerHtmlEditing.buildInlineCustomEmojiSpanHtml(
-      emojiId: emojiId,
-      imageUrl: imageUrl,
-      fallbackEmoji: fallbackEmoji,
-    );
-    _insertHtmlIntoComposer(html);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _composerFocusNode.requestFocus();
     });

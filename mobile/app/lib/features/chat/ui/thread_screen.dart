@@ -168,6 +168,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
   String _stickersSearchHint = '';
   String? _composerTextBeforeStickerSearch;
   double _lastKeyboardHeight = 0;
+  double _stickersTransitionFooterFloor = 0;
+  Timer? _stickersTransitionFooterTimer;
   String? _pendingFocusMessageId;
   bool _inThreadSearch = false;
   bool _composerFormattingOpen = false;
@@ -242,6 +244,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
     _messageExpiryTimer?.cancel();
     _flashHighlightTimer?.cancel();
     _hideUnreadSeparatorTimer?.cancel();
+    _stickersTransitionFooterTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     _composerController.dispose();
@@ -682,6 +685,25 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
   }
 
   void _openStickersGifPanel(String uid) {
+    unawaited(_openStickersGifPanelImpl(uid));
+  }
+
+  /// См. chat_screen `_holdStickersFooterTransition` — резерв «пола»
+  /// под composer'ом на время keyboard↔panel перехода.
+  void _holdStickersFooterTransition(
+    double height, {
+    Duration hold = const Duration(milliseconds: 380),
+  }) {
+    if (!mounted || height <= 0) return;
+    _stickersTransitionFooterTimer?.cancel();
+    setState(() => _stickersTransitionFooterFloor = height);
+    _stickersTransitionFooterTimer = Timer(hold, () {
+      if (!mounted) return;
+      setState(() => _stickersTransitionFooterFloor = 0);
+    });
+  }
+
+  Future<void> _openStickersGifPanelImpl(String uid) async {
     if (_sendBusy) return;
     final stickerRepo = ref.read(userStickerPacksRepositoryProvider);
     final chatRepo = ref.read(chatRepositoryProvider);
@@ -689,8 +711,13 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
       _toast(AppLocalizations.of(context)!.chat_service_unavailable);
       return;
     }
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    if (keyboardInset > 0 &&
+        (keyboardInset - _lastKeyboardHeight).abs() > 0.5) {
+      _lastKeyboardHeight = keyboardInset;
+    }
     _captureKeyboardHeight();
-    FocusManager.instance.primaryFocus?.unfocus();
+    final hadKeyboard = keyboardInset > 0;
     if (mounted) {
       setState(() {
         _composerTextBeforeStickerSearch = _composerController.text;
@@ -700,9 +727,17 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
         _stickersPanelOpen = true;
       });
     }
+    if (hadKeyboard) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+    }
   }
 
   void _switchFromStickersToKeyboard() {
+    final hold = _lastKeyboardHeight > 0
+        ? _lastKeyboardHeight
+        : MediaQuery.of(context).size.height * 0.42;
+    _holdStickersFooterTransition(hold);
     _closeStickersPanel();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _composerFocus.requestFocus();
@@ -737,39 +772,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
     );
   }
 
-  void _insertHtmlIntoThreadComposer(String html) {
-    final ctrl = _composerController;
-    final sel = ctrl.selection;
-    final text = ctrl.text;
-    final start = sel.isValid ? sel.start : text.length;
-    final end = sel.isValid ? sel.end : text.length;
-    final newText = text.replaceRange(start, end, html);
-    ctrl.value = TextEditingValue(
-      text: newText,
-      selection: TextSelection.collapsed(offset: start + html.length),
-    );
-  }
-
   void _handleEmojiPickFromStickersPanel(String emoji) {
     _closeStickersPanel();
     _insertEmojiIntoThreadComposer(emoji);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _composerFocus.requestFocus();
-    });
-  }
-
-  void _handleCustomEmojiPickFromStickersPanel(
-    String emojiId,
-    String imageUrl,
-    String fallbackEmoji,
-  ) {
-    _closeStickersPanel();
-    final html = ComposerHtmlEditing.buildInlineCustomEmojiSpanHtml(
-      emojiId: emojiId,
-      imageUrl: imageUrl,
-      fallbackEmoji: fallbackEmoji,
-    );
-    _insertHtmlIntoThreadComposer(html);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _composerFocus.requestFocus();
     });
@@ -2685,6 +2690,16 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                   controller: _composerController,
                                   focusNode: _composerFocus,
                                   stickersPanelOpen: _stickersPanelOpen,
+                                  stickersPanelHideSideButtons:
+                                      _stickersPanelOpen &&
+                                      _stickersPanelFullscreen,
+                                  hasFooterBelow:
+                                      _stickersPanelOpen ||
+                                      _stickersTransitionFooterFloor > 0 ||
+                                      MediaQuery.viewInsetsOf(
+                                            context,
+                                          ).bottom >
+                                          0,
                                   onKeyboardTap: _switchFromStickersToKeyboard,
                                   stickersSearchHint: _stickersSearchHint,
                                   onStickersSearchChanged: (q) {
@@ -2769,31 +2784,11 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                   onCancelReply: () =>
                                       setState(() => _replyingTo = null),
                                 ),
-                              if (_selectedMessageIds.isEmpty &&
-                                  !_stickersPanelOpen)
+                              if (_selectedMessageIds.isEmpty)
                                 Builder(
                                   builder: (context) {
                                     final keyboardInset =
                                         MediaQuery.viewInsetsOf(context).bottom;
-                                    if (keyboardInset <= 0) {
-                                      return const SizedBox.shrink();
-                                    }
-                                    return SizedBox(height: keyboardInset);
-                                  },
-                                ),
-                              if (_selectedMessageIds.isEmpty &&
-                                  _stickersPanelOpen)
-                                Builder(
-                                  builder: (context) {
-                                    final repo = ref.read(
-                                      userStickerPacksRepositoryProvider,
-                                    );
-                                    final chatRepo = ref.read(
-                                      chatRepositoryProvider,
-                                    );
-                                    if (repo == null || chatRepo == null) {
-                                      return const SizedBox.shrink();
-                                    }
                                     final mq = MediaQuery.of(context);
                                     final defaultH = mq.size.height * 0.42;
                                     final keyboardLikeH =
@@ -2805,9 +2800,31 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                           mq.size.height * 0.62,
                                           mq.size.height - 1,
                                         );
-                                    final panelHeight = _stickersPanelFullscreen
-                                        ? fullScreenH
-                                        : keyboardLikeH;
+                                    final panelHeight = _stickersPanelOpen
+                                        ? (_stickersPanelFullscreen
+                                              ? fullScreenH
+                                              : keyboardLikeH)
+                                        : 0.0;
+                                    final footerHeight = [
+                                      panelHeight,
+                                      keyboardInset,
+                                      _stickersTransitionFooterFloor,
+                                    ].reduce((a, b) => a > b ? a : b);
+                                    if (!_stickersPanelOpen) {
+                                      if (footerHeight <= 0) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      return SizedBox(height: footerHeight);
+                                    }
+                                    final repo = ref.read(
+                                      userStickerPacksRepositoryProvider,
+                                    );
+                                    final chatRepo = ref.read(
+                                      chatRepositoryProvider,
+                                    );
+                                    if (repo == null || chatRepo == null) {
+                                      return SizedBox(height: footerHeight);
+                                    }
                                     final panel = ComposerStickerGifPanel(
                                       userId: user.uid,
                                       repo: repo,
@@ -2840,14 +2857,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                       },
                                       onEmojiTapped:
                                           _handleEmojiPickFromStickersPanel,
-                                      onCustomEmojiTapped:
-                                          _handleCustomEmojiPickFromStickersPanel,
                                       onClose: () {
                                         _closeStickersPanel();
                                       },
                                     );
                                     return SizedBox(
-                                      height: panelHeight,
+                                      height: footerHeight,
                                       child: panel,
                                     );
                                   },

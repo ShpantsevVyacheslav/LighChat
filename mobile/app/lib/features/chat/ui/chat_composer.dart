@@ -46,6 +46,8 @@ class ChatComposer extends StatefulWidget {
     required this.onStickersTap,
     this.onKeyboardTap,
     this.stickersPanelOpen = false,
+    this.stickersPanelHideSideButtons = false,
+    this.hasFooterBelow = false,
     this.stickersSearchHint,
     this.onStickersSearchChanged,
     this.replyingTo,
@@ -78,6 +80,17 @@ class ChatComposer extends StatefulWidget {
   final VoidCallback onStickersTap;
   final VoidCallback? onKeyboardTap;
   final bool stickersPanelOpen;
+
+  /// На странице менеджера пакетов (fullscreen sticker-режим) скрываем
+  /// «+» и микрофон — на этой странице нельзя отправить сообщение,
+  /// и боковые кнопки только вводят в заблуждение (Bug #6).
+  final bool stickersPanelHideSideButtons;
+
+  /// Если true, под composer'ом уже зарезервирована высота (sticker-шторка,
+  /// клавиатурный inset или удержанный «пол» во время перехода между ними).
+  /// В таком случае composer НЕ добавляет нижний SafeArea — иначе при
+  /// переключении keyboard↔panel композер прыгает на ~34 px (home-indicator).
+  final bool hasFooterBelow;
   final String? stickersSearchHint;
   final ValueChanged<String>? onStickersSearchChanged;
   final ReplyContext? replyingTo;
@@ -575,25 +588,21 @@ class _ChatComposerState extends State<ChatComposer> {
       context: context,
       wallpaper: wallpaper,
     );
-    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     final showSendButton =
         !widget.stickersPanelOpen &&
         (_hasTypedText || widget.pendingAttachments.isNotEmpty);
+    final tightFooterMode =
+        widget.stickersPanelOpen || widget.hasFooterBelow;
     return SafeArea(
       top: false,
-      // Когда открыта шторка стикеров — она занимает всю нижнюю область
-      // включая home-indicator. Чтобы между composer'ом и шторкой не было
-      // пустой полосы safe-area, отключаем нижний inset на composer'е.
-      bottom: !widget.stickersPanelOpen,
+      // Если под composer'ом уже что-то зарезервировано (шторка, клавиатура,
+      // удержанный «пол» транзишена) — SafeArea bottom не нужен, иначе
+      // composer добавит home-indicator и прыгнет вверх.
+      bottom: !tightFooterMode,
       child: Padding(
-        // Когда шторка открыта — половиним нижний отступ (10 → 4), чтобы
-        // визуально приблизить шторку к input'у в стиле Telegram.
-        padding: EdgeInsets.fromLTRB(
-          10,
-          8,
-          10,
-          widget.stickersPanelOpen ? 4 : 10,
-        ),
+        // В «тесном» режиме нижний отступ 4 (как у шторки), иначе 10.
+        // Единая логика устраняет 6-пиксельный прыжок на переходах.
+        padding: EdgeInsets.fromLTRB(10, 8, 10, tightFooterMode ? 4 : 10),
         child: Column(
           key: _composerColumnKey,
           mainAxisSize: MainAxisSize.min,
@@ -624,14 +633,6 @@ class _ChatComposerState extends State<ChatComposer> {
               ),
               const SizedBox(height: 8),
             ],
-            if (widget.stickerSuggestionBuilder != null &&
-                !keyboardOpen &&
-                !widget.stickersPanelOpen &&
-                !_hasTypedText &&
-                widget.pendingAttachments.isEmpty &&
-                !widget.showFormattingToolbar &&
-                widget.e2eeDisabledBanner == null)
-              widget.stickerSuggestionBuilder!(),
             if (_mentionQuery != null &&
                 !widget.stickersPanelOpen &&
                 widget.e2eeDisabledBanner == null &&
@@ -675,34 +676,38 @@ class _ChatComposerState extends State<ChatComposer> {
                 child: Row(
                   key: const ValueKey('composer-input-row'),
                   children: [
-                    Container(
-                      width: _kComposerControlSize,
-                      height: _kComposerControlSize,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.black.withValues(
-                          alpha: chatWallpaperPrefersLightForeground(wallpaper)
-                              ? (dark ? 0.18 : 0.16)
-                              : (dark ? 0.06 : 0.08),
+                    if (!widget.stickersPanelHideSideButtons) ...[
+                      Container(
+                        width: _kComposerControlSize,
+                        height: _kComposerControlSize,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.black.withValues(
+                            alpha:
+                                chatWallpaperPrefersLightForeground(wallpaper)
+                                ? (dark ? 0.18 : 0.16)
+                                : (dark ? 0.06 : 0.08),
+                          ),
+                          border: Border.all(color: fg.withValues(alpha: 0.18)),
                         ),
-                        border: Border.all(color: fg.withValues(alpha: 0.18)),
-                      ),
-                      child: IconButton(
-                        tooltip: l10n.chat_composer_tooltip_attachments,
-                        onPressed: widget.attachmentsEnabled && !widget.sendBusy
-                            ? _openAttachmentMenu
-                            : null,
-                        iconSize: 17,
-                        padding: EdgeInsets.zero,
-                        icon: Icon(
-                          Icons.add_rounded,
-                          color: widget.attachmentsEnabled && !widget.sendBusy
-                              ? fg.withValues(alpha: 0.92)
-                              : muted.withValues(alpha: 0.75),
+                        child: IconButton(
+                          tooltip: l10n.chat_composer_tooltip_attachments,
+                          onPressed:
+                              widget.attachmentsEnabled && !widget.sendBusy
+                              ? _openAttachmentMenu
+                              : null,
+                          iconSize: 17,
+                          padding: EdgeInsets.zero,
+                          icon: Icon(
+                            Icons.add_rounded,
+                            color: widget.attachmentsEnabled && !widget.sendBusy
+                                ? fg.withValues(alpha: 0.92)
+                                : muted.withValues(alpha: 0.75),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
+                      const SizedBox(width: 6),
+                    ],
                     Expanded(
                       child: Container(
                         height: _kComposerControlSize,
@@ -725,8 +730,10 @@ class _ChatComposerState extends State<ChatComposer> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Container(
+                    if (!widget.stickersPanelHideSideButtons ||
+                        showSendButton) ...[
+                      const SizedBox(width: 6),
+                      Container(
                       width: _kComposerControlSize,
                       height: _kComposerControlSize,
                       decoration: BoxDecoration(
@@ -824,7 +831,8 @@ class _ChatComposerState extends State<ChatComposer> {
                                       ),
                                     );
                                   }()),
-                    ),
+                      ),
+                    ],
                   ],
                 ),
               ),

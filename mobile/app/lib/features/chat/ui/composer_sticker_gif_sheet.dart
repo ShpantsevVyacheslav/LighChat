@@ -30,8 +30,6 @@ Future<void> showComposerStickerGifSheet({
   required UserStickerPacksRepository repo,
   required void Function(ChatAttachment attachment) onPickAttachment,
   void Function(String emoji)? onEmojiTapped,
-  void Function(String emojiId, String imageUrl, String fallbackEmoji)?
-  onCustomEmojiTapped,
   String? directUploadConversationId,
 }) {
   return showModalBottomSheet<void>(
@@ -49,7 +47,6 @@ Future<void> showComposerStickerGifSheet({
           directUploadConversationId: directUploadConversationId,
           onPickAttachment: onPickAttachment,
           onEmojiTapped: onEmojiTapped,
-          onCustomEmojiTapped: onCustomEmojiTapped,
           onClose: () => Navigator.of(ctx).pop(),
         ),
       );
@@ -68,7 +65,6 @@ class ComposerStickerGifPanel extends ConsumerStatefulWidget {
     this.onSearchHintChanged,
     this.onFullscreenModeChanged,
     this.onEmojiTapped,
-    this.onCustomEmojiTapped,
     this.directUploadConversationId,
   });
 
@@ -77,8 +73,6 @@ class ComposerStickerGifPanel extends ConsumerStatefulWidget {
   final String? directUploadConversationId;
   final void Function(ChatAttachment attachment) onPickAttachment;
   final void Function(String emoji)? onEmojiTapped;
-  final void Function(String emojiId, String imageUrl, String fallbackEmoji)?
-  onCustomEmojiTapped;
   final String sharedSearchQuery;
   final ValueChanged<String>? onSearchHintChanged;
   final ValueChanged<bool>? onFullscreenModeChanged;
@@ -169,7 +163,6 @@ class _ComposerStickerGifPanelState
   bool _allowAnimatedEmoji = true;
   bool _allowInterfaceAnimations = true;
   bool _lastFullscreenMode = false;
-  late final Map<String, String> _emojiKeywordIndex = _buildEmojiKeywordIndex();
 
   Duration get _uiAnimDuration => _allowInterfaceAnimations
       ? const Duration(milliseconds: 200)
@@ -695,87 +688,15 @@ class _ComposerStickerGifPanelState
     unawaited(_loadRecentGifs());
   }
 
-  static String _normalizeEmojiKeyword(String raw) {
-    return raw
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
-        .trim()
-        .replaceAll(RegExp(r'\s+'), ' ');
-  }
-
-  Map<String, String> _buildEmojiKeywordIndex() {
-    final out = <String, String>{};
-    for (final cat in defaultEmojiSet) {
-      for (final emoji in cat.emoji) {
-        final candidates = <String>{emoji.name, ...emoji.keywords};
-        for (final c in candidates) {
-          final key = _normalizeEmojiKeyword(c);
-          if (key.isEmpty) continue;
-          out.putIfAbsent(key, () => emoji.emoji);
-        }
-      }
-    }
-    return out;
-  }
-
-  String? _resolveEmojiFromLabel(String? raw) {
-    if (raw == null || raw.trim().isEmpty) return null;
-    final trimmed = raw.trim();
-    final shortcode = RegExp(
-      r':([a-z0-9_+-]{2,64}):',
-      caseSensitive: false,
-    ).firstMatch(trimmed)?.group(1);
-    final byShortcode = shortcode == null
-        ? null
-        : _emojiKeywordIndex[_normalizeEmojiKeyword(
-            shortcode.replaceAll('_', ' '),
-          )];
-    if (byShortcode != null) return byShortcode;
-
-    final normalized = _normalizeEmojiKeyword(
-      trimmed.replaceAll(RegExp(r'-[a-z0-9]{8,}$', caseSensitive: false), ''),
-    );
-    if (normalized.isEmpty) return null;
-    final direct = _emojiKeywordIndex[normalized];
-    if (direct != null) return direct;
-
-    String? best;
-    var bestLen = 0;
-    for (final e in _emojiKeywordIndex.entries) {
-      final k = e.key;
-      if (k.length < 3) continue;
-      if (k.contains(normalized) || normalized.contains(k)) {
-        if (k.length > bestLen) {
-          bestLen = k.length;
-          best = e.value;
-        }
-      }
-    }
-    return best;
-  }
-
-  /// Анимированный эмодзи вставляется как inline custom-emoji span (id + url),
-  /// чтобы в отправленном сообщении он рендерился анимированным внутри текста.
-  /// Fallback в unicode остаётся для случаев без callback'a на старом экране.
+  /// Анимированный эмодзи отправляется как маленький анимированный sticker
+  /// (`sticker_emoji_giphy_*`). Раньше пытались вставить inline custom-emoji
+  /// span в html-композер — это ломалось на mobile (TextField не рендерит
+  /// WidgetSpan, теги становились видимыми при удалении). Sticker-ветка уже
+  /// поддерживается рендерером сообщений и UX совпадает с Telegram.
   void _onPickAnimEmoji(GiphyGifItem item) {
-    final fallbackEmoji =
-        giphyItemToEmojiText(item) ??
-        _resolveEmojiFromLabel(item.label) ??
-        item.emoji?.trim() ??
-        '🙂';
-    final onCustom = widget.onCustomEmojiTapped;
-    if (onCustom != null) {
-      onCustom(item.id, item.url, fallbackEmoji);
-      HapticFeedback.selectionClick();
-      return;
-    }
-    final onEmoji = widget.onEmojiTapped;
-    if (onEmoji != null && fallbackEmoji.isNotEmpty) {
-      onEmoji(fallbackEmoji);
-      HapticFeedback.selectionClick();
-      return;
-    }
-    _snack(AppLocalizations.of(context)!.sticker_emoji_unavailable);
+    HapticFeedback.selectionClick();
+    final att = giphyItemToSendAttachment(item, asAnimatedEmoji: true);
+    widget.onPickAttachment(att);
   }
 
   void _snack(String msg) {
@@ -1189,23 +1110,37 @@ class _ComposerStickerGifPanelState
     }
 
     final bottomInset = MediaQuery.of(context).padding.bottom;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(0, 0, 0, bottomInset + 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [pill(0), pill(1), pill(2)],
+    // Bug #4/#5: фон табов прозрачный, под ними просматривается контент
+    // (стикеры/эмодзи/гифки). Никакой отдельной полосы внизу — табы парят
+    // поверх. Лёгкий gradient-shadow сверху просто намекает на overlay.
+    return IgnorePointer(
+      ignoring: false,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black.withValues(alpha: 0),
+              Colors.black.withValues(alpha: 0.22),
+            ],
+          ),
+        ),
+        padding: EdgeInsets.fromLTRB(0, 6, 0, bottomInset + 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [pill(0), pill(1), pill(2)],
+        ),
       ),
     );
   }
 
+  /// Высота нижней tab-полосы для расчёта sliver-padding,
+  /// чтобы последние элементы можно было доскроллить из-под табов.
   double _tabBarOverlayHeight(BuildContext context) {
     final inset = MediaQuery.of(context).padding.bottom;
-    return inset + 30 + 10;
-  }
-
-  double _contentBottomOverlayPadding(BuildContext context) {
-    if (_chromeVisible) return _tabBarOverlayHeight(context) + 6;
-    return MediaQuery.of(context).padding.bottom + 8;
+    // 6 (top gradient) + 30 (pill) + 4 (gap) = 40 + inset.
+    return inset + 40;
   }
 
   @override
@@ -1218,15 +1153,12 @@ class _ComposerStickerGifPanelState
     return _glassCard(
       child: Stack(
         children: [
+          // Контент занимает всю шторку до самого низа — табы поверх
+          // полупрозрачны, контент просвечивает (Bug #4/#5).
           Positioned.fill(
-            child: Padding(
-              padding: EdgeInsets.only(
-                bottom: _contentBottomOverlayPadding(context),
-              ),
-              child: TabBarView(
-                controller: _tabs,
-                children: [_emojiTab(), _stickersTab(), _gifTab()],
-              ),
+            child: TabBarView(
+              controller: _tabs,
+              children: [_emojiTab(), _stickersTab(), _gifTab()],
             ),
           ),
           Positioned(
@@ -1300,47 +1232,6 @@ class _ComposerStickerGifPanelState
     );
   }
 
-  Widget _deviceDirectSection() {
-    final fg = Colors.white.withValues(alpha: 0.88);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-      child: Material(
-        color: Colors.white.withValues(alpha: 0.09),
-        borderRadius: BorderRadius.circular(12),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: _deviceDirectBusy ? null : _pickFromGalleryAndSendDirect,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.photo_library_outlined, color: fg, size: 16),
-                const SizedBox(width: 7),
-                Text(
-                  AppLocalizations.of(context)!.sticker_gallery,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12.5,
-                    color: fg,
-                  ),
-                ),
-                if (_deviceDirectBusy) ...[
-                  const SizedBox(width: 7),
-                  const SizedBox(
-                    width: 13,
-                    height: 13,
-                    child: CircularProgressIndicator(strokeWidth: 1.8),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _stickersTab() {
     return NotificationListener<ScrollNotification>(
       onNotification: _onTabScroll,
@@ -1357,13 +1248,9 @@ class _ComposerStickerGifPanelState
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 4),
-                      if (widget.directUploadConversationId != null) ...[
-                        _deviceDirectSection(),
-                        Divider(
-                          height: 1,
-                          color: Colors.white.withValues(alpha: 0.08),
-                        ),
-                      ],
+                      // Bug #7/#8: «Galéry» с верха страницы убрана —
+                      // загрузка из галереи теперь живёт внутри каждого
+                      // пака в менеджере (плюсик в строке пака).
                       _stickersSubToggle(),
                       if (!_showPackManager && _recentStickers.isNotEmpty)
                         _recentStickersStrip(),
@@ -1441,15 +1328,21 @@ class _ComposerStickerGifPanelState
 
   /// Telegram-style список моих стикерпаков с возможностью удалить/создать.
   /// Каждая строка: квадратная превью (первый стикер), название, количество
-  /// стикеров, кнопка-корзина справа. Сверху — кнопка «+ New pack».
+  /// стикеров, кнопка-корзина справа. Сверху — компактная кнопка «+ New pack».
   Widget _packManagerView() {
     final l10n = AppLocalizations.of(context)!;
+    final convId = widget.directUploadConversationId;
     return StreamBuilder<List<UserStickerPackRow>>(
       stream: widget.repo.watchMyPacks(widget.userId),
       builder: (context, snap) {
         final packs = snap.data ?? const <UserStickerPackRow>[];
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+          padding: EdgeInsets.fromLTRB(
+            12,
+            4,
+            12,
+            _tabBarOverlayHeight(context) + 8,
+          ),
           itemCount: packs.length + 1,
           separatorBuilder: (_, _) => const SizedBox(height: 6),
           itemBuilder: (context, i) {
@@ -1474,6 +1367,9 @@ class _ComposerStickerGifPanelState
                 setState(() => _myPackId = p.id);
               },
               onDelete: () => _confirmDeletePack(p.id, p.name),
+              onAddFromGallery: (convId == null || convId.isEmpty)
+                  ? null
+                  : () => unawaited(_pickFromGalleryAndSendDirect()),
             );
           },
         );
@@ -1610,9 +1506,12 @@ class _ComposerStickerGifPanelState
                             ),
                           ),
                         ),
-                      )
-                    else
-                      const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                      ),
+                    // Запас под плавающей tab-полосой: контент проходит
+                    // ПОД ней, последние элементы можно доскроллить.
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: _tabBarOverlayHeight(context)),
+                    ),
                   ],
                 ),
         ),
@@ -1744,10 +1643,12 @@ class _ComposerStickerGifPanelState
                                 ),
                               ),
                             ),
-                          )
-                        else
-                          const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                          ),
                       ],
+                      // Запас под плавающей tab-полосой.
+                      SliverToBoxAdapter(
+                        child: SizedBox(height: _tabBarOverlayHeight(context)),
+                      ),
                     ],
                   ),
           ),
@@ -1912,13 +1813,19 @@ class _ComposerStickerGifPanelState
       );
     }
 
-    // Кружок с эмодзи: явный SizedBox + Center + FittedBox = точное центрирование.
+    // Кружок с эмодзи. У эмодзи асимметричный bounding box (descender'ы
+    // глифа сильно меньше), поэтому Text сам по себе уезжает вверх/вбок
+    // в круглой рамке. Решение: рисуем эмодзи через `RichText` с явным
+    // strut + textHeightBehavior(applyHeightToFirstAscent:false,
+    // applyHeightToLastDescent:false) — отключаем «дыхание» под глиф и
+    // выравниваем по геометрическому центру через Alignment.center.
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
         width: 30,
         height: 30,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: bg,
           shape: BoxShape.circle,
@@ -1926,24 +1833,25 @@ class _ComposerStickerGifPanelState
               ? Border.all(color: borderColor, width: 1)
               : null,
         ),
-        child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: FittedBox(
-              fit: BoxFit.contain,
-              alignment: Alignment.center,
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 16,
-                  height: 1.0,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          textHeightBehavior: const TextHeightBehavior(
+            applyHeightToFirstAscent: false,
+            applyHeightToLastDescent: false,
+            leadingDistribution: TextLeadingDistribution.even,
+          ),
+          strutStyle: const StrutStyle(
+            forceStrutHeight: true,
+            fontSize: 16,
+            height: 1.0,
+            leading: 0,
+          ),
+          style: const TextStyle(
+            fontSize: 16,
+            height: 1.0,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
           ),
         ),
       ),
@@ -2059,28 +1967,38 @@ class _ComposerStickerGifPanelState
                       ),
                     ),
                   )
-                : EmojiPicker(
-                    onEmojiSelected: (cat, emoji) {
-                      widget.onEmojiTapped?.call(emoji.emoji);
-                      HapticFeedback.selectionClick();
+                : LayoutBuilder(
+                    builder: (context, c) {
+                      // Bug #5: пикер растягиваем на всю доступную высоту,
+                      // чтобы под ним не было «полосы» пустоты — последние
+                      // эмодзи скроллятся под полупрозрачные табы.
+                      final h = c.maxHeight.isFinite && c.maxHeight > 0
+                          ? c.maxHeight
+                          : 320.0;
+                      return EmojiPicker(
+                        onEmojiSelected: (cat, emoji) {
+                          widget.onEmojiTapped?.call(emoji.emoji);
+                          HapticFeedback.selectionClick();
+                        },
+                        config: Config(
+                          height: h,
+                          emojiViewConfig: EmojiViewConfig(
+                            backgroundColor: Colors.transparent,
+                            columns: 8,
+                            emojiSizeMax: 22,
+                          ),
+                          categoryViewConfig: CategoryViewConfig(
+                            backgroundColor: Colors.transparent,
+                            indicatorColor: const Color(0xFF2A79FF),
+                            iconColor: Colors.white.withValues(alpha: 0.55),
+                            iconColorSelected: Colors.white,
+                          ),
+                          bottomActionBarConfig: const BottomActionBarConfig(
+                            enabled: false,
+                          ),
+                        ),
+                      );
                     },
-                    config: Config(
-                      height: 220,
-                      emojiViewConfig: EmojiViewConfig(
-                        backgroundColor: Colors.transparent,
-                        columns: 8,
-                        emojiSizeMax: 22,
-                      ),
-                      categoryViewConfig: CategoryViewConfig(
-                        backgroundColor: Colors.transparent,
-                        indicatorColor: const Color(0xFF2A79FF),
-                        iconColor: Colors.white.withValues(alpha: 0.55),
-                        iconColorSelected: Colors.white,
-                      ),
-                      bottomActionBarConfig: const BottomActionBarConfig(
-                        enabled: false,
-                      ),
-                    ),
                   ),
           ),
         ],
@@ -2089,8 +2007,9 @@ class _ComposerStickerGifPanelState
   }
 }
 
-/// Telegram-style строка пака: имя + количество на верхней линии + кнопка
-/// действия справа, на нижней линии — превью первых 5 стикеров.
+/// Telegram-style строка пака: имя + количество на верхней линии + кнопки
+/// действий справа (плюсик «добавить из галереи» + корзина), на нижней
+/// линии — превью первых 5 стикеров.
 class _PackManagerRow extends StatelessWidget {
   const _PackManagerRow({
     required this.pack,
@@ -2098,6 +2017,7 @@ class _PackManagerRow extends StatelessWidget {
     required this.itemsStream,
     required this.onTap,
     required this.onDelete,
+    this.onAddFromGallery,
   });
 
   final UserStickerPackRow pack;
@@ -2105,6 +2025,7 @@ class _PackManagerRow extends StatelessWidget {
   final Stream<List<StickerItemRow>> itemsStream;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final VoidCallback? onAddFromGallery;
 
   @override
   Widget build(BuildContext context) {
@@ -2154,6 +2075,17 @@ class _PackManagerRow extends StatelessWidget {
                           ],
                         ),
                       ),
+                      if (onAddFromGallery != null) ...[
+                        _PackIconButton(
+                          icon: Icons.add_rounded,
+                          onTap: onAddFromGallery!,
+                          tone: _PackIconTone.accent,
+                          tooltip: AppLocalizations.of(
+                            context,
+                          )!.sticker_gallery,
+                        ),
+                        const SizedBox(width: 6),
+                      ],
                       // Действие — удалить пак (Telegram-style mini-pill).
                       _PackActionPill(
                         label: AppLocalizations.of(
@@ -2258,7 +2190,43 @@ class _PackActionPill extends StatelessWidget {
   }
 }
 
-/// «+ New pack» строка в начале менеджера паков.
+enum _PackIconTone { accent }
+
+class _PackIconButton extends StatelessWidget {
+  const _PackIconButton({
+    required this.icon,
+    required this.onTap,
+    required this.tone,
+    this.tooltip,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final _PackIconTone tone;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = const Color(0xFF2A79FF);
+    final btn = Material(
+      color: color.withValues(alpha: 0.18),
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          width: 30,
+          height: 30,
+          child: Icon(icon, color: color, size: 18),
+        ),
+      ),
+    );
+    return tooltip == null ? btn : Tooltip(message: tooltip!, child: btn);
+  }
+}
+
+/// Компактная «+ New pack» — небольшой pill сверху списка паков, без
+/// крупного блока (Bug #9).
 class _PackManagerNewRow extends StatelessWidget {
   const _PackManagerNewRow({required this.label, required this.onTap});
 
@@ -2267,43 +2235,35 @@ class _PackManagerNewRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFF2A79FF).withValues(alpha: 0.16),
-      borderRadius: BorderRadius.circular(14),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2A79FF).withValues(alpha: 0.22),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.add_rounded,
-                  color: Color(0xFF2A79FF),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
+    final color = const Color(0xFF2A79FF);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Material(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add_rounded, color: color, size: 16),
+                const SizedBox(width: 6),
+                Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF2A79FF),
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14.5,
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5,
+                    letterSpacing: 0.3,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
