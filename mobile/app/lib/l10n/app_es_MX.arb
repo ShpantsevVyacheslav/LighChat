@@ -4000,5 +4000,61 @@
   "contacts_disclosure_deny": "Ahora no",
   "@contacts_disclosure_deny": {
     "description": "Contacts disclosure deny button"
+  },
+  "report_title": "Denunciar",
+  "@report_title": {
+    "description": "report title"
+  },
+  "report_subtitle_message": "Denunciar mensaje",
+  "@report_subtitle_message": {
+    "description": "report subtitle message"
+  },
+  "report_subtitle_user": "Denunciar usuario",
+  "@report_subtitle_user": {
+    "description": "report subtitle user"
+  },
+  "report_reason_spam": "Spam",
+  "@report_reason_spam": {
+    "description": "report reason spam"
+  },
+  "report_reason_offensive": "Contenido ofensivo",
+  "@report_reason_offensive": {
+    "description": "report reason offensive"
+  },
+  "report_reason_violence": "Violencia o amenazas",
+  "@report_reason_violence": {
+    "description": "report reason violence"
+  },
+  "report_reason_fraud": "Fraude o estafa",
+  "@report_reason_fraud": {
+    "description": "report reason fraud"
+  },
+  "report_reason_other": "Otro",
+  "@report_reason_other": {
+    "description": "report reason other"
+  },
+  "report_comment_hint": "Detalles adicionales (opcional)",
+  "@report_comment_hint": {
+    "description": "report comment hint"
+  },
+  "report_submit": "Enviar",
+  "@report_submit": {
+    "description": "report submit"
+  },
+  "report_success": "Denuncia enviada. ¡Gracias!",
+  "@report_success": {
+    "description": "report success"
+  },
+  "report_error": "Error al enviar la denuncia",
+  "@report_error": {
+    "description": "report error"
+  },
+  "message_menu_action_report": "Denunciar",
+  "@message_menu_action_report": {
+    "description": "message menu action report"
+  },
+  "partner_profile_menu_report": "Denunciar usuario",
+  "@partner_profile_menu_report": {
+    "description": "partner profile menu report"
   }
 }

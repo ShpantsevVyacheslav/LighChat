@@ -84,6 +84,7 @@ import 'dm_game_lobby_banner.dart';
 import 'location_send_preview_sheet.dart';
 import 'message_context_menu.dart';
 import 'message_html_text.dart';
+import 'report_sheet.dart';
 import 'chat_composer.dart';
 import 'thread_route_payload.dart';
 import 'secret_chat_secure_scope.dart';
@@ -3769,6 +3770,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       case MessageMenuActionType.outboxRetry:
       case MessageMenuActionType.outboxCancel:
         break;
+      case MessageMenuActionType.report:
+        if (!mounted) return;
+        // ignore: use_build_context_synchronously — mounted checked above
+        await showReportSheet(
+          context,
+          reportedUserId: m.senderId,
+          messageId: m.id,
+          conversationId: widget.conversationId,
+        );
     }
   }
 

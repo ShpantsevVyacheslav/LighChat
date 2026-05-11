@@ -4042,5 +4042,61 @@
   "contacts_disclosure_deny": "Not now",
   "@contacts_disclosure_deny": {
     "description": "Contacts disclosure deny button"
+  },
+  "report_title": "Report",
+  "@report_title": {
+    "description": "report title"
+  },
+  "report_subtitle_message": "Report message",
+  "@report_subtitle_message": {
+    "description": "report subtitle message"
+  },
+  "report_subtitle_user": "Report user",
+  "@report_subtitle_user": {
+    "description": "report subtitle user"
+  },
+  "report_reason_spam": "Spam",
+  "@report_reason_spam": {
+    "description": "report reason spam"
+  },
+  "report_reason_offensive": "Offensive content",
+  "@report_reason_offensive": {
+    "description": "report reason offensive"
+  },
+  "report_reason_violence": "Violence or threats",
+  "@report_reason_violence": {
+    "description": "report reason violence"
+  },
+  "report_reason_fraud": "Fraud or scam",
+  "@report_reason_fraud": {
+    "description": "report reason fraud"
+  },
+  "report_reason_other": "Other",
+  "@report_reason_other": {
+    "description": "report reason other"
+  },
+  "report_comment_hint": "Additional details (optional)",
+  "@report_comment_hint": {
+    "description": "report comment hint"
+  },
+  "report_submit": "Submit",
+  "@report_submit": {
+    "description": "report submit"
+  },
+  "report_success": "Report submitted. Thank you!",
+  "@report_success": {
+    "description": "report success"
+  },
+  "report_error": "Failed to submit report",
+  "@report_error": {
+    "description": "report error"
+  },
+  "message_menu_action_report": "Report",
+  "@message_menu_action_report": {
+    "description": "message menu action report"
+  },
+  "partner_profile_menu_report": "Report user",
+  "@partner_profile_menu_report": {
+    "description": "partner profile menu report"
   }
 }

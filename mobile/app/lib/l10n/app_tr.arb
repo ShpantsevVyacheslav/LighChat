@@ -4000,5 +4000,61 @@
   "contacts_disclosure_deny": "Şimdi değil",
   "@contacts_disclosure_deny": {
     "description": "Contacts disclosure deny button"
+  },
+  "report_title": "Şikayet Et",
+  "@report_title": {
+    "description": "report title"
+  },
+  "report_subtitle_message": "Mesajı şikayet et",
+  "@report_subtitle_message": {
+    "description": "report subtitle message"
+  },
+  "report_subtitle_user": "Kullanıcıyı şikayet et",
+  "@report_subtitle_user": {
+    "description": "report subtitle user"
+  },
+  "report_reason_spam": "Spam",
+  "@report_reason_spam": {
+    "description": "report reason spam"
+  },
+  "report_reason_offensive": "Rahatsız edici içerik",
+  "@report_reason_offensive": {
+    "description": "report reason offensive"
+  },
+  "report_reason_violence": "Şiddet veya tehdit",
+  "@report_reason_violence": {
+    "description": "report reason violence"
+  },
+  "report_reason_fraud": "Dolandırıcılık",
+  "@report_reason_fraud": {
+    "description": "report reason fraud"
+  },
+  "report_reason_other": "Diğer",
+  "@report_reason_other": {
+    "description": "report reason other"
+  },
+  "report_comment_hint": "Ek ayrıntılar (isteğe bağlı)",
+  "@report_comment_hint": {
+    "description": "report comment hint"
+  },
+  "report_submit": "Gönder",
+  "@report_submit": {
+    "description": "report submit"
+  },
+  "report_success": "Şikayet gönderildi. Teşekkürler!",
+  "@report_success": {
+    "description": "report success"
+  },
+  "report_error": "Şikayet gönderilemedi",
+  "@report_error": {
+    "description": "report error"
+  },
+  "message_menu_action_report": "Şikayet Et",
+  "@message_menu_action_report": {
+    "description": "message menu action report"
+  },
+  "partner_profile_menu_report": "Kullanıcıyı şikayet et",
+  "@partner_profile_menu_report": {
+    "description": "partner profile menu report"
   }
 }

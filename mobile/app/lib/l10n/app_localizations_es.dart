@@ -7968,6 +7968,48 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get contacts_disclosure_deny => 'Ahora no';
+
+  @override
+  String get report_title => 'Denunciar';
+
+  @override
+  String get report_subtitle_message => 'Denunciar mensaje';
+
+  @override
+  String get report_subtitle_user => 'Denunciar usuario';
+
+  @override
+  String get report_reason_spam => 'Spam';
+
+  @override
+  String get report_reason_offensive => 'Contenido ofensivo';
+
+  @override
+  String get report_reason_violence => 'Violencia o amenazas';
+
+  @override
+  String get report_reason_fraud => 'Fraude o estafa';
+
+  @override
+  String get report_reason_other => 'Otro';
+
+  @override
+  String get report_comment_hint => 'Detalles adicionales (opcional)';
+
+  @override
+  String get report_submit => 'Enviar';
+
+  @override
+  String get report_success => 'Denuncia enviada. ¡Gracias!';
+
+  @override
+  String get report_error => 'Error al enviar la denuncia';
+
+  @override
+  String get message_menu_action_report => 'Denunciar';
+
+  @override
+  String get partner_profile_menu_report => 'Denunciar usuario';
 }
 
 /// The translations for Spanish Castilian, as used in Mexico (`es_MX`).
@@ -15835,4 +15877,46 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get contacts_disclosure_deny => 'Ahora no';
+
+  @override
+  String get report_title => 'Denunciar';
+
+  @override
+  String get report_subtitle_message => 'Denunciar mensaje';
+
+  @override
+  String get report_subtitle_user => 'Denunciar usuario';
+
+  @override
+  String get report_reason_spam => 'Spam';
+
+  @override
+  String get report_reason_offensive => 'Contenido ofensivo';
+
+  @override
+  String get report_reason_violence => 'Violencia o amenazas';
+
+  @override
+  String get report_reason_fraud => 'Fraude o estafa';
+
+  @override
+  String get report_reason_other => 'Otro';
+
+  @override
+  String get report_comment_hint => 'Detalles adicionales (opcional)';
+
+  @override
+  String get report_submit => 'Enviar';
+
+  @override
+  String get report_success => 'Denuncia enviada. ¡Gracias!';
+
+  @override
+  String get report_error => 'Error al enviar la denuncia';
+
+  @override
+  String get message_menu_action_report => 'Denunciar';
+
+  @override
+  String get partner_profile_menu_report => 'Denunciar usuario';
 }

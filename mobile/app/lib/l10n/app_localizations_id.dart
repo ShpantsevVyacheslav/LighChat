@@ -7904,4 +7904,46 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get contacts_disclosure_deny => 'Tidak sekarang';
+
+  @override
+  String get report_title => 'Laporkan';
+
+  @override
+  String get report_subtitle_message => 'Laporkan pesan';
+
+  @override
+  String get report_subtitle_user => 'Laporkan pengguna';
+
+  @override
+  String get report_reason_spam => 'Spam';
+
+  @override
+  String get report_reason_offensive => 'Konten menyinggung';
+
+  @override
+  String get report_reason_violence => 'Kekerasan atau ancaman';
+
+  @override
+  String get report_reason_fraud => 'Penipuan';
+
+  @override
+  String get report_reason_other => 'Lainnya';
+
+  @override
+  String get report_comment_hint => 'Detail tambahan (opsional)';
+
+  @override
+  String get report_submit => 'Kirim';
+
+  @override
+  String get report_success => 'Laporan terkirim. Terima kasih!';
+
+  @override
+  String get report_error => 'Gagal mengirim laporan';
+
+  @override
+  String get message_menu_action_report => 'Laporkan';
+
+  @override
+  String get partner_profile_menu_report => 'Laporkan pengguna';
 }

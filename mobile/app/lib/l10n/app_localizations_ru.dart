@@ -7913,4 +7913,46 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get contacts_disclosure_deny => 'Не сейчас';
+
+  @override
+  String get report_title => 'Пожаловаться';
+
+  @override
+  String get report_subtitle_message => 'На сообщение';
+
+  @override
+  String get report_subtitle_user => 'На пользователя';
+
+  @override
+  String get report_reason_spam => 'Спам';
+
+  @override
+  String get report_reason_offensive => 'Оскорбительный контент';
+
+  @override
+  String get report_reason_violence => 'Насилие или угрозы';
+
+  @override
+  String get report_reason_fraud => 'Мошенничество';
+
+  @override
+  String get report_reason_other => 'Другое';
+
+  @override
+  String get report_comment_hint => 'Дополнительные сведения (необязательно)';
+
+  @override
+  String get report_submit => 'Отправить';
+
+  @override
+  String get report_success => 'Жалоба отправлена. Спасибо!';
+
+  @override
+  String get report_error => 'Не удалось отправить жалобу';
+
+  @override
+  String get message_menu_action_report => 'Пожаловаться';
+
+  @override
+  String get partner_profile_menu_report => 'Пожаловаться на пользователя';
 }

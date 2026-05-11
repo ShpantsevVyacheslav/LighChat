@@ -4000,5 +4000,61 @@
   "contacts_disclosure_deny": "Hozir emas",
   "@contacts_disclosure_deny": {
     "description": "Contacts disclosure deny button"
+  },
+  "report_title": "Shikoyat qilish",
+  "@report_title": {
+    "description": "report title"
+  },
+  "report_subtitle_message": "Xabar haqida shikoyat",
+  "@report_subtitle_message": {
+    "description": "report subtitle message"
+  },
+  "report_subtitle_user": "Foydalanuvchi haqida shikoyat",
+  "@report_subtitle_user": {
+    "description": "report subtitle user"
+  },
+  "report_reason_spam": "Spam",
+  "@report_reason_spam": {
+    "description": "report reason spam"
+  },
+  "report_reason_offensive": "Haqoratli kontent",
+  "@report_reason_offensive": {
+    "description": "report reason offensive"
+  },
+  "report_reason_violence": "Zo'ravonlik yoki tahdidlar",
+  "@report_reason_violence": {
+    "description": "report reason violence"
+  },
+  "report_reason_fraud": "Firibgarlik",
+  "@report_reason_fraud": {
+    "description": "report reason fraud"
+  },
+  "report_reason_other": "Boshqa",
+  "@report_reason_other": {
+    "description": "report reason other"
+  },
+  "report_comment_hint": "Qo'shimcha ma'lumotlar (ixtiyoriy)",
+  "@report_comment_hint": {
+    "description": "report comment hint"
+  },
+  "report_submit": "Yuborish",
+  "@report_submit": {
+    "description": "report submit"
+  },
+  "report_success": "Shikoyat yuborildi. Rahmat!",
+  "@report_success": {
+    "description": "report success"
+  },
+  "report_error": "Shikoyatni yuborib bo'lmadi",
+  "@report_error": {
+    "description": "report error"
+  },
+  "message_menu_action_report": "Shikoyat",
+  "@message_menu_action_report": {
+    "description": "message menu action report"
+  },
+  "partner_profile_menu_report": "Foydalanuvchi haqida shikoyat",
+  "@partner_profile_menu_report": {
+    "description": "partner profile menu report"
   }
 }

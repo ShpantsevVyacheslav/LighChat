@@ -7876,4 +7876,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contacts_disclosure_deny => 'Not now';
+
+  @override
+  String get report_title => 'Report';
+
+  @override
+  String get report_subtitle_message => 'Report message';
+
+  @override
+  String get report_subtitle_user => 'Report user';
+
+  @override
+  String get report_reason_spam => 'Spam';
+
+  @override
+  String get report_reason_offensive => 'Offensive content';
+
+  @override
+  String get report_reason_violence => 'Violence or threats';
+
+  @override
+  String get report_reason_fraud => 'Fraud or scam';
+
+  @override
+  String get report_reason_other => 'Other';
+
+  @override
+  String get report_comment_hint => 'Additional details (optional)';
+
+  @override
+  String get report_submit => 'Submit';
+
+  @override
+  String get report_success => 'Report submitted. Thank you!';
+
+  @override
+  String get report_error => 'Failed to submit report';
+
+  @override
+  String get message_menu_action_report => 'Report';
+
+  @override
+  String get partner_profile_menu_report => 'Report user';
 }

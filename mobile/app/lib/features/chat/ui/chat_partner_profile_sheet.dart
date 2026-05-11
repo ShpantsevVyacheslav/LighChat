@@ -28,6 +28,7 @@ import '../data/e2ee_auto_enable_helper.dart';
 import '../data/user_contacts_repository.dart';
 import '../data/user_block_providers.dart';
 import '../data/user_profile.dart';
+import 'report_sheet.dart';
 import 'chat_audio_call_screen.dart';
 import 'chat_avatar.dart';
 import 'conversation_games_screen.dart';
@@ -1392,6 +1393,20 @@ class _ChatPartnerProfileSheetState
                     _toggleBlockPartner(partnerId, partnerIsBlocked),
                   ),
                 ),
+              if (!_isGroup && !_isSaved && partnerId != null)
+                _menuButton(
+                  context,
+                  icon: Icons.flag_outlined,
+                  title: l10n.partner_profile_menu_report,
+                  danger: true,
+                  onTap: () => unawaited(
+                    showReportSheet(
+                      context,
+                      reportedUserId: partnerId,
+                      conversationId: widget.conversationId,
+                    ),
+                  ),
+                ),
               _sectionDivider(),
               _menuButton(
                 context,
@@ -1851,8 +1866,13 @@ class _ChatPartnerProfileSheetState
     String? subtitle,
     String? trailing,
     VoidCallback? onTap,
+    bool danger = false,
   }) {
     final enabled = onTap != null;
+    const dangerColor = Color(0xFFFF6E6E);
+    final defaultColor = Colors.white.withValues(alpha: enabled ? 0.86 : 0.42);
+    final iconColor = danger ? dangerColor : defaultColor;
+    final textColor = danger ? dangerColor : const Color(0xFFF2F4FA);
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
       child: Material(
@@ -1867,7 +1887,7 @@ class _ChatPartnerProfileSheetState
                 Icon(
                   icon,
                   size: 22,
-                  color: Colors.white.withValues(alpha: enabled ? 0.86 : 0.42),
+                  color: iconColor,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1878,10 +1898,10 @@ class _ChatPartnerProfileSheetState
                         title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 15,
-                          color: Color(0xFFF2F4FA),
+                          color: textColor,
                         ),
                       ),
                       if (subtitle != null)
