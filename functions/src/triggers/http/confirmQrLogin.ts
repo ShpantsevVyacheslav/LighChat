@@ -224,7 +224,7 @@ export async function runConfirmQrLogin(
 }
 
 export const confirmQrLogin = onCall(
-  { region: "us-central1", cors: true },
+  { region: "us-central1", enforceAppCheck: false, cors: true },
   async (request) => {
     if (!request.auth?.uid) {
       throw new HttpsError("unauthenticated", "Sign in to approve a new device.");

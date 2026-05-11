@@ -15,7 +15,7 @@ const PAGE = 200;
  * Только admin (поле role в users/{uid}). После деплоя правил Firestore вызвать из клиента админки или Firebase Console.
  */
 export const backfillConversationMembers = onCall(
-  { region: "us-central1", timeoutSeconds: 540, memory: "512MiB" },
+  { region: "us-central1", enforceAppCheck: false, timeoutSeconds: 540, memory: "512MiB" },
   async (request: CallableRequest<{ cursor?: string | null }>) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Требуется вход.");

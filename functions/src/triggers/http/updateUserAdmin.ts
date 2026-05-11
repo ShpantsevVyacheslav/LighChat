@@ -10,7 +10,7 @@ const db = admin.firestore();
  * Cloud Function for administrators to update any user's profile and password.
  * This bypasses client-side security rule limitations for cross-user updates.
  */
-export const updateUserAdmin = onCall({ region: "us-central1" }, async (request: CallableRequest<{ uid: string; userData: Record<string, unknown>; password?: string | null }>) => {
+export const updateUserAdmin = onCall({ region: "us-central1", enforceAppCheck: false }, async (request: CallableRequest<{ uid: string; userData: Record<string, unknown>; password?: string | null }>) => {
   // 1. Check if the caller is authenticated
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "The function must be called while authenticated.");

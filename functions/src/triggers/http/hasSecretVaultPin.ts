@@ -5,7 +5,7 @@ import * as admin from "firebase-admin";
  * Returns whether the user has configured a global vault PIN (secretChatLock/main).
  */
 export const hasSecretVaultPin = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", enforceAppCheck: false },
   async (request: CallableRequest<Record<string, unknown>>): Promise<{ hasPin: boolean }> => {
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "AUTH_REQUIRED");

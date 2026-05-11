@@ -15,7 +15,7 @@ type RetryChatMediaTranscodeResponse = {
 };
 
 export const retryChatMediaTranscode = onCall(
-  { region: "us-central1", timeoutSeconds: 540, memory: "2GiB", cpu: 2 },
+  { region: "us-central1", enforceAppCheck: false, timeoutSeconds: 540, memory: "2GiB", cpu: 2 },
   async (
     request: CallableRequest<RetryChatMediaTranscodeRequest>
   ): Promise<RetryChatMediaTranscodeResponse> => {

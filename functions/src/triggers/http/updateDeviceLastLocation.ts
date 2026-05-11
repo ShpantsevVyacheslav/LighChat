@@ -103,7 +103,7 @@ export async function runUpdateDeviceLastLocation(
 }
 
 export const updateDeviceLastLocation = onCall(
-  { region: "us-central1", cors: true },
+  { region: "us-central1", enforceAppCheck: false, cors: true },
   async (request): Promise<UpdateDeviceLastLocationResult> => {
     const uid = request.auth?.uid;
     if (!uid) {

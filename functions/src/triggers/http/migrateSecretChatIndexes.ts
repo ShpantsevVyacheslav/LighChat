@@ -13,7 +13,7 @@ type MigratePayload = { cursor?: string | null };
  * Admin-only.
  */
 export const migrateSecretChatIndexes = onCall(
-  { region: "us-central1", timeoutSeconds: 540, memory: "512MiB" },
+  { region: "us-central1", enforceAppCheck: false, timeoutSeconds: 540, memory: "512MiB" },
   async (request: CallableRequest<MigratePayload>) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "AUTH_REQUIRED");

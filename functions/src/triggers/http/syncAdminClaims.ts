@@ -35,7 +35,7 @@ type Result = {
 const db = admin.firestore();
 
 export const syncAdminClaims = onCall(
-  { region: "us-central1", timeoutSeconds: 540, memory: "512MiB" },
+  { region: "us-central1", enforceAppCheck: false, timeoutSeconds: 540, memory: "512MiB" },
   async (request: CallableRequest<{ cursor?: string | null }>): Promise<Result> => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "AUTH_REQUIRED");

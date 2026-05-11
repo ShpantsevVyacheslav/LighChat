@@ -6,7 +6,7 @@ import { logAdminActionCF } from "../../lib/audit-log";
 
 const db = admin.firestore();
 
-export const createNewUser = onCall({ region: "us-central1" }, async (request) => {
+export const createNewUser = onCall({ region: "us-central1", enforceAppCheck: false }, async (request) => {
   // 1. Check if the caller is authenticated and an admin.
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "The function must be called while authenticated.");

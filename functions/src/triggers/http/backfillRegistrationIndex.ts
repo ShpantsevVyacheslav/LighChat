@@ -12,7 +12,7 @@ const PAGE = 200;
  * Вызывать один раз после деплоя триггера/правил (из админки под учёткой admin).
  */
 export const backfillRegistrationIndex = onCall(
-  { region: "us-central1", timeoutSeconds: 540, memory: "512MiB" },
+  { region: "us-central1", enforceAppCheck: false, timeoutSeconds: 540, memory: "512MiB" },
   async (request: CallableRequest<{ cursor?: string | null }>) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Требуется вход.");

@@ -7,7 +7,7 @@ const db = admin.firestore();
 /**
  * Guest calls this to request access to a private meeting.
  */
-export const requestMeetingAccess = onCall({ region: "us-central1" }, async (request) => {
+export const requestMeetingAccess = onCall({ region: "us-central1", enforceAppCheck: false }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Вы должны быть авторизованы.");
   }
@@ -39,7 +39,7 @@ export const requestMeetingAccess = onCall({ region: "us-central1" }, async (req
 /**
  * Host calls this to approve or deny a request.
  */
-export const respondToMeetingRequest = onCall({ region: "us-central1" }, async (request) => {
+export const respondToMeetingRequest = onCall({ region: "us-central1", enforceAppCheck: false }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Вы должны быть авторизованы.");
   }

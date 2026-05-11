@@ -86,7 +86,7 @@ async function openAiTranscribe({
 }
 
 export const transcribeVoiceMessage = onCall(
-  { region: "us-central1", secrets: [OPENAI_API_KEY] },
+  { region: "us-central1", enforceAppCheck: false, secrets: [OPENAI_API_KEY] },
   async (request: CallableRequest<RequestData>): Promise<ResponseData> => {
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "AUTH_REQUIRED");

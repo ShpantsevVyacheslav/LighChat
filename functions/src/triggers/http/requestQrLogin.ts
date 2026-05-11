@@ -147,7 +147,7 @@ export async function runRequestQrLogin(
 }
 
 export const requestQrLogin = onCall(
-  { region: "us-central1", cors: true },
+  { region: "us-central1", enforceAppCheck: false, cors: true },
   async (request) => {
     const headers = request.rawRequest?.headers ?? {};
     const xff = headers["x-forwarded-for"];

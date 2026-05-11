@@ -12,6 +12,7 @@ import {
     persistentSingleTabManager,
 } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { initLighChatAppCheck } from '@/firebase/app-check';
 
 type FirebaseServices = {
     firebaseApp: FirebaseApp;
@@ -62,6 +63,12 @@ function getFirestoreLastResort(app: FirebaseApp): Firestore {
 
 async function internalInitialize(): Promise<FirebaseServices> {
     const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+
+    // [audit CR-002] App Check ДО создания auth/storage/firestore — иначе их
+    // первые запросы уходят без App Check token и не заверены.
+    // Monitor mode пока что: failure to init не валит остальной флоу.
+    initLighChatAppCheck(app);
+
     const auth = getAuth(app);
     const storage = getStorage(app);
     
@@ -112,6 +119,9 @@ async function internalInitialize(): Promise<FirebaseServices> {
  */
 async function internalInitializeMemoryFirestore(): Promise<FirebaseServices> {
     const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    // [audit CR-002] Дубль init'а App Check для fallback-пути (если первый
+    // вызов уже стартанул — initLighChatAppCheck идемпотентен).
+    initLighChatAppCheck(app);
     const auth = getAuth(app);
     const storage = getStorage(app);
     try {

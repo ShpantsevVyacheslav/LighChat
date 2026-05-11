@@ -16,7 +16,7 @@ export type CheckGroupInvitesResponse = {
  * с учётом privacySettings.groupInvitePolicy и userContacts (только Admin SDK).
  */
 export const checkGroupInvitesAllowed = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", enforceAppCheck: false },
   async (request: CallableRequest<{ targetUserIds: string[] }>): Promise<CheckGroupInvitesResponse> => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Требуется вход.");

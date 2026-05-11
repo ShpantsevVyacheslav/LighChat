@@ -22,7 +22,7 @@ const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_MINUTES_AFTER_MAX = 15;
 
 export const verifySecretVaultPin = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", enforceAppCheck: false },
   async (request: CallableRequest<Payload>): Promise<{ ok: true }> => {
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "AUTH_REQUIRED");

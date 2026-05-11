@@ -67,6 +67,8 @@ dependencies:
   firebase_storage: any
   firebase_messaging: any
   firebase_crashlytics: any
+  # [audit CR-002] App Check для iOS App Attest + Android Play Integrity.
+  firebase_app_check: any
   timezone: any
   logger: any
 

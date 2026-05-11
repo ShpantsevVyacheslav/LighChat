@@ -234,7 +234,7 @@ export const deleteAccount = onCall(
   // занимает заметное время. Ставим 540s (HTTP-callable hard-limit Cloud
   // Functions v2). Если пользователь успел залить тысячи файлов и timeout
   // всё равно ловится — следующий повторный вызов / админ-cleanup доберёт.
-  { region: "us-central1", timeoutSeconds: 540 },
+  { region: "us-central1", enforceAppCheck: false, timeoutSeconds: 540 },
   async (request: CallableRequest<Record<string, never>>): Promise<DeleteAccountResponse> => {
     const uid = request.auth?.uid;
     if (!uid) {

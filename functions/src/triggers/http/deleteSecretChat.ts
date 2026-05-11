@@ -12,7 +12,7 @@ type Payload = { conversationId?: unknown };
  * Permanently delete a secret chat for both participants (any participant may call).
  */
 export const deleteSecretChat = onCall(
-  { region: "us-central1", timeoutSeconds: 540, memory: "512MiB" },
+  { region: "us-central1", enforceAppCheck: false, timeoutSeconds: 540, memory: "512MiB" },
   async (request: CallableRequest<Payload>) => {
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "AUTH_REQUIRED");

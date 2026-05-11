@@ -20,7 +20,7 @@ function asNonEmptyString(v: unknown): string | null {
 }
 
 export const joinGameLobby = onCall(
-  { region: "us-central1" },
+  { region: "us-central1", enforceAppCheck: false },
   async (request: CallableRequest<RequestData>): Promise<ResponseData> => {
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "AUTH_REQUIRED");

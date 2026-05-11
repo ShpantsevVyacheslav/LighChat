@@ -11,7 +11,7 @@ const PAGE = 200;
  * Вызывать один раз после деплоя правил/триггера (клиент админки или Firebase Console). Только `role == admin`.
  */
 export const backfillOutgoingBlocks = onCall(
-  { region: "us-central1", timeoutSeconds: 540, memory: "512MiB" },
+  { region: "us-central1", enforceAppCheck: false, timeoutSeconds: 540, memory: "512MiB" },
   async (request: CallableRequest<{ cursor?: string | null }>) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Требуется вход.");

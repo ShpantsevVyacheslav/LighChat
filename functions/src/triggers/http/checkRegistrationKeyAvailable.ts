@@ -86,7 +86,7 @@ export async function runCheckRegistrationKeyAvailable(
 }
 
 export const checkRegistrationKeyAvailable = onCall(
-  { region: "us-central1", cors: true },
+  { region: "us-central1", enforceAppCheck: false, cors: true },
   async (request) => {
     const rl = await consumeRateLimit(admin.firestore(), {
       key: `checkRegKey:${callerIpKey(request.rawRequest)}`,
