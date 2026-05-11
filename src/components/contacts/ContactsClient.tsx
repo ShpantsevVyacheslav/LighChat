@@ -50,6 +50,7 @@ import {
 import { ContactsSyncPromoBanner } from '@/components/contacts/ContactsSyncPromoBanner';
 import { ContactsPermissionGuideDialog } from '@/components/contacts/ContactsPermissionGuideDialog';
 import { extractProfileTargetFromQrPayload } from '@/lib/profile-qr-link';
+import { logger } from '@/lib/logger';
 
 type ContactPickerNavigator = Navigator & {
   contacts?: {
@@ -283,7 +284,7 @@ export function ContactsClient() {
             toast({ title: t('contacts.accessCancelled') });
           }
         } else {
-          console.error(e);
+          logger.error('contacts', 'import contacts failed', e);
           toast({ title: t('contacts.importError'), variant: 'destructive' });
         }
       } finally {
@@ -370,7 +371,7 @@ export function ContactsClient() {
         }
         return handleResolvedContactCandidate(found);
       } catch (e) {
-        console.error(e);
+        logger.error('contacts', 'qr payload processing failed', e);
         toast({
           title: t('contacts.qrError'),
           description: t('contacts.qrProcessError'),
@@ -464,7 +465,7 @@ export function ContactsClient() {
         void loop();
       });
     } catch (e) {
-      console.error(e);
+      logger.error('contacts', 'camera open failed', e);
       setQrCameraError(t('contacts.cameraOpenFailed'));
       stopQrCamera();
     }
@@ -506,7 +507,7 @@ export function ContactsClient() {
           bitmap.close();
         }
       } catch (e) {
-        console.error(e);
+        logger.error('contacts', 'qr image process failed', e);
         toast({
           title: t('contacts.imageProcessError'),
           description: t('contacts.imageProcessErrorHint'),
@@ -547,7 +548,7 @@ export function ContactsClient() {
       }
       handleResolvedContactCandidate(found);
     } catch (e) {
-      console.error(e);
+      logger.error('contacts', 'search by phone failed', e);
       toast({ title: t('contacts.errorGeneric'), description: t('contacts.addContactError'), variant: 'destructive' });
     } finally {
       setSearchBusy(false);
@@ -561,7 +562,7 @@ export function ContactsClient() {
       await removeContactId(firestore, ownerUid, otherId);
       toast({ title: t('contacts.contactRemoved') });
     } catch (e) {
-      console.error(e);
+      logger.error('contacts', 'remove contact failed', e);
       toast({ title: t('contacts.removeError'), variant: 'destructive' });
     } finally {
       setRemoveBusyId(null);
@@ -583,7 +584,7 @@ export function ContactsClient() {
       await saveDeviceContactsConsent(firestore, ownerUid, true);
       await importFromDevice({ bypassConsentCheck: true });
     } catch (e) {
-      console.error(e);
+      logger.error('contacts', 'phone book allow → import failed', e);
       toast({ title: t('contacts.errorGeneric'), description: t('contacts.importExecutionError'), variant: 'destructive' });
     } finally {
       skipDismissOnCloseRef.current = false;
@@ -595,7 +596,7 @@ export function ContactsClient() {
     try {
       await dismissPhoneBookOffer(firestore, ownerUid);
     } catch (e) {
-      console.error(e);
+      logger.error('contacts', 'dismiss phone book offer failed', e);
     }
     setPwaPhoneBookOpen(false);
   };
@@ -608,7 +609,9 @@ export function ContactsClient() {
     if (syncBusy) return;
     setPwaPhoneBookOpen(false);
     if (!skipDismissOnCloseRef.current && firestore && ownerUid) {
-      void dismissPhoneBookOffer(firestore, ownerUid).catch((e) => console.error(e));
+      void dismissPhoneBookOffer(firestore, ownerUid).catch((e) =>
+        logger.error('contacts', 'dismiss phone book offer (cleanup) failed', e),
+      );
     }
   };
 

@@ -42,6 +42,7 @@ import {
   handoverDeviceAccessV2,
   type DeviceHandoverProgress,
 } from '@/lib/e2ee/v2/device-handover';
+import { logger } from '@/lib/logger';
 
 type Stage =
   | { kind: 'scanning' }
@@ -145,16 +146,14 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
       // [diag] Логируем каждый шаг — пользователь сообщил, что в консоли
       // нет ошибок, но UI показывает «An internal error occurred». Хотим
       // увидеть, на каком этапе цепочка падает.
-      // eslint-disable-next-line no-console
-      console.info('[qr-scan] step=confirmQrLogin start sessionId=', sessionId);
+      logger.debug('qr-scan', 'step=confirmQrLogin start', { sessionId });
       const res = await confirmQrLoginFromScanner({
         firebaseApp,
         sessionId,
         nonce,
         allow: true,
       });
-      // eslint-disable-next-line no-console
-      console.info('[qr-scan] step=confirmQrLogin ok state=', res.state);
+      logger.debug('qr-scan', 'step=confirmQrLogin ok', { state: res.state });
       if (res.state !== 'approved') {
         setStage({ kind: 'rejected' });
         return;
@@ -164,14 +163,11 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
       setStage({ kind: 'syncing', approved: res, done: 0, total: 0 });
       let identity: DeviceIdentityV2;
       try {
-        // eslint-disable-next-line no-console
-        console.info('[qr-scan] step=getOrCreateDeviceIdentityV2');
+        logger.debug('qr-scan', 'step=getOrCreateDeviceIdentityV2');
         identity = await getOrCreateDeviceIdentityV2();
-        // eslint-disable-next-line no-console
-        console.info('[qr-scan] step=getOrCreateDeviceIdentityV2 ok deviceId=', identity.deviceId);
+        logger.debug('qr-scan', 'step=getOrCreateDeviceIdentityV2 ok', { deviceId: identity.deviceId });
       } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('[qr-scan] FAIL getOrCreateDeviceIdentityV2', e);
+        logger.error('qr-scan', 'FAIL getOrCreateDeviceIdentityV2', e);
         setStage({
           kind: 'error',
           source: 'server',
@@ -189,13 +185,7 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
         || (await deriveStableDeviceIdFromSpki(res.ephemeralPubKeySpki));
 
       try {
-        // eslint-disable-next-line no-console
-        console.info(
-          '[qr-scan] step=handover start newDeviceId=',
-          newDeviceId,
-          'label=',
-          newDeviceLabel
-        );
+        logger.debug('qr-scan', 'step=handover start', { newDeviceId, label: newDeviceLabel });
         const result = await handoverDeviceAccessV2({
           firestore,
           userId: user.id,
@@ -219,8 +209,7 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
             },
           },
         });
-        // eslint-disable-next-line no-console
-        console.info('[qr-scan] step=handover ok', result);
+        logger.debug('qr-scan', 'step=handover ok', result);
         if (result.failed > 0) {
           toast({
             variant: 'destructive',
@@ -242,14 +231,12 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
           customData?: unknown;
           stack?: string;
         };
-        // eslint-disable-next-line no-console
-        console.error('[qr-scan] FAIL handover', {
+        logger.error('qr-scan', 'FAIL handover', e, {
           code: err?.code,
           name: err?.name,
           message: err?.message,
           customData: err?.customData,
           stack: err?.stack,
-          raw: e,
         });
         const codeStr = err?.code ?? err?.name ?? 'unknown';
         const msgStr = err?.message ?? String(e);
@@ -279,8 +266,7 @@ export function QrScannerDialog({ open, onOpenChange, onLinked }: QrScannerDialo
       }
       // Сбрасываем гард, чтобы пользователь мог нажать «Сканировать ещё раз».
       confirmingRef.current = null;
-      // eslint-disable-next-line no-console
-      console.error('[qr-scan] FAIL outer code=', code, 'msg=', msg, 'err=', e);
+      logger.error('qr-scan', 'FAIL outer', e, { code, msg });
       setStage({
         kind: 'error',
         source: 'server',

@@ -23,7 +23,6 @@ import { useI18n } from '@/hooks/use-i18n';
 import type { ChatLocationSendMeta, ChatLocationShare } from '@/lib/types';
 import { buildGoogleMapsPlaceUrl, buildGoogleStaticMapUrl } from '@/lib/google-maps';
 import {
-  GEOLOCATION_CLIENT_LOG,
   GeolocationUnsupportedError,
   geolocationErrorCodeName,
   requestCurrentPositionForShare,
@@ -33,6 +32,7 @@ import {
   type LiveLocationDurationId,
   expiresAtForDurationId,
 } from '@/lib/live-location-durations';
+import { logger } from '@/lib/logger';
 
 export type ChatLocationSharePayload = {
   share: ChatLocationShare;
@@ -73,7 +73,7 @@ export function ChatAttachLocationDialog({ open, onOpenChange, onShare }: ChatAt
 
   const requestAndShare = async () => {
     if (inFlightRef.current) {
-      console.warn(GEOLOCATION_CLIENT_LOG, 'dialog.skip', { reason: 'запрос уже выполняется' });
+      logger.warn('geo', 'dialog.skip', { reason: 'запрос уже выполняется' });
       return;
     }
     inFlightRef.current = true;
@@ -84,7 +84,7 @@ export function ChatAttachLocationDialog({ open, onOpenChange, onShare }: ChatAt
       const lng = pos.coords.longitude;
       const staticMapUrl = buildGoogleStaticMapUrl(lat, lng, 400, 200);
       const meta = metaForDurationId(durationId);
-      console.log(GEOLOCATION_CLIENT_LOG, 'share.build', {
+      logger.debug('geo', 'share.build', {
         mapsUrl: buildGoogleMapsPlaceUrl(lat, lng),
         staticMapPreview: staticMapUrl ? 'есть (Static Maps)' : 'нет (без ключа или ошибка сборки URL)',
         mode: meta.kind,
@@ -101,13 +101,13 @@ export function ChatAttachLocationDialog({ open, onOpenChange, onShare }: ChatAt
         ...(meta.kind === 'live' ? { liveSession: { expiresAt: meta.expiresAt } } : {}),
       };
 
-      console.log(GEOLOCATION_CLIENT_LOG, 'onShare.invoke');
+      logger.debug('geo', 'onShare.invoke');
       try {
         await onShare({ share, meta });
-        console.log(GEOLOCATION_CLIENT_LOG, 'onShare.done');
+        logger.debug('geo', 'onShare.done');
         onOpenChange(false);
       } catch (e) {
-        console.error(GEOLOCATION_CLIENT_LOG, 'onShare.failed', e);
+        logger.error('geo', 'onShare.failed', e);
         toast({ variant: 'destructive', title: t('chat.location.sendFailed') });
       }
     } catch (e) {
@@ -116,21 +116,21 @@ export function ChatAttachLocationDialog({ open, onOpenChange, onShare }: ChatAt
       } else {
         const err = e as GeolocationPositionError;
         if (typeof err?.code === 'number') {
-          console.error(GEOLOCATION_CLIENT_LOG, 'final.failure', {
+          logger.error('geo', 'final.failure', undefined, {
             code: err.code,
             codeName: geolocationErrorCodeName(err.code),
             message: err.message,
           });
           toast({ variant: 'destructive', title: t(geolocationErrorKey(err)) });
         } else {
-          console.error(GEOLOCATION_CLIENT_LOG, 'unexpected', e);
+          logger.error('geo', 'unexpected', e);
           toast({ variant: 'destructive', title: t('chat.location.errorGeneric') });
         }
       }
     } finally {
       inFlightRef.current = false;
       setLoading(false);
-      console.log(GEOLOCATION_CLIENT_LOG, 'dialog.loading.off');
+      logger.debug('geo', 'dialog.loading.off');
     }
   };
 
