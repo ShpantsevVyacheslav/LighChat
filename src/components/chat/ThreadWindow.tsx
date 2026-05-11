@@ -45,6 +45,7 @@ import { ChatDateListAnchor } from '@/components/chat/ChatDateListAnchor';
 import { ChatFloatingDateLabel } from '@/components/chat/ChatFloatingDateLabel';
 import { firstCalendarDayInViewport } from '@/components/chat/visible-range-date';
 import { isGridGalleryAttachment } from '@/components/chat/attachment-visual';
+import { logger } from '@/lib/logger';
 import { getVirtuosoChatIncreaseViewport, VIRTUOSO_CHAT_MIN_OVERSCAN } from '@/components/chat/virtuoso-chat-config';
 import {
     isFirestorePermissionDeniedError,
@@ -57,7 +58,6 @@ import {
     parseE2eeEncryptedDataTypes,
     resolveEffectiveE2eeEncryptedDataTypes,
 } from '@/lib/e2ee/e2ee-data-type-policy';
-import { GEOLOCATION_FIRESTORE_LOG } from '@/lib/geolocation-client';
 import { scheduleFirestoreListen } from '@/firebase/schedule-firestore-listen';
 import {
     ChatViewportScrollerRefContext,
@@ -305,7 +305,7 @@ export function ThreadWindow({
                     setIsFullyReady(true);
                 },
                 (err) => {
-                    console.error('Thread messages fetch error:', err);
+                    logger.error('thread', 'messages fetch error', err);
                     setIsLoadingOlder(false);
                     setIsFullyReady(true);
                 }
@@ -887,7 +887,7 @@ export function ThreadWindow({
             });
 
         } catch (error) {
-            console.error("Thread send failed:", error);
+            logger.error('thread', 'send failed', error);
             setOptimisticMessages(prev => prev.filter(m => m.id !== messageId));
             const msg = error instanceof Error ? error.message : '';
             if (msg === 'E2EE_NO_CHAT_KEY' || msg === 'E2EE_UNWRAP_FAILED') {
@@ -914,14 +914,14 @@ export function ThreadWindow({
                 return;
             }
             if (!firestore || !currentUser) {
-                console.warn(GEOLOCATION_FIRESTORE_LOG, 'thread.aborted', { reason: 'no firestore or user' });
+                logger.warn('thread-geo', 'aborted', { reason: 'no firestore or user' });
                 return;
             }
             const threadCollection = collection(firestore, `conversations/${conversation.id}/messages/${parentMessage.id}/thread`);
             const newDocRef = doc(threadCollection);
             const messageId = newDocRef.id;
             const now = new Date().toISOString();
-            console.log(GEOLOCATION_FIRESTORE_LOG, 'thread.start', {
+            logger.debug('thread-geo', 'start', {
                 conversationId: conversation.id,
                 parentMessageId: parentMessage.id,
                 messageId,
@@ -986,9 +986,9 @@ export function ThreadWindow({
                         },
                     });
                 }
-                console.log(GEOLOCATION_FIRESTORE_LOG, 'thread.success', { messageId });
+                logger.debug('thread-geo', 'success', { messageId });
             } catch (error) {
-                console.error(GEOLOCATION_FIRESTORE_LOG, 'thread.failed', { messageId, error });
+                logger.error('thread-geo', 'failed', error, { messageId });
                 setOptimisticMessages((prev) => prev.filter((m) => m.id !== messageId));
             }
         },
@@ -1064,7 +1064,7 @@ export function ThreadWindow({
                     ...threadUnreadUpdates,
                 });
             } catch (error) {
-                console.error('Thread poll send failed:', error);
+                logger.error('thread', 'poll send failed', error);
                 setOptimisticMessages((prev) => prev.filter((m) => m.id !== messageId));
                 try {
                     await deleteDoc(pollRef);

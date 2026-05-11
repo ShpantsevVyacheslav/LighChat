@@ -508,7 +508,7 @@ export function ChatWindow({
           setIsLoadingOlder(false);
         },
         (err) => {
-        console.error("Chat fetch error:", err);
+        logger.error('chat', 'fetch error', err);
           if (firestore) {
             logger.debug(
               'firestore',
@@ -1108,7 +1108,7 @@ export function ChatWindow({
         });
         onSelectConversation(id);
       } catch (e) {
-        console.error('[ChatWindow] createOrOpenDirectChat', e);
+        logger.error('chat', 'createOrOpenDirectChat', e);
         toast({
           variant: 'destructive',
           title: t('chat.openDirectChatError'),
@@ -1375,7 +1375,7 @@ export function ChatWindow({
         }
       }
     } catch (error) {
-      console.error('Chat send failed:', error);
+      logger.error('chat', 'send failed', error);
       setOptimisticMessages(prev => prev.filter(m => m.id !== messageId));
       const msg = error instanceof Error ? error.message : '';
       if (msg === 'E2EE_NO_CHAT_KEY' || msg === 'E2EE_UNWRAP_FAILED') {
@@ -1402,7 +1402,7 @@ export function ChatWindow({
         return;
       }
       if (!firestore || !currentUser) {
-        console.warn(GEOLOCATION_FIRESTORE_LOG, 'aborted', { reason: 'no firestore or user' });
+        logger.warn('chat-geo', 'aborted', { reason: 'no firestore or user' });
         return;
       }
       const messagesCollection = collection(firestore, `conversations/${conversation.id}/messages`);
@@ -1465,7 +1465,7 @@ export function ChatWindow({
         }
         logger.info(GEOLOCATION_FIRESTORE_LOG, 'success', { messageId });
       } catch (err) {
-        console.error(GEOLOCATION_FIRESTORE_LOG, 'failed', { messageId, err });
+        logger.error('chat-geo', 'failed', err, { messageId });
         setOptimisticMessages((prev) => prev.filter((m) => m.id !== messageId));
       }
     },
@@ -1752,7 +1752,7 @@ export function ChatWindow({
                 lastReactionParentId: threadParentId || null
             });
         }
-    } catch (e) { console.error("Reaction failed:", e); }
+    } catch (e) { logger.error('chat', 'reaction failed', e); }
   };
 
   const highlightMessageElement = useCallback((messageId: string) => {
@@ -1923,7 +1923,7 @@ export function ChatWindow({
           unreadIds.forEach((id) => sessionReadIds.current.add(id));
           await markConversationAsRead(firestore, conversation.id, currentUser.id);
         } catch (e) {
-          console.error('[ChatWindow] anchor mark all read failed', e);
+          logger.error('chat', 'anchor mark all read failed', e);
           unreadIds.forEach((id) => sessionReadIds.current.delete(id));
         }
       })();
