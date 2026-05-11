@@ -537,7 +537,14 @@ class _ImageGrid extends StatelessWidget {
                 )
               : TickerMode(
                   enabled: _tickerEnabledForAttachment(a),
-                  child: ChatCachedNetworkImage(url: a.url, fit: BoxFit.cover),
+                  child: ChatCachedNetworkImage(
+                    url: a.url,
+                    fit: BoxFit.cover,
+                    conversationId: conversationId,
+                    messageId: messageId,
+                    attachmentName: a.name,
+                    enableScheduler: true,
+                  ),
                 ),
           if (showPlus)
             Container(
@@ -874,6 +881,7 @@ class _AspectImageBox extends StatelessWidget {
         conversationId: conversationId,
         messageId: messageId,
         attachmentName: attachment.name,
+        enableScheduler: true,
       ),
     );
     final maybeLocked = SecretChatMediaOpenService.isLockedSecretAttachment(

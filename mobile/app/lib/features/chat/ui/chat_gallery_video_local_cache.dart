@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../data/local_cache_entry_registry.dart';
 import '../data/local_storage_preferences.dart';
+import '../data/media_load_scheduler.dart';
 
 /// Локальный кэш видео из галереи чата: один файл на URL, повторное открытие без повторной загрузки.
 class ChatGalleryVideoLocalCache {
@@ -83,6 +84,14 @@ class ChatGalleryVideoLocalCache {
         return _warmUpInFlight[trimmed]!;
       }
       final task = () async {
+        // Фоновый прогрев — через общий лимитер параллельных загрузок, чтобы
+        // 20 видео в ленте не запустили 20 одновременных HTTP-стримов.
+        final ticket = MediaLoadScheduler.instance.enqueue();
+        try {
+          await ticket.granted;
+        } on MediaLoadCancelled {
+          return;
+        }
         try {
           await downloadToCache(
             url: trimmed,
@@ -92,6 +101,7 @@ class ChatGalleryVideoLocalCache {
         } catch (_) {
           // best-effort: при ошибке просто оставляем без локального файла.
         } finally {
+          ticket.release();
           _warmUpInFlight.remove(trimmed);
         }
       }();

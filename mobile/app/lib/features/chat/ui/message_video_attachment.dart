@@ -10,6 +10,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../settings/data/energy_saving_preference.dart';
 import '../data/chat_media_layout_tokens.dart';
+import '../data/media_load_scheduler.dart';
 import '../data/video_attachment_diagnostics.dart';
 import 'chat_gallery_video_local_cache.dart';
 import 'chat_vlc_network_media.dart';
@@ -57,6 +58,16 @@ class _MessageVideoAttachmentState
   bool _autoplayPausedByUser = false;
   Timer? _hideControlsTimer;
   double _visibleFraction = 0;
+
+  /// Талон у диспетчера загрузок, пока инициализируем сетевой контроллер.
+  /// `null` для cached/file:// — там слот не нужен.
+  MediaLoadTicket? _loadTicket;
+
+  /// Пользователь тапнул «приостановить загрузку» в момент когда thumb ещё
+  /// не готов. Скрываем спиннер, показываем play-икону и не пытаемся
+  /// автоматически перезагрузить (только повторный тап).
+  bool _loadPausedByUser = false;
+  MediaLoadPriority _loadPriority = MediaLoadPriority.low;
 
   static const double _kAutoPlayVisible = 0.55;
   static const double _kAutoPauseVisible = 0.18;
@@ -139,6 +150,22 @@ class _MessageVideoAttachmentState
               attachmentName: widget.attachment.name,
             ));
           }
+          // Gate сетевую инициализацию через общий MediaLoadScheduler — иначе
+          // лента из 20 видео тут же стартует 20 параллельных HTTP-стримов и
+          // вешает UI.
+          final ticket = MediaLoadScheduler.instance.enqueue(
+            priority: _loadPriority,
+          );
+          _loadTicket = ticket;
+          try {
+            await ticket.granted;
+          } on MediaLoadCancelled {
+            return;
+          }
+          if (!mounted) {
+            ticket.release();
+            return;
+          }
           c = VideoPlayerController.networkUrl(
             uri,
             videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
@@ -146,6 +173,8 @@ class _MessageVideoAttachmentState
         }
       }
       await c.initialize();
+      _loadTicket?.release();
+      _loadTicket = null;
       if (!mounted) {
         await c.dispose();
         return;
@@ -172,6 +201,10 @@ class _MessageVideoAttachmentState
     } catch (_) {
       await c?.dispose();
       if (mounted) setState(() => _failed = true);
+    } finally {
+      // Слот диспетчера обязательно освобождаем, даже если initialize() кинул.
+      _loadTicket?.release();
+      _loadTicket = null;
     }
   }
 
@@ -185,7 +218,39 @@ class _MessageVideoAttachmentState
 
   void _onVisibilityChanged(VisibilityInfo info) {
     _visibleFraction = info.visibleFraction;
+    final next = _visibleFraction > 0.25
+        ? MediaLoadPriority.high
+        : MediaLoadPriority.low;
+    if (_loadPriority != next) {
+      _loadPriority = next;
+      _loadTicket?.bumpPriority(next);
+    }
     _maybeAutoPlay();
+  }
+
+  /// Ручная отмена скачивания: пользователь тапнул по плейсхолдеру с
+  /// progress-индикатором. Прекращаем initialize() (через dispose контроллера),
+  /// освобождаем слот диспетчера, показываем play-икону. Повторный тап вернёт
+  /// загрузку через [_resumeLoad].
+  void _cancelLoad() {
+    if (_thumbReady || _failed) return;
+    _loadTicket?.cancel();
+    _loadTicket = null;
+    final c = _controller;
+    if (c != null) {
+      unawaited(c.dispose());
+      _controller = null;
+    }
+    setState(() => _loadPausedByUser = true);
+  }
+
+  void _resumeLoad() {
+    if (!_loadPausedByUser) return;
+    setState(() {
+      _loadPausedByUser = false;
+      _failed = false;
+    });
+    unawaited(_loadThumb());
   }
 
   void _maybeAutoPlay() {
@@ -399,11 +464,24 @@ class _MessageVideoAttachmentState
                             size: 36,
                             color: scheme.onSurface.withValues(alpha: 0.65),
                           )
-                        : const SizedBox(
-                            width: 28,
-                            height: 28,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
+                        : _loadPausedByUser
+                            ? Icon(
+                                Icons.download_rounded,
+                                size: 36,
+                                color:
+                                    scheme.onSurface.withValues(alpha: 0.85),
+                              )
+                            : const SizedBox(
+                                width: 36,
+                                height: 36,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    CircularProgressIndicator(strokeWidth: 2),
+                                    Icon(Icons.close_rounded, size: 18),
+                                  ],
+                                ),
+                              ),
                   ),
                 ),
               Positioned.fill(
@@ -411,7 +489,17 @@ class _MessageVideoAttachmentState
                   behavior: HitTestBehavior.translucent,
                   onTap: normState != ChatMediaNormUiState.none
                       ? null
-                      : () => unawaited(_togglePlayPause()),
+                      : () {
+                          if (_loadPausedByUser) {
+                            _resumeLoad();
+                            return;
+                          }
+                          if (!_thumbReady && !_failed) {
+                            _cancelLoad();
+                            return;
+                          }
+                          unawaited(_togglePlayPause());
+                        },
                   onLongPress: normState != ChatMediaNormUiState.none
                       ? null
                       : () => unawaited(_openFullscreen(context, url)),
