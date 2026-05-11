@@ -12112,6 +12112,24 @@ abstract class AppLocalizations {
   /// **'Добавить подпись...'**
   String get video_editor_caption_hint;
 
+  /// No description provided for @video_effects_speed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скорость'**
+  String get video_effects_speed;
+
+  /// No description provided for @video_filter_none.
+  ///
+  /// In ru, this message translates to:
+  /// **'Оригинал'**
+  String get video_filter_none;
+
+  /// No description provided for @video_filter_enhance.
+  ///
+  /// In ru, this message translates to:
+  /// **'Улучшить'**
+  String get video_filter_enhance;
+
   /// No description provided for @share_location_title.
   ///
   /// In ru, this message translates to:

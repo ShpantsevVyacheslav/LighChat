@@ -6861,6 +6861,15 @@ class AppLocalizationsId extends AppLocalizations {
   String get video_editor_caption_hint => 'Tambah caption...';
 
   @override
+  String get video_effects_speed => 'Скорость';
+
+  @override
+  String get video_filter_none => 'Оригинал';
+
+  @override
+  String get video_filter_enhance => 'Улучшить';
+
+  @override
   String get share_location_title => 'Bagikan Lokasi';
 
   @override

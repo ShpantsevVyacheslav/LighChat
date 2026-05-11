@@ -6919,6 +6919,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get video_editor_caption_hint => 'Agregar descripción...';
 
   @override
+  String get video_effects_speed => 'Скорость';
+
+  @override
+  String get video_filter_none => 'Оригинал';
+
+  @override
+  String get video_filter_enhance => 'Улучшить';
+
+  @override
   String get share_location_title => 'Compartir ubicación';
 
   @override

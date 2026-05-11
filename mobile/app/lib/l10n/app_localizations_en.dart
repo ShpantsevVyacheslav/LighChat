@@ -6834,6 +6834,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get video_editor_caption_hint => 'Add caption...';
 
   @override
+  String get video_effects_speed => 'Speed';
+
+  @override
+  String get video_filter_none => 'Original';
+
+  @override
+  String get video_filter_enhance => 'Enhance';
+
+  @override
   String get share_location_title => 'Share location';
 
   @override

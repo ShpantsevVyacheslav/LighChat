@@ -13,6 +13,121 @@ import 'package:video_player/video_player.dart';
 import '../../../l10n/app_localizations.dart';
 import 'chat_video_crop_screen.dart';
 
+// ---------------------------------------------------------------------------
+// Video filter definitions — preview (ColorFilter.matrix) + export (FFmpeg).
+// ---------------------------------------------------------------------------
+
+enum _VideoFilter { none, enhance, noir, fade, vivid, warm, cool, dramatic }
+
+extension _VideoFilterX on _VideoFilter {
+  String label(AppLocalizations l10n) {
+    switch (this) {
+      case _VideoFilter.none:
+        return l10n.video_filter_none;
+      case _VideoFilter.enhance:
+        return l10n.video_filter_enhance;
+      case _VideoFilter.noir:
+        return 'Noir';
+      case _VideoFilter.fade:
+        return 'Fade';
+      case _VideoFilter.vivid:
+        return 'Vivid';
+      case _VideoFilter.warm:
+        return 'Warm';
+      case _VideoFilter.cool:
+        return 'Cool';
+      case _VideoFilter.dramatic:
+        return 'Dramatic';
+    }
+  }
+
+  /// ColorFilter.matrix для превью поверх VideoPlayer.
+  /// Матрица 4×5, значения в [0..1] (additive-часть тоже нормализована).
+  ColorFilter? get previewFilter {
+    switch (this) {
+      case _VideoFilter.none:
+        return null;
+      case _VideoFilter.enhance:
+        // +6% brightness, +10% contrast, slight saturation
+        return const ColorFilter.matrix([
+          1.10, 0,    0,    0, 0.06,
+          0,    1.10, 0,    0, 0.06,
+          0,    0,    1.10, 0, 0.06,
+          0,    0,    0,    1, 0,
+        ]);
+      case _VideoFilter.noir:
+        return const ColorFilter.matrix([
+          0.299, 0.587, 0.114, 0, 0,
+          0.299, 0.587, 0.114, 0, 0,
+          0.299, 0.587, 0.114, 0, 0,
+          0,     0,     0,     1, 0,
+        ]);
+      case _VideoFilter.fade:
+        // 60% identity + 40% grayscale, brightness +0.10
+        return const ColorFilter.matrix([
+          0.720, 0.235, 0.046, 0, 0.10,
+          0.120, 0.835, 0.046, 0, 0.10,
+          0.120, 0.235, 0.646, 0, 0.10,
+          0,     0,     0,     1, 0,
+        ]);
+      case _VideoFilter.vivid:
+        // Saturation ×1.6
+        return const ColorFilter.matrix([
+           1.472, -0.429, -0.043, 0, 0,
+          -0.128,  1.171, -0.043, 0, 0,
+          -0.128, -0.429,  1.557, 0, 0,
+           0,      0,      0,     1, 0,
+        ]);
+      case _VideoFilter.warm:
+        return const ColorFilter.matrix([
+          1.10, 0,    0,    0,  0.04,
+          0,    1.00, 0,    0,  0,
+          0,    0,    0.85, 0, -0.06,
+          0,    0,    0,    1,  0,
+        ]);
+      case _VideoFilter.cool:
+        return const ColorFilter.matrix([
+          0.88, 0,    0,    0, -0.04,
+          0,    1.00, 0,    0,  0,
+          0,    0,    1.15, 0,  0.06,
+          0,    0,    0,    1,  0,
+        ]);
+      case _VideoFilter.dramatic:
+        // Contrast ×1.45 centered at 0.5
+        return const ColorFilter.matrix([
+          1.45, 0,    0,    0, -0.225,
+          0,    1.45, 0,    0, -0.225,
+          0,    0,    1.45, 0, -0.225,
+          0,    0,    0,    1,  0,
+        ]);
+    }
+  }
+
+  /// FFmpeg video filter string для финального экспорта.
+  String? get ffmpegFilter {
+    switch (this) {
+      case _VideoFilter.none:
+        return null;
+      case _VideoFilter.enhance:
+        return 'eq=brightness=0.06:contrast=1.1:saturation=1.15,unsharp=3:3:0.5';
+      case _VideoFilter.noir:
+        return 'hue=s=0,eq=contrast=1.2';
+      case _VideoFilter.fade:
+        return 'eq=brightness=0.10:contrast=0.82:saturation=0.60';
+      case _VideoFilter.vivid:
+        return 'eq=saturation=1.6:contrast=1.08:brightness=0.02';
+      case _VideoFilter.warm:
+        return 'colorbalance=rs=0.15:gs=0.02:bs=-0.12:rm=0.08:gm=0:bm=-0.08:rh=0.04:gh=0:bh=-0.04';
+      case _VideoFilter.cool:
+        return 'colorbalance=rs=-0.10:gs=0:bs=0.14:rm=-0.05:gm=0:bm=0.08:rh=-0.03:gh=0:bh=0.06';
+      case _VideoFilter.dramatic:
+        return 'eq=contrast=1.45:brightness=-0.08:saturation=1.1';
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+
 class ChatVideoEditorResult {
   const ChatVideoEditorResult({required this.file, required this.caption});
 
@@ -96,6 +211,11 @@ class _ChatVideoEditorScreenState extends State<ChatVideoEditorScreen> {
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
   bool _isPlaying = false;
+
+  // Speed / filter / effects
+  double _speedMultiplier = 1.0; // 0.5 | 1.0 | 2.0
+  _VideoFilter _selectedFilter = _VideoFilter.none;
+  bool _showEffectsPanel = false;
 
   @override
   void initState() {
@@ -275,7 +395,9 @@ class _ChatVideoEditorScreenState extends State<ChatVideoEditorScreen> {
         _mute ||
         !_isFullCrop(_cropRect) ||
         _strokes.isNotEmpty ||
-        hasPendingStroke;
+        hasPendingStroke ||
+        _speedMultiplier != 1.0 ||
+        _selectedFilter != _VideoFilter.none;
   }
 
   bool _isFullCrop(Rect rect) {
@@ -809,6 +931,16 @@ class _ChatVideoEditorScreenState extends State<ChatVideoEditorScreen> {
         filters.add('transpose=2');
       }
       filters.add('scale=trunc(iw/2)*2:trunc(ih/2)*2');
+      // Speed: setpts modifies PTS (slow/fast playback without re-encoding frames)
+      if (_speedMultiplier != 1.0) {
+        final ptsScale = (1.0 / _speedMultiplier).toStringAsFixed(4);
+        filters.add('setpts=$ptsScale*PTS');
+      }
+      // Color filter / enhance
+      final colorFilter = _selectedFilter.ffmpegFilter;
+      if (colorFilter != null) {
+        filters.add(colorFilter);
+      }
       final videoChain = filters.join(',');
 
       final tempDir = await getTemporaryDirectory();
@@ -855,7 +987,19 @@ class _ChatVideoEditorScreenState extends State<ChatVideoEditorScreen> {
         '23',
         '-pix_fmt',
         'yuv420p',
-        if (_mute) ...['-an'] else ...['-c:a', 'aac', '-b:a', '128k'],
+        if (_mute)
+          '-an'
+        else ...[
+          // atempo adjusts audio pitch-neutral speed; valid range 0.5-2.0
+          if (_speedMultiplier != 1.0) ...[
+            '-af',
+            'atempo=${_speedMultiplier.toStringAsFixed(2)}',
+          ],
+          '-c:a',
+          'aac',
+          '-b:a',
+          '128k',
+        ],
         '-movflags',
         '+faststart',
         _quote(outPath),
@@ -923,6 +1067,18 @@ class _ChatVideoEditorScreenState extends State<ChatVideoEditorScreen> {
                         : () => Navigator.of(context).pop(),
                   ),
                   const Spacer(),
+                  _iconButton(
+                    icon: Icons.tune_rounded,
+                    onTap: _processing
+                        ? null
+                        : () => setState(
+                              () => _showEffectsPanel = !_showEffectsPanel,
+                            ),
+                    active: _showEffectsPanel ||
+                        _selectedFilter != _VideoFilter.none ||
+                        _speedMultiplier != 1.0,
+                  ),
+                  const SizedBox(width: 8),
                   _iconButton(
                     icon: Icons.volume_off_rounded,
                     onTap: _processing
@@ -1011,7 +1167,12 @@ class _ChatVideoEditorScreenState extends State<ChatVideoEditorScreen> {
                                                     (math.pi / 2),
                                                 child: AspectRatio(
                                                   aspectRatio: ratio,
-                                                  child: VideoPlayer(c),
+                                                  child: _selectedFilter.previewFilter != null
+                                                      ? ColorFiltered(
+                                                          colorFilter: _selectedFilter.previewFilter!,
+                                                          child: VideoPlayer(c),
+                                                        )
+                                                      : VideoPlayer(c),
                                                 ),
                                               ),
                                             ),
@@ -1165,6 +1326,7 @@ class _ChatVideoEditorScreenState extends State<ChatVideoEditorScreen> {
                 ),
               ),
             ),
+            if (_showEffectsPanel) _buildEffectsPanel(l10n),
             if (_drawMode)
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
@@ -1584,6 +1746,116 @@ class _ChatVideoEditorScreenState extends State<ChatVideoEditorScreen> {
       ),
     );
   }
+
+  // ---- Effects panel: speed + filters ----------------------------------------
+
+  Widget _buildEffectsPanel(AppLocalizations l10n) {
+    const speeds = <double>[0.5, 1.0, 2.0];
+    const filters = _VideoFilter.values;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Speed row
+          Row(
+            children: [
+              Text(
+                l10n.video_effects_speed,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.68),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 10),
+              for (final speed in speeds) ...[
+                _speedChip(speed),
+                const SizedBox(width: 6),
+              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Filter row
+          SizedBox(
+            height: 36,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: filters.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 6),
+              itemBuilder: (context, i) => _filterChip(filters[i], l10n),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _speedChip(double speed) {
+    final selected = _speedMultiplier == speed;
+    final label = speed == 1.0 ? '×1' : (speed < 1 ? '×0.5' : '×2');
+    return GestureDetector(
+      onTap: _processing
+          ? null
+          : () => setState(() => _speedMultiplier = speed),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFF2F86FF)
+              : Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : Colors.white.withValues(alpha: 0.75),
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _filterChip(_VideoFilter filter, AppLocalizations l10n) {
+    final selected = _selectedFilter == filter;
+    return GestureDetector(
+      onTap: _processing
+          ? null
+          : () => setState(
+                () => _selectedFilter =
+                    selected ? _VideoFilter.none : filter,
+              ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFF2F86FF)
+              : Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: selected
+              ? null
+              : Border.all(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  width: 0.8,
+                ),
+        ),
+        child: Text(
+          filter.label(l10n),
+          style: TextStyle(
+            color: selected ? Colors.white : Colors.white.withValues(alpha: 0.75),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---- end effects panel -------------------------------------------------------
 
   Widget _iconButton({
     required IconData icon,
