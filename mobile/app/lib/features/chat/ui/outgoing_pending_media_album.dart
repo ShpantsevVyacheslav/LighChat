@@ -50,7 +50,10 @@ bool isOutgoingAlbumLocalImage(XFile f) {
       p.endsWith('.heic');
 }
 
-bool _isOutgoingAlbumLocalVideo(XFile f) {
+/// Same heuristics as [isOutgoingAlbumLocalImage] but for video. Public so the
+/// outbox-job bubble can reuse the classification when synthesising local
+/// previews from `OutboxAttachmentJob.stagedAbsolutePaths`.
+bool isOutgoingAlbumLocalVideo(XFile f) {
   final m = (f.mimeType ?? '').toLowerCase();
   if (m.startsWith('video/')) return true;
   final p = f.path.toLowerCase();
@@ -404,7 +407,7 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
       final showPlus = extraBeyond > 0 && idx == lastIdx;
       final f = slice[idx];
       final isVideo =
-          _isOutgoingAlbumLocalVideo(f) && !isOutgoingAlbumLocalImage(f);
+          isOutgoingAlbumLocalVideo(f) && !isOutgoingAlbumLocalImage(f);
       return ClipRRect(
         borderRadius: BorderRadius.circular(10),
         clipBehavior: Clip.antiAlias,
@@ -552,7 +555,7 @@ class _OutgoingPendingMediaAlbumState extends State<OutgoingPendingMediaAlbum> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            (_isOutgoingAlbumLocalVideo(file) &&
+            (isOutgoingAlbumLocalVideo(file) &&
                     !isOutgoingAlbumLocalImage(file))
                 ? VideoFirstFrame(
                     file: File(file.path),

@@ -11,22 +11,9 @@ import '../data/chat_attachment_mosaic_layout.dart';
 import '../data/chat_media_layout_tokens.dart';
 import '../data/chat_outbox_attachment_notifier.dart';
 import 'message_html_text.dart';
-import 'outgoing_pending_media_album.dart' show isOutgoingAlbumLocalImage;
+import 'outgoing_pending_media_album.dart'
+    show isOutgoingAlbumLocalImage, isOutgoingAlbumLocalVideo;
 import 'video_first_frame.dart';
-
-/// Same heuristics as [isOutgoingAlbumLocalImage] but for video. Локальная
-/// копия (в parent-файле helper приватный) — нужна, чтобы рендерить превью
-/// видео-вложения из staged-файла outbox-job.
-bool _isOutgoingAlbumLocalVideo(XFile f) {
-  final m = (f.mimeType ?? '').toLowerCase();
-  if (m.startsWith('video/')) return true;
-  final p = f.path.toLowerCase();
-  return p.endsWith('.mp4') ||
-      p.endsWith('.mov') ||
-      p.endsWith('.webm') ||
-      p.endsWith('.m4v') ||
-      p.endsWith('.3gp');
-}
 
 /// Локальное превью исходящего сообщения с вложениями, пока работает
 /// `ChatOutboxAttachmentNotifier`. Рендерит мозаику из `stagedAbsolutePaths`
@@ -72,7 +59,7 @@ class _OutboxJobMediaBubbleState extends ConsumerState<OutboxJobMediaBubble> {
     for (var i = 0; i < paths.length; i++) {
       final p = paths[i];
       final f = XFile(p);
-      if (!isOutgoingAlbumLocalImage(f) && !_isOutgoingAlbumLocalVideo(f)) {
+      if (!isOutgoingAlbumLocalImage(f) && !isOutgoingAlbumLocalVideo(f)) {
         continue;
       }
       try {
@@ -351,7 +338,7 @@ class _OutboxJobMediaBubbleState extends ConsumerState<OutboxJobMediaBubble> {
   ) {
     final f = XFile(path);
     final isImage = isOutgoingAlbumLocalImage(f);
-    final isVideo = !isImage && _isOutgoingAlbumLocalVideo(f);
+    final isVideo = !isImage && isOutgoingAlbumLocalVideo(f);
     if (!isImage && !isVideo) {
       return _documentCard(job, path, index, maxWidth);
     }
@@ -399,7 +386,7 @@ class _OutboxJobMediaBubbleState extends ConsumerState<OutboxJobMediaBubble> {
   Widget _tileContent(String path, BoxFit fit) {
     final f = XFile(path);
     final isImage = isOutgoingAlbumLocalImage(f);
-    final isVideo = !isImage && _isOutgoingAlbumLocalVideo(f);
+    final isVideo = !isImage && isOutgoingAlbumLocalVideo(f);
     if (isVideo) {
       return VideoFirstFrame(
         file: File(path),
@@ -481,12 +468,10 @@ class _OutboxJobMediaBubbleState extends ConsumerState<OutboxJobMediaBubble> {
 
   Widget _progressOverlay(OutboxAttachmentJob job, int index) {
     final failed = job.phase == OutboxAttachmentPhase.failed;
-    // Per-file uploadProgress в текущей версии нотифайера не отслеживается —
-    // показываем indeterminate спиннер пока job висит в очереди (uploading или
-    // sending). По завершении job удаляется из state и виджет демонтируется.
-    if (!failed) {
-      // Always show indeterminate spinner during upload/send phase.
-    }
+    final progress =
+        index < job.uploadProgress.length ? job.uploadProgress[index] : 0.0;
+    final done = !failed && progress >= 0.999;
+    if (done) return const SizedBox.shrink();
     return Material(
       color: Colors.transparent,
       child: Stack(
@@ -512,6 +497,9 @@ class _OutboxJobMediaBubbleState extends ConsumerState<OutboxJobMediaBubble> {
                           alignment: Alignment.center,
                           children: [
                             CircularProgressIndicator(
+                              value: progress > 0.001 && progress < 1.0
+                                  ? progress
+                                  : null,
                               strokeWidth: 2.5,
                               color: Colors.white,
                               backgroundColor:
@@ -548,12 +536,17 @@ class _OutboxJobMediaBubbleState extends ConsumerState<OutboxJobMediaBubble> {
     required double size,
   }) {
     final failed = job.phase == OutboxAttachmentPhase.failed;
+    final progress =
+        index < job.uploadProgress.length ? job.uploadProgress[index] : 0.0;
+    final done = !failed && progress >= 0.999;
+    if (done) return const SizedBox.shrink();
     return SizedBox(
       width: size,
       height: size,
       child: failed
           ? const Icon(Icons.error_rounded, color: Colors.redAccent)
           : CircularProgressIndicator(
+              value: progress > 0.001 && progress < 1.0 ? progress : null,
               strokeWidth: 2.5,
               color: Colors.white,
               backgroundColor: Colors.white.withValues(alpha: 0.22),

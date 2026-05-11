@@ -134,6 +134,7 @@ Future<ChatAttachment> uploadChatAttachmentFromXFile({
   required String conversationId,
   required XFile file,
   String? displayName,
+  void Function(double progress)? onProgress,
 }) async {
   final fromPath = file.name.isNotEmpty ? file.name : file.path.split('/').last;
   final name = (displayName != null && displayName.trim().isNotEmpty)
@@ -173,5 +174,6 @@ Future<ChatAttachment> uploadChatAttachmentFromXFile({
     pathUniqueSegment: 'x',
     displayName: name,
     mimeType: mime,
+    onProgress: onProgress,
   );
 }

@@ -25,7 +25,7 @@ enum OutboxAttachmentPhase { uploading, sending, failed }
 
 @immutable
 class OutboxAttachmentJob {
-  const OutboxAttachmentJob({
+  OutboxAttachmentJob({
     required this.id,
     required this.conversationId,
     required this.senderId,
@@ -42,7 +42,10 @@ class OutboxAttachmentJob {
     this.phase = OutboxAttachmentPhase.uploading,
     this.lastError,
     this.cancelRequested = false,
-  });
+    List<double>? uploadProgress,
+  }) : uploadProgress = List<double>.unmodifiable(
+         uploadProgress ?? List<double>.filled(stagedAbsolutePaths.length, 0.0),
+       );
 
   final String id;
   final String conversationId;
@@ -63,10 +66,16 @@ class OutboxAttachmentJob {
   final String? lastError;
   final bool cancelRequested;
 
+  /// Прогресс загрузки 0..1 на каждый stagedAbsolutePaths[i]. Для E2EE-медиа
+  /// (envelope upload) прогресс остаётся 0 до завершения, после чего скачком
+  /// становится 1.0 — в UI это рисуется как indeterminate spinner.
+  final List<double> uploadProgress;
+
   OutboxAttachmentJob copyWith({
     OutboxAttachmentPhase? phase,
     String? lastError,
     bool? cancelRequested,
+    List<double>? uploadProgress,
   }) {
     return OutboxAttachmentJob(
       id: id,
@@ -85,6 +94,7 @@ class OutboxAttachmentJob {
       phase: phase ?? this.phase,
       lastError: lastError ?? this.lastError,
       cancelRequested: cancelRequested ?? this.cancelRequested,
+      uploadProgress: uploadProgress ?? this.uploadProgress,
     );
   }
 
@@ -342,20 +352,42 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
       job = _byId(jobId)!;
 
       final uploaded = <ChatAttachment>[];
-      for (final f in prep.plaintextFiles) {
+      // В не-E2EE ветке `prep.plaintextFiles == files == stagedAbsolutePaths`
+      // в исходном порядке, поэтому индекс цикла = индекс staged-файла. В E2EE
+      // ветке plaintextFiles обычно пустой (стикеры/GIF идут другим путём), а
+      // зашифрованные envelope'ы заливаются внутри prepareE2eeAttachmentsForSend
+      // без callback'ов прогресса — для них UI показывает indeterminate спиннер.
+      for (var i = 0; i < prep.plaintextFiles.length; i++) {
         if (_byId(jobId)?.cancelRequested == true) {
           final cur = _byId(jobId);
           if (cur != null) await _removeJobAndCleanup(cur);
           _inFlight.remove(jobId);
           return;
         }
+        final f = prep.plaintextFiles[i];
         uploaded.add(
           await uploadChatAttachmentFromXFile(
             storage: storage,
             conversationId: job.conversationId,
             file: f,
+            onProgress: (p) {
+              final cur = _byId(jobId);
+              if (cur == null) return;
+              if (i >= cur.uploadProgress.length) return;
+              final next = List<double>.from(cur.uploadProgress);
+              next[i] = p;
+              _replace(cur.copyWith(uploadProgress: next));
+            },
           ),
         );
+        // Гарантия 1.0 в конце загрузки файла — на случай если backend не
+        // прислал финальный snapshot.
+        final after = _byId(jobId);
+        if (after != null && i < after.uploadProgress.length) {
+          final next = List<double>.from(after.uploadProgress);
+          next[i] = 1.0;
+          _replace(after.copyWith(uploadProgress: next));
+        }
       }
 
       job = _byId(jobId)!;
@@ -516,11 +548,22 @@ List<ChatMessage> buildDescWithOutboxMessages({
       // ленте (тот же deterministic messageId из effectiveMessageId).
       if (deliveredIds.contains(j.effectiveMessageId)) continue;
       final ds = j.phase == OutboxAttachmentPhase.failed ? 'failed' : 'sending';
+      // Когда в задаче есть staged-файлы, тело пузыря рендерится через
+      // OutboxJobMediaBubble (см. _ChatMessageBubble), а текст у синтетического
+      // сообщения держим пустым — иначе под медиа-превью всплывёт ещё и
+      // плейсхолдер «Вложение». Для чисто текстовых задач (staged пустой)
+      // показываем настоящий caption.
+      final String syntheticText;
+      if (j.stagedAbsolutePaths.isNotEmpty) {
+        syntheticText = '';
+      } else {
+        syntheticText = '<p>${_safeXmlAttr(j.previewPlain)}</p>';
+      }
       out.add(
         ChatMessage(
           id: '$kLocalOutboxMessageIdPrefix${j.id}',
           senderId: senderId,
-          text: '<p>${_safeXmlAttr(j.previewPlain)}</p>',
+          text: syntheticText,
           attachments: const <ChatAttachment>[],
           replyTo: null,
           createdAt: j.createdAt,
