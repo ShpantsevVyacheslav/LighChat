@@ -24,7 +24,7 @@ describe('isAccountBlocked', () => {
   it('accountBlock.active=false → false', () => {
     expect(
       isAccountBlocked(
-        { accountBlock: { active: false, by: 'admin', at: '2026-01-01T00:00:00.000Z' } },
+        { accountBlock: { active: false, blockedBy: 'admin', blockedAt: '2026-01-01T00:00:00.000Z', until: null } },
         NOW,
       ),
     ).toBe(false);
@@ -33,7 +33,7 @@ describe('isAccountBlocked', () => {
   it('accountBlock.active=true без until → бессрочно blocked', () => {
     expect(
       isAccountBlocked(
-        { accountBlock: { active: true, by: 'admin', at: '2026-01-01T00:00:00.000Z' } },
+        { accountBlock: { active: true, blockedBy: 'admin', blockedAt: '2026-01-01T00:00:00.000Z', until: null } },
         NOW,
       ),
     ).toBe(true);
@@ -45,8 +45,8 @@ describe('isAccountBlocked', () => {
         {
           accountBlock: {
             active: true,
-            by: 'admin',
-            at: '2026-01-01T00:00:00.000Z',
+            blockedBy: 'admin',
+            blockedAt: '2026-01-01T00:00:00.000Z',
             until: '2026-06-01T00:00:00.000Z',
           },
         },
@@ -61,8 +61,8 @@ describe('isAccountBlocked', () => {
         {
           accountBlock: {
             active: true,
-            by: 'admin',
-            at: '2026-01-01T00:00:00.000Z',
+            blockedBy: 'admin',
+            blockedAt: '2026-01-01T00:00:00.000Z',
             until: '2026-04-01T00:00:00.000Z',
           },
         },
@@ -77,8 +77,8 @@ describe('isAccountBlocked', () => {
         {
           accountBlock: {
             active: true,
-            by: 'admin',
-            at: '2026-01-01T00:00:00.000Z',
+            blockedBy: 'admin',
+            blockedAt: '2026-01-01T00:00:00.000Z',
             until: '2026-05-11T12:00:00.000Z',
           },
         },
