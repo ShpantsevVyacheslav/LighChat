@@ -3602,11 +3602,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     }
   }
 
-  bool _isMessageStalePending(ChatMessage m) {
+  bool _isMessageSendingByMe(ChatMessage m, String currentUserId) {
+    if (m.senderId != currentUserId) return false;
     if (m.id.startsWith(kLocalOutboxMessageIdPrefix)) return false;
-    if ((m.deliveryStatus ?? '') != 'sending') return false;
-    final origin = _pendingRetryAt[m.id] ?? m.createdAt;
-    return DateTime.now().difference(origin) >= const Duration(seconds: 30);
+    return (m.deliveryStatus ?? '') == 'sending';
   }
 
   Future<void> _cancelStalePendingMessage(ChatMessage m) async {
@@ -3660,7 +3659,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       }
       return;
     }
-    if (_isMessageStalePending(m)) {
+    if (_isMessageSendingByMe(m, user.uid)) {
       final result = await showOutboxFailedContextMenu(
         context,
         message: m,

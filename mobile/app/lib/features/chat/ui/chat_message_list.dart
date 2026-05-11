@@ -35,6 +35,7 @@ import 'message_link_preview_card.dart';
 import 'message_reactions_row.dart';
 import 'message_reply_preview.dart';
 import 'message_swipe_to_reply.dart';
+import 'outbox_job_media_bubble.dart';
 
 typedef ChatMessageVisibleCallback =
     void Function(ChatMessage message, double visibleFraction);
@@ -1778,6 +1779,38 @@ class _ChatMessageBubble extends StatelessWidget {
       ],
     );
 
+    // Для синтетических outbox-пузырей со staged-файлами рисуем мозаику
+    // локальных превью + прогресс (см. OutboxJobMediaBubble) — это убирает
+    // fallback-текст «Вложение», который раньше рендерился для любого типа
+    // файла кроме чистых картинок. Текст-only outbox оставляем без изменений
+    // (fallthrough в обычный body).
+    if (message.id.startsWith(kLocalOutboxMessageIdPrefix)) {
+      final jobId = outboxJobIdFromSyntheticMessageId(message.id);
+      if (jobId != null) {
+        final originalBody = body;
+        body = Consumer(
+          builder: (ctx, ref, _) {
+            final job = ref.watch(
+              chatOutboxAttachmentNotifierProvider.select((jobs) {
+                for (final j in jobs) {
+                  if (j.id == jobId) return j;
+                }
+                return null;
+              }),
+            );
+            if (job == null || job.stagedAbsolutePaths.isEmpty) {
+              return originalBody;
+            }
+            return OutboxJobMediaBubble(
+              jobId: jobId,
+              isMine: isMine,
+              outgoingBubbleColor: outgoingBubbleColor,
+            );
+          },
+        );
+      }
+    }
+
     // На iOS/web engine сочетание IntrinsicWidth + RichText(WidgetSpan) может
     // падать в dry-layout/baseline (debugCannotComputeDryLayout). Поэтому
     // не используем IntrinsicWidth для пузыря.
@@ -1786,15 +1819,7 @@ class _ChatMessageBubble extends StatelessWidget {
         ((message.id.startsWith(kLocalOutboxMessageIdPrefix) &&
                 (message.deliveryStatus ?? '') == 'failed') ||
             isStalePending);
-    final wrappedBody = outboxFail
-        ? DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: scheme.error, width: 1.4),
-            ),
-            child: body,
-          )
-        : body;
+    final wrappedBody = body;
 
     final isVideoCircleMsg = message.attachments.any(isVideoCircleAttachment);
 

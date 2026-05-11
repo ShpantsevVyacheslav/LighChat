@@ -1442,13 +1442,6 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
     }
   }
 
-  bool _isThreadMessageStalePending(ChatMessage m) {
-    if (m.id.startsWith(kLocalOutboxMessageIdPrefix)) return false;
-    if ((m.deliveryStatus ?? '') != 'sending') return false;
-    final origin = _pendingRetryAt[m.id] ?? m.createdAt;
-    return DateTime.now().difference(origin) >= const Duration(seconds: 30);
-  }
-
   Future<void> _cancelStalePendingThreadMessage(ChatMessage m) async {
     _pendingRetryAt.remove(m.id);
     try {
@@ -1562,8 +1555,11 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
     final isOutboxFailed =
         message.id.startsWith(kLocalOutboxMessageIdPrefix) &&
         (message.deliveryStatus ?? '') == 'failed';
-    final isStale = _isThreadMessageStalePending(message);
-    if (isOutboxFailed || isStale) {
+    final isMineSending =
+        message.senderId == user.uid &&
+        !message.id.startsWith(kLocalOutboxMessageIdPrefix) &&
+        (message.deliveryStatus ?? '') == 'sending';
+    if (isOutboxFailed || isMineSending) {
       final result = await showOutboxFailedContextMenu(
         context,
         message: message,
