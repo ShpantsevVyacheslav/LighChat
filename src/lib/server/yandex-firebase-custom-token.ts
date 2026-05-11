@@ -12,6 +12,7 @@ import { mergeProviderPhoneAndAvatarIntoUserDocAdmin } from "@/lib/server/merge-
 import { adminDb } from "@/firebase/admin";
 import { generateUniqueUsernameAdmin } from "@/lib/server/generate-unique-username-admin";
 import { ensureUserDocExistsAdmin } from "@/lib/server/ensure-user-doc-admin";
+import { logger } from "@/lib/logger";
 
 function firebaseAuthErrorCode(e: unknown): string {
   if (typeof e !== "object" || e === null) return "";
@@ -56,7 +57,7 @@ async function getOrCreateYandexAuthUser(
     return;
   } catch (e: unknown) {
     if (firebaseAuthErrorCode(e) !== "auth/user-not-found") {
-      console.error("yandex auth: getUser error", e);
+      logger.error('yandex-auth', 'getUser error', e);
       throw new Error("Could not load Firebase user.");
     }
   }
@@ -84,7 +85,7 @@ async function getOrCreateYandexAuthUser(
           await updateYandexUserProfile(uid, displayName, photoURL);
           return;
         }
-        console.error("yandex auth: createUser without email failed", e2);
+        logger.error('yandex-auth', 'createUser without email failed', e2);
         throw new Error("Could not create Firebase user.");
       }
     }
@@ -98,11 +99,11 @@ async function getOrCreateYandexAuthUser(
           await updateYandexUserProfile(uid, displayName, undefined);
           return;
         }
-        console.error("yandex auth: createUser retry failed", e3);
+        logger.error('yandex-auth', 'createUser retry failed', e3);
         throw new Error("Could not create Firebase user.");
       }
     }
-    console.error("yandex auth: createUser failed", e);
+    logger.error('yandex-auth', 'createUser failed', e);
     throw new Error("Could not create Firebase user.");
   }
 }
@@ -156,7 +157,7 @@ export async function issueFirebaseCustomTokenForYandexProfile(
       await adminDb.doc(`users/${uid}`).set({ username }, { merge: true });
     }
   } catch (e) {
-    console.warn("[yandex auth] username bootstrap skipped", e);
+    logger.warn('yandex-auth', 'username bootstrap skipped', e);
   }
 
   try {
@@ -165,7 +166,7 @@ export async function issueFirebaseCustomTokenForYandexProfile(
     });
     return { customToken, uid };
   } catch (e: unknown) {
-    console.error("yandex auth: createCustomToken failed", e);
+    logger.error('yandex-auth', 'createCustomToken failed', e);
     throw new Error("Could not issue sign-in token.");
   }
 }

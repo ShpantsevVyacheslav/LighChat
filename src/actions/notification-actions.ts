@@ -6,6 +6,7 @@ import { assertAdminByIdToken } from '@/actions/admin-actions';
 import { logAdminAction } from '@/lib/server/audit-log';
 import type { UserRole, Notification } from '@/lib/types';
 import type { MulticastMessage } from 'firebase-admin/messaging';
+import { logger } from '@/lib/logger';
 
 /**
  * SECURITY: notification "link" is delivered via FCM and used by service
@@ -64,7 +65,7 @@ async function getTokensForRoles(roles: UserRole[]): Promise<{ tokens: string[],
     const querySnapshot = await q.get();
     
     if (querySnapshot.empty) {
-      console.log('No users found for roles:', roles);
+      logger.debug('notifications', 'No users found for roles', roles);
       return { tokens: [], userIds: [] };
     }
     
@@ -83,7 +84,7 @@ async function getTokensForRoles(roles: UserRole[]): Promise<{ tokens: string[],
     
     return { tokens: [...new Set(tokens)], userIds: [...new Set(userIds)] };
   } catch (error) {
-    console.error('Error fetching user tokens for notifications:', error);
+    logger.error('notifications', 'Error fetching user tokens for notifications', error);
     return { tokens: [], userIds: [] };
   }
 }
@@ -118,7 +119,7 @@ async function getTokensForUserIds(userIds: string[]): Promise<string[]> {
         
         return [...new Set(allTokens)];
     } catch (error) {
-        console.error('Error fetching user tokens by ID for notifications:', error);
+        logger.error('notifications', 'Error fetching user tokens by ID for notifications', error);
         return [];
     }
 }
@@ -132,7 +133,7 @@ async function sendNotifications(
   isDataOnly: boolean = false
 ): Promise<{ success: boolean; error?: string }> {
   if (tokens.length === 0) {
-    console.log('No FCM tokens found. No notifications sent.');
+    logger.debug('notifications', 'No FCM tokens found. No notifications sent.');
     return { success: true };
   }
 
@@ -163,21 +164,21 @@ async function sendNotifications(
   try {
     const response = await adminMessaging.sendEachForMulticast(message);
     const successCount = response.successCount;
-    console.log(`Successfully sent ${successCount} notifications.`);
+    logger.debug('notifications', `Successfully sent ${successCount} notifications.`);
 
     if (response.failureCount > 0) {
       const failedTokens: string[] = [];
       response.responses.forEach((resp, idx) => {
         if (!resp.success) {
           failedTokens.push(tokens[idx]);
-          console.warn(`Failed to send to token ${tokens[idx]}: ${resp.error?.message}`);
+          logger.warn('notifications', `Failed to send to token ${tokens[idx]}: ${resp.error?.message}`);
         }
       });
     }
 
     return { success: true };
   } catch (error: unknown) {
-    console.error('Error sending push notification:', error);
+    logger.error('notifications', 'Error sending push notification', error);
     return { success: false, error: 'Failed to send notifications' };
   }
 }
@@ -205,7 +206,7 @@ export async function sendNotificationToRoles(
   try {
     await saveNotificationsForUsers(userIds, title, body, finalLink);
   } catch (e) {
-    console.error('Failed to save notifications for roles:', e);
+    logger.error('notifications', 'Failed to save notifications for roles', e);
   }
 
   return sendNotifications(tokens, title, body, finalLink, false);
@@ -240,7 +241,7 @@ export async function sendNotificationToUsers(
     try {
       await saveNotificationsForUsers(uniqueUserIds, title, body, finalLink);
     } catch (e) {
-      console.error('Failed to save notifications for users:', e);
+      logger.error('notifications', 'Failed to save notifications for users', e);
     }
   }
 

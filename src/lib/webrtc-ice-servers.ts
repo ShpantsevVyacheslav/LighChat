@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 const DEFAULT_STUN_SERVERS = ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'];
 const ICE_CONFIG_FETCH_TIMEOUT_MS = 4000;
 const ICE_CONFIG_CACHE_MS = 60_000;
@@ -84,10 +86,10 @@ function logIceSource(source: string, reason?: string): void {
   if (lastLoggedSource === source) return;
   lastLoggedSource = source;
   if (reason) {
-    console.info(`[WebRTC] ICE source: ${source} (${reason})`);
+    logger.debug('webrtc-ice', `source: ${source}`, { reason });
     return;
   }
-  console.info(`[WebRTC] ICE source: ${source}`);
+  logger.debug('webrtc-ice', `source: ${source}`);
 }
 
 async function fetchIceConfigFromApi(): Promise<{ config: RTCConfiguration; source: string; reason?: string } | null> {
@@ -114,7 +116,7 @@ async function fetchIceConfigFromApi(): Promise<{ config: RTCConfiguration; sour
       headers,
     });
     if (!res.ok) {
-      console.warn(`[WebRTC] ICE API /api/webrtc/ice returned ${res.status}`);
+      logger.warn('webrtc-ice', `ICE API /api/webrtc/ice returned ${res.status}`);
       return null;
     }
     const payload = (await res.json()) as IceConfigResponse;
@@ -122,7 +124,7 @@ async function fetchIceConfigFromApi(): Promise<{ config: RTCConfiguration; sour
       ? payload.iceServers.map(normalizeIceServer).filter((s): s is RTCIceServer => !!s)
       : [];
     if (servers.length === 0) {
-      console.warn('[WebRTC] ICE API returned empty iceServers payload');
+      logger.warn('webrtc-ice', 'ICE API returned empty iceServers payload');
       return null;
     }
     return {
@@ -131,7 +133,7 @@ async function fetchIceConfigFromApi(): Promise<{ config: RTCConfiguration; sour
       reason: payload.reason,
     };
   } catch (err) {
-    console.warn('[WebRTC] ICE API fetch failed', err);
+    logger.warn('webrtc-ice', 'ICE API fetch failed', err);
     return null;
   } finally {
     clearTimeout(timer);
@@ -151,8 +153,9 @@ async function fetchIceHealthHint(): Promise<void> {
     });
     if (!res.ok) return;
     const health = (await res.json()) as IceHealthResponse;
-    console.info(
-      `[WebRTC] ICE health: source=${health.source || 'unknown'} reason=${health.reason || 'none'} env=${health.hasMeteredEnv ? 'set' : 'missing'} servers=${health.iceServerCount ?? 'n/a'}`,
+    logger.debug(
+      'webrtc-ice',
+      `health: source=${health.source || 'unknown'} reason=${health.reason || 'none'} env=${health.hasMeteredEnv ? 'set' : 'missing'} servers=${health.iceServerCount ?? 'n/a'}`,
     );
   } catch {
   } finally {
