@@ -7,30 +7,39 @@ const VIDEO_EXT = /\.(mp4|webm|mov|mkv|m4v|ogv)(\?|#|$)/i;
 /**
  * Вложение для сетки MessageMedia (как в фильтре компонента).
  * Учитывает пустой MIME у File при оптимистичной отправке и octet-stream.
+ *
+ * Defensive: E2EE-вложения / оптимистичные / legacy messages могут прийти с
+ * `name === undefined` или `type === undefined`. Без guard вся медиа-вкладка
+ * ConversationMediaPanel валится с "Cannot read properties of undefined
+ * (reading 'startsWith')" и крашит /dashboard/profile?conversationId=...
  */
 export function isGridGalleryAttachment(att: ChatAttachment): boolean {
-  if (att.name.startsWith('sticker_') || att.name.startsWith('gif_') || att.name.startsWith('video-circle_')) return false;
+  const name = att.name ?? '';
+  const type = att.type ?? '';
+  if (name.startsWith('sticker_') || name.startsWith('gif_') || name.startsWith('video-circle_')) return false;
   if (isAttachmentLikelyIosStickerCutout(att)) return false;
-  if (att.type.startsWith('image/') && !att.type.includes('svg')) return true;
-  if (att.type.startsWith('video/')) return true;
+  if (type.startsWith('image/') && !type.includes('svg')) return true;
+  if (type.startsWith('video/')) return true;
   const loose =
-    !att.type ||
-    att.type === 'application/octet-stream' ||
-    att.type === 'binary/octet-stream';
+    !type ||
+    type === 'application/octet-stream' ||
+    type === 'binary/octet-stream';
   if (loose) {
-    if (IMAGE_EXT.test(att.name)) return true;
-    if (VIDEO_EXT.test(att.name)) return true;
+    if (IMAGE_EXT.test(name)) return true;
+    if (VIDEO_EXT.test(name)) return true;
   }
   return false;
 }
 
 export function isGridGalleryVideo(att: ChatAttachment): boolean {
-  if (att.name.startsWith('video-circle_')) return false;
-  if (att.type.startsWith('video/')) return true;
+  const name = att.name ?? '';
+  const type = att.type ?? '';
+  if (name.startsWith('video-circle_')) return false;
+  if (type.startsWith('video/')) return true;
   const loose =
-    !att.type ||
-    att.type === 'application/octet-stream' ||
-    att.type === 'binary/octet-stream';
-  if (loose && VIDEO_EXT.test(att.name)) return true;
+    !type ||
+    type === 'application/octet-stream' ||
+    type === 'binary/octet-stream';
+  if (loose && VIDEO_EXT.test(name)) return true;
   return false;
 }

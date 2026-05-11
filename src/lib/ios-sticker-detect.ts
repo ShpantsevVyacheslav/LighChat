@@ -206,9 +206,11 @@ export async function normalizeFilesAsStickersIfApplicable(
  * iOS не добавляет отдельного MIME — опираемся на PNG/WebP, геометрию и размер (без чтения пикселей).
  * JPEG без альфы распознать нельзя; при отправке новых файлов помогает `normalizeFileAsStickerIfApplicable`.
  */
-export function isAttachmentLikelyIosStickerCutout(att: { name: string; type: string; size: number; width?: number; height?: number }): boolean {
-  if (att.name.startsWith('gif_')) return false;
-  if (att.name.startsWith('sticker_') || att.type === 'image/svg+xml') return true;
+export function isAttachmentLikelyIosStickerCutout(att: { name?: string; type?: string; size: number; width?: number; height?: number }): boolean {
+  // Defensive: E2EE/оптимистичные/legacy могут принести `name`/`type` undefined.
+  const name = att.name ?? '';
+  if (name.startsWith('gif_')) return false;
+  if (name.startsWith('sticker_') || att.type === 'image/svg+xml') return true;
   const t = (att.type || '').toLowerCase();
   if (t !== 'image/png' && t !== 'image/webp') return false;
 

@@ -45,12 +45,15 @@ export const getReplyPreview = (
 
     if (message.attachments && message.attachments.length > 0) {
         const att = message.attachments[0];
+        // Defensive guard для E2EE/optimistic/legacy с undefined name/type.
+        const attName = att.name ?? '';
+        const attType = att.type ?? '';
         const isSticker =
-            att.name.startsWith('sticker_') || att.type === 'image/svg+xml' || isAttachmentLikelyIosStickerCutout(att);
-        const isGifInline = att.name.startsWith('gif_');
-        const isVideoCircle = att.name.startsWith('video-circle_');
-        const isVideo = att.type.startsWith('video/');
-        const isImage = att.type.startsWith('image/');
+            attName.startsWith('sticker_') || attType === 'image/svg+xml' || isAttachmentLikelyIosStickerCutout(att);
+        const isGifInline = attName.startsWith('gif_');
+        const isVideoCircle = attName.startsWith('video-circle_');
+        const isVideo = attType.startsWith('video/');
+        const isImage = attType.startsWith('image/');
 
         if (!text) {
             if (isSticker) text = "Стикер";
@@ -257,8 +260,9 @@ export async function markThreadMessagesSeenWithoutReadReceipt(
 /** Первое вложение-стикер или GIF в сообщении (для «Сохранить в мои стикеры»). */
 export function getFirstStickerOrGifAttachment(message: ChatMessage): ChatAttachment | null {
   for (const a of message.attachments || []) {
-    if (a.name.startsWith('gif_')) return a;
-    if (a.name.startsWith('sticker_') || isAttachmentLikelyIosStickerCutout(a)) return a;
+    const aName = a.name ?? '';
+    if (aName.startsWith('gif_')) return a;
+    if (aName.startsWith('sticker_') || isAttachmentLikelyIosStickerCutout(a)) return a;
   }
   return null;
 }

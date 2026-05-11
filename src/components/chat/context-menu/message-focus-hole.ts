@@ -10,7 +10,10 @@ export function shouldUseCircularStickerMenuHole(message: ChatMessage, captionPl
   const att = message.attachments;
   if (!att || att.length !== 1) return false;
   const a = att[0];
-  if (a.name.startsWith('gif_') || a.name.startsWith('video-circle_') || a.type.startsWith('video/') || a.type.startsWith('audio/'))
+  // Defensive: E2EE/optimistic/legacy attachments могут иметь undefined name/type.
+  const aName = a.name ?? '';
+  const aType = a.type ?? '';
+  if (aName.startsWith('gif_') || aName.startsWith('video-circle_') || aType.startsWith('video/') || aType.startsWith('audio/'))
     return false;
   if (!isAttachmentLikelyIosStickerCutout(a)) return false;
   if (message.replyTo || message.locationShare || message.chatPollId) return false;

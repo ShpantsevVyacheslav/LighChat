@@ -75,7 +75,7 @@ const getUserColor = (userId: string) => {
 
 function GifAttachmentImage({ att }: { att: ChatAttachment }) {
     const displaySrc = useChatAttachmentDisplaySrc(att);
-    if (att.type.startsWith('video/')) {
+    if ((att.type ?? '').startsWith('video/')) {
         return (
             <video
                 src={displaySrc}
@@ -238,7 +238,7 @@ const ChatMessageItemComponent = ({
         () => message.attachments?.some((att) => isAttachmentLikelyIosStickerCutout(att)) ?? false,
         [message.attachments],
     );
-    const isGifAttachment = useMemo(() => message.attachments?.some(att => att.name.startsWith('gif_')), [message.attachments]);
+    const isGifAttachment = useMemo(() => message.attachments?.some(att => (att.name ?? '').startsWith('gif_')), [message.attachments]);
     const isStickerLike = isSticker || isGifAttachment;
     /// Анимированный GIPHY-эмодзи (`sticker_emoji_giphy_*`) — особый под-класс
     /// стикера, который рендерится крошечным (как unicode-эмодзи), а не
@@ -250,7 +250,7 @@ const ChatMessageItemComponent = ({
         () =>
             !!message.attachments?.length &&
             message.attachments.every((att) =>
-                att.name.startsWith('sticker_emoji_giphy_'),
+                (att.name ?? '').startsWith('sticker_emoji_giphy_'),
             ),
         [message.attachments],
     );
@@ -264,7 +264,7 @@ const ChatMessageItemComponent = ({
             !message.chatPollId,
         [displayTextHtml, message.attachments, message.replyTo, message.locationShare, message.chatPollId]
     );
-    const isVideoCircle = useMemo(() => message.attachments?.some(att => att.name.startsWith('video-circle_')), [message.attachments]);
+    const isVideoCircle = useMemo(() => message.attachments?.some(att => (att.name ?? '').startsWith('video-circle_')), [message.attachments]);
     const isPollMessage = !!message.chatPollId;
     const stickerCaptionPlain = useMemo(() => {
         if (!displayTextHtml) return '';
@@ -838,7 +838,9 @@ const ChatMessageItemComponent = ({
                                                         </div>
                                                     )}
                                         {message.attachments?.map((att, idx) => {
-                                                        if (att.name.startsWith('video-circle_'))
+                                                        const attName = att.name ?? '';
+                                                        const attType = att.type ?? '';
+                                                        if (attName.startsWith('video-circle_'))
                                                             return (
                                                                 <div
                                                                     key={idx}
@@ -876,13 +878,13 @@ const ChatMessageItemComponent = ({
                                                                     />
                                                                 </div>
                                                             );
-                                                        if (att.name.startsWith('gif_'))
+                                                        if (attName.startsWith('gif_'))
                                                             return (
                                                                 <div key={idx} className="relative max-w-[min(100%,280px)] w-48 sm:w-64 p-2 shrink-0">
                                                                     <GifAttachmentImage att={att} />
                                                                 </div>
                                                             );
-                                                        if (att.type.startsWith('audio/'))
+                                                        if (attType.startsWith('audio/'))
                                                             return (
                                                                 <div key={idx} className="p-2 relative shrink-0">
                                                                     <AudioMessagePlayer attachment={att} isCurrentUser={isCurrentUser} />
