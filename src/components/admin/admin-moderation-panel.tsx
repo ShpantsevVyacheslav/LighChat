@@ -72,6 +72,13 @@ export function AdminModerationPanel() {
   const handleHideAndReview = async (report: MessageReport) => {
     const token = await firebaseAuth?.currentUser?.getIdToken();
     if (!token) return;
+    // User-level reports (без конкретного messageId) нельзя «скрыть как сообщение»;
+    // для них доступен только Dismiss или будущий ban-flow. UI ниже дизейблит
+    // кнопку, но добавляем guard на случай прямого вызова из reflection.
+    if (!report.messageId) {
+      toast({ variant: 'destructive', title: 'У этой жалобы нет конкретного сообщения — её можно только отклонить' });
+      return;
+    }
     setActing(report.id);
 
     const hideRes = await hideMessageAction({
@@ -181,7 +188,8 @@ export function AdminModerationPanel() {
                       variant="destructive"
                       className="rounded-xl"
                       onClick={() => handleHideAndReview(r)}
-                      disabled={acting === r.id}
+                      disabled={acting === r.id || !r.messageId}
+                      title={!r.messageId ? 'У этой жалобы нет конкретного сообщения — её можно только отклонить' : undefined}
                     >
                       {acting === r.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
                       {t('admin.moderation.hideMessage')}
