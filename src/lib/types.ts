@@ -463,8 +463,30 @@ export type AdminChatStorageStatsResult = {
   attachmentsMissingSize: number;
 } | { ok: false; error: string };
 
+/**
+ * Конфигурация интеграции с **BigQuery Billing Export** для админ-таба
+ * «Затраты». Включается админом вручную: в GCP Console надо настроить
+ * Cloud Billing → Billing export → BigQuery (создаётся таблица вида
+ * `gcp_billing_export_v1_<billing-account-id>`), затем дать service
+ * account Cloud Functions роли `roles/bigquery.dataViewer` + `jobUser`
+ * на этот dataset. Cloud Function `fetchBillingSummary` читает таблицу
+ * напрямую — Cloud Billing REST API не вызывается.
+ */
+export type PlatformBillingConfig = {
+  /** GCP project, в котором лежит dataset экспорта. Обычно совпадает с Firebase project, но не обязан. */
+  projectId: string;
+  /** BigQuery dataset с экспортом, напр. `billing_export`. */
+  dataset: string;
+  /** Имя таблицы экспорта — Google генерирует, формат `gcp_billing_export_v1_<billing-account>`. */
+  tableId: string;
+  updatedAt?: string;
+  updatedBy?: string;
+};
+
 export type PlatformSettingsDoc = {
   storage: PlatformStoragePolicy;
+  /** Опционально: конфигурация BigQuery Billing Export. До настройки админ-вкладка «Затраты» показывает заглушку. */
+  billing?: PlatformBillingConfig;
   /** Если true — при создании нового личного чата клиент пытается включить E2E (если у обоих есть ключи). */
   e2eeDefaultForNewDirectChats?: boolean;
   /**

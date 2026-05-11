@@ -15,6 +15,7 @@ import { AdminModerationPanel } from '@/components/admin/admin-moderation-panel'
 import { AdminFeatureFlagsPanel } from '@/components/admin/admin-feature-flags-panel';
 import { AdminAnnouncementsPanel } from '@/components/admin/admin-announcements-panel';
 import { AdminOverviewDashboard } from '@/components/admin/admin-overview-dashboard';
+import { AdminCostsPanel } from '@/components/admin/admin-costs-panel';
 import { UsersClient } from '@/components/admin/users-client';
 import { useI18n } from '@/hooks/use-i18n';
 
@@ -71,6 +72,9 @@ export default function AdminPage() {
           <TabsTrigger value="storage" className="rounded-xl">
             {t('adminPage.tabStorage')}
           </TabsTrigger>
+          <TabsTrigger value="costs" className="rounded-xl">
+            Затраты
+          </TabsTrigger>
           <TabsTrigger value="push" className="rounded-xl">
             {t('adminPage.tabPush')}
           </TabsTrigger>
@@ -108,6 +112,10 @@ export default function AdminPage() {
 
         <TabsContent value="storage" className="mt-0">
           <AdminStorageSettingsPanel />
+        </TabsContent>
+
+        <TabsContent value="costs" className="mt-0">
+          <AdminCostsPanel />
         </TabsContent>
 
         <TabsContent value="push" className="mt-0">

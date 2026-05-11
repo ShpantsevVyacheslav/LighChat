@@ -29,6 +29,7 @@ export { migrateDeviceLocationToPrivate } from './triggers/http/migrateDeviceLoc
 export { syncAdminClaims } from './triggers/http/syncAdminClaims';
 export { adminRecomputeStorageStats } from './triggers/http/adminRecomputeStorageStats';
 export { adminRecomputeStats } from './triggers/http/adminRecomputeStats';
+export { fetchBillingSummary } from './triggers/http/fetchBillingSummary';
 export { recomputeAdminStatsDaily } from './triggers/scheduler/recomputeAdminStatsDaily';
 export { requestMeetingAccess, respondToMeetingRequest } from './triggers/http/meetingJoinRequests';
 export { checkGroupInvitesAllowed } from './triggers/http/checkGroupInvitesAllowed';
