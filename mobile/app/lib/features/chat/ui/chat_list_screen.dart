@@ -2127,7 +2127,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                 12,
                 24,
                 12,
-                MediaQuery.of(ctx).viewInsets.bottom + 20,
+                MediaQuery.of(ctx).viewInsets.bottom + 32,
               ),
               child: StatefulBuilder(
                 builder: (context, setModalState) {
@@ -2199,83 +2199,6 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 86,
-                                height: 86,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(24),
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      const Color(
-                                        0xFF2E86FF,
-                                      ).withValues(alpha: 0.20),
-                                      const Color(
-                                        0xFF9A18FF,
-                                      ).withValues(alpha: 0.18),
-                                    ],
-                                  ),
-                                  border: Border.all(
-                                    color: const Color(
-                                      0xFF2A79FF,
-                                    ).withValues(alpha: 0.40),
-                                    width: 1,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(
-                                        0xFF2A79FF,
-                                      ).withValues(alpha: 0.22),
-                                      blurRadius: 24,
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.create_new_folder_rounded,
-                                  size: 40,
-                                  color: Color(0xFF5DA2FF),
-                                ),
-                              ),
-                              const SizedBox(width: 18),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      sheetL10n.chat_list_create_folder_title,
-                                      style: TextStyle(
-                                        fontSize: 28 / 2,
-                                        fontWeight: FontWeight.w700,
-                                        color: scheme.onSurface,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      sheetL10n.chat_list_create_folder_subtitle,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: scheme.onSurface.withValues(
-                                          alpha: dark ? 0.55 : 0.62,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 18),
-                          Divider(
-                            height: 1,
-                            color: scheme.onSurface.withValues(
-                              alpha: dark ? 0.12 : 0.20,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
@@ -2299,51 +2222,45 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             textInputAction: TextInputAction.done,
                             textCapitalization: TextCapitalization.sentences,
                             cursorColor: scheme.primary,
-                            cursorHeight: 18,
                             style: TextStyle(
                               color: modalFg,
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.w500,
                             ),
-                            textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
                               hintText: AppLocalizations.of(context)!
                                   .settings_chats_icon_picker_search_hint,
                               hintStyle: TextStyle(
-                                color: modalFg.withValues(alpha: 0.36),
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
+                                color: modalFg.withValues(alpha: 0.42),
+                                fontSize: 15,
                               ),
                               filled: true,
-                              fillColor: modalFg.withValues(
-                                alpha: dark ? 0.06 : 0.05,
-                              ),
+                              fillColor: modalFg.withValues(alpha: 0.08),
                               isDense: true,
                               contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                                vertical: 14,
+                                horizontal: 16,
+                                vertical: 12,
                               ),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
+                                borderRadius: BorderRadius.circular(22),
                                 borderSide: BorderSide(
                                   color: modalFg.withValues(
-                                    alpha: dark ? 0.16 : 0.18,
+                                    alpha: dark ? 0.10 : 0.12,
                                   ),
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
+                                borderRadius: BorderRadius.circular(22),
                                 borderSide: BorderSide(
                                   color: modalFg.withValues(
-                                    alpha: dark ? 0.16 : 0.18,
+                                    alpha: dark ? 0.10 : 0.12,
                                   ),
                                 ),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF2A79FF),
-                                  width: 1.4,
+                                borderRadius: BorderRadius.circular(22),
+                                borderSide: BorderSide(
+                                  color: scheme.primary.withValues(alpha: 0.65),
                                 ),
                               ),
                             ),
@@ -2402,61 +2319,58 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          Container(
-                            height: 56,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(18),
-                              color: modalFg.withValues(
-                                alpha: dark ? 0.06 : 0.05,
-                              ),
-                              border: Border.all(
-                                color: modalFg.withValues(
-                                  alpha: dark ? 0.10 : 0.12,
-                                ),
-                              ),
+                          TextField(
+                            controller: searchController,
+                            focusNode: searchFocus,
+                            onChanged: (_) => setModalState(() {}),
+                            textCapitalization: TextCapitalization.sentences,
+                            cursorColor: scheme.primary,
+                            style: TextStyle(
+                              color: modalFg,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.search_rounded,
-                                  size: 27,
-                                  color: modalFg.withValues(alpha: 0.42),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: TextField(
-                                    controller: searchController,
-                                    focusNode: searchFocus,
-                                    onChanged: (_) => setModalState(() {}),
-                                    textCapitalization:
-                                        TextCapitalization.sentences,
-                                    cursorColor: scheme.primary,
-                                    cursorHeight: 18,
-                                    style: TextStyle(
-                                      color: modalFg,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    textAlignVertical: TextAlignVertical.center,
-                                    decoration: InputDecoration(
-                                      hintText: sheetL10n
-                                          .chat_list_create_folder_search_hint,
-                                      border: InputBorder.none,
-                                      isDense: true,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            vertical: 10,
-                                          ),
-                                      hintStyle: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                        color: modalFg.withValues(alpha: 0.40),
-                                      ),
-                                    ),
+                            decoration: InputDecoration(
+                              hintText: sheetL10n
+                                  .chat_list_create_folder_search_hint,
+                              hintStyle: TextStyle(
+                                color: modalFg.withValues(alpha: 0.42),
+                                fontSize: 15,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.search,
+                                size: 22,
+                                color: modalFg.withValues(alpha: 0.45),
+                              ),
+                              filled: true,
+                              fillColor: modalFg.withValues(alpha: 0.08),
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 0,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(22),
+                                borderSide: BorderSide(
+                                  color: modalFg.withValues(
+                                    alpha: dark ? 0.10 : 0.12,
                                   ),
                                 ),
-                              ],
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(22),
+                                borderSide: BorderSide(
+                                  color: modalFg.withValues(
+                                    alpha: dark ? 0.10 : 0.12,
+                                  ),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(22),
+                                borderSide: BorderSide(
+                                  color: scheme.primary.withValues(alpha: 0.65),
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 14),
@@ -2648,9 +2562,9 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                 child: OutlinedButton(
                                   onPressed: () => Navigator.of(ctx).pop(),
                                   style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size.fromHeight(58),
+                                    minimumSize: const Size.fromHeight(42),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(18),
+                                      borderRadius: BorderRadius.circular(14),
                                     ),
                                     foregroundColor: modalFg,
                                     backgroundColor: modalFg.withValues(
@@ -2666,18 +2580,18 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                     sheetL10n.common_cancel,
                                     style: TextStyle(
                                       color: modalFg,
-                                      fontSize: 17,
+                                      fontSize: 15,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 14),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Container(
-                                  height: 58,
+                                  height: 42,
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(18),
+                                    borderRadius: BorderRadius.circular(14),
                                     gradient: canCreate
                                         ? const LinearGradient(
                                             begin: Alignment.centerLeft,
@@ -2706,7 +2620,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                       backgroundColor: Colors.transparent,
                                       shadowColor: Colors.transparent,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(18),
+                                        borderRadius: BorderRadius.circular(14),
                                       ),
                                       padding: EdgeInsets.zero,
                                     ),
@@ -2714,7 +2628,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                     child: Text(
                                       sheetL10n.chat_list_action_create,
                                       style: TextStyle(
-                                        fontSize: 17,
+                                        fontSize: 15,
                                         fontWeight: FontWeight.w700,
                                         color: canCreate
                                             ? Colors.white
