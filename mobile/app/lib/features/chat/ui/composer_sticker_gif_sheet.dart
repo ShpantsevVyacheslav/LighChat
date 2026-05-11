@@ -3,7 +3,6 @@ import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,7 +11,6 @@ import 'package:image_picker/image_picker.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
-import '../data/chat_attachment_upload.dart';
 import '../data/giphy_cache_store.dart';
 import '../data/giphy_gif_search.dart';
 import '../data/user_sticker_item_attachment.dart';
@@ -879,12 +877,12 @@ class _ComposerStickerGifPanelState
     );
   }
 
-  Future<void> _pickFromGalleryAndSendDirect() async {
-    final convId = widget.directUploadConversationId;
-    if (convId == null || convId.isEmpty) return;
+  /// Добавить стикеры из галереи в конкретный пак (на каждой строке пака
+  /// есть круглый «+», который запускает этот пик).
+  Future<void> _addStickersToPackFromGallery(String packId) async {
     if (_deviceDirectBusy) return;
-
     final picker = ImagePicker();
+    final l10n = AppLocalizations.of(context)!;
     try {
       final list = await picker.pickMultipleMedia(imageQuality: 92);
       if (list.isEmpty || !mounted) return;
@@ -898,37 +896,28 @@ class _ComposerStickerGifPanelState
             n.endsWith('.jpeg') ||
             n.endsWith('.webp') ||
             n.endsWith('.heic');
-      }).toList();
+      }).toList(growable: false);
       if (images.isEmpty) {
-        _snack(AppLocalizations.of(context)!.sticker_pick_image_or_gif);
+        _snack(l10n.sticker_pick_image_or_gif);
         return;
       }
       setState(() => _deviceDirectBusy = true);
-      final x = images.first;
-      final lower = x.path.toLowerCase();
-      String ext = 'jpg';
-      if (lower.endsWith('.png')) {
-        ext = 'png';
-      } else if (lower.endsWith('.gif')) {
-        ext = 'gif';
-      } else if (lower.endsWith('.webp')) {
-        ext = 'webp';
-      } else if (lower.endsWith('.heic')) {
-        ext = 'heic';
-      }
-      final att = await uploadChatAttachmentFromXFile(
-        storage: FirebaseStorage.instance,
-        conversationId: convId,
-        file: x,
-        displayName: 'sticker_${DateTime.now().millisecondsSinceEpoch}.$ext',
+      final res = await widget.repo.addXFilesToPack(
+        userId: widget.userId,
+        packId: packId,
+        files: images,
       );
       if (!mounted) return;
       setState(() => _deviceDirectBusy = false);
-      widget.onPickAttachment(att);
+      if (res.ok > 0) {
+        _snack(l10n.sticker_saved_to_pack);
+      } else {
+        _snack(l10n.sticker_save_gif_failed);
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _deviceDirectBusy = false);
-        _snack(AppLocalizations.of(context)!.sticker_send_failed(e.toString()));
+        _snack(l10n.sticker_send_failed(e.toString()));
       }
     }
   }
@@ -1331,7 +1320,6 @@ class _ComposerStickerGifPanelState
   /// стикеров, кнопка-корзина справа. Сверху — компактная кнопка «+ New pack».
   Widget _packManagerView() {
     final l10n = AppLocalizations.of(context)!;
-    final convId = widget.directUploadConversationId;
     return StreamBuilder<List<UserStickerPackRow>>(
       stream: widget.repo.watchMyPacks(widget.userId),
       builder: (context, snap) {
@@ -1363,13 +1351,13 @@ class _ComposerStickerGifPanelState
               pack: p,
               allowAnimation: _allowAnimatedStickers,
               itemsStream: widget.repo.watchMyPackItems(widget.userId, p.id),
-              onTap: () {
-                setState(() => _myPackId = p.id);
+              onPickItem: (item) {
+                HapticFeedback.selectionClick();
+                widget.onPickAttachment(userStickerItemToAttachment(item));
               },
               onDelete: () => _confirmDeletePack(p.id, p.name),
-              onAddFromGallery: (convId == null || convId.isEmpty)
-                  ? null
-                  : () => unawaited(_pickFromGalleryAndSendDirect()),
+              onAddFromGallery: () =>
+                  unawaited(_addStickersToPackFromGallery(p.id)),
             );
           },
         );
@@ -2009,13 +1997,14 @@ class _ComposerStickerGifPanelState
 
 /// Telegram-style строка пака: имя + количество на верхней линии + кнопки
 /// действий справа (плюсик «добавить из галереи» + корзина), на нижней
-/// линии — превью первых 5 стикеров.
+/// линии — горизонтальная лента ВСЕХ стикеров пака (тап = pin/send через
+/// `onPickItem`).
 class _PackManagerRow extends StatelessWidget {
   const _PackManagerRow({
     required this.pack,
     required this.allowAnimation,
     required this.itemsStream,
-    required this.onTap,
+    required this.onPickItem,
     required this.onDelete,
     this.onAddFromGallery,
   });
@@ -2023,7 +2012,7 @@ class _PackManagerRow extends StatelessWidget {
   final UserStickerPackRow pack;
   final bool allowAnimation;
   final Stream<List<StickerItemRow>> itemsStream;
-  final VoidCallback onTap;
+  final void Function(StickerItemRow item) onPickItem;
   final VoidCallback onDelete;
   final VoidCallback? onAddFromGallery;
 
@@ -2033,115 +2022,114 @@ class _PackManagerRow extends StatelessWidget {
       stream: itemsStream,
       builder: (context, snap) {
         final items = snap.data ?? const <StickerItemRow>[];
-        final preview = items.take(5).toList(growable: false);
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              pack.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${items.length} '
-                              '${AppLocalizations.of(context)!.sticker_tab_stickers.toLowerCase()}',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.5),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (onAddFromGallery != null) ...[
-                        _PackIconButton(
-                          icon: Icons.add_rounded,
-                          onTap: onAddFromGallery!,
-                          tone: _PackIconTone.accent,
-                          tooltip: AppLocalizations.of(
-                            context,
-                          )!.sticker_gallery,
-                        ),
-                        const SizedBox(width: 6),
-                      ],
-                      // Действие — удалить пак (Telegram-style mini-pill).
-                      _PackActionPill(
-                        label: AppLocalizations.of(
-                          context,
-                        )!.common_delete.toUpperCase(),
-                        onTap: onDelete,
-                        kind: _PackActionKind.destructive,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  if (preview.isEmpty)
-                    SizedBox(
-                      height: 46,
-                      child: Center(
-                        child: Text(
-                          AppLocalizations.of(context)!.sticker_pack_empty_hint,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white.withValues(alpha: 0.45),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          pack.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
                           ),
                         ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${items.length} '
+                          '${AppLocalizations.of(context)!.sticker_tab_stickers.toLowerCase()}',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (onAddFromGallery != null) ...[
+                    _PackIconButton(
+                      icon: Icons.add_rounded,
+                      onTap: onAddFromGallery!,
+                      tone: _PackIconTone.accent,
+                      tooltip: AppLocalizations.of(context)!.sticker_gallery,
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                  // Действие — удалить пак (Telegram-style mini-pill).
+                  _PackActionPill(
+                    label: AppLocalizations.of(
+                      context,
+                    )!.common_delete.toUpperCase(),
+                    onTap: onDelete,
+                    kind: _PackActionKind.destructive,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              if (items.isEmpty)
+                SizedBox(
+                  height: 64,
+                  child: Center(
+                    child: Text(
+                      AppLocalizations.of(context)!.sticker_pack_empty_hint,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.45),
                       ),
-                    )
-                  else
-                    SizedBox(
-                      height: 46,
-                      child: Row(
-                        children: [
-                          for (final it in preview) ...[
-                            SizedBox(
-                              width: 46,
-                              height: 46,
-                              child: Padding(
-                                padding: const EdgeInsets.all(2),
-                                child: TickerMode(
-                                  enabled: allowAnimation,
-                                  child: CachedNetworkImage(
-                                    imageUrl: it.downloadUrl,
-                                    fit: BoxFit.contain,
-                                    placeholder: (_, _) =>
-                                        const SizedBox.shrink(),
-                                    errorWidget: (_, _, _) =>
-                                        const SizedBox.shrink(),
-                                  ),
+                    ),
+                  ),
+                )
+              else
+                SizedBox(
+                  height: 64,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: items.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 6),
+                    itemBuilder: (context, idx) {
+                      final it = items[idx];
+                      return Material(
+                        color: Colors.white.withValues(alpha: 0.04),
+                        borderRadius: BorderRadius.circular(10),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: () => onPickItem(it),
+                          child: SizedBox(
+                            width: 64,
+                            height: 64,
+                            child: Padding(
+                              padding: const EdgeInsets.all(4),
+                              child: TickerMode(
+                                enabled: allowAnimation,
+                                child: CachedNetworkImage(
+                                  imageUrl: it.downloadUrl,
+                                  fit: BoxFit.contain,
+                                  placeholder: (_, _) =>
+                                      const SizedBox.shrink(),
+                                  errorWidget: (_, _, _) =>
+                                      const SizedBox.shrink(),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 6),
-                          ],
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
           ),
         );
       },

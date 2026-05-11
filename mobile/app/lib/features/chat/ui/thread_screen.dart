@@ -2812,11 +2812,19 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                               ? fullScreenH
                                               : keyboardLikeH)
                                         : 0.0;
-                                    final footerHeight = [
+                                    final wantedTotal = [
                                       panelHeight,
-                                      keyboardInset,
                                       _stickersTransitionFooterFloor,
                                     ].reduce((a, b) => a > b ? a : b);
+                                    // См. chat_screen: Scaffold уже отдаёт
+                                    // viewInsets через resize. Чтобы общий
+                                    // вертикальный pad равнялся wantedTotal
+                                    // и composer не съезжал — вычитаем
+                                    // keyboardInset.
+                                    final footerHeight =
+                                        (wantedTotal - keyboardInset)
+                                            .clamp(0.0, double.infinity)
+                                            .toDouble();
                                     if (!_stickersPanelOpen) {
                                       if (footerHeight <= 0) {
                                         return const SizedBox.shrink();
@@ -2870,7 +2878,17 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                     );
                                     return SizedBox(
                                       height: footerHeight,
-                                      child: panel,
+                                      child: ClipRect(
+                                        child: OverflowBox(
+                                          alignment: Alignment.topCenter,
+                                          minHeight: 0,
+                                          maxHeight: panelHeight,
+                                          child: SizedBox(
+                                            height: panelHeight,
+                                            child: panel,
+                                          ),
+                                        ),
+                                      ),
                                     );
                                   },
                                 ),

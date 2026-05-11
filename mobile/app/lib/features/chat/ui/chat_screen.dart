@@ -2548,18 +2548,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                   ? fullScreenH
                                                   : keyboardLikeH)
                                             : 0.0;
-                                        // Объединяем: панель открыта → её
-                                        // высота; иначе — высота клавиатуры
-                                        // (с зарезервированным «полом» на
-                                        // время перехода keyboard↔panel,
-                                        // чтобы composer не прыгал).
-                                        final footerHeight = [
-                                          panelHeight,
-                                          keyboardInset,
-                                          _stickersTransitionFooterFloor,
-                                        ].reduce(
-                                          (a, b) => a > b ? a : b,
-                                        );
+                                        // Сколько ВСЕГО нижнего пространства
+                                        // мы хотим зарезервировать (включая
+                                        // зону, занятую клавиатурой). Если
+                                        // ничего из этого нет — 0.
+                                        final wantedTotal =
+                                            [
+                                              panelHeight,
+                                              _stickersTransitionFooterFloor,
+                                            ].reduce(
+                                              (a, b) => a > b ? a : b,
+                                            );
+                                        // Scaffold уже поджимает body на
+                                        // keyboardInset через resizeToAvoid-
+                                        // BottomInset. Чтобы общий «pad»
+                                        // (footer + keyboardInset) равнялся
+                                        // wantedTotal и composer не дёргался —
+                                        // вычитаем kb-inset из footer'а.
+                                        final footerHeight =
+                                            (wantedTotal - keyboardInset)
+                                                .clamp(0.0, double.infinity)
+                                                .toDouble();
                                         if (!_stickersPanelOpen) {
                                           if (footerHeight <= 0) {
                                             return const SizedBox.shrink();
@@ -2617,9 +2626,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                             _closeStickersPanel();
                                           },
                                         );
+                                        // Контейнер высотой footerHeight
+                                        // (видимая часть). Внутри панель
+                                        // рисуется на полной panelHeight и
+                                        // верх центрируется (т.е. низ
+                                        // клипается клавиатурой, пока та
+                                        // ещё опускается).
                                         return SizedBox(
                                           height: footerHeight,
-                                          child: panel,
+                                          child: ClipRect(
+                                            child: OverflowBox(
+                                              alignment:
+                                                  Alignment.topCenter,
+                                              minHeight: 0,
+                                              maxHeight: panelHeight,
+                                              child: SizedBox(
+                                                height: panelHeight,
+                                                child: panel,
+                                              ),
+                                            ),
+                                          ),
                                         );
                                       },
                                     ),
