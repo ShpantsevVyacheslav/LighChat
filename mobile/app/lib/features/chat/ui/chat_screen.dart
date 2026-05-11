@@ -2583,27 +2583,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                   ? fullScreenH
                                                   : keyboardLikeH)
                                             : 0.0;
-                                        // Сколько ВСЕГО нижнего пространства
-                                        // мы хотим зарезервировать (включая
-                                        // зону, занятую клавиатурой). Если
-                                        // ничего из этого нет — 0.
-                                        final wantedTotal =
-                                            [
-                                              panelHeight,
-                                              _stickersTransitionFooterFloor,
-                                            ].reduce(
-                                              (a, b) => a > b ? a : b,
-                                            );
-                                        // Scaffold уже поджимает body на
-                                        // keyboardInset через resizeToAvoid-
-                                        // BottomInset. Чтобы общий «pad»
-                                        // (footer + keyboardInset) равнялся
-                                        // wantedTotal и composer не дёргался —
-                                        // вычитаем kb-inset из footer'а.
-                                        final footerHeight =
-                                            (wantedTotal - keyboardInset)
-                                                .clamp(0.0, double.infinity)
-                                                .toDouble();
+                                        // ВАЖНО: Scaffold здесь с
+                                        // `resizeToAvoidBottomInset: false`
+                                        // (см. l. 1553) — body заполняет
+                                        // весь экран, клавиатура НЕ
+                                        // вычитается автоматически. Поэтому
+                                        // footer должен сам зарезервировать
+                                        // место под клавиатуру/шторку:
+                                        //   footer = max(panelH, kbInset, floor)
+                                        // При переходе keyboard↔panel
+                                        // panelH стабильно держит footer,
+                                        // даже когда kbInset падает с 290→0,
+                                        // и composer стоит на месте.
+                                        final footerHeight = [
+                                          panelHeight,
+                                          keyboardInset,
+                                          _stickersTransitionFooterFloor,
+                                        ].reduce((a, b) => a > b ? a : b);
                                         if (!_stickersPanelOpen) {
                                           if (footerHeight <= 0) {
                                             return const SizedBox.shrink();
@@ -2661,26 +2657,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                             _closeStickersPanel();
                                           },
                                         );
-                                        // Контейнер высотой footerHeight
-                                        // (видимая часть). Внутри панель
-                                        // рисуется на полной panelHeight и
-                                        // верх центрируется (т.е. низ
-                                        // клипается клавиатурой, пока та
-                                        // ещё опускается).
+                                        // footerHeight == max(panelH, kbInset)
+                                        // — пока клавиатура ещё опускается,
+                                        // panelH её перекрывает, шторка
+                                        // рендерится на полной высоте, низ
+                                        // прячется за клавиатурой (она
+                                        // системно поверх Flutter-view).
                                         return SizedBox(
                                           height: footerHeight,
-                                          child: ClipRect(
-                                            child: OverflowBox(
-                                              alignment:
-                                                  Alignment.topCenter,
-                                              minHeight: 0,
-                                              maxHeight: panelHeight,
-                                              child: SizedBox(
-                                                height: panelHeight,
-                                                child: panel,
-                                              ),
-                                            ),
-                                          ),
+                                          child: panel,
                                         );
                                       },
                                     ),

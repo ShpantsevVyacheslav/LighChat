@@ -2816,19 +2816,19 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                               ? fullScreenH
                                               : keyboardLikeH)
                                         : 0.0;
-                                    final wantedTotal = [
+                                    // ВАЖНО: Scaffold thread'а с
+                                    // `resizeToAvoidBottomInset: false`,
+                                    // body заполняет весь экран. Footer
+                                    // сам резервирует место под клавиатуру
+                                    // и/или шторку: footer =
+                                    // max(panelH, kbInset, floor). При
+                                    // переходе panelH стабильно держит
+                                    // место пока kbInset падает.
+                                    final footerHeight = [
                                       panelHeight,
+                                      keyboardInset,
                                       _stickersTransitionFooterFloor,
                                     ].reduce((a, b) => a > b ? a : b);
-                                    // См. chat_screen: Scaffold уже отдаёт
-                                    // viewInsets через resize. Чтобы общий
-                                    // вертикальный pad равнялся wantedTotal
-                                    // и composer не съезжал — вычитаем
-                                    // keyboardInset.
-                                    final footerHeight =
-                                        (wantedTotal - keyboardInset)
-                                            .clamp(0.0, double.infinity)
-                                            .toDouble();
                                     if (!_stickersPanelOpen) {
                                       if (footerHeight <= 0) {
                                         return const SizedBox.shrink();
@@ -2882,17 +2882,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                     );
                                     return SizedBox(
                                       height: footerHeight,
-                                      child: ClipRect(
-                                        child: OverflowBox(
-                                          alignment: Alignment.topCenter,
-                                          minHeight: 0,
-                                          maxHeight: panelHeight,
-                                          child: SizedBox(
-                                            height: panelHeight,
-                                            child: panel,
-                                          ),
-                                        ),
-                                      ),
+                                      child: panel,
                                     );
                                   },
                                 ),
