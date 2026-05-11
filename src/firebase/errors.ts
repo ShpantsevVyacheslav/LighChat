@@ -4,7 +4,8 @@ import { getAuth, type User } from 'firebase/auth';
 export type SecurityRuleContext = {
   path: string;
   operation: 'get' | 'list' | 'create' | 'update' | 'delete' | 'write';
-  requestResourceData?: any;
+  /** Firestore document payload — произвольная shape, debug-only (JSON.stringify). */
+  requestResourceData?: unknown;
 };
 
 interface FirebaseAuthToken {
@@ -30,7 +31,8 @@ interface SecurityRuleRequest {
   method: string;
   path: string;
   resource?: {
-    data: any;
+    /** Mirrors `request.resource.data` в security rules — произвольная shape. */
+    data: unknown;
   };
 }
 

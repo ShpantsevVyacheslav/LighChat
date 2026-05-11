@@ -5,8 +5,15 @@ import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Clock, AlertTriangle, Check } from 'lucide-react';
 
+/**
+ * Все 3 формы createdAt в LighChat: ISO string, Firestore Timestamp (с
+ * `.toDate()`), нативный Date (или Date-parseable число). `parseDateSafe`
+ * нормализует к Date. `null`/`undefined` фолбэк на now (UI рендерит «—»).
+ */
+type ChatTimestamp = string | Date | number | { toDate(): Date } | null | undefined;
+
 interface MessageStatusProps {
-  timestamp: any;
+  timestamp: ChatTimestamp;
   isCurrentUser: boolean;
   deliveryStatus?: 'sending' | 'sent' | 'failed';
   readAt: string | null;
@@ -17,7 +24,7 @@ interface MessageStatusProps {
   bare?: boolean;
 }
 
-const parseDateSafe = (date: any): Date => {
+const parseDateSafe = (date: ChatTimestamp): Date => {
   if (!date) return new Date();
   if (typeof date === 'string') {
     try {
@@ -26,12 +33,15 @@ const parseDateSafe = (date: any): Date => {
       return new Date(date);
     }
   }
-  if (date && typeof date.toDate === 'function') {
+  if (typeof date === 'object' && 'toDate' in date && typeof date.toDate === 'function') {
     return date.toDate();
   }
   if (date instanceof Date) return date;
-  const d = new Date(date);
-  return isNaN(d.getTime()) ? new Date() : d;
+  if (typeof date === 'number') {
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }
+  return new Date();
 };
 
 export function MessageStatus({ 

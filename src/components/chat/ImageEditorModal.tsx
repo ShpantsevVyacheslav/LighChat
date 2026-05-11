@@ -118,21 +118,22 @@ export function ImageEditorModal({ files: initialFiles, initialIndex, onSave, on
     const canvas = canvasRef.current;
     if (!canvas || !source) return;
 
-    const w = (source as any).naturalWidth || (source as any).width || 0;
-    const h = (source as any).naturalHeight || (source as any).height || 0;
+    // naturalWidth/Height есть только у HTMLImageElement; width/height — у HTMLCanvasElement.
+    const w = source instanceof HTMLImageElement ? source.naturalWidth : source.width;
+    const h = source instanceof HTMLImageElement ? source.naturalHeight : source.height;
 
     if (w <= 0 || h <= 0) return;
 
     const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
     if (!ctx) return;
-    
+
     canvas.width = w;
     canvas.height = h;
 
     ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, w, h);
-    ctx.drawImage(source as any, 0, 0);
+    ctx.drawImage(source, 0, 0);
     
     updateCanvasDisplaySize();
   }, [updateCanvasDisplaySize]);
@@ -268,9 +269,9 @@ export function ImageEditorModal({ files: initialFiles, initialIndex, onSave, on
     transformRef.current?.resetTransform(0);
   };
 
-  const handleMouseDown = (e: any) => {
+  const handleMouseDown = (e: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
     if (activeTool !== 'draw' || isImageLoading || !canvasRef.current) return;
-    
+
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
@@ -292,7 +293,7 @@ export function ImageEditorModal({ files: initialFiles, initialIndex, onSave, on
     }
   };
 
-  const handleMouseMove = (e: any) => {
+  const handleMouseMove = (e: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>) => {
     if (activeTool === 'draw' && isDrawing.current && canvasRef.current) {
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
