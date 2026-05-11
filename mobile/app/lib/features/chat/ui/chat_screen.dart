@@ -3776,8 +3776,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         await showReportSheet(
           context,
           reportedUserId: m.senderId,
-          messageId: m.id,
           conversationId: widget.conversationId,
+          messageId: m.id,
+          // Sender name: use loaded profile when it's a 1:1 chat with this sender
+          messageSenderName:
+              m.senderId == otherId ? profile?.name : null,
+          messageText: m.text,
         );
     }
   }

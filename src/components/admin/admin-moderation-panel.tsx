@@ -26,6 +26,9 @@ const REASON_LABEL_KEYS: Record<string, string> = {
   spam: 'admin.moderation.reasonSpam',
   harassment: 'admin.moderation.reasonHarassment',
   inappropriate: 'admin.moderation.reasonInappropriate',
+  offensive: 'admin.moderation.reasonOffensive',
+  violence: 'admin.moderation.reasonViolence',
+  fraud: 'admin.moderation.reasonFraud',
   other: 'admin.moderation.reasonOther',
 };
 

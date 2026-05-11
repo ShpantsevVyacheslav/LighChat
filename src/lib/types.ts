@@ -1112,7 +1112,15 @@ export type SupportTicketMessage = {
 
 // ─── Content Moderation ─────────────���───────────────────────────────────��───
 
-export type ReportReason = 'spam' | 'harassment' | 'inappropriate' | 'other';
+// 'offensive' | 'violence' | 'fraud' added to match mobile client reasons.
+export type ReportReason =
+  | 'spam'
+  | 'harassment'
+  | 'inappropriate'
+  | 'offensive'
+  | 'violence'
+  | 'fraud'
+  | 'other';
 export type ReportStatus = 'pending' | 'reviewed' | 'action_taken' | 'dismissed';
 export type ModerationAction = 'hidden' | 'user_warned' | 'user_blocked' | 'none';
 
@@ -1121,7 +1129,8 @@ export type MessageReport = {
   reporterId: string;
   reporterName: string;
   conversationId: string;
-  messageId: string;
+  /** Optional: absent for user-level reports without a specific message. */
+  messageId?: string;
   messageSenderId: string;
   messageSenderName?: string;
   messageText?: string;

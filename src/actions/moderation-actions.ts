@@ -17,13 +17,13 @@ const FirestoreIdSchema = z
 
 // Mirror src/lib/types.ts ReportReason — keep in sync.
 const ReportReasonSchema = z.enum([
-  'spam', 'harassment', 'inappropriate', 'other',
+  'spam', 'harassment', 'inappropriate', 'offensive', 'violence', 'fraud', 'other',
 ]);
 
 const CreateMessageReportSchema = z.object({
   idToken: z.string().min(1),
   conversationId: FirestoreIdSchema,
-  messageId: FirestoreIdSchema,
+  messageId: FirestoreIdSchema.optional(),
   messageSenderId: z.string().min(1).max(128),
   messageSenderName: z.string().max(200).optional(),
   messageText: z.string().max(4000).optional(),
@@ -57,7 +57,7 @@ const ReviewReportSchema = z.object({
 export async function createMessageReportAction(input: {
   idToken: string;
   conversationId: string;
-  messageId: string;
+  messageId?: string;
   messageSenderId: string;
   messageSenderName?: string;
   messageText?: string;
@@ -76,7 +76,7 @@ export async function createMessageReportAction(input: {
       reporterId: reporter.uid,
       reporterName: reporter.name,
       conversationId: parsed.data.conversationId,
-      messageId: parsed.data.messageId,
+      ...(parsed.data.messageId ? { messageId: parsed.data.messageId } : {}),
       messageSenderId: parsed.data.messageSenderId,
       messageSenderName: parsed.data.messageSenderName,
       messageText: parsed.data.messageText?.slice(0, 500),

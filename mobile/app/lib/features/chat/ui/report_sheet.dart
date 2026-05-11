@@ -4,19 +4,32 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 
-/// Категории жалобы — хранятся в Firestore as-is.
-enum _ReportReason { spam, offensive, violence, fraud, other }
+/// Категории жалобы — значения совпадают со строками ReportReason на бэкенде.
+enum _ReportReason {
+  spam,
+  offensive,
+  violence,
+  fraud,
+  other;
 
-/// Показывает bottom sheet с формой жалобы на пользователя или сообщение.
+  /// Строковое значение, которое хранится в Firestore (совпадает с web-типом).
+  String get firestoreValue => name; // spam, offensive, violence, fraud, other
+}
+
+/// Показывает bottom sheet с формой жалобы.
 ///
-/// [reportedUserId] — uid пользователя, на которого жалоба.
-/// [messageId] — id сообщения (если жалоба на конкретное сообщение).
-/// [conversationId] — id чата (для контекста).
+/// [reportedUserId]   — uid пользователя, на которого жалоба.
+/// [conversationId]   — id чата (обязателен).
+/// [messageId]        — id сообщения, если жалоба на конкретное сообщение.
+/// [messageSenderName]— отображаемое имя отправителя сообщения (опционально).
+/// [messageText]      — текст сообщения для контекста модератора (первые 500 симв.).
 Future<void> showReportSheet(
   BuildContext context, {
   required String reportedUserId,
+  required String conversationId,
   String? messageId,
-  String? conversationId,
+  String? messageSenderName,
+  String? messageText,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -24,8 +37,10 @@ Future<void> showReportSheet(
     backgroundColor: Colors.transparent,
     builder: (_) => _ReportSheet(
       reportedUserId: reportedUserId,
-      messageId: messageId,
       conversationId: conversationId,
+      messageId: messageId,
+      messageSenderName: messageSenderName,
+      messageText: messageText,
     ),
   );
 }
@@ -35,13 +50,17 @@ Future<void> showReportSheet(
 class _ReportSheet extends StatefulWidget {
   const _ReportSheet({
     required this.reportedUserId,
+    required this.conversationId,
     this.messageId,
-    this.conversationId,
+    this.messageSenderName,
+    this.messageText,
   });
 
   final String reportedUserId;
+  final String conversationId;
   final String? messageId;
-  final String? conversationId;
+  final String? messageSenderName;
+  final String? messageText;
 
   @override
   State<_ReportSheet> createState() => _ReportSheetState();
@@ -65,18 +84,30 @@ class _ReportSheetState extends State<_ReportSheet> {
 
     setState(() => _loading = true);
     try {
-      final me = FirebaseAuth.instance.currentUser?.uid;
+      final me = FirebaseAuth.instance.currentUser;
       if (me == null) throw Exception('not-authenticated');
 
-      await FirebaseFirestore.instance.collection('reports').add(<String, Object?>{
-        'reporterId': me,
-        'reportedUserId': widget.reportedUserId,
+      final reporterName =
+          me.displayName?.trim().isNotEmpty == true ? me.displayName! : me.uid;
+
+      await FirebaseFirestore.instance
+          .collection('messageReports')
+          .add(<String, Object?>{
+        'reporterId': me.uid,
+        'reporterName': reporterName,
+        'conversationId': widget.conversationId,
         if (widget.messageId != null) 'messageId': widget.messageId,
-        if (widget.conversationId != null) 'conversationId': widget.conversationId,
-        'reason': reason.name,
-        'comment': _commentController.text.trim(),
-        'createdAt': FieldValue.serverTimestamp(),
+        'messageSenderId': widget.reportedUserId,
+        if (widget.messageSenderName != null)
+          'messageSenderName': widget.messageSenderName,
+        if (widget.messageText != null)
+          'messageText': widget.messageText!.length > 500
+              ? widget.messageText!.substring(0, 500)
+              : widget.messageText,
+        'reason': reason.firestoreValue,
+        'description': _commentController.text.trim(),
         'status': 'pending',
+        'createdAt': DateTime.now().toUtc().toIso8601String(),
       });
 
       if (!mounted) return;
@@ -140,7 +171,9 @@ class _ReportSheetState extends State<_ReportSheet> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                 child: Text(
-                  isMessage ? l10n.report_subtitle_message : l10n.report_subtitle_user,
+                  isMessage
+                      ? l10n.report_subtitle_message
+                      : l10n.report_subtitle_user,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: scheme.onSurface.withValues(alpha: 0.55),
                       ),

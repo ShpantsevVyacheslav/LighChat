@@ -1404,6 +1404,7 @@ class _ChatPartnerProfileSheetState
                       context,
                       reportedUserId: partnerId,
                       conversationId: widget.conversationId,
+                      messageSenderName: widget.partnerProfile?.name,
                     ),
                   ),
                 ),

@@ -1656,8 +1656,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen> {
         await showReportSheet(
           context,
           reportedUserId: message.senderId,
-          messageId: message.id,
           conversationId: widget.conversationId,
+          messageId: message.id,
+          messageText: message.text,
         );
     }
   }
