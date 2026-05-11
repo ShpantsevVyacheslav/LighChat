@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { initLighChatAppCheck } from '@/firebase/app-check';
+import { logger } from '@/lib/logger';
 
 type FirebaseServices = {
     firebaseApp: FirebaseApp;
@@ -55,7 +56,7 @@ function getFirestoreLastResort(app: FirebaseApp): Firestore {
     try {
       return initializeFirestore(app, lp);
     } catch (e) {
-      console.warn('[Firebase] initializeFirestore(long poll only) failed; using getFirestore.', e);
+      logger.warn('firebase', 'initializeFirestore(long poll only) failed; using getFirestore.', e);
     }
   }
   return getFirestore(app);
@@ -75,16 +76,17 @@ async function internalInitialize(): Promise<FirebaseServices> {
     try {
         // Устанавливаем локальную персистентность для сохранения авторизации при закрытии PWA
         await setPersistence(auth, browserLocalPersistence);
-        console.log("Firebase auth persistence set to local successfully.");
+        logger.debug('firebase', 'auth persistence set to local successfully');
     } catch (error) {
-        console.error("Firebase auth persistence could not be set.", error);
+        logger.error('firebase', 'auth persistence could not be set', error);
     }
 
     let firestore: Firestore;
     try {
         if (shouldForceFirestoreLongPolling()) {
-            console.info(
-                '[LighChat] Firestore: включён long polling для стабильности на iOS / WebKit (PWA и Safari).'
+            logger.debug(
+                'firebase',
+                'Firestore: включён long polling для стабильности на iOS / WebKit (PWA и Safari).',
             );
         }
         // Постоянный кэш IndexedDB. Single-tab manager: меньше гонок внутри SDK при множестве
@@ -98,14 +100,15 @@ async function internalInitialize(): Promise<FirebaseServices> {
             ...longPollingFirestoreSettings(),
         });
     } catch (error: any) {
-        console.warn(
-          '[Firebase] Firestore с persistentLocalCache не поднялся (часто IndexedDB на iOS). Повтор без кэша.',
-          error
+        logger.warn(
+          'firebase',
+          'Firestore с persistentLocalCache не поднялся (часто IndexedDB на iOS). Повтор без кэша.',
+          error,
         );
         try {
             firestore = initializeFirestoreWithoutPersistentCache(app);
         } catch (e2) {
-            console.error('[Firebase] Повторная инициализация Firestore не удалась', e2);
+            logger.error('firebase', 'Повторная инициализация Firestore не удалась', e2);
             firestore = getFirestoreLastResort(app);
         }
     }
@@ -127,10 +130,10 @@ async function internalInitializeMemoryFirestore(): Promise<FirebaseServices> {
     try {
         await setPersistence(auth, browserLocalPersistence);
     } catch (error) {
-        console.warn('[Firebase] Fallback: persistence unavailable', error);
+        logger.warn('firebase', 'Fallback: persistence unavailable', error);
     }
     if (shouldForceFirestoreLongPolling()) {
-        console.info('[LighChat] Firestore (fallback): long polling для iOS / WebKit.');
+        logger.debug('firebase', 'Firestore (fallback): long polling для iOS / WebKit.');
     }
     let firestore: Firestore;
     try {
@@ -147,11 +150,11 @@ async function internalInitializeWithFallback(): Promise<FirebaseServices> {
     try {
         return await internalInitialize();
     } catch (err) {
-        console.error('[Firebase] Primary initialization failed, using memory Firestore fallback.', err);
+        logger.error('firebase', 'Primary initialization failed, using memory Firestore fallback.', err);
         try {
             return await internalInitializeMemoryFirestore();
         } catch (err2) {
-            console.error('[Firebase] Memory Firestore fallback failed, last-resort Firestore.', err2);
+            logger.error('firebase', 'Memory Firestore fallback failed, last-resort Firestore.', err2);
             const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
             return {
                 firebaseApp: app,

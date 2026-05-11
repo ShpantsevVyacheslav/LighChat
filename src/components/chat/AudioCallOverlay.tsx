@@ -200,7 +200,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
             const ringbackUrl = await getDownloadURL(storageRef(storage, 'audio/ringback.mp3'));
             setStorageUrls({ ringtone: ringtoneUrl, ringback: ringbackUrl });
         } catch {
-            console.warn("[WebRTC] Audio files not found in Storage (audio/ringtone.mp3, audio/ringback.mp3). Upload them to enable call sounds.");
+            logger.warn('webrtc', 'Audio files not found in Storage (audio/ringtone.mp3, audio/ringback.mp3). Upload them to enable call sounds.');
             setStorageUrls({ ringtone: null, ringback: null });
         }
     };
@@ -288,7 +288,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
             localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
         }
     } catch (e) {
-        console.error("[WebRTC] Media capture failed:", e);
+        logger.error('webrtc', 'Media capture failed', e);
         mediaRequestInProgress.current = false;
         toast({ variant: 'destructive', title: t('chat.audioCall.accessErrorTitle'), description: t('chat.audioCall.accessErrorDesc') });
         throw e;
@@ -354,7 +354,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
         if (picked) setActiveCall(picked);
       },
       (err) => {
-        console.error('[AudioCallOverlay] calls subscription error:', err);
+        logger.error('audio-call', 'calls subscription error', err);
         toast({
           variant: 'destructive',
           title: t('chat.audioCall.callsTitle'),
@@ -379,7 +379,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
             offer: { type: offer.type, sdp: offer.sdp },
           });
         } catch (e) {
-          console.error('[WebRTC] Caller setup error', e);
+          logger.error('webrtc', 'Caller setup error', e);
           isSettingUp.current = false;
           toast({
             variant: 'destructive',
@@ -422,7 +422,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
         startedAt: new Date().toISOString(),
       });
     } catch (e) {
-      console.error('[WebRTC] acceptCall', e);
+      logger.error('webrtc', 'acceptCall', e);
       toast({
         variant: 'destructive',
         title: t('chat.audioCall.acceptFailedTitle'),
@@ -454,7 +454,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
             peerConnection.current?.addIceCandidate(new RTCIceCandidate(iceCandidatesQueue.current.shift()!)).catch(() => {});
           }
         })
-        .catch((err) => console.error('[WebRTC] Answer apply failed', err));
+        .catch((err) => logger.error('webrtc', 'Answer apply failed', err));
     }
   }, [activeCall?.status, activeCall?.answer, activeCall?.callerId, currentUser.id]);
 
@@ -553,7 +553,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
         });
       },
       (err) => {
-        console.error('[AudioCallOverlay] peer profile snapshot failed:', err);
+        logger.error('audio-call', 'peer profile snapshot failed', err);
         setOtherUser({ name: fallbackName, avatar: '', avatarThumb: undefined });
       }
     );
@@ -645,7 +645,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
             }
         }
     } catch (e) {
-        console.error("Reverting to camera failed:", e);
+        logger.error('webrtc', 'Reverting to camera failed', e);
     }
   };
 
@@ -678,7 +678,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
           stopScreenShare();
         };
       } catch (e) {
-        console.error("Screen share error:", e);
+        logger.error('webrtc', 'Screen share error', e);
       }
     } else {
       stopScreenShare();
@@ -710,7 +710,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
             }
         }
     } catch (e) {
-        console.error("Switch camera failed:", e);
+        logger.error('webrtc', 'Switch camera failed', e);
         toast({ variant: 'destructive', title: t('chat.audioCall.errorTitle'), description: t('chat.audioCall.switchCameraErrorDesc') });
     }
   };
