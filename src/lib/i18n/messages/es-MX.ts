@@ -1434,6 +1434,7 @@ export const messagesEsMx = {
       delete: 'Delete',
       addToStarred: 'Add to starred',
       removeFromStarred: 'Remove from starred',
+      report: 'Reportar',
     },
     pinnedBar: {
       pinnedMessages: 'Pinned messages',

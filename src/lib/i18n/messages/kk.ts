@@ -1434,6 +1434,7 @@ export const messagesKk = {
       delete: 'Delete',
       addToStarred: 'Add to starred',
       removeFromStarred: 'Remove from starred',
+      report: 'Шағым жасау',
     },
     pinnedBar: {
       pinnedMessages: 'Pinned messages',

@@ -1434,6 +1434,7 @@ export const messagesRu = {
       delete: 'Удалить',
       addToStarred: 'Добавить в избранное',
       removeFromStarred: 'Убрать из избранного',
+      report: 'Пожаловаться',
     },
     pinnedBar: {
       pinnedMessages: 'Закреплённые сообщения',

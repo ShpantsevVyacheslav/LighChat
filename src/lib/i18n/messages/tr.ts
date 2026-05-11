@@ -1434,6 +1434,7 @@ export const messagesTr = {
       delete: 'Delete',
       addToStarred: 'Add to starred',
       removeFromStarred: 'Remove from starred',
+      report: 'Şikayet et',
     },
     pinnedBar: {
       pinnedMessages: 'Pinned messages',

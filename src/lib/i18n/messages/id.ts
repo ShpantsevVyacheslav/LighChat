@@ -1434,6 +1434,7 @@ export const messagesId = {
       delete: 'Delete',
       addToStarred: 'Add to starred',
       removeFromStarred: 'Remove from starred',
+      report: 'Laporkan',
     },
     pinnedBar: {
       pinnedMessages: 'Pinned messages',

@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  Trash2, Edit, Copy, Pin, Forward, Reply, 
-  CheckSquare, MessageSquare, BookmarkPlus, Star, ImagePlus
+import {
+  Trash2, Edit, Copy, Pin, Forward, Reply,
+  CheckSquare, MessageSquare, BookmarkPlus, Star, ImagePlus, Flag
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -45,7 +45,7 @@ interface MessageContextMenuProps {
   canSaveSticker?: boolean;
   /** Картинка из сетки — «Создать стикер» (квадрат под размер пака). */
   canCreateSticker?: boolean;
-  onAction: (action: 'reply' | 'copy' | 'edit' | 'pin' | 'forward' | 'delete' | 'react' | 'select' | 'thread' | 'save_sticker' | 'create_sticker' | 'star', payload?: string) => void;
+  onAction: (action: 'reply' | 'copy' | 'edit' | 'pin' | 'forward' | 'delete' | 'react' | 'select' | 'thread' | 'save_sticker' | 'create_sticker' | 'star' | 'report', payload?: string) => void;
   showStarAction?: boolean;
   isStarred?: boolean;
   /** Основная лента с `onOpenThread`; в ветке и без колбэка — скрыть. */
@@ -245,13 +245,24 @@ export function MessageContextMenu({
             ) : null}
             <MenuButton icon={CheckSquare} label={t('chat.contextMenu.select')} onClick={() => { onAction('select'); onClose(); }} />
             
+            {!isCurrentUser && (
+              <>
+                <Separator className="my-1 opacity-10" />
+                <MenuButton
+                  icon={Flag}
+                  label={t('chat.contextMenu.report')}
+                  onClick={() => { onAction('report'); onClose(); }}
+                  className="text-red-500 hover:bg-red-500/20"
+                />
+              </>
+            )}
             {isCurrentUser && (
               <>
                 <Separator className="my-1 opacity-10" />
-                <MenuButton 
-                  icon={Trash2} 
+                <MenuButton
+                  icon={Trash2}
                   label={t('chat.contextMenu.delete')}
-                  onClick={() => { onAction('delete'); onClose(); }} 
+                  onClick={() => { onAction('delete'); onClose(); }}
                   className="text-red-500 hover:bg-red-500/20"
                 />
               </>

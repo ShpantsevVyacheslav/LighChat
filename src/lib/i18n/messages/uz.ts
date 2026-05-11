@@ -1434,6 +1434,7 @@ export const messagesUz = {
       delete: 'Delete',
       addToStarred: 'Add to starred',
       removeFromStarred: 'Remove from starred',
+      report: 'Shikoyat qilish',
     },
     pinnedBar: {
       pinnedMessages: 'Pinned messages',

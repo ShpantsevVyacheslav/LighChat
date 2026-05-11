@@ -1434,6 +1434,7 @@ export const messagesPtBr = {
       delete: 'Delete',
       addToStarred: 'Add to starred',
       removeFromStarred: 'Remove from starred',
+      report: 'Denunciar',
     },
     pinnedBar: {
       pinnedMessages: 'Pinned messages',
