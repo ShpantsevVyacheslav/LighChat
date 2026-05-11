@@ -302,6 +302,7 @@ export const messagesKk = {
     accountMenuAria: 'Профиль және параметрлер',
   },
   accountMenu: {
+    qrCode: 'Менің QR‑кодым',
     profile: 'Профиль',
     features: 'Мүмкіндіктер',
     chatSettings: 'Чат параметрлері',

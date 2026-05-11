@@ -302,6 +302,7 @@ export const messagesRu = {
     accountMenuAria: 'Профиль и настройки',
   },
   accountMenu: {
+    qrCode: 'Мой QR‑код',
     profile: 'Профиль',
     features: 'Возможности',
     chatSettings: 'Настройки чата',

@@ -302,6 +302,7 @@ export const messagesTr = {
     accountMenuAria: 'Profil ve ayarlar',
   },
   accountMenu: {
+    qrCode: 'QR kodum',
     profile: 'Profil',
     features: 'Özellikler',
     chatSettings: 'Sohbet ayarları',

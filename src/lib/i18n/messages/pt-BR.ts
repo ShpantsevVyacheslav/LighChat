@@ -302,6 +302,7 @@ export const messagesPtBr = {
     accountMenuAria: 'Perfil e configurações',
   },
   accountMenu: {
+    qrCode: 'Meu código QR',
     profile: 'Perfil',
     features: 'Recursos',
     chatSettings: 'Configurações do chat',

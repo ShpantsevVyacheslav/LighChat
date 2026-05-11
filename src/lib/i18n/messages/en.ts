@@ -300,6 +300,7 @@ export const messagesEn = {
     accountMenuAria: 'Profile and settings',
   },
   accountMenu: {
+    qrCode: 'My QR code',
     profile: 'Profile',
     features: 'Features',
     chatSettings: 'Chat settings',

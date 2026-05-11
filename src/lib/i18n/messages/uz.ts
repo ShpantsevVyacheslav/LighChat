@@ -302,6 +302,7 @@ export const messagesUz = {
     accountMenuAria: 'Profil va sozlamalar',
   },
   accountMenu: {
+    qrCode: 'QR‑kodim',
     profile: 'Profil',
     features: 'Imkoniyatlar',
     chatSettings: 'Chat sozlamalari',

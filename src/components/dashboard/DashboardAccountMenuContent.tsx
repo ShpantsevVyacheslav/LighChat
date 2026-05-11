@@ -16,6 +16,7 @@ import {
   Sparkles,
   UserX,
   Languages,
+  QrCode,
 } from 'lucide-react';
 import type { AppThemePreference, UserRole } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -65,12 +66,14 @@ function ProfileMenuItem({
 type DashboardAccountMenuContentProps = {
   /** Закрыть поповер и при необходимости мобильный сайдбар */
   onNavigate: () => void;
+  /** Открыть диалог личного QR‑кода (поповер при этом закрывается родителем). */
+  onOpenQr?: () => void;
 };
 
 /**
  * Меню профиля и настроек (поповер у аватара в нижней навигации).
  */
-export function DashboardAccountMenuContent({ onNavigate }: DashboardAccountMenuContentProps) {
+export function DashboardAccountMenuContent({ onNavigate, onOpenQr }: DashboardAccountMenuContentProps) {
   const { user, logout, updateUser } = useAuth();
   const role = user?.role as UserRole | undefined;
   const { isMobile, setOpenMobile } = useSidebar();
@@ -139,6 +142,17 @@ export function DashboardAccountMenuContent({ onNavigate }: DashboardAccountMenu
           <p className="text-sm font-bold truncate">{user.name}</p>
           {user.username && <p className="text-[11px] text-muted-foreground truncate">@{user.username}</p>}
         </div>
+        {onOpenQr && (
+          <button
+            type="button"
+            onClick={onOpenQr}
+            aria-label={t('accountMenu.qrCode')}
+            title={t('accountMenu.qrCode')}
+            className="shrink-0 flex h-9 w-9 items-center justify-center rounded-xl text-foreground/80 hover:bg-foreground/5 hover:text-foreground transition-colors"
+          >
+            <QrCode className="h-5 w-5" aria-hidden />
+          </button>
+        )}
       </div>
       <div className="h-px bg-border/50 mx-2 my-1" />
       {/* Group 1: Аккаунт и приватность */}

@@ -302,6 +302,7 @@ export const messagesId = {
     accountMenuAria: 'Profil dan pengaturan',
   },
   accountMenu: {
+    qrCode: 'Kode QR saya',
     profile: 'Profil',
     features: 'Fitur',
     chatSettings: 'Pengaturan chat',

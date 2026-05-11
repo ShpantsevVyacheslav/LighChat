@@ -302,6 +302,7 @@ export const messagesEsMx = {
     accountMenuAria: 'Perfil y configuración',
   },
   accountMenu: {
+    qrCode: 'Mi código QR',
     profile: 'Perfil',
     features: 'Funciones',
     chatSettings: 'Ajustes del chat',
