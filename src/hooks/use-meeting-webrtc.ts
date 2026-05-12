@@ -20,9 +20,31 @@ import {
 } from '@/lib/meeting-webrtc-logger';
 import { normalizeInboundSignalForSimplePeer } from '@/lib/meeting-signaling-normalize';
 import { watchPeerStats, type PeerConnectionQuality } from '@/lib/webrtc/peer-stats';
+import type { Instance as SimplePeerInstance } from 'simple-peer';
 
 if (typeof window !== 'undefined' && !window.process) {
-    (window as any).process = { env: {} };
+    // simple-peer (CommonJS) ожидает `process.env` на window в браузере —
+    // без shim падает с "process is not defined" при require'е через webpack.
+    (window as unknown as { process: { env: Record<string, string> } }).process = { env: {} };
+}
+
+/** Опции для `getDisplayMedia` (расширены нестандартными ChromeOS-флагами). */
+interface DisplayMediaOptionsExt extends MediaStreamConstraints {
+  video?: boolean | (MediaTrackConstraints & { cursor?: string; displaySurface?: string });
+}
+
+/** Параметры media-init, прокидываемые из MeetingRoom. */
+interface MeetingInitialSettings {
+  micMuted?: boolean;
+  videoOff?: boolean;
+  name?: string;
+  stream?: MediaStream | null;
+}
+
+/** Результат @mediapipe/selfie_segmentation — описываем только используемые поля. */
+interface SelfieSegmentationResults {
+  image: { width: number; height: number } & CanvasImageSource;
+  segmentationMask: CanvasImageSource;
 }
 
 /** В рантайме simple-peer кладёт нативный PC в `_pc`; в @types/simple-peer этого поля нет. */
@@ -49,7 +71,8 @@ export interface ParticipantState {
   isScreenSharing?: boolean;
   reaction?: string | null;
   role?: string;
-  lastSeen?: any;
+  /** ISO-строка или millis; null если профиль ещё не загружен. */
+  lastSeen?: string | number | null;
   backgroundConfig?: BackgroundConfig;
   facingMode?: 'user' | 'environment';
   forceMuteAudio?: boolean;
@@ -101,7 +124,7 @@ export interface UseMeetingWebRTCResult {
   retryPeer: (remoteId: string) => void;
 }
 
-export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSettings: any): UseMeetingWebRTCResult {
+export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSettings: MeetingInitialSettings): UseMeetingWebRTCResult {
   const [participants, setParticipants] = useState<Record<string, ParticipantState>>({});
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [isMicMuted, setIsMicMuted] = useState(!!initialSettings.micMuted);
@@ -113,7 +136,7 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
   const [isMediaReady, setIsMediaReady] = useState(false);
   const [isParticipantSynced, setIsParticipantSynced] = useState(false);
 
-  const peers = useRef<Record<string, any>>({});
+  const peers = useRef<Record<string, SimplePeerInstance>>({});
   const creatingPeers = useRef<Set<string>>(new Set());
   /** Сигналы (SDP/ICE), пришедшие пока simple-peer ещё создаётся — иначе теряются и связь не поднимается. */
   const pendingSignalsByPeerRef = useRef<Record<string, unknown[]>>({});
@@ -163,7 +186,7 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
     forceRelay: boolean;
   }>>({});
 
-  const selfieSegmentationRef = useRef<any>(null);
+  const selfieSegmentationRef = useRef<import('@mediapipe/selfie_segmentation').SelfieSegmentation | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const requestAnimationRef = useRef<number | null>(null);
@@ -213,9 +236,10 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
       peerCount: Object.keys(peers.current).length,
     });
     Object.values(peers.current).forEach(p => {
-        if (!p || p.destroyed || !p._pc || p._pc.signalingState === 'closed') return;
+        const pc = getSimplePeerRTCPeerConnection(p);
+        if (!p || p.destroyed || !pc || pc.signalingState === 'closed') return;
         try {
-            const senders = p._pc.getSenders();
+            const senders = pc.getSenders();
             const sender = senders.find((s: RTCRtpSender) => s.track?.kind === newTrack.kind);
             if (sender) {
                 sender.replaceTrack(newTrack).catch((err: Error) => {
@@ -307,9 +331,9 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
   const toggleScreenShare = useCallback(async () => {
     if (!isScreenSharing) {
         try {
-            const screenStreamOptions: any = {
-                video: { cursor: "always", displaySurface: "browser" },
-                audio: { echoCancellation: true, noiseSuppression: true }
+            const screenStreamOptions: DisplayMediaOptionsExt = {
+                video: { cursor: 'always', displaySurface: 'browser' },
+                audio: { echoCancellation: true, noiseSuppression: true },
             };
             const stream = await navigator.mediaDevices.getDisplayMedia(screenStreamOptions);
             screenStreamRef.current = stream;
@@ -330,11 +354,12 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
                     });
                 }
             }
-        } catch (e: any) {
+        } catch (e: unknown) {
             // NotAllowedError — пользователь отменил диалог выбора экрана: не шумим в тосте.
             // Прочие ошибки (NotSupported, AbortError, permission в policy) — логируем и
             // информируем пользователя, иначе UI молчит и выглядит как баг.
-            if (e?.name !== 'NotAllowedError') {
+            const errName = e instanceof Error ? e.name : '';
+            if (errName !== 'NotAllowedError') {
                 logger.warn('webrtc', 'getDisplayMedia failed', e);
                 toast({ variant: 'destructive', title: 'Не удалось запустить демонстрацию экрана' });
             }
@@ -491,8 +516,8 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
     recreatePeer(remoteId);
   }, [ensureReconnectEntry, recreatePeer]);
 
-  const attachResilience = useCallback((p: any, remoteId: string) => {
-    const pc: RTCPeerConnection | undefined = p?._pc;
+  const attachResilience = useCallback((p: SimplePeerInstance, remoteId: string) => {
+    const pc: RTCPeerConnection | undefined = getSimplePeerRTCPeerConnection(p);
     if (!pc) return;
 
     const initiator = currentUser.id < remoteId;
@@ -503,27 +528,43 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
       candidatePairLogged = true;
       try {
         const stats = await pc.getStats();
-        let pair: any = null;
-        const candidates: Record<string, any> = {};
-        stats.forEach((report: any) => {
-          if (report.type === 'candidate-pair' && report.nominated && report.state === 'succeeded') {
-            pair = report;
+        // RTCStats — base interface; для каждого `report.type` поля разные.
+        // Описываем сводный union для тех типов отчётов, которые мы читаем.
+        type RtcReport = RTCStats & Record<string, unknown> & {
+          id: string;
+          nominated?: boolean;
+          state?: string;
+          selectedCandidatePairId?: string;
+          localCandidateId?: string;
+          remoteCandidateId?: string;
+          candidateType?: string;
+          protocol?: string;
+          relayProtocol?: string;
+        };
+        let pair: RtcReport | null = null;
+        const candidates: Record<string, RtcReport> = {};
+        stats.forEach((report: RTCStats) => {
+          const r = report as RtcReport;
+          if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') {
+            pair = r;
           }
-          if (report.type === 'local-candidate' || report.type === 'remote-candidate') {
-            candidates[report.id] = report;
+          if (r.type === 'local-candidate' || r.type === 'remote-candidate') {
+            candidates[r.id] = r;
           }
         });
         if (!pair) {
           // Не у всех браузеров `nominated` ставится — fallback: selected candidate pair у transport.
-          stats.forEach((report: any) => {
-            if (report.type === 'transport' && report.selectedCandidatePairId) {
-              pair = stats.get(report.selectedCandidatePairId);
+          stats.forEach((report: RTCStats) => {
+            const r = report as RtcReport;
+            if (r.type === 'transport' && r.selectedCandidatePairId) {
+              pair = (stats.get(r.selectedCandidatePairId) as RtcReport) ?? null;
             }
           });
         }
         if (!pair) return;
-        const local = candidates[pair.localCandidateId];
-        const remote = candidates[pair.remoteCandidateId];
+        const finalPair: RtcReport = pair;
+        const local = finalPair.localCandidateId ? candidates[finalPair.localCandidateId] : undefined;
+        const remote = finalPair.remoteCandidateId ? candidates[finalPair.remoteCandidateId] : undefined;
         // `relay` означает что трафик идёт через TURN. Если оба `host`/`srflx` — TURN не задействован.
         // Это самая полезная диагностика: при «Connection failed» в проде сразу видно, был ли relay.
         mlog.info('peer', `selectedCandidatePair remote=${remoteId}`, {
@@ -607,7 +648,9 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
           if (initiator) {
             try {
               pc.restartIce();
-              p.negotiate?.();
+              // `.negotiate()` есть в simple-peer (forces renegotiation),
+              // но в `@types/simple-peer` не объявлен. Безопасно подсунем optional.
+              (p as unknown as { negotiate?: () => void }).negotiate?.();
               mlog.info('ice', `ICE restart requested remote=${remoteId}`, { curState });
             } catch (e) {
               mlog.warn('ice', `restartIce failed, recreate remote=${remoteId}`, { err: String(e) });
@@ -637,7 +680,7 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
    * Нужен forward-ref, т.к. `recreatePeer` вызывает `setupPeer`, а `setupPeer` ниже.
    * Альтернатива — реорганизовать файл; минимальное изменение через ref безопаснее.
    */
-  const setupPeerRef = useRef<((remoteId: string, initiator: boolean, opts?: { forceRelay?: boolean }) => Promise<any>) | null>(null);
+  const setupPeerRef = useRef<((remoteId: string, initiator: boolean, opts?: { forceRelay?: boolean }) => Promise<SimplePeerInstance | null>) | null>(null);
 
   const setupPeer = useCallback(async (remoteId: string, initiator: boolean, opts?: { forceRelay?: boolean }) => {
     if (!isMountedRef.current) {
@@ -687,7 +730,7 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
           config: rtcConfig,
         });
 
-        p.on('signal', (data: any) => {
+        p.on('signal', (data) => {
           if (firestore && !p.destroyed && isMountedRef.current) {
             const summary = summarizeSignalPayload(data);
             mlog.v('signal', `outgoing → ${remoteId}`, { remoteId, ...summary });
@@ -719,9 +762,9 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
           setParticipants(prev => ({ ...prev, [remoteId]: { ...prev[remoteId], id: remoteId, stream: remoteStream } }));
         });
 
-        p.on('error', (err: any) => { 
+        p.on('error', (err: unknown) => {
             mlog.err('peer', `simple-peer error remote=${remoteId}`, err, { remoteId, initiator });
-            creatingPeers.current.delete(remoteId); 
+            creatingPeers.current.delete(remoteId);
         });
 
         // Метрики качества соединения; отписка — при close.
@@ -797,7 +840,7 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
             });
             segmentation.setOptions({ modelSelection: 0, selfieMode: false });
             
-            segmentation.onResults((results: any) => {
+            segmentation.onResults((results: SelfieSegmentationResults) => {
                 if (!isMountedRef.current) return;
                 const canvas = canvasRef.current;
                 const ctx = canvas?.getContext('2d', { alpha: false });
@@ -943,7 +986,10 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
     requestAnimationRef.current = requestAnimationFrame(processFrame);
 
     try {
-        const canvasStream = (canvas as any).captureStream(25);
+        // captureStream — стандартный HTMLCanvasElement API, но в @types/dom
+        // он помечен экспериментальным и отсутствует в lib.dom.d.ts. См. MDN:
+        // https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/captureStream
+        const canvasStream = (canvas as HTMLCanvasElement & { captureStream: (fps: number) => MediaStream }).captureStream(25);
         const canvasTrack = canvasStream.getVideoTracks()[0];
         if (canvasTrack && localStream) {
             const currentTrack = localStream.getVideoTracks()[0];
@@ -1187,7 +1233,9 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
 
           if (p && !p.destroyed) {
             try {
-              p.signal(payload);
+              // `payload` приходит из `normalizeInboundSignalForSimplePeer`
+              // как `unknown` — runtime-валидацию делает simple-peer сам.
+              p.signal(payload as Parameters<typeof p.signal>[0]);
             } catch (e) {
               mlog.err('signal', `p.signal() failed from=${from}`, e, summary);
             }

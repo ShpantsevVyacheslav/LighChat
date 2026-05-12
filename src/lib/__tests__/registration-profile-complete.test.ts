@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { isRegistrationProfileComplete } from '@/lib/registration-profile-complete';
+import type { User } from '@/lib/types';
 
 /**
  * [audit M-013] Гейт «регистрация завершена» — используется в auth-флоу и
@@ -11,6 +12,18 @@ import { isRegistrationProfileComplete } from '@/lib/registration-profile-comple
  * пустой email сломает Auth flow).
  */
 
+type ProfileInput = Pick<User, 'name' | 'username' | 'phone' | 'email'>;
+
+function profile(overrides: Partial<ProfileInput> = {}): ProfileInput {
+  return {
+    name: 'Иван',
+    username: 'ivan_petrov',
+    phone: '+79001234567',
+    email: 'ivan@example.com',
+    ...overrides,
+  };
+}
+
 describe('isRegistrationProfileComplete', () => {
   it('null / undefined → false', () => {
     expect(isRegistrationProfileComplete(null)).toBe(false);
@@ -18,127 +31,61 @@ describe('isRegistrationProfileComplete', () => {
   });
 
   it('happy path: name + username + email', () => {
-    expect(
-      isRegistrationProfileComplete({
-        name: 'Иван Петров',
-        username: 'ivan_petrov',
-        email: 'ivan@example.com',
-      }),
-    ).toBe(true);
+    expect(isRegistrationProfileComplete(profile({ name: 'Иван Петров' }))).toBe(true);
   });
 
   it('name короче 2 символов → false', () => {
-    expect(
-      isRegistrationProfileComplete({
-        name: 'И',
-        username: 'ivan_petrov',
-        email: 'ivan@example.com',
-      }),
-    ).toBe(false);
+    expect(isRegistrationProfileComplete(profile({ name: 'И' }))).toBe(false);
   });
 
   it('name из одних пробелов → false', () => {
-    expect(
-      isRegistrationProfileComplete({
-        name: '   ',
-        username: 'ivan_petrov',
-        email: 'ivan@example.com',
-      }),
-    ).toBe(false);
+    expect(isRegistrationProfileComplete(profile({ name: '   ' }))).toBe(false);
   });
 
   it('пустой username → false', () => {
-    expect(
-      isRegistrationProfileComplete({
-        name: 'Иван',
-        username: '',
-        email: 'ivan@example.com',
-      }),
-    ).toBe(false);
+    expect(isRegistrationProfileComplete(profile({ username: '' }))).toBe(false);
   });
 
   it('username из недопустимых символов нормализуется и валится (слишком короткий)', () => {
-    expect(
-      isRegistrationProfileComplete({
-        name: 'Иван',
-        username: '@@',
-        email: 'ivan@example.com',
-      }),
-    ).toBe(false);
+    expect(isRegistrationProfileComplete(profile({ username: '@@' }))).toBe(false);
   });
 
   it('кириллица в username нормализуется в "_" → не проходит длину', () => {
-    expect(
-      isRegistrationProfileComplete({
-        name: 'Иван',
-        username: 'иван',
-        email: 'ivan@example.com',
-      }),
-    ).toBe(false);
+    expect(isRegistrationProfileComplete(profile({ username: 'иван' }))).toBe(false);
   });
 
   it('username с точкой посередине проходит', () => {
     expect(
-      isRegistrationProfileComplete({
-        name: 'Иван',
-        username: 'shpantsev.vyacheslav',
-        email: 'ivan@example.com',
-      }),
+      isRegistrationProfileComplete(profile({ username: 'shpantsev.vyacheslav' })),
     ).toBe(true);
   });
 
   it('email без @ → false', () => {
-    expect(
-      isRegistrationProfileComplete({
-        name: 'Иван',
-        username: 'ivan_petrov',
-        email: 'not-an-email',
-      }),
-    ).toBe(false);
+    expect(isRegistrationProfileComplete(profile({ email: 'not-an-email' }))).toBe(false);
   });
 
   it('email без TLD → false', () => {
-    expect(
-      isRegistrationProfileComplete({
-        name: 'Иван',
-        username: 'ivan_petrov',
-        email: 'ivan@example',
-      }),
-    ).toBe(false);
+    expect(isRegistrationProfileComplete(profile({ email: 'ivan@example' }))).toBe(false);
   });
 
   it('пустой email → false', () => {
-    expect(
-      isRegistrationProfileComplete({
-        name: 'Иван',
-        username: 'ivan_petrov',
-        email: '',
-      }),
-    ).toBe(false);
+    expect(isRegistrationProfileComplete(profile({ email: '' }))).toBe(false);
   });
 
   it('email с пробелами вокруг — trim проходит', () => {
     expect(
-      isRegistrationProfileComplete({
-        name: 'Иван',
-        username: 'ivan_petrov',
-        email: '  ivan@example.com  ',
-      }),
+      isRegistrationProfileComplete(profile({ email: '  ivan@example.com  ' })),
     ).toBe(true);
   });
 
   it('null-поля → false (все три необходимы)', () => {
     // @ts-expect-error — runtime защита
-    expect(isRegistrationProfileComplete({ name: null, username: null, email: null })).toBe(false);
+    expect(isRegistrationProfileComplete({ name: null, username: null, email: null, phone: null })).toBe(false);
   });
 
   it('username принимает email-подобную строку и берет local-part', () => {
     expect(
-      isRegistrationProfileComplete({
-        name: 'Иван',
-        username: 'shpantsev.vyacheslav@m.thelightech.com',
-        email: 'ivan@example.com',
-      }),
+      isRegistrationProfileComplete(profile({ username: 'shpantsev.vyacheslav@m.thelightech.com' })),
     ).toBe(true);
   });
 
@@ -146,11 +93,7 @@ describe('isRegistrationProfileComplete', () => {
     const longUsername = 'a'.repeat(40);
     // нормализация обрежет до 30 — это валидно по факту
     expect(
-      isRegistrationProfileComplete({
-        name: 'Иван',
-        username: longUsername,
-        email: 'ivan@example.com',
-      }),
+      isRegistrationProfileComplete(profile({ username: longUsername })),
     ).toBe(true);
   });
 });

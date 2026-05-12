@@ -14,6 +14,32 @@ import type { PeerConnectionQuality } from '@/lib/webrtc/peer-stats';
 import { useI18n } from '@/hooks/use-i18n';
 import { logger } from '@/lib/logger';
 
+/**
+ * [audit L-006] Минимальные типы для vendor-prefixed Web APIs (Safari/legacy).
+ * Раньше каждое использование делало `(document as any)` / `(video as any)` —
+ * 14 unsafe-casts в одном файле. Сейчас точечные интерфейсы дают TypeScript
+ * понять, какие именно поля мы трогаем, и линтер ловит опечатки.
+ */
+interface VendorDocument {
+  pictureInPictureEnabled?: boolean;
+  webkitFullscreenElement?: Element | null;
+  mozFullScreenElement?: Element | null;
+  msFullscreenElement?: Element | null;
+  webkitExitFullscreen?: () => Promise<void> | void;
+}
+interface VendorElement {
+  webkitRequestFullscreen?: () => Promise<void> | void;
+}
+interface VendorVideoElement {
+  webkitEnterFullscreen?: () => void;
+  webkitSupportsPresentationMode?: (mode: string) => boolean;
+  webkitSetPresentationMode?: (mode: 'inline' | 'picture-in-picture') => void;
+  webkitPresentationMode?: 'inline' | 'picture-in-picture';
+}
+interface VendorWindow {
+  webkitAudioContext?: typeof AudioContext;
+}
+
 interface ParticipantState {
   id: string;
   name: string;
@@ -26,7 +52,8 @@ interface ParticipantState {
   isScreenSharing?: boolean;
   reaction?: string | null;
   role?: string;
-  lastSeen?: any;
+  /** ISO-строка или millis; null если профиль не подгружен. */
+  lastSeen?: string | number | null;
   backgroundConfig?: BackgroundConfig;
   facingMode?: 'user' | 'environment';
   /**
@@ -115,8 +142,10 @@ const ParticipantViewComponent = ({
     const checkPip = () => {
         if (typeof document !== 'undefined') {
             const video = videoRef.current;
-            const hasSupport = !!(document as any).pictureInPictureEnabled || 
-                               !!(video as any)?.webkitSupportsPresentationMode?.('picture-in-picture');
+            const vdoc = document as Document & VendorDocument;
+            const vvid = video as (HTMLVideoElement & VendorVideoElement) | null;
+            const hasSupport = !!vdoc.pictureInPictureEnabled ||
+                               !!vvid?.webkitSupportsPresentationMode?.('picture-in-picture');
             setIsPipAvailable(hasSupport);
         }
     };
@@ -150,7 +179,9 @@ const ParticipantViewComponent = ({
     }
 
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const Ctor = window.AudioContext || (window as Window & VendorWindow).webkitAudioContext;
+      if (!Ctor) throw new Error('AudioContext not supported');
+      const audioContext = new Ctor();
       const source = audioContext.createMediaStreamSource(participant.stream);
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 256;
@@ -215,22 +246,25 @@ const ParticipantViewComponent = ({
     const video = videoRef.current;
     if (!elem) return;
 
-    if (!document.fullscreenElement && 
-        !(document as any).webkitFullscreenElement && 
-        !(document as any).mozFullScreenElement && 
-        !(document as any).msFullscreenElement) {
+    const vdoc = document as Document & VendorDocument;
+    const velem = elem as HTMLElement & VendorElement;
+    const vvid = video as (HTMLVideoElement & VendorVideoElement) | null;
+    if (!document.fullscreenElement &&
+        !vdoc.webkitFullscreenElement &&
+        !vdoc.mozFullScreenElement &&
+        !vdoc.msFullscreenElement) {
       if (elem.requestFullscreen) {
         elem.requestFullscreen();
-      } else if ((elem as any).webkitRequestFullscreen) {
-        (elem as any).webkitRequestFullscreen();
-      } else if (video && (video as any).webkitEnterFullscreen) {
-        (video as any).webkitEnterFullscreen();
+      } else if (velem.webkitRequestFullscreen) {
+        velem.webkitRequestFullscreen();
+      } else if (vvid?.webkitEnterFullscreen) {
+        vvid.webkitEnterFullscreen();
       }
     } else {
       if (document.exitFullscreen) {
         document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
+      } else if (vdoc.webkitExitFullscreen) {
+        vdoc.webkitExitFullscreen();
       }
     }
   };
@@ -241,13 +275,14 @@ const ParticipantViewComponent = ({
     if (!video) return;
 
     try {
+        const vvid = video as HTMLVideoElement & VendorVideoElement;
         if (document.pictureInPictureElement) {
             await document.exitPictureInPicture();
         } else if (document.pictureInPictureEnabled) {
             await video.requestPictureInPicture();
-        } else if ((video as any).webkitSetPresentationMode) {
-            const currentMode = (video as any).webkitPresentationMode;
-            (video as any).webkitSetPresentationMode(currentMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture');
+        } else if (vvid.webkitSetPresentationMode) {
+            const currentMode = vvid.webkitPresentationMode;
+            vvid.webkitSetPresentationMode(currentMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture');
         }
     } catch (error) {
         logger.error('meeting-participant', 'Picture-in-Picture failed', error);
