@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Meeting, User, MeetingJoinRequest } from '@/lib/types';
+import type { Meeting, User, MeetingJoinRequest, MeetingMessage } from '@/lib/types';
 import { useDoc, useFirestore, useMemoFirebase, useCollection, useStorage } from '@/firebase';
 import { collection, doc, onSnapshot, serverTimestamp, query, where, orderBy, deleteDoc, setDoc, updateDoc, increment, limitToLast } from 'firebase/firestore';
 import { ref as storageRef, getDownloadURL } from 'firebase/storage';
@@ -70,7 +70,7 @@ export function MeetingRoom({
   const [activeSidebarTab, setActiveSidebarTab] = useState<'participants' | 'polls' | 'chat' | null>(null);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [activePollsCount, setActivePollsCount] = useState(0);
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatMessages, setChatMessages] = useState<MeetingMessage[]>([]);
   const [newMessageText, setNewMessageText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [waitingCount, setWaitingCount] = useState(0);
@@ -136,7 +136,7 @@ export function MeetingRoom({
   useEffect(() => {
     if (!storage) return;
     const loadBgs = async () => {
-        const loaded: any[] = [];
+        const loaded: { id: string; url: string; name: string }[] = [];
         for (const item of STANDARD_BG_LIST) {
             try {
                 const url = await getDownloadURL(storageRef(storage, `meeting-assets/backgrounds/${item.filename}`));
@@ -166,7 +166,7 @@ export function MeetingRoom({
     
     let isInitial = true;
     return onSnapshot(q, (snap) => {
-      const messages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const messages = snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<MeetingMessage, 'id'>) }));
       setChatMessages(messages);
       
       if (isInitial) {
@@ -341,7 +341,7 @@ export function MeetingRoom({
             isScreenSharing: rtc.isScreenSharing,
             backgroundConfig: rtc.backgroundConfig,
             facingMode: rtc.facingMode,
-          } as any
+          }
         }
         isLocal
         isHost={meeting.hostId === currentUser.id}
@@ -408,21 +408,27 @@ export function MeetingRoom({
 
   const handleStartRecording = async () => {
     try {
-        const screenStreamOptions: any = {
-            video: { 
-              displaySurface: "browser", 
-              cursor: "always" 
+        // Опции `getDisplayMedia` с Chromium-specific полями
+        // (preferCurrentTab/selfBrowserSurface/systemAudio) — в lib.dom.d.ts
+        // отсутствуют. Браузер игнорирует неизвестные ключи, типизация runtime-safe.
+        // Chromium-specific поля (cursor/displaySurface/preferCurrentTab/…)
+        // в lib.dom.d.ts отсутствуют. Браузер игнорирует неизвестные ключи,
+        // типизация runtime-safe — описываем как loose object literal.
+        const screenStreamOptions = {
+            video: {
+              displaySurface: 'browser',
+              cursor: 'always',
             },
-            audio: { 
-              echoCancellation: true, 
-              noiseSuppression: true, 
-              autoGainControl: true, 
-              suppressLocalAudioPlayback: false 
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              suppressLocalAudioPlayback: false,
             },
             preferCurrentTab: true,
-            selfBrowserSurface: "include",
-            systemAudio: "include"
-        };
+            selfBrowserSurface: 'include',
+            systemAudio: 'include',
+        } as unknown as DisplayMediaStreamOptions;
         const screenStream = await navigator.mediaDevices.getDisplayMedia(screenStreamOptions);
         
         const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
@@ -521,7 +527,7 @@ export function MeetingRoom({
             {viewMode === 'speaker' && (
                 <div className="h-28 sm:h-36 bg-black/40 border-b border-white/5 flex gap-2 p-2 overflow-x-auto no-scrollbar shrink-0">
                     <ParticipantView 
-                        participant={{ id: currentUser.id, name: currentUser.name, avatar: currentUser.avatar, avatarThumb: currentUser.avatarThumb, stream: rtc.localStream, isAudioMuted: rtc.isMicMuted, isVideoMuted: rtc.isVideoOff, isHandRaised: rtc.isHandRaised, isScreenSharing: rtc.isScreenSharing, backgroundConfig: rtc.backgroundConfig, facingMode: rtc.facingMode } as any}
+                        participant={{ id: currentUser.id, name: currentUser.name, avatar: currentUser.avatar, avatarThumb: currentUser.avatarThumb, stream: rtc.localStream, isAudioMuted: rtc.isMicMuted, isVideoMuted: rtc.isVideoOff, isHandRaised: rtc.isHandRaised, isScreenSharing: rtc.isScreenSharing, backgroundConfig: rtc.backgroundConfig, facingMode: rtc.facingMode }}
                         isLocal={true} isCompact={true} isHost={meeting.hostId === currentUser.id}
                         className={cn("w-44 sm:w-56 shrink-0", effectiveFocusId === currentUser.id && "ring-2 ring-primary")}
                         onClick={() => setManualFocusId(currentUser.id)}
@@ -542,7 +548,7 @@ export function MeetingRoom({
                 {viewMode === 'speaker' && focusedParticipant ? (
                     <div className="w-full h-full flex items-center justify-center animate-in zoom-in-95 duration-500 px-2">
                         <ParticipantView
-                            participant={focusedParticipant as any}
+                            participant={focusedParticipant}
                             isLocal={focusedParticipant.id === currentUser.id}
                             isHost={focusedParticipant.id === meeting.hostId}
                             layout="stage"
@@ -626,8 +632,8 @@ export function MeetingRoom({
         </div>
 
         <MeetingSidebar 
-          activeTab={activeSidebarTab} onActiveTabChange={setActiveSidebarTab} onClose={() => setActiveSidebarTab(null)} currentUser={currentUser as any} chatMessages={chatMessages} newMessageText={newMessageText} setNewMessageText={setNewMessageText} onSendMessage={handleSendMessagePlaceholder} participants={participantList} isHost={isAdmin} hostId={meeting.hostId} adminIds={meeting.adminIds || []} chatEndRef={chatEndRef} {...handleManagement}
-          pollsNode={activeSidebarTab === 'polls' ? <MeetingPolls meetingId={meeting.id} currentUser={currentUser as any} participantsCount={totalPeople} allParticipants={[currentUser, ...participantList] as any} isHost={isAdmin} subscriptionsEnabled={rtc.isParticipantSynced} /> : null}
+          activeTab={activeSidebarTab} onActiveTabChange={setActiveSidebarTab} onClose={() => setActiveSidebarTab(null)} currentUser={currentUser} chatMessages={chatMessages} newMessageText={newMessageText} setNewMessageText={setNewMessageText} onSendMessage={handleSendMessagePlaceholder} participants={participantList} isHost={isAdmin} hostId={meeting.hostId} adminIds={meeting.adminIds || []} chatEndRef={chatEndRef} {...handleManagement}
+          pollsNode={activeSidebarTab === 'polls' ? <MeetingPolls meetingId={meeting.id} currentUser={currentUser} participantsCount={totalPeople} allParticipants={[currentUser, ...participantList] as User[]} isHost={isAdmin} subscriptionsEnabled={rtc.isParticipantSynced} /> : null}
           requestsNode={isAdmin && activeSidebarTab === 'participants' ? <MeetingRequests meetingId={meeting.id} /> : null}
           meetingId={meeting.id}
         />
@@ -677,13 +683,13 @@ export function MeetingRoom({
 function MeetingRequests({ meetingId }: { meetingId: string }) {
     const { t } = useI18n();
     const firestore = useFirestore();
-    const [requests, setRequests] = useState<any[]>([]);
+    const [requests, setRequests] = useState<(MeetingJoinRequest & { id: string })[]>([]);
     const { toast } = useToast();
 
     useEffect(() => {
         if (!firestore) return;
         return onSnapshot(query(collection(firestore, `meetings/${meetingId}/requests`), where('status', '==', 'pending')), (snap) => {
-            setRequests(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setRequests(snap.docs.map(d => ({ id: d.id, ...(d.data() as MeetingJoinRequest) })));
         });
     }, [firestore, meetingId]);
 

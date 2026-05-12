@@ -14,7 +14,7 @@ import { useI18n } from '@/hooks/use-i18n';
 import type { DurakCard, DurakGameSession, DurakLegalMoves, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-import { cardLabel, isJoker } from './durak-cards';
+import { cardLabel, isJoker, type Suit } from './durak-cards';
 
 type HandDoc = {
   uid: string;
@@ -117,7 +117,7 @@ export function DurakWebGameDialog({
   );
   const { data: game, error: gameError, isLoading: gameLoading } = useDoc<DurakGameSession>(gameRef);
 
-  const tournamentId = (game as any)?.tournamentId as string | undefined;
+  const tournamentId = game?.tournamentId;
   const tournamentRef = useMemoFirebase(
     () => (firestore && tournamentId ? doc(firestore, 'tournaments', tournamentId) : null),
     [firestore, tournamentId]
@@ -179,13 +179,13 @@ export function DurakWebGameDialog({
   );
   const nextTournamentGame = useCallback(async () => {
     if (!firestore) return;
-    const tournamentId = (game as any)?.tournamentId as string | undefined;
+    const tournamentId = game?.tournamentId;
     if (!tournamentId) return;
     setBusy('createTournamentGameLobby');
     try {
       const fn = httpsCallable(getFunctions(firestore.app, 'us-central1'), 'createTournamentGameLobby');
-      const res = await fn({ tournamentId, settings: (game as any)?.settings ?? undefined });
-      const nextGameId = (res.data as any)?.gameId as string | undefined;
+      const res = await fn({ tournamentId, settings: game?.settings ?? undefined });
+      const nextGameId = (res.data as { gameId?: string } | null)?.gameId;
       if (nextGameId) openInPopup(nextGameId);
     } catch (e) {
       const msg = e instanceof Error ? e.message : t('durak.error');
@@ -200,7 +200,7 @@ export function DurakWebGameDialog({
     try {
       const fn = httpsCallable(getFunctions(firestore.app, 'us-central1'), 'createDurakRematch');
       const res = await fn({ gameId });
-      const nextGameId = (res.data as any)?.gameId as string | undefined;
+      const nextGameId = (res.data as { gameId?: string } | null)?.gameId;
       if (nextGameId) {
         if (nextGameId === gameId) return;
         openInPopup(nextGameId);
@@ -378,7 +378,7 @@ export function DurakWebGameDialog({
       if (pendingMove) return false;
       if (legalMoves) return legalTransferKeys.has(cardKey(card));
       if (status !== 'active' || currentUser.id !== defenderUid || game?.publicView == null) return false;
-      const mode = (game as any)?.settings?.mode ?? 'podkidnoy';
+      const mode = game?.settings?.mode ?? 'podkidnoy';
       if (mode !== 'perevodnoy' || attacks.length === 0 || defenses.some(Boolean)) return false;
       const defenderCount = handCounts[defenderUid] ?? 0;
       const roundLimit = publicView?.roundDefenderHandLimit ?? (defenderCount > 0 ? defenderCount : 6);
@@ -612,9 +612,9 @@ export function DurakWebGameDialog({
     }
 
     if (status !== 'active') {
-      const readyUids = Array.isArray((game as any).readyUids) ? ((game as any).readyUids as string[]) : [];
+      const readyUids = Array.isArray(game.readyUids) ? game.readyUids : [];
       const iAmReady = readyUids.includes(currentUser.id);
-      const maxPlayers = Number((game as any)?.settings?.maxPlayers ?? 2) || 2;
+      const maxPlayers = Number(game?.settings?.maxPlayers ?? 2) || 2;
       const allReady =
         gamePlayerIds.length > 0 && readyUids.length >= gamePlayerIds.length;
       const canStart =
@@ -823,7 +823,9 @@ export function DurakWebGameDialog({
                 {publicView?.trumpCard ? (
                   <DurakCardView card={publicView.trumpCard} compact />
                 ) : trumpSuit ? (
-                  <DurakCardView card={{ r: 6, s: trumpSuit as any }} compact />
+                  // trumpSuit приходит как string из publicView; на UI-уровне
+                  // безопасно сужаем до Suit (фактические значения 'S'/'H'/'D'/'C').
+                  <DurakCardView card={{ r: 6, s: trumpSuit as Suit }} compact />
                 ) : null}
                 <div className="text-lg font-black drop-shadow">{publicView?.deckCount ?? 0}</div>
               </div>

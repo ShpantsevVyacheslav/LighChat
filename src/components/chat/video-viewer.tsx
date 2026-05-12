@@ -76,16 +76,28 @@ export function VideoViewer({ isOpen, onOpenChange, video }: VideoViewerProps) {
   const handleFullscreenToggle = () => {
     if (!containerRef.current) return;
     const elem = containerRef.current;
-    const doc = document as any;
+    // [audit L-006] Vendor-prefixed Fullscreen API (Safari/legacy). Раньше через
+    // `document as any` — теперь точечные интерфейсы.
+    type VendorDoc = Document & {
+      webkitFullscreenElement?: Element | null;
+      mozFullScreenElement?: Element | null;
+      msFullscreenElement?: Element | null;
+      webkitExitFullscreen?: () => Promise<void> | void;
+    };
+    type VendorElem = HTMLElement & { webkitRequestFullscreen?: () => Promise<void> | void };
+    type VendorVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void };
+    const doc = document as VendorDoc;
     const isFullscreenNow = doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement;
+    const velem = elem as VendorElem;
+    const vvid = videoRef.current as VendorVideo | null;
 
     if (!isFullscreenNow) {
         if (elem.requestFullscreen) {
             elem.requestFullscreen().catch(() => {});
-        } else if ((elem as any).webkitRequestFullscreen) {
-            (elem as any).webkitRequestFullscreen();
-        } else if (videoRef.current && (videoRef.current as any).webkitEnterFullscreen) {
-            (videoRef.current as any).webkitEnterFullscreen();
+        } else if (velem.webkitRequestFullscreen) {
+            velem.webkitRequestFullscreen();
+        } else if (vvid?.webkitEnterFullscreen) {
+            vvid.webkitEnterFullscreen();
         }
     } else {
         if (document.exitFullscreen) {
@@ -97,7 +109,7 @@ export function VideoViewer({ isOpen, onOpenChange, video }: VideoViewerProps) {
   };
 
   useEffect(() => {
-    const onFullscreenChange = () => setIsFullscreen(!!(document.fullscreenElement || (document as any).webkitFullscreenElement));
+    const onFullscreenChange = () => setIsFullscreen(!!(document.fullscreenElement || (document as Document & { webkitFullscreenElement?: Element | null }).webkitFullscreenElement));
     document.addEventListener('fullscreenchange', onFullscreenChange);
     document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 

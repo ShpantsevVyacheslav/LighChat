@@ -118,8 +118,11 @@ export type MeetingJoinRequest = {
   userId: string;
   name: string;
   avatar: string;
+  /** Круглое превью (опционально). */
+  avatarThumb?: string;
   status: 'pending' | 'approved' | 'denied';
-  createdAt: string | any;
+  /** ISO-строка, Firestore Timestamp или millis — формат зависит от источника. */
+  createdAt: string | number | { toDate(): Date };
   requestId?: string;
   lastSeen?: string;
 };
@@ -898,6 +901,16 @@ export type DurakGameResult = {
   placements?: { uids: string[] }[];
 } | null;
 
+/** [audit L-006] Настройки партии (mode/maxPlayers — то, что Cloud Function
+ *  `createDurakGameLobby` пишет в game-документ). Раньше клиент читал их через
+ *  `(game as any).settings.mode` — типизация была дырявой. */
+export type DurakGameSettings = {
+  mode?: string;
+  maxPlayers?: number;
+  /** Дополнительные опции; namespace для будущих правил подкидного/переводного. */
+  options?: Record<string, unknown>;
+};
+
 export type DurakGameSession = {
   id: string;
   type: 'durak';
@@ -910,6 +923,10 @@ export type DurakGameSession = {
   publicView?: DurakPublicView;
   result?: DurakGameResult;
   tournamentId?: string;
+  /** Готовы к старту (нажали «Готов») — пишется в game-doc сервером. */
+  readyUids?: string[];
+  /** Настройки партии (см. DurakGameSettings). */
+  settings?: DurakGameSettings;
 };
 
 export type MeetingMessage = {

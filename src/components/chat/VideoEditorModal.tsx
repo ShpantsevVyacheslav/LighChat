@@ -268,8 +268,9 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
                 }
             }
             setThumbnails(thumbs);
-        } catch (err: any) {
-            logger.error('video-editor', 'Thumbnails error', err.message);
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            logger.error('video-editor', 'Thumbnails error', msg);
         } finally {
             setIsThumbnailsLoading(false);
         }
@@ -324,7 +325,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
     return () => ro.disconnect();
   }, [videoUrl]);
 
-  const startDrawing = useCallback((e: any) => {
+  const startDrawing = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (activeTool !== 'draw' || isProcessing || !drawCanvasRef.current || !videoRef.current) return;
     const canvas = drawCanvasRef.current;
     const video = videoRef.current;
@@ -345,7 +346,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
     }
   }, [activeTool, isProcessing, brushColor, brushSize, saveToHistory]);
 
-  const draw = useCallback((e: any) => {
+  const draw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (!isDrawing.current || !drawCanvasRef.current || !videoRef.current) return;
     const canvas = drawCanvasRef.current;
     const video = videoRef.current;
@@ -715,7 +716,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
                             ))}
                         </div>
                     )}
-                    <TimelineRangeSelector range={range} onRangeChange={(r: any) => { saveToHistory(); setRange(r); }} onSeek={handleSeek} duration={duration} currentTime={currentTime} />
+                    <TimelineRangeSelector range={range} onRangeChange={(r) => { saveToHistory(); setRange(r); }} onSeek={handleSeek} duration={duration} currentTime={currentTime} />
                 </div>
                 <div className="flex justify-between items-center px-1">
                     <div className="text-[10px] font-mono font-bold opacity-60 text-white flex items-center gap-2">
@@ -774,7 +775,15 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
   );
 }
 
-function TimelineRangeSelector({ range, onRangeChange, onSeek, duration, currentTime }: any) {
+interface TimelineRangeSelectorProps {
+  range: [number, number];
+  onRangeChange: (r: [number, number]) => void;
+  onSeek: (t: number) => void;
+  duration: number;
+  currentTime: number;
+}
+
+function TimelineRangeSelector({ range, onRangeChange, onSeek, duration, currentTime }: TimelineRangeSelectorProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [dragging, setDragging] = useState<'start' | 'end' | 'seek' | null>(null);
     
@@ -800,7 +809,7 @@ function TimelineRangeSelector({ range, onRangeChange, onSeek, duration, current
 
     useEffect(() => {
         if (!dragging) return;
-        const onMove = (e: any) => {
+        const onMove = (e: MouseEvent | TouchEvent) => {
             if (!containerRef.current) return;
             const rect = containerRef.current.getBoundingClientRect();
             const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
