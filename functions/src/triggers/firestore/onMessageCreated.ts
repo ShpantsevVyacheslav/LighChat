@@ -280,7 +280,7 @@ async function emitMessageAnalytics(
   if (senderId === "__system__" || messageData.systemEvent != null) return;
 
   const attachments = (messageData.attachments as { type?: string }[] | undefined) ?? [];
-  let messageKind: string = "text";
+  let messageKind = "text";
   if (messageData.poll) messageKind = "poll";
   else if (attachments.length > 0) {
     const t = attachments[0].type ?? "";
