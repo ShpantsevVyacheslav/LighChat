@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:math' show min;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 
+import 'package:lighchat_mobile/core/app_logger.dart';
 import 'chat_call_record.dart';
 import 'chat_call_status.dart';
 
@@ -123,7 +123,7 @@ class ChatCallsRepository {
                   onError: (Object e, StackTrace st) {
                     // If a single call doc is not readable (permission-denied),
                     // skip it instead of failing the whole history view.
-                    debugPrint('[ChatCallsRepository] call doc listen $id: $e $st');
+                    appLogger.w('[ChatCallsRepository] call doc listen $id', error: e, stackTrace: st);
                     ready[id] = true;
                     byId.remove(id);
                     publish();
@@ -157,7 +157,7 @@ class ChatCallsRepository {
               unawaited(attachCallIds(ids));
             },
             onError: (Object e, StackTrace st) {
-              debugPrint('[ChatCallsRepository] userCalls listen: $e $st');
+              appLogger.w('[ChatCallsRepository] userCalls listen', error: e, stackTrace: st);
               listener.add(
                 ChatCallsHistorySnapshot(
                   calls: const <ChatCallRecord>[],

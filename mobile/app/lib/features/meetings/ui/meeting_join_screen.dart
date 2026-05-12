@@ -1,7 +1,8 @@
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+import 'package:lighchat_mobile/core/app_logger.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../l10n/app_localizations.dart';
@@ -105,7 +106,7 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
         _previewReady = true;
       });
     } catch (e) {
-      if (kDebugMode) debugPrint('[meeting-lobby] preview failed: $e');
+      appLogger.w('[meeting-lobby] preview failed', error: e);
       if (mounted) {
         setState(() {
           _previewDenied = true;

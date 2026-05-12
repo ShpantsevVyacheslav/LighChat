@@ -1,6 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
+
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 /// Режим виртуального фона.
 ///
@@ -98,7 +100,7 @@ class NoopVirtualBackgroundController implements VirtualBackgroundController {
       );
     }
     if (kDebugMode) {
-      debugPrint('[virtual-bg] noop setMode($mode, $imageAssetPath)');
+      appLogger.d('[virtual-bg] noop setMode($mode, $imageAssetPath)');
     }
   }
 

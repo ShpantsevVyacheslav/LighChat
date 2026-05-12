@@ -1,8 +1,10 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 
 /// Локальный снимок `userChats/{uid}` + последних известных `conversations/{id}`
@@ -150,7 +152,7 @@ loadChatListOfflineSnapshot(String userId) async {
     return (index: idx, conversations: convs);
   } catch (e, st) {
     if (kDebugMode) {
-      debugPrint('loadChatListOfflineSnapshot failed: $e\n$st');
+      appLogger.w('loadChatListOfflineSnapshot failed', error: e, stackTrace: st);
     }
     return null;
   }
@@ -184,7 +186,7 @@ Future<void> persistChatListOfflineSnapshot({
     );
   } catch (e, st) {
     if (kDebugMode) {
-      debugPrint('persistChatListOfflineSnapshot failed: $e\n$st');
+      appLogger.w('persistChatListOfflineSnapshot failed', error: e, stackTrace: st);
     }
   }
 }

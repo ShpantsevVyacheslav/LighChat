@@ -1,5 +1,8 @@
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
+
 import 'package:image/image.dart' as img;
+
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 /// Максимальная длинная сторона перед загрузкой в чат встречи (как ориентир
 /// по «весу» для экранов и сети; уменьшает пик памяти при `withData: true`).
@@ -158,7 +161,7 @@ MeetingChatPreparedUploadBytes prepareMeetingChatImageForUpload({
       mimeType: 'image/jpeg',
     );
   } catch (e, st) {
-    debugPrint('prepareMeetingChatImageForUpload: fallback to original: $e\n$st');
+    appLogger.w('prepareMeetingChatImageForUpload: fallback to original', error: e, stackTrace: st);
     return MeetingChatPreparedUploadBytes(
       bytes: bytes,
       displayName: name,

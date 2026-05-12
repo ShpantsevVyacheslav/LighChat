@@ -1,7 +1,9 @@
 import 'dart:io' show File, Platform;
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:gal/gal.dart';
+
+import 'package:lighchat_mobile/core/app_logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -48,7 +50,7 @@ class GallerySaveFacade {
 
       return _saveToAppDocs(src, suggestedName);
     } catch (e) {
-      if (kDebugMode) debugPrint('[gallery-save] failed: $e');
+      appLogger.w('[gallery-save] failed', error: e);
       return null;
     }
   }

@@ -3,8 +3,10 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show PlatformDispatcher, immutable;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:lighchat_mobile/core/app_logger.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:path_provider/path_provider.dart';
@@ -177,7 +179,7 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
     );
     final plainPreview = messageHtmlToPlainText(prepared).trim();
     if (plainPreview.isEmpty && files.isEmpty) {
-      debugPrint('ChatOutboxAttachmentNotifier: skip empty enqueue');
+      appLogger.d('ChatOutboxAttachmentNotifier: skip empty enqueue');
       return;
     }
     final threadOpt = threadParentMessageId?.trim();
@@ -493,7 +495,7 @@ class ChatOutboxAttachmentNotifier extends Notifier<List<OutboxAttachmentJob>> {
         );
       }
     } catch (e, st) {
-      debugPrint('ChatOutboxAttachmentNotifier job=$jobId error=$e $st');
+      appLogger.w('ChatOutboxAttachmentNotifier job=$jobId failed', error: e, stackTrace: st);
       final cur = _byId(jobId);
       if (cur != null) {
         final elapsed = DateTime.now().difference(cur.createdAt);

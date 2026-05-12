@@ -1,8 +1,9 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:lighchat_mobile/core/app_logger.dart';
 import 'user_profile.dart';
 
 const kUserProfileDiskCacheKeyPrefix = 'mobile_user_profile_cache_v1_';
@@ -30,7 +31,7 @@ Future<Map<String, UserProfile>> loadCachedProfiles(
     }
   } catch (e, st) {
     if (kDebugMode) {
-      debugPrint('loadCachedProfiles failed: $e\n$st');
+      appLogger.w('loadCachedProfiles failed', error: e, stackTrace: st);
     }
   }
   return out;
@@ -56,7 +57,7 @@ Future<void> persistProfile(UserProfile profile) async {
     await prefs.setString(userProfileDiskCacheKey(profile.id), jsonEncode(m));
   } catch (e, st) {
     if (kDebugMode) {
-      debugPrint('persistProfile failed: $e\n$st');
+      appLogger.w('persistProfile failed', error: e, stackTrace: st);
     }
   }
 }

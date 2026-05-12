@@ -1,7 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 import 'virtual_background_controller.dart';
 
@@ -64,7 +65,7 @@ class MethodChannelVirtualBackgroundController
     } catch (e) {
       // Native не смог применить — логируем и оставляем локальное состояние
       // в noop. UI должен обработать ошибку через Stream (мы эмитим mode=none).
-      if (kDebugMode) debugPrint('[virtual-bg] native setMode failed: $e');
+      appLogger.w('[virtual-bg] native setMode failed', error: e);
       _mode = VirtualBackgroundMode.none;
       _path = null;
       if (!_stream.isClosed) {

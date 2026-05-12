@@ -1,8 +1,9 @@
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
-import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
+
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 import 'meeting_invite_link.dart';
 
@@ -25,7 +26,7 @@ Future<StreamSubscription<Uri>> attachMeetingWebDeepLinks(GoRouter router) async
       if (path != null) router.go(path);
     }
   } catch (e, st) {
-    debugPrint('attachMeetingWebDeepLinks initial: $e\n$st');
+    appLogger.w('attachMeetingWebDeepLinks initial', error: e, stackTrace: st);
   }
 
   return appLinks.uriLinkStream.listen((uri) {
