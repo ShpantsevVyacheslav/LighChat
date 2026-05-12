@@ -37,11 +37,17 @@ class DesktopShell {
     await windowManager.ensureInitialized();
 
     final prefs = await SharedPreferences.getInstance();
-    final width = prefs.getDouble(_kWidthKey) ?? 1280.0;
-    final height = prefs.getDouble(_kHeightKey) ?? 800.0;
+    // Default 1440×900 на первом запуске — это >= `_fourPaneBreakpoint`
+    // в `WorkspaceShellScreen`, чтобы пользователь сразу видел rail +
+    // folders rail + chat list + chat detail (а не compact single-pane).
+    // Persisted значения от предыдущих запусков имеют приоритет.
+    final width = prefs.getDouble(_kWidthKey) ?? 1440.0;
+    final height = prefs.getDouble(_kHeightKey) ?? 900.0;
 
     final options = WindowOptions(
       size: Size(width, height),
+      // Минимальный размер 720×540 — на маленьких ноутбуках/окнах
+      // WorkspaceShellScreen честно скроется в single-pane fallback.
       minimumSize: const Size(720, 540),
       center: true,
       backgroundColor: const Color(0xFF0A0E17),

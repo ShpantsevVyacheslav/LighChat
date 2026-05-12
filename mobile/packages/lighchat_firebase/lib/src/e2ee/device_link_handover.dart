@@ -24,39 +24,90 @@ import 'session_firestore.dart';
 import 'system_events.dart';
 import 'webcrypto_compat.dart';
 
-/// [QR-PAIR fix] iOS Firestore SDK иногда возвращает `[cloud_firestore/internal]`
-/// для batch-query `conversations.where(participantIds, arrayContains)`,
-/// особенно когда у юзера много чатов + есть persistent cache.
+/// [QR-PAIR fix v2] iOS Firestore SDK систематически валит batch-query
+/// `conversations.where(participantIds, arrayContains)` с
+/// `[cloud_firestore/internal]` — повторяется даже после retry с
+/// `Source.server` (см. предыдущий fix `dc9f676`). Похоже на регрессию
+/// `cloud_firestore@iOS` в районе iOS 26.4 на compound array-contains
+/// query с большим resultset'ом.
 ///
-/// Стратегия:
-///  1. Первая попытка — default (через cache, server-fallback по умолчанию).
-///  2. На `internal` → retry с `GetOptions(source: Source.server)` чтобы
-///     пропустить локальный кэш (если он повреждён).
-///  3. Третья попытка — снова server с задержкой 800ms (gRPC transient).
-///  4. После 3-х неудач — выбрасываем оригинал.
+/// Workaround: вместо одного compound-query идём через денормализованный
+/// индекс `userChats/{uid}.conversationIds` → потом per-doc get для каждого
+/// id. Это другой code-path в платформенном плагине (single-doc reads вместо
+/// compound listener), который баг обходит.
 ///
-/// Не вызываем `clearPersistence()` — это сносит ВСЕ snapshot listener'ы
-/// в приложении (chat list, profile и т.д.), пользователь увидит пустоту
-/// и долгий reconnect. Лучше fall back на server-only get.
-Future<QuerySnapshot<Map<String, dynamic>>> _getConversationsWithRetry(
-  Query<Map<String, dynamic>> query,
-) async {
+/// Возвращает список снэпшотов (а не QuerySnapshot — его сконструировать
+/// руками нельзя). Caller итерирует по результату как раньше.
+///
+/// Если индекс пуст / документ `userChats/{uid}` отсутствует — fallback
+/// на оригинальный compound-query (для legacy пользователей или edge-case'ов).
+Future<List<DocumentSnapshot<Map<String, dynamic>>>>
+    _getUserConversationsRobust({
+  required FirebaseFirestore firestore,
+  required String userId,
+}) async {
+  // Path 1: попытка через индекс. Single-doc read — другой platform path.
+  try {
+    debugPrint('[handover] reading userChats/$userId index');
+    final indexSnap = await firestore
+        .collection('userChats')
+        .doc(userId)
+        .get(const GetOptions(source: Source.server));
+    final convIds = (indexSnap.data()?['conversationIds'] as List<dynamic>?)
+            ?.whereType<String>()
+            .toList(growable: false) ??
+        const <String>[];
+    if (convIds.isNotEmpty) {
+      debugPrint('[handover] userChats index has ${convIds.length} conversations — fetching per-doc');
+      final out = <DocumentSnapshot<Map<String, dynamic>>>[];
+      // Per-doc get'ы по 8 параллельно (баланс скорость / нагрузка на iOS plugin).
+      const concurrency = 8;
+      for (var i = 0; i < convIds.length; i += concurrency) {
+        final batch = convIds.skip(i).take(concurrency);
+        final futures = batch.map((id) async {
+          try {
+            return await firestore
+                .collection('conversations')
+                .doc(id)
+                .get(const GetOptions(source: Source.server));
+          } on FirebaseException catch (e) {
+            debugPrint('[handover] conv/$id read FAIL code=${e.code} — skipping');
+            return null;
+          }
+        });
+        final results = await Future.wait(futures);
+        for (final snap in results) {
+          if (snap != null && snap.exists) out.add(snap);
+        }
+      }
+      debugPrint('[handover] fetched ${out.length} conversations via index path');
+      return out;
+    }
+    debugPrint('[handover] userChats index empty — falling back to compound query');
+  } on FirebaseException catch (e) {
+    debugPrint('[handover] userChats index read FAIL code=${e.code} plugin=${e.plugin} — falling back to compound query');
+  }
+
+  // Path 2: оригинальный compound-query с retry (legacy fallback).
   for (var attempt = 0; attempt < 3; attempt++) {
     try {
       final source = attempt == 0 ? Source.serverAndCache : Source.server;
-      debugPrint('[handover] conversations.get attempt=${attempt + 1} source=$source');
-      return await query.get(GetOptions(source: source));
+      debugPrint('[handover] compound query attempt=${attempt + 1} source=$source');
+      final q = await firestore
+          .collection('conversations')
+          .where('participantIds', arrayContains: userId)
+          .get(GetOptions(source: source));
+      return q.docs;
     } on FirebaseException catch (e, st) {
-      debugPrint('[handover] conversations.get FAIL attempt=${attempt + 1} code=${e.code} plugin=${e.plugin} msg=${e.message}');
+      debugPrint('[handover] compound query FAIL attempt=${attempt + 1} code=${e.code} msg=${e.message}');
       if (e.code != 'internal' || attempt == 2) {
-        debugPrint('[handover] conversations.get giving up\n$st');
+        debugPrint('[handover] giving up\n$st');
         rethrow;
       }
       await Future<void>.delayed(Duration(milliseconds: 400 * (attempt + 1)));
     }
   }
-  // unreachable (loop либо возвращает, либо rethrows на attempt==2)
-  throw StateError('conversations.get retry loop exhausted');
+  throw StateError('conversations fetch retry loop exhausted');
 }
 
 class DeviceHandoverProgress {
@@ -141,14 +192,14 @@ Future<DeviceHandoverResult> handoverDeviceAccessMobile({
     identity: donorIdentity,
   );
 
-  final convs = await _getConversationsWithRetry(
-    firestore
-        .collection('conversations')
-        .where('participantIds', arrayContains: userId),
+  final convs = await _getUserConversationsRobust(
+    firestore: firestore,
+    userId: userId,
   );
-  final targets = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
-  for (final d in convs.docs) {
+  final targets = <DocumentSnapshot<Map<String, dynamic>>>[];
+  for (final d in convs) {
     final data = d.data();
+    if (data == null) continue;
     if (data['e2eeEnabled'] == true) targets.add(d);
   }
 
@@ -161,6 +212,9 @@ Future<DeviceHandoverResult> handoverDeviceAccessMobile({
     final d = targets[i];
     final conversationId = d.id;
     final data = d.data();
+    // targets были отфильтрованы выше (data == null → skip),
+    // но Dart-анализатор этого не знает — добавляем defensive guard.
+    if (data == null) continue;
     final currentEpoch = (data['e2eeKeyEpoch'] as num?)?.toInt() ?? 0;
     final participants = (data['participantIds'] as List<dynamic>?)
             ?.whereType<String>()
