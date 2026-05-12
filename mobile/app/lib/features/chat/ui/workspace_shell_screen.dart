@@ -2,28 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'chat_folders_rail.dart';
 import 'chat_list_screen.dart' show ChatListPane;
 import 'chat_screen.dart';
 import 'thread_screen.dart';
-import 'workspace_nav_rail.dart';
+import 'workspace_unified_rail.dart';
 
 /// Desktop multi-pane layout (как в веб-версии LighChat):
 ///
-///   ┌──────┬──────┬──────────┬─────────────┬──────────┐
-///   │ rail │ fld. │ chat list│  open chat  │ thread   │
-///   │ 72dp │ 96dp │  flex    │  flex       │ 420dp    │
-///   │ nav  │ rail │  master  │  detail     │ opt.     │
-///   └──────┴──────┴──────────┴─────────────┴──────────┘
+///   ┌──────┬──────────┬─────────────┬──────────┐
+///   │ rail │ chat list│  open chat  │ thread   │
+///   │ 64dp │  flex    │  flex       │ 420dp    │
+///   │uni-  │  master  │  detail     │ opt.     │
+///   │fied  │          │             │          │
+///   └──────┴──────────┴─────────────┴──────────┘
 ///
+/// Rail объединяет folders + tabs (как в web) в одну колонку 64dp.
 /// Master-pane: resizable (drag-handle между ним и detail), персистится
-/// в SharedPreferences. Кнопка collapse сворачивает master до 0 — остаётся
-/// только rail + detail (для фокус-режима).
+/// в SharedPreferences. Кнопка collapse (по лого) сворачивает master —
+/// остаётся только rail + detail (для фокус-режима).
 ///
 /// Адаптация по ширине окна:
-/// - **≥1440dp**: до 5 колонок (rail + folders + list + detail + thread).
-/// - **1200–1440dp**: 4 колонки (rail + folders + list + detail).
-/// - **1024–1200dp**: 3 колонки (rail + list + detail, без folders rail).
+/// - **≥1440dp**: до 4 колонок (rail + list + detail + thread).
+/// - **1024–1440dp**: 3 колонки (rail + list + detail).
 /// - **840–1024dp**: 2 колонки (list + detail).
 /// - **<840dp**: одна панель (fallback на mobile-like compact).
 class WorkspaceShellScreen extends StatefulWidget {
@@ -41,8 +41,7 @@ class WorkspaceShellScreen extends StatefulWidget {
 
   static const double _twoPaneBreakpoint = 840;
   static const double _threePaneBreakpoint = 1024;
-  static const double _fourPaneBreakpoint = 1200;
-  static const double _fivePaneBreakpoint = 1440;
+  static const double _fourPaneBreakpoint = 1440;
 
   // Master pane: ширина настраиваемая, в этих границах.
   static const double _masterDefaultWidth = 340;
@@ -115,8 +114,7 @@ class _WorkspaceShellScreenState extends State<WorkspaceShellScreen> {
           }
 
           final showRail = w >= WorkspaceShellScreen._threePaneBreakpoint;
-          final showFoldersRail = w >= WorkspaceShellScreen._fourPaneBreakpoint;
-          final showThreadPane = w >= WorkspaceShellScreen._fivePaneBreakpoint &&
+          final showThreadPane = w >= WorkspaceShellScreen._fourPaneBreakpoint &&
               widget.threadParentMessageId != null &&
               widget.conversationId != null;
 
@@ -140,15 +138,12 @@ class _WorkspaceShellScreenState extends State<WorkspaceShellScreen> {
           return Row(
             children: [
               if (showRail) ...[
-                WorkspaceNavRail(
+                WorkspaceUnifiedRail(
                   activeRoute: widget.conversationId == null
                       ? '/workspace'
                       : '/workspace/chats/${widget.conversationId}',
+                  onLogoTap: _toggleCollapsed,
                 ),
-                const VerticalDivider(width: 1, thickness: 1),
-              ],
-              if (showFoldersRail && !_collapsed) ...[
-                const ChatFoldersRail(),
                 const VerticalDivider(width: 1, thickness: 1),
               ],
               if (!_collapsed) ...[
