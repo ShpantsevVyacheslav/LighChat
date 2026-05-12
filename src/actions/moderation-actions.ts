@@ -194,7 +194,7 @@ export async function hideMessageAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[hideMessageAction]', e);
+    logger.error('moderation', 'hideMessageAction', e);
     return { ok: false, error: 'Не удалось скрыть сообщение' };
   }
 }
@@ -235,7 +235,7 @@ export async function unhideMessageAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[unhideMessageAction]', e);
+    logger.error('moderation', 'unhideMessageAction', e);
     return { ok: false, error: 'Не удалось восстановить сообщение' };
   }
 }
@@ -371,7 +371,7 @@ export async function reviewReportAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[reviewReportAction]', e);
+    logger.error('moderation', 'reviewReportAction', e);
     return { ok: false, error: 'Ошибка обработки жалобы' };
   }
 }

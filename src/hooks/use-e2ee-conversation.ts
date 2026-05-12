@@ -16,6 +16,7 @@ import {
   getCachedPlaintext,
   putCachedPlaintext,
 } from '@/lib/e2ee';
+import { logger } from '@/lib/logger';
 
 const E2EE_UNWRAP_MISSING_CODES = new Set([
   'E2EE_NO_WRAP_FOR_DEVICE',
@@ -90,7 +91,7 @@ export function useE2eeConversation(
         await publishE2eeDeviceV2(firestore, uid, identityV2);
         if (!cancelled) setIdentityReady(true);
       } catch (e) {
-        console.error('[e2ee] identity init failed', e);
+        logger.error('e2ee', 'identity init failed', e);
         if (!cancelled) setIdentityReady(false);
       }
     })();
@@ -127,7 +128,7 @@ export function useE2eeConversation(
           unwrapFailureByEpochRef.current.clear();
         }
       } catch (e) {
-        console.warn('[e2ee] heal session skipped', e);
+        logger.warn('e2ee', 'heal session skipped', e);
       }
     })();
     return () => {
@@ -166,7 +167,7 @@ export function useE2eeConversation(
         if (E2EE_UNWRAP_MISSING_CODES.has(code) && targetEpoch === e2eeEpoch) {
           setAwaitingWrap(true);
         } else if (!E2EE_UNWRAP_MISSING_CODES.has(code)) {
-          console.warn('[e2ee] v2 unwrap failed', e);
+          logger.warn('e2ee', 'v2 unwrap failed', e);
         }
         throw new Error(code);
       }
@@ -223,7 +224,7 @@ export function useE2eeConversation(
         if (!key) return null;
         return { key, epoch: targetEpoch };
       } catch (e) {
-        console.warn('[e2ee] getAesKeyWithHealing failed', e);
+        logger.warn('e2ee', 'getAesKeyWithHealing failed', e);
         return null;
       }
     },

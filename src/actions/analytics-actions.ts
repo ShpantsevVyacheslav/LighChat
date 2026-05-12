@@ -2,6 +2,7 @@
 
 import { adminDb } from '@/firebase/admin';
 import { assertAdminByIdToken } from '@/actions/admin-actions';
+import { logger } from '@/lib/logger';
 
 export type DailyStats = {
   date: string;
@@ -65,7 +66,7 @@ export async function fetchAnalyticsAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[fetchAnalyticsAction]', e);
+    logger.error('analytics', 'fetchAnalyticsAction', e);
     return { ok: false, error: 'Ошибка загрузки аналитики' };
   }
 }
@@ -114,7 +115,7 @@ export async function fetchAdminOverviewMetricsAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[fetchAdminOverviewMetricsAction]', e);
+    logger.error('analytics', 'fetchAdminOverviewMetricsAction', e);
     return { ok: false, error: 'Ошибка загрузки метрик' };
   }
 }
@@ -211,7 +212,7 @@ export async function fetchAdminGeoMetricsAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[fetchAdminGeoMetricsAction]', e);
+    logger.error('analytics', 'fetchAdminGeoMetricsAction', e);
     return { ok: false, error: 'Ошибка загрузки геометрик' };
   }
 }
@@ -257,7 +258,7 @@ export async function computeDailyStatsAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[computeDailyStatsAction]', e);
+    logger.error('analytics', 'computeDailyStatsAction', e);
     return { ok: false, error: 'Ошибка вычисления статистики' };
   }
 }

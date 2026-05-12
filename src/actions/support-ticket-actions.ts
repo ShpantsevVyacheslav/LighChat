@@ -4,6 +4,7 @@ import { adminDb } from '@/firebase/admin';
 import { assertAdminByIdToken, verifyUserByIdToken } from '@/actions/admin-actions';
 import { logAdminAction } from '@/lib/server/audit-log';
 import type { SupportTicket, SupportTicketMessage, TicketStatus } from '@/lib/types';
+import { logger } from '@/lib/logger';
 
 /**
  * SECURITY: identity now comes from idToken, not client-supplied userId/
@@ -61,7 +62,7 @@ export async function createSupportTicketAction(input: {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'UNAUTHORIZED') return { ok: false, error: 'Требуется вход' };
     if (msg === 'BLOCKED') return { ok: false, error: 'Аккаунт заблокирован' };
-    console.error('[createSupportTicketAction]', e);
+    logger.error('support', 'createSupportTicketAction', e);
     return { ok: false, error: 'Не удалось создать обращение' };
   }
 }
@@ -108,7 +109,7 @@ export async function fetchSupportTicketsAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[fetchSupportTicketsAction]', e);
+    logger.error('support', 'fetchSupportTicketsAction', e);
     return { ok: false, error: 'Ошибка загрузки обращений' };
   }
 }
@@ -130,7 +131,7 @@ export async function fetchTicketMessagesAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[fetchTicketMessagesAction]', e);
+    logger.error('support', 'fetchTicketMessagesAction', e);
     return { ok: false, error: 'Ошибка загрузки сообщений' };
   }
 }
@@ -164,7 +165,7 @@ export async function replyToTicketAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[replyToTicketAction]', e);
+    logger.error('support', 'replyToTicketAction', e);
     return { ok: false, error: 'Ошибка отправки ответа' };
   }
 }
@@ -196,7 +197,7 @@ export async function updateTicketStatusAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[updateTicketStatusAction]', e);
+    logger.error('support', 'updateTicketStatusAction', e);
     return { ok: false, error: 'Ошибка обновления статуса' };
   }
 }

@@ -14,6 +14,7 @@ import {
   fcmServiceWorkerReadyTimeoutMs,
 } from '@/lib/fcm-service-worker';
 import { fcmSubscribeUserMessage } from '@/lib/fcm-subscribe-user-message';
+import { logger } from '@/lib/logger';
 
 // СЮДА ВСТАВЬТЕ ВАШ VAPID KEY ИЗ КОНСОЛИ FIREBASE
 const VAPID_KEY = 'BO5th519pVXQkMoTXHWEU6WSHt75hV2l4dFn5Ohs_zMxOQ-eY8zHewWXSMZIDaa4vSmWyL6Z5vAy8lWACdjHIzU';
@@ -94,7 +95,7 @@ export function useNotifications() {
         if (cancelled) return;
         const messaging = getMessaging(firebaseApp);
         unsubscribeOnMessage = onMessage(messaging, (payload) => {
-          console.log('Foreground message received.', payload);
+          logger.debug('notifications', 'Foreground message received', payload);
 
           const title = payload.data?.title || payload.notification?.title || 'Уведомление';
           const body = payload.data?.body || payload.notification?.body || '';
@@ -120,13 +121,13 @@ export function useNotifications() {
                 return;
               }
             } catch (e) {
-              console.warn('[useNotifications] foreground policy', e);
+              logger.warn('notifications', 'foreground policy', e);
             }
             toast({ title, description: body });
           })();
         });
       } catch (e) {
-        console.warn('[useNotifications] FCM foreground listener недоступен', e);
+        logger.warn('notifications', 'FCM foreground listener недоступен', e);
       }
     })();
 
@@ -172,7 +173,7 @@ export function useNotifications() {
         }
       }
     } catch (err) {
-        console.error('Error subscribing to notifications: ', err);
+        logger.error('notifications', 'Error subscribing to notifications', err);
         const message = fcmSubscribeUserMessage(err);
         setError(message);
         if (!silent) {
