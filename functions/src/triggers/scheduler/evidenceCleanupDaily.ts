@@ -3,18 +3,24 @@ import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 
 /**
- * Ежедневно удаляет evidence-вложения у resolved-жалоб старше 90 дней
- * после `reviewedAt`. Evidence-копии живут в Storage по пути
- * `moderation-evidence/{reporterUid}/{nonce}/...` и хранят
- * расшифрованную копию E2EE-вложений; их нужно стирать, чтобы не
- * накапливать персональные данные после разрешения жалобы.
+ * Ежедневная очистка evidence-вложений в жалобах. Evidence — это
+ * расшифрованная копия E2EE-вложений в Storage-зоне
+ * `moderation-evidence/{reporterUid}/{nonce}/...`. Хранить такие
+ * персональные данные дольше необходимого — GDPR/UX-риск.
  *
- * Не трогаем сам документ `messageReports/{id}` — лог жалоб остаётся
- * для аудита; зачищаем поля `evidenceAttachments` и `evidenceNonce` +
- * Storage-объекты.
+ * Две стратегии очистки:
+ *   1. **Resolved TTL** (90 дней после `reviewedAt`) — для жалоб со
+ *      статусом action_taken / dismissed.
+ *   2. **Absolute TTL** (180 дней после `createdAt`) — для любых жалоб,
+ *      включая pending. Защищает от случая, когда модератор «забил»
+ *      на pending-жалобу: evidence не должен жить бессрочно.
+ *
+ * Сам документ `messageReports/{id}` остаётся для аудита; зачищаем
+ * только evidence-поля + GCS-объекты.
  */
 
-const TTL_DAYS = 90;
+const RESOLVED_TTL_DAYS = 90;
+const ABSOLUTE_TTL_DAYS = 180;
 const PAGE = 200;
 
 const db = admin.firestore();
@@ -38,6 +44,79 @@ function parseObjectPathFromDownloadUrl(url: string): string | null {
   }
 }
 
+type ClearReason = "resolved_ttl" | "absolute_ttl";
+
+async function clearEvidenceForDoc(
+  doc: admin.firestore.QueryDocumentSnapshot,
+  bucket: ReturnType<ReturnType<typeof admin.storage>["bucket"]>,
+  reason: ClearReason,
+): Promise<{ cleared: boolean; deletedObjects: number }> {
+  const data = doc.data() ?? {};
+  const evidence = Array.isArray(data.evidenceAttachments) ?
+    data.evidenceAttachments :
+    [];
+  if (evidence.length === 0 && !data.evidenceNonce) {
+    return { cleared: false, deletedObjects: 0 };
+  }
+
+  let deletedObjects = 0;
+  for (const att of evidence) {
+    if (!att || typeof att !== "object") continue;
+    const url = (att as { url?: unknown }).url;
+    if (typeof url !== "string") continue;
+    const objectPath = parseObjectPathFromDownloadUrl(url);
+    if (!objectPath) continue;
+    try {
+      await bucket.file(objectPath).delete({ ignoreNotFound: true });
+      deletedObjects += 1;
+    } catch (e) {
+      logger.warn("[evidenceCleanupDaily] failed to delete evidence object", {
+        objectPath,
+        error: String(e),
+        reason,
+      });
+    }
+  }
+
+  await doc.ref.update({
+    evidenceAttachments: admin.firestore.FieldValue.delete(),
+    evidenceNonce: admin.firestore.FieldValue.delete(),
+    evidenceClearedAt: admin.firestore.FieldValue.serverTimestamp(),
+    evidenceClearedReason: reason,
+  });
+  return { cleared: true, deletedObjects };
+}
+
+async function runPass(
+  filter: (doc: admin.firestore.QueryDocumentSnapshot) => boolean,
+  baseQuery: admin.firestore.Query,
+  bucket: ReturnType<ReturnType<typeof admin.storage>["bucket"]>,
+  reason: ClearReason,
+): Promise<{ scanned: number; cleared: number; deletedObjects: number }> {
+  let scanned = 0;
+  let cleared = 0;
+  let deletedObjects = 0;
+  let lastDoc: admin.firestore.QueryDocumentSnapshot | null = null;
+  for (;;) {
+    const page: admin.firestore.QuerySnapshot = lastDoc ?
+      await baseQuery.startAfter(lastDoc).get() :
+      await baseQuery.get();
+    if (page.empty) break;
+    for (const doc of page.docs) {
+      scanned += 1;
+      if (!filter(doc)) continue;
+      const res = await clearEvidenceForDoc(doc, bucket, reason);
+      if (res.cleared) {
+        cleared += 1;
+        deletedObjects += res.deletedObjects;
+      }
+    }
+    if (page.docs.length < PAGE) break;
+    lastDoc = page.docs[page.docs.length - 1];
+  }
+  return { scanned, cleared, deletedObjects };
+}
+
 export const evidenceCleanupDaily = onSchedule(
   {
     schedule: "0 5 * * *",
@@ -46,71 +125,44 @@ export const evidenceCleanupDaily = onSchedule(
     memory: "256MiB",
   },
   async () => {
-    const cutoffMs = Date.now() - TTL_DAYS * 24 * 60 * 60 * 1000;
-    const cutoffIso = new Date(cutoffMs).toISOString();
+    const now = Date.now();
+    const resolvedCutoff = new Date(now - RESOLVED_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const absoluteCutoff = new Date(now - ABSOLUTE_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
     const bucket = admin.storage().bucket();
 
-    let scanned = 0;
-    let cleared = 0;
-    let deletedObjects = 0;
-    let lastDoc: admin.firestore.QueryDocumentSnapshot | null = null;
-
-    for (;;) {
-      const base = db
+    // 1) Resolved TTL — для action_taken/dismissed жалоб.
+    const resolvedPass = await runPass(
+      (doc) => isResolvedStatus(doc.data()?.status),
+      db
         .collection("messageReports")
-        .where("reviewedAt", "<=", cutoffIso)
+        .where("reviewedAt", "<=", resolvedCutoff)
         .orderBy("reviewedAt", "asc")
-        .limit(PAGE);
-      const page: admin.firestore.QuerySnapshot = lastDoc ?
-        await base.startAfter(lastDoc).get() :
-        await base.get();
-      if (page.empty) break;
+        .limit(PAGE),
+      bucket,
+      "resolved_ttl",
+    );
 
-      for (const doc of page.docs) {
-        scanned += 1;
-        const data = doc.data() ?? {};
-        if (!isResolvedStatus(data.status)) continue;
-        const evidence = Array.isArray(data.evidenceAttachments) ?
-          data.evidenceAttachments :
-          [];
-        if (evidence.length === 0 && !data.evidenceNonce) continue;
-
-        // Удаляем каждый Storage-объект, прежде чем чистить поля.
-        for (const att of evidence) {
-          if (!att || typeof att !== "object") continue;
-          const url = (att as { url?: unknown }).url;
-          if (typeof url !== "string") continue;
-          const objectPath = parseObjectPathFromDownloadUrl(url);
-          if (!objectPath) continue;
-          try {
-            await bucket.file(objectPath).delete({ ignoreNotFound: true });
-            deletedObjects += 1;
-          } catch (e) {
-            logger.warn("[evidenceCleanupDaily] failed to delete evidence object", {
-              objectPath,
-              error: String(e),
-            });
-          }
-        }
-
-        await doc.ref.update({
-          evidenceAttachments: admin.firestore.FieldValue.delete(),
-          evidenceNonce: admin.firestore.FieldValue.delete(),
-          evidenceClearedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-        cleared += 1;
-      }
-
-      if (page.docs.length < PAGE) break;
-      lastDoc = page.docs[page.docs.length - 1];
-    }
+    // 2) Absolute TTL — для любого статуса. Защищает от
+    //    «забытых» pending-жалоб, у которых нет reviewedAt и они
+    //    не попадают в первый pass.
+    const absolutePass = await runPass(
+      () => true,
+      db
+        .collection("messageReports")
+        .where("createdAt", "<=", absoluteCutoff)
+        .orderBy("createdAt", "asc")
+        .limit(PAGE),
+      bucket,
+      "absolute_ttl",
+    );
 
     logger.info("[evidenceCleanupDaily] done", {
-      cutoffIso,
-      ttlDays: TTL_DAYS,
-      scanned,
-      cleared,
-      deletedObjects,
+      resolvedCutoff,
+      absoluteCutoff,
+      resolvedTtlDays: RESOLVED_TTL_DAYS,
+      absoluteTtlDays: ABSOLUTE_TTL_DAYS,
+      resolved: resolvedPass,
+      absolute: absolutePass,
     });
   },
 );

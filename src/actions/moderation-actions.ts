@@ -69,6 +69,57 @@ async function notifyReporterOfDecision(opts: {
   }
 }
 
+/**
+ * Best-effort notification к автору модерированного сообщения (sender,
+ * не reporter). Без этого человек не понимает, почему его сообщение
+ * пропало или аккаунт ограничен — нет ни feedback'а, ни процедуры
+ * апелляции.
+ */
+async function notifySenderOfModerationAction(opts: {
+  reportId: string;
+  senderId: string;
+  actionTaken: ModerationAction;
+  reason?: string;
+}): Promise<void> {
+  try {
+    const { senderId, actionTaken, reason } = opts;
+    if (!senderId) return;
+    let title: string;
+    let body: string;
+    if (actionTaken === 'hidden') {
+      title = 'Ваше сообщение скрыто модератором';
+      body = reason
+        ? `Сообщение было скрыто за нарушение правил (${reason}). Если считаете решение ошибочным — обратитесь в поддержку.`
+        : 'Сообщение было скрыто за нарушение правил. Если считаете решение ошибочным — обратитесь в поддержку.';
+    } else if (actionTaken === 'user_blocked') {
+      title = 'Ваш аккаунт заблокирован';
+      body = reason
+        ? `Доступ ограничен модератором за нарушение правил (${reason}). Если считаете решение ошибочным — обратитесь в поддержку.`
+        : 'Доступ ограничен модератором за нарушение правил. Если считаете решение ошибочным — обратитесь в поддержку.';
+    } else if (actionTaken === 'user_warned') {
+      title = 'Предупреждение от модератора';
+      body = reason
+        ? `Модератор вынес предупреждение по вашему сообщению (${reason}). Повторное нарушение может привести к блокировке.`
+        : 'Модератор вынес предупреждение по вашему сообщению. Повторное нарушение может привести к блокировке.';
+    } else {
+      return; // 'none' / 'dismissed' — sender'у не пишем.
+    }
+    const ref = adminDb.collection('users').doc(senderId).collection('notifications').doc();
+    const notification: Notification = {
+      id: ref.id,
+      userId: senderId,
+      title,
+      body,
+      link: '/dashboard/support',
+      createdAt: new Date().toISOString(),
+      isRead: false,
+    };
+    await ref.set(notification);
+  } catch (e) {
+    logger.error('moderation', 'notifySenderOfModerationAction failed', { reportId: opts.reportId, e });
+  }
+}
+
 // SECURITY: Firestore document IDs are interpolated into paths; reject any
 // shape that would let `..` / `/` walk outside the expected collection.
 // Whitelist-regex был слишком узким — резал валидные secret-chat IDs вида
@@ -185,6 +236,44 @@ export async function createMessageReportAction(input: {
   }
   try {
     const reporter = await verifyUserByIdToken(parsed.data.idToken);
+
+    // Rate-limit: защита от спама в очередь модерации и от DoS на
+    // Storage квоту через evidence-uploads. Лимит на reporter:
+    //   - ≤ REPORT_LIMIT_PER_HOUR жалоб за последний час;
+    //   - ≤ REPORT_LIMIT_PER_DAY жалоб за последние 24 часа.
+    // Используем count() aggregation query — дёшево, не требует отдельной
+    // коллекции счётчиков.
+    const REPORT_LIMIT_PER_HOUR = 10;
+    const REPORT_LIMIT_PER_DAY = 30;
+    const now = Date.now();
+    const oneHourAgoIso = new Date(now - 60 * 60 * 1000).toISOString();
+    const oneDayAgoIso = new Date(now - 24 * 60 * 60 * 1000).toISOString();
+    try {
+      const [hourCount, dayCount] = await Promise.all([
+        adminDb
+          .collection('messageReports')
+          .where('reporterId', '==', reporter.uid)
+          .where('createdAt', '>=', oneHourAgoIso)
+          .count()
+          .get(),
+        adminDb
+          .collection('messageReports')
+          .where('reporterId', '==', reporter.uid)
+          .where('createdAt', '>=', oneDayAgoIso)
+          .count()
+          .get(),
+      ]);
+      if (hourCount.data().count >= REPORT_LIMIT_PER_HOUR) {
+        return { ok: false, error: 'Слишком много жалоб за последний час, попробуйте позже' };
+      }
+      if (dayCount.data().count >= REPORT_LIMIT_PER_DAY) {
+        return { ok: false, error: 'Превышен суточный лимит жалоб' };
+      }
+    } catch (rlErr) {
+      // Rate-limit upstream issue (например missing composite index) не
+      // должен блокировать легитимные жалобы; логируем и продолжаем.
+      logger.warn('moderation', 'rate-limit check failed (fail-open)', rlErr);
+    }
 
     // Валидация evidence URLs: каждый должен лежать в
     // moderation-evidence/{reporter.uid}/{nonce}/. Любой URL вне этого
@@ -371,7 +460,10 @@ export async function reviewAndHideReportAction(input: {
     await batch.commit();
 
     const reportSnap = await reportRef.get();
-    const reporterId = reportSnap.exists ? String(reportSnap.data()?.reporterId ?? '') : '';
+    const reportData = reportSnap.exists ? (reportSnap.data() ?? {}) : {};
+    const reporterId = String(reportData.reporterId ?? '');
+    const messageSenderId = String(reportData.messageSenderId ?? '');
+    const reportReason = typeof reportData.reason === 'string' ? reportData.reason : undefined;
 
     await Promise.all([
       logAdminAction({
@@ -393,6 +485,12 @@ export async function reviewAndHideReportAction(input: {
         reporterId,
         status: 'action_taken',
         actionTaken: 'hidden',
+      }),
+      notifySenderOfModerationAction({
+        reportId: parsed.data.reportId,
+        senderId: messageSenderId,
+        actionTaken: 'hidden',
+        reason: reportReason,
       }),
     ]);
 
@@ -427,7 +525,11 @@ export async function reviewReportAction(input: {
     });
 
     const reportSnap = await reportRef.get();
-    const reporterId = reportSnap.exists ? String(reportSnap.data()?.reporterId ?? '') : '';
+    const reportData = reportSnap.exists ? (reportSnap.data() ?? {}) : {};
+    const reporterId = String(reportData.reporterId ?? '');
+    const messageSenderId = String(reportData.messageSenderId ?? '');
+    const reportReason = typeof reportData.reason === 'string' ? reportData.reason : undefined;
+    const finalActionTaken = parsed.data.actionTaken ?? 'none';
 
     await Promise.all([
       logAdminAction({
@@ -441,8 +543,20 @@ export async function reviewReportAction(input: {
         reportId: parsed.data.reportId,
         reporterId,
         status: parsed.data.status,
-        actionTaken: parsed.data.actionTaken ?? 'none',
+        actionTaken: finalActionTaken,
       }),
+      // Sender уведомляем только если применили action 'hidden' /
+      // 'user_blocked' / 'user_warned'. 'none' и 'dismissed' — без
+      // оповещения автору (если ничего не сделали, человеку и так нет
+      // ничего нового).
+      parsed.data.status === 'action_taken'
+        ? notifySenderOfModerationAction({
+            reportId: parsed.data.reportId,
+            senderId: messageSenderId,
+            actionTaken: finalActionTaken,
+            reason: reportReason,
+          })
+        : Promise.resolve(),
     ]);
 
     return { ok: true };
