@@ -1,7 +1,9 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show Uint8List, compute;
 import 'package:flutter/material.dart';
+
+import 'package:lighchat_mobile/core/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_cropper/image_cropper.dart';
@@ -93,7 +95,7 @@ class _GroupChatAvatarButtonState extends State<GroupChatAvatarButton> {
       setState(() => _jpeg = finalBytes);
       widget.onChanged(finalBytes);
     } catch (e, st) {
-      debugPrint('GroupChatAvatarButton._pick failed: $e\n$st');
+      appLogger.w('GroupChatAvatarButton._pick failed', error: e, stackTrace: st);
       if (mounted) {
         ScaffoldMessenger.maybeOf(context)?.showSnackBar(
           SnackBar(

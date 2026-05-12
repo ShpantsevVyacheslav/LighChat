@@ -14,8 +14,8 @@
 library;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 /// Читает настройки (платформа + пользователь) и если хоть одна требует
 /// включения E2EE для новых DM — включает.
@@ -56,7 +56,7 @@ Future<bool> tryAutoEnableE2eeForMobileDm({
     );
   } catch (e, st) {
     if (kDebugMode) {
-      debugPrint('[e2ee] auto-enable skipped: $e\n$st');
+      appLogger.w('[e2ee] auto-enable skipped', error: e, stackTrace: st);
     }
     return false;
   }

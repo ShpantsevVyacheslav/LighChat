@@ -8,6 +8,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+import 'package:lighchat_mobile/core/app_logger.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:image_picker/image_picker.dart';
@@ -3725,7 +3727,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           .doc(m.id)
           .delete();
     } catch (e) {
-      debugPrint('cancel stale-pending message $m.id failed: $e');
+      appLogger.w('cancel stale-pending message $m.id failed', error: e);
     }
   }
 

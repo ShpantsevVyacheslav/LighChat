@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
+import 'package:lighchat_mobile/core/app_logger.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 /// Creates (or opens existing) Secret DM chat between two users.
@@ -107,7 +107,7 @@ Future<String> createOrOpenSecretDirectChat({
     );
   } catch (e, st) {
     if (kDebugMode) {
-      debugPrint('[secret-chat] E2EE auto-enable failed (non-fatal): $e\n$st');
+      appLogger.w('[secret-chat] E2EE auto-enable failed (non-fatal)', error: e, stackTrace: st);
     }
   }
 

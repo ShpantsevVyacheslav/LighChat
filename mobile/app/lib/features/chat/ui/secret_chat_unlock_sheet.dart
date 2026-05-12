@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+
+import 'package:lighchat_mobile/core/app_logger.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -166,7 +168,7 @@ class _SecretChatUnlockSheetState extends State<SecretChatUnlockSheet> {
     } catch (e) {
       if (!mounted) return;
       if (kDebugMode) {
-        debugPrint('Biometric unlock failed: $e');
+        appLogger.w('Biometric unlock failed', error: e);
       }
       setState(() => _error = l10n.secret_chat_unlock_failed);
     } finally {

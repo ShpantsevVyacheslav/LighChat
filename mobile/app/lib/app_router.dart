@@ -2,8 +2,9 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+import 'package:lighchat_mobile/core/app_logger.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
@@ -150,11 +151,7 @@ GoRouter createRouter() {
               !isMeetingDeepLink &&
               !isLegalDeepLink) {
             final shown = await FirstLoginAnimationStorage.isShownFor(uid);
-            if (kDebugMode) {
-              debugPrint(
-                '[welcome-redirect] path=$path uid=$uid shown=$shown',
-              );
-            }
+            appLogger.d('[welcome-redirect] path=$path uid=$uid shown=$shown');
             if (!shown) return '/welcome';
           }
         }

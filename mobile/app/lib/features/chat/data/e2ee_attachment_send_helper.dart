@@ -27,6 +27,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 
+import 'package:lighchat_mobile/core/app_logger.dart';
 import '../../../l10n/app_localizations.dart';
 import 'e2ee_runtime.dart';
 import 'video_send_compress_720p.dart';
@@ -80,7 +81,7 @@ Future<void> cleanupPreparedE2eeFile(E2eePreparedSendFile prepared) async {
     final f = File(p);
     if (await f.exists()) await f.delete();
   } catch (e) {
-    debugPrint('cleanupPreparedE2eeFile failed: $e');
+    appLogger.w('cleanupPreparedE2eeFile failed', error: e);
   }
 }
 

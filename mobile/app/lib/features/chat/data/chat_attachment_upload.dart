@@ -3,11 +3,11 @@ import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import 'package:lighchat_mobile/core/app_logger.dart';
 import 'video_send_compress_720p.dart';
 
 String _safeStorageSegment(String name) {
@@ -161,7 +161,7 @@ Future<ChatAttachment> uploadChatAttachmentFromXFile({
           final f = File(p);
           if (await f.exists()) await f.delete();
         } catch (e) {
-          debugPrint('uploadChatAttachmentFromXFile: temp delete failed: $e');
+          appLogger.w('uploadChatAttachmentFromXFile: temp delete failed', error: e);
         }
       }
     }

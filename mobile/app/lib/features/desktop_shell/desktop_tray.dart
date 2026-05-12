@@ -1,7 +1,7 @@
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart';
 import 'package:tray_manager/tray_manager.dart';
+import 'package:lighchat_mobile/core/app_logger.dart';
 import 'package:window_manager/window_manager.dart';
 
 /// Системный трей: иконка + меню (Open / Quit). Бейдж непрочитанных
@@ -23,7 +23,7 @@ class DesktopTray with TrayListener {
     try {
       await trayManager.setIcon(iconPath, isTemplate: Platform.isMacOS);
     } catch (e) {
-      if (kDebugMode) debugPrint('[tray] setIcon failed: $e');
+      appLogger.w('[tray] setIcon failed', error: e);
     }
 
     await trayManager.setContextMenu(_buildMenu());

@@ -4,8 +4,10 @@ import 'dart:ui' show Color, Size;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:lighchat_mobile/core/app_logger.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'desktop_tray.dart';
@@ -90,7 +92,7 @@ class DesktopShell {
         SetOptions(merge: true),
       );
     } catch (e) {
-      if (kDebugMode) debugPrint('[desktop-shell] markDesktopDevice failed: $e');
+      appLogger.w('[desktop-shell] markDesktopDevice failed', error: e);
     }
   }
 
