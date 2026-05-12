@@ -1,6 +1,7 @@
 'use client';
 
 import { rgbaToThumbHash, thumbHashToDataURL } from 'thumbhash';
+import { logger } from '@/lib/logger';
 
 /**
  * Extracts width, height, and generates a ThumbHash for a given image file.
@@ -47,7 +48,7 @@ export async function getImageMetadata(file: File): Promise<{ width: number; hei
                 URL.revokeObjectURL(url);
                 resolve({ width, height, thumbHash });
             } catch (err) {
-                console.warn("[MediaUtils] ThumbHash generation failed:", err);
+                logger.warn('media-utils', 'ThumbHash generation failed', err);
                 URL.revokeObjectURL(url);
                 resolve({ width, height, thumbHash: null });
             }
@@ -75,7 +76,7 @@ export function thumbHashToUrl(hashStr: string | null | undefined): string | nul
         }
         return thumbHashToDataURL(array);
     } catch (e) {
-        console.warn("[MediaUtils] Decoding ThumbHash failed:", e);
+        logger.warn('media-utils', 'Decoding ThumbHash failed', e);
         return null;
     }
 }

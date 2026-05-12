@@ -4,14 +4,16 @@
  * Ключ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY не используется здесь (только Static Map URL после получения lat/lng).
  */
 
+import { logger } from '@/lib/logger';
+
 export const GEOLOCATION_CLIENT_LOG = '[LighChat:geolocation]';
 export const GEOLOCATION_FIRESTORE_LOG = '[LighChat:geolocation:firestore]';
 
 function log(phase: string, detail?: Record<string, unknown>) {
   if (detail !== undefined) {
-    console.log(GEOLOCATION_CLIENT_LOG, phase, detail);
+    logger.debug('geo', phase, detail);
   } else {
-    console.log(GEOLOCATION_CLIENT_LOG, phase);
+    logger.debug('geo', phase);
   }
 }
 

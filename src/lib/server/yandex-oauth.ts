@@ -3,6 +3,8 @@
  * @see https://yandex.ru/dev/id/doc/ru/
  */
 
+import { logger } from "@/lib/logger";
+
 const YANDEX_AUTHORIZE = "https://oauth.yandex.ru/authorize";
 const YANDEX_TOKEN = "https://oauth.yandex.com/token";
 const YANDEX_LOGIN_INFO = "https://login.yandex.ru/info?format=json";
@@ -116,11 +118,8 @@ export async function yandexFetchLoginInfo(
   const parsed = JSON.parse(text) as YandexLoginInfo;
   if (process.env.YANDEX_DEBUG_LOGIN_INFO === "1") {
     try {
-      console.info(
-        "[yandex login/info] keys:",
-        Object.keys(parsed as Record<string, unknown>).sort(),
-      );
-      console.info("[yandex login/info] redacted:", redactYandexLoginInfoForLogs(parsed));
+      logger.debug('yandex-oauth', 'login/info keys', Object.keys(parsed as Record<string, unknown>).sort());
+      logger.debug('yandex-oauth', 'login/info redacted', redactYandexLoginInfoForLogs(parsed));
     } catch {
       /* ignore logging errors */
     }

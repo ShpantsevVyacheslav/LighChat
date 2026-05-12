@@ -1,4 +1,5 @@
 import { adminDb } from "@/firebase/admin";
+import { logger } from "@/lib/logger";
 
 const DICEBEAR_AVATAR_HOST = "api.dicebear.com";
 
@@ -52,7 +53,7 @@ export async function ensureUserDocExistsAdmin(opts: {
       });
     });
   } catch (e) {
-    console.warn("[ensure-user-doc-admin] ensure users/%s failed", uid, e);
+    logger.warn('ensure-user-doc', `ensure users/${uid} failed`, e);
     return;
   }
 
@@ -89,7 +90,7 @@ export async function ensureUserDocExistsAdmin(opts: {
       await ref.set(patch, { merge: true });
     }
   } catch (e) {
-    console.warn("[ensure-user-doc-admin] users/%s patch skipped", uid, e);
+    logger.warn('ensure-user-doc', `users/${uid} patch skipped`, e);
   }
 }
 
