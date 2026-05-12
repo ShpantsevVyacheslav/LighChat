@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
-import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 /// Подписка на собственную URL-схему `lighchat://` для desktop.
 ///
@@ -35,7 +35,7 @@ class DesktopDeepLinks {
         if (path != null) router.go(path);
       }
     } catch (e, st) {
-      if (kDebugMode) debugPrint('[deep-link] initial failed: $e\n$st');
+      appLogger.w('[deep-link] initial failed', error: e, stackTrace: st);
     }
 
     await _sub?.cancel();
@@ -45,7 +45,7 @@ class DesktopDeepLinks {
         if (path != null) router.go(path);
       },
       onError: (Object e, StackTrace st) {
-        if (kDebugMode) debugPrint('[deep-link] stream error: $e');
+        appLogger.w('[deep-link] stream error', error: e);
       },
     );
   }
@@ -84,7 +84,7 @@ class DesktopDeepLinks {
       case 'auth':
         return '/auth';
       default:
-        if (kDebugMode) debugPrint('[deep-link] unsupported: $uri');
+        appLogger.d('[deep-link] unsupported: $uri');
         return null;
     }
   }

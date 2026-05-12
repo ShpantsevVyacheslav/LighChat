@@ -1,8 +1,10 @@
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter_windowmanager_plus/flutter_windowmanager_plus.dart';
+
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 /// Запрет скриншотов / превью окна для секретных чатов.
 ///
@@ -41,7 +43,7 @@ class ScreenshotProtectionFacade {
         await _channel.invokeMethod<void>('enable');
       }
     } catch (e) {
-      if (kDebugMode) debugPrint('[screenshot-protection] enable failed: $e');
+      appLogger.w('[screenshot-protection] enable failed', error: e);
       _applied = false;
     }
   }
@@ -58,7 +60,7 @@ class ScreenshotProtectionFacade {
         await _channel.invokeMethod<void>('disable');
       }
     } catch (e) {
-      if (kDebugMode) debugPrint('[screenshot-protection] disable failed: $e');
+      appLogger.w('[screenshot-protection] disable failed', error: e);
     }
   }
 }

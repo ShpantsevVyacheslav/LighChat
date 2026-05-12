@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'dart:io' show InternetAddress, Platform, ServerSocket, Socket;
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:window_manager/window_manager.dart';
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 /// Single-instance guard для desktop.
 ///
@@ -38,7 +39,7 @@ class DesktopSingleInstance {
       return true;
     } on Exception catch (e) {
       // Порт занят — попробуем достучаться до владельца.
-      if (kDebugMode) debugPrint('[single-instance] bind failed: $e');
+      appLogger.w('[single-instance] bind failed', error: e);
       try {
         final socket = await Socket.connect(
           InternetAddress.loopbackIPv4,
@@ -53,7 +54,7 @@ class DesktopSingleInstance {
         // Не отвечает — видимо, порт держит чужое приложение.
         // Стартуем как обычно — лучше двойной инстанс, чем пустой экран.
         if (kDebugMode) {
-          debugPrint('[single-instance] peer connect failed: $e2');
+          appLogger.w('[single-instance] peer connect failed', error: e2);
         }
         return true;
       }
@@ -87,7 +88,7 @@ class DesktopSingleInstance {
       }
       await windowManager.focus();
     } catch (e) {
-      if (kDebugMode) debugPrint('[single-instance] focus failed: $e');
+      appLogger.w('[single-instance] focus failed', error: e);
     }
   }
 }

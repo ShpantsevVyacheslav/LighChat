@@ -1,5 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+
+import 'package:lighchat_mobile/core/app_logger.dart';
 import 'package:flutter/widgets.dart';
 import 'dart:io' show Platform;
 
@@ -38,7 +39,7 @@ class MeetingPipController {
         final v = await _channel.invokeMethod<bool>('isSupported');
         _supportedCache = v ?? false;
       } catch (e) {
-        if (kDebugMode) debugPrint('[pip] isSupported failed: $e');
+        appLogger.w('[pip] isSupported failed', error: e);
         _supportedCache = false;
       }
       return _supportedCache!;
@@ -60,7 +61,7 @@ class MeetingPipController {
       final ok = await _channel.invokeMethod<bool>('enter');
       return ok ?? false;
     } catch (e) {
-      if (kDebugMode) debugPrint('[pip] enter failed: $e');
+      appLogger.w('[pip] enter failed', error: e);
       return false;
     }
   }

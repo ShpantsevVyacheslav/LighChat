@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +9,7 @@ import 'package:local_auth/local_auth.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
+import 'package:lighchat_mobile/core/app_logger.dart';
 import '../data/dm_display_title.dart';
 import '../data/secret_chat_callables.dart';
 import '../data/secret_chat_pin_device_storage.dart';
@@ -99,7 +100,7 @@ class _SecretChatsInboxScreenState
       await _promptPinUnlock();
     } catch (e, st) {
       if (kDebugMode) {
-        debugPrint('SecretChatsInbox _runGate: $e\n$st');
+        appLogger.w('SecretChatsInbox _runGate', error: e, stackTrace: st);
       }
       if (!mounted) return;
       setState(() {
@@ -150,7 +151,7 @@ class _SecretChatsInboxScreenState
       setState(() => _unlocked = true);
     } catch (e, st) {
       if (kDebugMode) {
-        debugPrint('SecretChatsInbox biometric vault: $e\n$st');
+        appLogger.w('SecretChatsInbox biometric vault', error: e, stackTrace: st);
       }
       if (!mounted) return;
       setState(() => _error = l10n.secret_chat_unlock_failed);

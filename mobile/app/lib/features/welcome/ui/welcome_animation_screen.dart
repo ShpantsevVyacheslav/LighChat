@@ -1,8 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:lighchat_mobile/core/app_logger.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:go_router/go_router.dart';
 
@@ -42,9 +43,7 @@ class _WelcomeAnimationScreenState extends State<WelcomeAnimationScreen>
     if (uid != null) {
       FirstLoginAnimationStorage.markShownFor(uid);
     }
-    if (kDebugMode) {
-      debugPrint('[welcome-screen] mounted uid=$uid');
-    }
+    appLogger.d('[welcome-screen] mounted uid=$uid');
   }
 
   void _onTick() {

@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:auto_updater/auto_updater.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 /// Авто-обновление для desktop-сборок.
 ///
@@ -56,13 +57,13 @@ class DesktopAutoUpdater {
         unawaited(
           Future<void>.delayed(const Duration(seconds: 30), () {
             autoUpdater.checkForUpdates().catchError((Object e) {
-              if (kDebugMode) debugPrint('[auto-updater] check failed: $e');
+              appLogger.w('[auto-updater] check failed', error: e);
             });
           }),
         );
       }
     } catch (e) {
-      if (kDebugMode) debugPrint('[auto-updater] init failed: $e');
+      appLogger.w('[auto-updater] init failed', error: e);
     }
   }
 
@@ -73,7 +74,7 @@ class DesktopAutoUpdater {
     try {
       await autoUpdater.checkForUpdates();
     } catch (e) {
-      if (kDebugMode) debugPrint('[auto-updater] manual check failed: $e');
+      appLogger.w('[auto-updater] manual check failed', error: e);
     }
   }
 

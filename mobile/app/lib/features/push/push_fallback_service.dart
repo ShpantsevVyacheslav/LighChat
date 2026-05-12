@@ -3,9 +3,9 @@ import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import 'package:lighchat_mobile/core/app_logger.dart';
 import 'push_runtime_flags.dart';
 
 /// Подмена `firebase_messaging` на Windows/Linux, где нативного FCM SDK нет.
@@ -92,7 +92,7 @@ class PushFallbackService {
         }
       },
       onError: (Object e, StackTrace st) {
-        if (kDebugMode) debugPrint('[push-fallback] listen error: $e');
+        appLogger.w('[push-fallback] listen error', error: e);
       },
     );
   }
@@ -117,7 +117,7 @@ class PushFallbackService {
         payload: jsonEncode(payload),
       );
     } catch (e) {
-      if (kDebugMode) debugPrint('[push-fallback] notify failed: $e');
+      appLogger.w('[push-fallback] notify failed', error: e);
     }
 
     try {
