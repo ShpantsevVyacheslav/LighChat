@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:lighchat_mobile/core/app_logger.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:go_router/go_router.dart';
@@ -633,7 +634,7 @@ class _BubbleCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: kBrandCoral,
+          color: kBrandOrange,
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(4),
             topRight: Radius.circular(18),
@@ -665,9 +666,9 @@ class _BubbleCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     'LighChat',
-                    style: TextStyle(
+                    style: GoogleFonts.outfit(
                       color: Colors.white,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -752,11 +753,7 @@ class _Wordmark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // height: 1.0 нужен чтобы line-box каждой буквы совпадал с em-box
-    // (= fontSize). При этом наш custom-painted `i` (высота = fontSize)
-    // совпадает с буквами по baseline и x-height детерминированно.
-    const wordStyle = TextStyle(
-      color: Colors.white,
+    final baseStyle = GoogleFonts.outfit(
       fontSize: 28,
       fontWeight: FontWeight.w800,
       letterSpacing: 0.6,
@@ -764,89 +761,15 @@ class _Wordmark extends StatelessWidget {
     );
     return Center(
       child: Text.rich(
-        const TextSpan(
+        TextSpan(
           children: [
-            TextSpan(text: 'L', style: wordStyle),
-            WidgetSpan(
-              alignment: PlaceholderAlignment.baseline,
-              baseline: TextBaseline.alphabetic,
-              child: _DottedI(),
-            ),
-            TextSpan(text: 'gh', style: wordStyle),
-            TextSpan(
-              text: 'Chat',
-              style: TextStyle(
-                color: kBrandCoral,
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.6,
-                height: 1.0,
-              ),
-            ),
+            TextSpan(text: 'Ligh', style: baseStyle.copyWith(color: Colors.white)),
+            TextSpan(text: 'Chat', style: baseStyle.copyWith(color: kBrandOrange)),
           ],
         ),
       ),
     );
   }
-}
-
-/// Pixel-perfect `i` со встроенной coral-точкой. Чтобы избежать задвоения
-/// со штатной точкой шрифта (которая позиционируется по font metrics, не
-/// зависит от нашего layout), рисуем stem и точку в одном CustomPaint.
-class _DottedI extends StatelessWidget {
-  const _DottedI();
-
-  @override
-  Widget build(BuildContext context) {
-    const fontSize = 28.0;
-    // height = fontSize ровно как у Text с height: 1.0 — тогда наш widget
-    // и буквы L/g/h занимают одинаковую line-box, можно ровнять по
-    // baseline и x-height детерминированно.
-    return SizedBox(
-      width: fontSize * 0.32,
-      height: fontSize,
-      child: const CustomPaint(
-        painter: _DottedIPainter(stemColor: Colors.white),
-      ),
-    );
-  }
-}
-
-class _DottedIPainter extends CustomPainter {
-  const _DottedIPainter({required this.stemColor});
-
-  final Color stemColor;
-
-  // Inter / SF Heavy metrics (нормализованы к em-квадрату):
-  //   x-height ≈ 0.518 em, baseline = 1.0 em, asсender ≈ 0.78 em
-  static const _xHeight = 0.48; // top of stem (top of "g")
-  static const _baseline = 1.0; // bottom of stem (точно baseline = низ "L" / "h")
-  static const _dotCenter = 0.22; // центр точки над stem
-  static const _stemWidthRatio = 0.55; // % container width
-  static const _dotRadiusRatio = 0.30; // % container width
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    final stemWidth = w * _stemWidthRatio;
-    final stemX = (w - stemWidth) / 2;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTRB(stemX, h * _xHeight, stemX + stemWidth, h * _baseline),
-        Radius.circular(stemWidth * 0.5),
-      ),
-      Paint()..color = stemColor,
-    );
-    canvas.drawCircle(
-      Offset(w * 0.5, h * _dotCenter),
-      w * _dotRadiusRatio,
-      Paint()..color = kBrandCoral,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _DottedIPainter old) => old.stemColor != stemColor;
 }
 
 /// Debug-only helper: сбрасывает welcome-флаг и отправляет на /welcome.

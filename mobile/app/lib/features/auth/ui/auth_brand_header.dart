@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../../../brand_colors.dart';
 
 class AuthBrandHeader extends StatelessWidget {
   const AuthBrandHeader({super.key});
@@ -6,10 +9,14 @@ class AuthBrandHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    const navy = Color(0xFF1E3A5F);
-    const coral = Color(0xFFE9967A);
-    const orangeDot = Color(0xFFECA048);
-    final lighColor = isDark ? const Color(0xFFC5D9ED) : navy;
+    final lighColor = isDark ? const Color(0xFFC5D9ED) : kBrandNavy;
+
+    final baseStyle = GoogleFonts.outfit(
+      fontSize: 40,
+      fontWeight: FontWeight.w800,
+      height: 1,
+      letterSpacing: -0.4,
+    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -22,125 +29,15 @@ class AuthBrandHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        // CrossAxisAlignment.baseline + явный Baseline-widget для нашего
-        // CustomPaint — без этого Row выровнял бы виджеты по нижнему краю
-        // bbox, и stem "i" уехал бы в descender-зону (ниже baseline "L").
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(
-              'L',
-              style: TextStyle(
-                fontSize: 40,
-                fontWeight: FontWeight.w700,
-                height: 1,
-                letterSpacing: -0.4,
-                color: lighColor,
-              ),
-            ),
-            // Для текста 40px у используемого шрифта реальная alphabetic
-            // baseline находится выше нижней границы bbox (примерно на 80%).
-            // Если ставить baseline=40, stem "i" уезжает вниз.
-            Padding(
-              padding: const EdgeInsets.only(left: 2, right: 2),
-              child: Baseline(
-                baseline: 32,
-                baselineType: TextBaseline.alphabetic,
-                child: _BrandDottedI(
-                  stemColor: lighColor,
-                  dotColor: orangeDot,
-                  fontSize: 40,
-                ),
-              ),
-            ),
-            Text(
-              'gh',
-              style: TextStyle(
-                fontSize: 40,
-                fontWeight: FontWeight.w700,
-                height: 1,
-                letterSpacing: -0.4,
-                color: lighColor,
-              ),
-            ),
-            const Text(
-              'Chat',
-              style: TextStyle(
-                fontSize: 40,
-                fontWeight: FontWeight.w700,
-                height: 1,
-                letterSpacing: -0.4,
-                color: coral,
-              ),
-            ),
-          ],
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(text: 'Ligh', style: baseStyle.copyWith(color: lighColor)),
+              TextSpan(text: 'Chat', style: baseStyle.copyWith(color: kBrandOrange)),
+            ],
+          ),
         ),
       ],
     );
   }
-}
-
-class _BrandDottedI extends StatelessWidget {
-  const _BrandDottedI({
-    required this.stemColor,
-    required this.dotColor,
-    required this.fontSize,
-  });
-
-  final Color stemColor;
-  final Color dotColor;
-  final double fontSize;
-
-  @override
-  Widget build(BuildContext context) {
-    // height = fontSize (как у Text с height: 1.0) — благодаря этому stem
-    // сядет ровно от x-height ("g") до baseline ("L").
-    return SizedBox(
-      width: fontSize * 0.30,
-      height: fontSize,
-      child: CustomPaint(
-        painter: _BrandDottedIPainter(stemColor: stemColor, dotColor: dotColor),
-      ),
-    );
-  }
-}
-
-class _BrandDottedIPainter extends CustomPainter {
-  const _BrandDottedIPainter({required this.stemColor, required this.dotColor});
-
-  final Color stemColor;
-  final Color dotColor;
-
-  // Inter Heavy metrics: x-height ≈ 0.518 em, baseline = 1 em, ascender ≈ 0.78 em.
-  static const _xHeight = 0.48; // top of stem (≈ top of "g")
-  static const _baseline = 1.0; // bottom of stem (точно baseline = низ "L")
-  static const _dotCenter = 0.22; // центр coral-точки над stem
-  static const _stemWidthRatio = 0.55;
-  static const _dotRadiusRatio = 0.30;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    final stemWidth = w * _stemWidthRatio;
-    final stemX = (w - stemWidth) / 2;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTRB(stemX, h * _xHeight, stemX + stemWidth, h * _baseline),
-        Radius.circular(stemWidth * 0.5),
-      ),
-      Paint()..color = stemColor,
-    );
-    canvas.drawCircle(
-      Offset(w * 0.5, h * _dotCenter),
-      w * _dotRadiusRatio,
-      Paint()..color = dotColor,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _BrandDottedIPainter old) =>
-      old.stemColor != stemColor || old.dotColor != dotColor;
 }

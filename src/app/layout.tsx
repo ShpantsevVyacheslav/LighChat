@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AnalyticsProvider } from '@/components/analytics/AnalyticsProvider';
-import { Inter, Space_Grotesk, Montserrat } from 'next/font/google';
+import { Inter, Space_Grotesk, Outfit } from 'next/font/google';
 
 /** Локальная выдача шрифтов (без fonts.googleapis.com) — снимает таймауты в сетях без доступа к Google. */
 const fontInter = Inter({
@@ -26,11 +26,11 @@ const fontSpaceGrotesk = Space_Grotesk({
   preload: false,
 });
 
-const fontMontserrat = Montserrat({
-  subsets: ['latin', 'cyrillic'],
-  variable: '--font-montserrat',
+const fontOutfit = Outfit({
+  subsets: ['latin'],
+  variable: '--font-outfit',
   display: 'swap',
-  weight: ['600', '700'],
+  weight: ['700', '800'],
   preload: false,
 });
 
@@ -168,7 +168,7 @@ export default async function RootLayout({
     <html
       lang="ru"
       suppressHydrationWarning
-      className={cn(fontInter.variable, fontSpaceGrotesk.variable, fontMontserrat.variable)}
+      className={cn(fontInter.variable, fontSpaceGrotesk.variable, fontOutfit.variable)}
     >
       <head>
         {/** JSON-LD: SoftwareApplication schema для rich-snippets в Google. */}

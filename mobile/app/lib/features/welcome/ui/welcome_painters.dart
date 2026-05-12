@@ -257,7 +257,7 @@ class LighthousePainter extends CustomPainter {
       ..lineTo(w * 0.49, h * 0.83)
       ..lineTo(w * 0.41, h * 0.83)
       ..close();
-    canvas.drawPath(diag, Paint()..color = kBrandCoral);
+    canvas.drawPath(diag, Paint()..color = kBrandOrange);
 
     // Балкон (тонкая навы-полоса)
     canvas.drawRect(
@@ -272,7 +272,7 @@ class LighthousePainter extends CustomPainter {
     );
     canvas.drawRect(
       Rect.fromLTWH(w * 0.42, h * 0.295, w * 0.16, h * 0.062),
-      Paint()..color = kBrandCoral,
+      Paint()..color = kBrandOrange,
     );
 
     // Купол — Т-образный (макушка + поля)
@@ -331,8 +331,8 @@ class LighthouseBeamPainter extends CustomPainter {
 
     final shader = RadialGradient(
       colors: [
-        kBrandCoral.withValues(alpha: 0.65 * intensity),
-        kBrandCoral.withValues(alpha: 0.0),
+        kBrandOrange.withValues(alpha: 0.65 * intensity),
+        kBrandOrange.withValues(alpha: 0.0),
       ],
       radius: 0.9,
     ).createShader(Rect.fromCircle(center: Offset.zero, radius: length));
@@ -411,7 +411,7 @@ class KeeperPainter extends CustomPainter {
       ..lineTo(w * 0.59, h * 0.20)
       ..quadraticBezierTo(w * 0.50, h * 0.23, w * 0.41, h * 0.20)
       ..close();
-    canvas.drawPath(scarf, Paint()..color = kBrandCoral.withValues(alpha: 0.9));
+    canvas.drawPath(scarf, Paint()..color = kBrandOrange.withValues(alpha: 0.9));
 
     // Голова
     canvas.drawCircle(Offset(w * 0.50, h * 0.07), w * 0.08, fill);
@@ -428,7 +428,7 @@ class KeeperPainter extends CustomPainter {
     );
     canvas.drawOval(
       Rect.fromCenter(center: Offset(0, -h * 0.012), width: w * 0.12, height: h * 0.012),
-      Paint()..color = kBrandCoral.withValues(alpha: 0.75),
+      Paint()..color = kBrandOrange.withValues(alpha: 0.75),
     );
     canvas.restore();
 
@@ -466,7 +466,7 @@ class KeeperPainter extends CustomPainter {
         const Radius.circular(1.5),
       ),
       Paint()
-        ..color = kBrandCoral
+        ..color = kBrandOrange
         ..style = PaintingStyle.stroke
         ..strokeWidth = 0.8,
     );
@@ -750,7 +750,7 @@ class PaperPlanePainter extends CustomPainter {
       ..lineTo(-w * 0.38, h * 0.10)
       ..lineTo(-w * 0.42, h * 0.025)
       ..close();
-    canvas.drawPath(tail, Paint()..color = kBrandCoral);
+    canvas.drawPath(tail, Paint()..color = kBrandOrange);
 
     // Складка-перо
     canvas.drawLine(

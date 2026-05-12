@@ -13,7 +13,7 @@ export default {
         body: ['var(--font-inter)', 'sans-serif'],
         headline: ['var(--font-space-grotesk)', 'sans-serif'],
         /** Геометрический гротеск для словесного знака (как на фирменном логотипе) */
-        wordmark: ['var(--font-montserrat)', 'var(--font-inter)', 'sans-serif'],
+        wordmark: ['var(--font-outfit)', 'var(--font-inter)', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
@@ -72,10 +72,10 @@ export default {
           foreground: 'hsl(var(--outgoing-message-foreground))',
           accent: 'hsl(var(--outgoing-message-accent))',
         },
-        /** Словесный знак: тёмно-синий + лососёвый акцент (фирменная палитра) */
+        /** Словесный знак: тёмно-синий + тёплый оранж (цвет маяка в фирменном логотипе) */
         brand: {
           navy: '#1E3A5F',
-          coral: '#E9967A',
+          orange: '#F4A12C',
         },
       },
       borderRadius: {
