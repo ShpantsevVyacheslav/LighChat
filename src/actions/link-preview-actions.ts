@@ -4,6 +4,7 @@
 import ogs from 'open-graph-scraper';
 
 import { assertSafeUrl, SsrfGuardError } from '@/lib/server/ssrf-guard';
+import { logger } from '@/lib/logger';
 
 /**
  * Server Action to fetch metadata from a URL for rich link previews.
@@ -68,7 +69,7 @@ export async function getLinkMetadata(url: string) {
     const { result, error } = await ogs(options);
 
     if (error || !result || !result.success) {
-      console.warn(`[getLinkMetadata] Failed for ${targetUrl}:`, error);
+      logger.warn('link-preview', `Failed for ${targetUrl}`, error);
       return null;
     }
 
@@ -99,7 +100,7 @@ export async function getLinkMetadata(url: string) {
 
     return metadata;
   } catch (err) {
-    console.error('[getLinkMetadata] Critical Error:', err);
+    logger.error('link-preview', 'Critical Error', err);
     return null;
   }
 }

@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { User, UserRole } from "@/lib/types";
+import { logger } from "@/lib/logger";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,7 +103,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
       });
       toast({ title: t("admin.usersList.toastUnblockedTitle") });
     } catch (e) {
-      console.error(e);
+      logger.error('admin-users', 'action failed', e);
       toast({ variant: "destructive", title: t("admin.usersList.toastUnblockErrorTitle") });
     }
   };
@@ -119,7 +120,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
         title: role === "admin" ? t("admin.usersList.toastRoleAdminTitle") : t("admin.usersList.toastRoleWorkerTitle"),
       });
     } catch (e) {
-      console.error(e);
+      logger.error('admin-users', 'action failed', e);
       toast({ variant: "destructive", title: t("admin.usersList.toastRoleErrorTitle") });
     }
   };

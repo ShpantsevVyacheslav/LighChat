@@ -139,7 +139,7 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
         toast({ title: t('chat.userStickers.packDeleteFailed'), variant: 'destructive' });
       }
     } catch (e) {
-      console.warn('[LighChat:stickers] deletePack', e);
+      logger.warn('stickers', 'deletePack', e);
       toast({ title: t('chat.userStickers.packDeleteError'), variant: 'destructive' });
     } finally {
       setBusy(false);

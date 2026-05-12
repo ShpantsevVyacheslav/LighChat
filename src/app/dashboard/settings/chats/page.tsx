@@ -8,6 +8,7 @@ import { useFirestore, useStorage } from "@/firebase";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { compressImage } from "@/lib/image-compression";
+import { logger } from "@/lib/logger";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -109,7 +110,7 @@ export default function ChatSettingsPage() {
       await handleUpdate({ chatWallpaper: url });
       toast({ title: t('chatSettings.toastWallpaperOkTitle'), description: t('chatSettings.toastWallpaperOkDesc') });
     } catch (err) {
-      console.error("Wallpaper upload failed:", err);
+      logger.error('chat-settings', 'wallpaper upload failed', err);
       toast({ variant: "destructive", title: t('chatSettings.toastWallpaperUploadErrorTitle'), description: t('chatSettings.toastWallpaperUploadErrorDesc') });
     } finally {
       setUploading(false);
@@ -124,7 +125,7 @@ export default function ChatSettingsPage() {
         await handleUpdate({ chatWallpaper: null });
       }
     } catch (err) {
-      console.error("Failed to delete wallpaper:", err);
+      logger.error('chat-settings', 'delete wallpaper failed', err);
     }
   };
 

@@ -3,6 +3,7 @@
 import { adminAuth, adminDb } from '@/firebase/admin';
 import { assertAdminByIdToken } from '@/actions/admin-actions';
 import { logAdminAction } from '@/lib/server/audit-log';
+import { logger } from '@/lib/logger';
 
 export type DeviceSession = {
   deviceId: string;
@@ -30,7 +31,7 @@ export async function fetchUserSessionsAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[fetchUserSessionsAction]', e);
+    logger.error('sessions', 'fetchUserSessionsAction', e);
     return { ok: false, error: 'Ошибка загрузки сессий' };
   }
 }
@@ -65,7 +66,7 @@ export async function terminateUserSessionsAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[terminateUserSessionsAction]', e);
+    logger.error('sessions', 'terminateUserSessionsAction', e);
     return { ok: false, error: 'Ошибка завершения сессий' };
   }
 }

@@ -6,6 +6,7 @@ import { adminDb } from '@/firebase/admin';
 import { assertAdminByIdToken } from '@/actions/admin-actions';
 import { logAdminAction } from '@/lib/server/audit-log';
 import type { FeatureFlag } from '@/lib/types';
+import { logger } from '@/lib/logger';
 
 // SECURITY: flagName is interpolated into Firestore field paths
 // (`featureFlags.${flagName}`) and used as a map key. A `.` in the value
@@ -69,7 +70,7 @@ export async function setFeatureFlagAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[setFeatureFlagAction]', e);
+    logger.error('feature-flags', 'setFeatureFlagAction', e);
     return { ok: false, error: 'Ошибка обновления флага' };
   }
 }
@@ -102,7 +103,7 @@ export async function deleteFeatureFlagAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[deleteFeatureFlagAction]', e);
+    logger.error('feature-flags', 'deleteFeatureFlagAction', e);
     return { ok: false, error: 'Ошибка удаления флага' };
   }
 }

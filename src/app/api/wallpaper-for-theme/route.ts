@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 
 const MAX_BYTES = 6 * 1024 * 1024;
 const FETCH_MS = 12_000;
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
     clearTimeout(timer);
 
     if (!upstream.ok) {
-      console.warn("[wallpaper-for-theme] upstream", upstream.status, target.hostname);
+      logger.warn('wallpaper-fetch', 'upstream', { status: upstream.status, host: target.hostname });
       return NextResponse.json({ error: "upstream" }, { status: 502 });
     }
 
@@ -73,7 +74,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (e) {
     clearTimeout(timer);
-    console.warn("[wallpaper-for-theme] fetch failed", e);
+    logger.warn('wallpaper-fetch', 'fetch failed', e);
     return NextResponse.json({ error: "fetch failed" }, { status: 502 });
   }
 }

@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { createGroupChatFormSchema, type GroupChatFormValues } from '@/lib/group-chat-form-schema';
 import { useI18n } from '@/hooks/use-i18n';
+import { logger } from '@/lib/logger';
 
 export type GroupChatFormPanelProps = {
   /** Синхронизация с внешним «открыт» (диалог / слой sheet). */
@@ -290,7 +291,7 @@ export function GroupChatFormPanel({
             return;
           }
         } catch (checkErr) {
-          console.error('checkGroupInvitesAllowed:', checkErr);
+          logger.error('group-form', 'checkGroupInvitesAllowed', checkErr);
           toast({
             variant: 'destructive',
             title: t('chat.groupForm.privacyCheckFailedTitle'),
@@ -358,7 +359,7 @@ export function GroupChatFormPanel({
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      console.error(e);
+      logger.error('group-form', 'submit failed', e);
       toast({
         variant: 'destructive',
         title: isEditing ? t('chat.groupForm.saveErrorEditTitle') : t('chat.groupForm.saveErrorCreateTitle'),
