@@ -60,6 +60,15 @@ export interface ParticipantState {
    * «слабый сигнал». См. `src/lib/webrtc/peer-stats.ts`.
    */
   connectionQuality?: PeerConnectionQuality;
+  /**
+   * Состояние WebRTC-связи с этим участником.
+   *   - `connecting` — `setupPeer` запущен, ждём `connectionState=connected`
+   *   - `connected` — пир подключён (можно получать стрим)
+   *   - `reconnecting` — ICE разорвался / запланирован пересоздание пира
+   *   - `failed` — лимит попыток исчерпан, фоновые ретраи продолжаются раз в 30с
+   * Локальный признак, в Firestore не пишется. См. `attachResilience`/`recreatePeer`.
+   */
+  connectionStatus?: 'connecting' | 'connected' | 'reconnecting' | 'failed';
 }
 
 export interface UseMeetingWebRTCResult {
@@ -84,6 +93,12 @@ export interface UseMeetingWebRTCResult {
    * До этого момента подписки на messages/polls в комнате дадут permission-denied.
    */
   isParticipantSynced: boolean;
+  /**
+   * Принудительно пересоздать peer для конкретного участника. Используется кнопкой
+   * «Повторить» в `ParticipantView`, когда фоновый авто-recovery сдался
+   * (`connectionStatus === 'failed'`).
+   */
+  retryPeer: (remoteId: string) => void;
 }
 
 export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSettings: any): UseMeetingWebRTCResult {
@@ -124,18 +139,28 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
   };
 
   /**
-   * Трекер попыток reconnect по пиру:
-   *   count — сколько полных пересозданий peer было за последние RECONNECT_WINDOW_MS;
-   *   lastTriedAt — timestamp последней попытки (сбрасывает count после окна);
-   *   disconnectTimerId — таймер отложенного restartIce (см. обработчик iceConnectionState).
-   * Ограничение попыток защищает от бесконечной петли при фундаментальном отсутствии связи.
+   * Трекер попыток reconnect по пиру.
+   *
+   * Эволюция стратегии (см. recreatePeer):
+   *   - убрали жёсткий лимит «3 за 60с» — после превышения пир оставался мёртвым молча;
+   *     теперь backoff экспоненциальный без cap количества, status переходит в `failed`
+   *     только для UI, фоновые ретраи продолжаются раз в `BACKOFF_MAX_MS`;
+   *   - после `RELAY_ESCALATE_AFTER` неудач включаем `forceRelay` — TURN-only.
+   *     Если TURN исправен — поднимется; если TURN отсутствует — провалится быстро,
+   *     а не зависнет в restartIce-цикле на минуту.
+   *
+   *   attempts — общее число попыток подряд без успешного `connected`;
+   *   lastTriedAt — timestamp последней попытки (для метрик);
+   *   disconnectTimerId — таймер отложенного restartIce (см. обработчик iceConnectionState);
+   *   recreateTimerId — запланированное пересоздание (дедупликация ICE failed + connection failed);
+   *   forceRelay — на следующем `setupPeer` использовать `iceTransportPolicy: 'relay'`.
    */
   const peerReconnect = useRef<Record<string, {
-    count: number;
+    attempts: number;
     lastTriedAt: number;
     disconnectTimerId: ReturnType<typeof setTimeout> | null;
-    /** Уже запланировано пересоздание (ICE failed + connection failed не должны дублировать таймер). */
     recreateTimerId: ReturnType<typeof setTimeout> | null;
+    forceRelay: boolean;
   }>>({});
 
   const selfieSegmentationRef = useRef<any>(null);
@@ -337,7 +362,7 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
   }, [isScreenSharing, safeReplaceTrack, firestore, meeting.id, currentUser.id, toast]);
 
   /**
-   * Устойчивость соединения: ICE restart и полный пересоздание peer при провалах.
+   * Устойчивость соединения: ICE restart и полное пересоздание peer при провалах.
    *
    * Стратегия:
    *   - `disconnected` (ICE) — мягкий путь: ждём `DISCONNECT_DEBOUNCE_MS`; если состояние не
@@ -346,9 +371,14 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
    *   - `iceConnectionState === 'failed'` и **`connectionState === 'failed'`** — жёсткий путь:
    *     simple-peer часто рвёт PC именно по `connectionState`; без этого слушателя пир
    *     закрывался без `recreatePeer`.
-   *   - `failed` — пересоздание: короткий бэкофф, затем `setupPeer` с той же ролью инициатора.
-   *   - Защита от петли: не более `MAX_RECONNECTS` пересозданий за `RECONNECT_WINDOW_MS`
-   *     на один пир; превышение — оставляем peer закрытым, участник увидит плейсхолдер.
+   *   - `failed` — пересоздание: backoff растёт экспоненциально, затем `setupPeer`
+   *     с той же ролью инициатора.
+   *   - После `RELAY_ESCALATE_AFTER` неудач переключаем пир на `iceTransportPolicy: 'relay'`
+   *     (TURN-only). Это даёт чёткий сигнал: если TURN исправен — соединение поднимется;
+   *     если TURN отсутствует — провалится быстро, а не будет 60с гонять restartIce.
+   *   - После `FAIL_STATUS_AFTER` попыток статус в UI становится `failed` (пользователь видит
+   *     «Соединение потеряно» + кнопку «Повторить»), но фоновый ретрай продолжается раз в
+   *     `BACKOFF_MAX_MS` — при восстановлении сети сам поднимется.
    *   - Ответственным за restart является только initiator-сторона, чтобы не сгенерировать
    *     два одновременных offer с обоих концов.
    *
@@ -356,34 +386,66 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
    * глобальном unmount.
    */
   const DISCONNECT_DEBOUNCE_MS = 4000;
-  const RECONNECT_WINDOW_MS = 60000;
-  const MAX_RECONNECTS = 3;
-  const FAILED_BACKOFF_MS = 1000;
+  const BACKOFF_BASE_MS = 1000;
+  const BACKOFF_MAX_MS = 30000;
+  const RELAY_ESCALATE_AFTER = 2;
+  const FAIL_STATUS_AFTER = 5;
+
+  const setParticipantStatus = useCallback(
+    (remoteId: string, status: ParticipantState['connectionStatus']) => {
+      setParticipants((prev) => {
+        const existing = prev[remoteId];
+        if (existing) {
+          if (existing.connectionStatus === status) return prev;
+          return { ...prev, [remoteId]: { ...existing, connectionStatus: status } };
+        }
+        // Записи ещё нет (стрим не пришёл) — создаём минимальный заглушечный объект;
+        // Firestore-листенер на participants заполнит name/avatar позже.
+        return {
+          ...prev,
+          [remoteId]: {
+            id: remoteId,
+            name: '',
+            avatar: '',
+            connectionStatus: status,
+          },
+        };
+      });
+    },
+    [],
+  );
+
+  const ensureReconnectEntry = useCallback((remoteId: string) => {
+    return (
+      peerReconnect.current[remoteId] || {
+        attempts: 0,
+        lastTriedAt: 0,
+        disconnectTimerId: null,
+        recreateTimerId: null,
+        forceRelay: false,
+      }
+    );
+  }, []);
 
   const recreatePeer = useCallback((remoteId: string) => {
     if (!isMountedRef.current) return;
     const now = Date.now();
-    const entry = peerReconnect.current[remoteId] || {
-      count: 0,
-      lastTriedAt: 0,
-      disconnectTimerId: null,
-      recreateTimerId: null,
-    };
+    const entry = ensureReconnectEntry(remoteId);
     if (entry.recreateTimerId != null) {
       mlog.v('peer', 'recreatePeer: skip (already scheduled)', { remoteId });
       return;
     }
-    if (now - entry.lastTriedAt > RECONNECT_WINDOW_MS) entry.count = 0;
-    if (entry.count >= MAX_RECONNECTS) {
-      mlog.warn('peer', `recreatePeer: limit reached for ${remoteId}`, {
-        remoteId,
-        count: entry.count,
-        max: MAX_RECONNECTS,
-      });
-      return;
-    }
-    entry.count += 1;
+
+    entry.attempts += 1;
     entry.lastTriedAt = now;
+    if (entry.attempts >= RELAY_ESCALATE_AFTER) {
+      entry.forceRelay = true;
+    }
+
+    // 1с, 2с, 4с, 8с, 16с, 30с (cap). Нет жёсткого лимита числа попыток —
+    // только поднятие статуса в `failed` для UI после FAIL_STATUS_AFTER.
+    const backoffMs = Math.min(BACKOFF_BASE_MS * 2 ** (entry.attempts - 1), BACKOFF_MAX_MS);
+
     peerReconnect.current[remoteId] = entry;
 
     const initiator = currentUser.id < remoteId;
@@ -392,48 +454,108 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
     creatingPeers.current.delete(remoteId);
     try { if (old && !old.destroyed) old.destroy(); } catch {}
 
+    if (entry.attempts >= FAIL_STATUS_AFTER) {
+      setParticipantStatus(remoteId, 'failed');
+    } else {
+      setParticipantStatus(remoteId, 'reconnecting');
+    }
+
     mlog.info('peer', 'recreatePeer scheduled', {
       remoteId,
       initiator,
-      backoffMs: FAILED_BACKOFF_MS,
-      attempt: entry.count,
+      backoffMs,
+      attempt: entry.attempts,
+      forceRelay: entry.forceRelay,
     });
     entry.recreateTimerId = setTimeout(() => {
       const cur = peerReconnect.current[remoteId];
       if (cur) cur.recreateTimerId = null;
       if (!isMountedRef.current) return;
-      setupPeerRef.current?.(remoteId, initiator);
-    }, FAILED_BACKOFF_MS);
+      setupPeerRef.current?.(remoteId, initiator, { forceRelay: cur?.forceRelay ?? false });
+    }, backoffMs);
     peerReconnect.current[remoteId] = entry;
-  }, [currentUser.id]);
+  }, [currentUser.id, ensureReconnectEntry, setParticipantStatus]);
+
+  const retryPeer = useCallback((remoteId: string) => {
+    // Кнопка «Повторить» из UI — сбрасываем backoff и пробуем немедленно.
+    // forceRelay не сбрасываем (он работает в нашу пользу), но обнуляем счётчик попыток
+    // чтобы статус снова стал `reconnecting`, а не остался в `failed`.
+    const entry = ensureReconnectEntry(remoteId);
+    if (entry.recreateTimerId) {
+      clearTimeout(entry.recreateTimerId);
+      entry.recreateTimerId = null;
+    }
+    entry.attempts = 0;
+    peerReconnect.current[remoteId] = entry;
+    mlog.info('peer', 'retryPeer requested by user', { remoteId, forceRelay: entry.forceRelay });
+    recreatePeer(remoteId);
+  }, [ensureReconnectEntry, recreatePeer]);
 
   const attachResilience = useCallback((p: any, remoteId: string) => {
     const pc: RTCPeerConnection | undefined = p?._pc;
     if (!pc) return;
 
     const initiator = currentUser.id < remoteId;
+    let candidatePairLogged = false;
 
-    const bumpReconnectEntry = () =>
-      peerReconnect.current[remoteId] || {
-        count: 0,
-        lastTriedAt: 0,
-        disconnectTimerId: null,
-        recreateTimerId: null,
-      };
+    const logSelectedCandidatePair = async () => {
+      if (candidatePairLogged) return;
+      candidatePairLogged = true;
+      try {
+        const stats = await pc.getStats();
+        let pair: any = null;
+        const candidates: Record<string, any> = {};
+        stats.forEach((report: any) => {
+          if (report.type === 'candidate-pair' && report.nominated && report.state === 'succeeded') {
+            pair = report;
+          }
+          if (report.type === 'local-candidate' || report.type === 'remote-candidate') {
+            candidates[report.id] = report;
+          }
+        });
+        if (!pair) {
+          // Не у всех браузеров `nominated` ставится — fallback: selected candidate pair у transport.
+          stats.forEach((report: any) => {
+            if (report.type === 'transport' && report.selectedCandidatePairId) {
+              pair = stats.get(report.selectedCandidatePairId);
+            }
+          });
+        }
+        if (!pair) return;
+        const local = candidates[pair.localCandidateId];
+        const remote = candidates[pair.remoteCandidateId];
+        // `relay` означает что трафик идёт через TURN. Если оба `host`/`srflx` — TURN не задействован.
+        // Это самая полезная диагностика: при «Connection failed» в проде сразу видно, был ли relay.
+        mlog.info('peer', `selectedCandidatePair remote=${remoteId}`, {
+          remoteId,
+          localType: local?.candidateType,
+          remoteType: remote?.candidateType,
+          localProtocol: local?.protocol,
+          remoteProtocol: remote?.protocol,
+          relayProtocol: local?.relayProtocol || remote?.relayProtocol,
+        });
+      } catch (e) {
+        mlog.v('peer', 'getStats for candidate pair failed', { remoteId, err: String(e) });
+      }
+    };
 
     pc.addEventListener('connectionstatechange', () => {
       if (!isMountedRef.current || p.destroyed) return;
       const cs = pc.connectionState;
       mlog.v('conn', `connectionstatechange remote=${remoteId}`, { remoteId, connectionState: cs });
-      const entry = bumpReconnectEntry();
+      const entry = ensureReconnectEntry(remoteId);
       if (cs === 'connected') {
         if (entry.recreateTimerId) {
           clearTimeout(entry.recreateTimerId);
           entry.recreateTimerId = null;
         }
-        entry.count = 0;
+        entry.attempts = 0;
+        // forceRelay при успехе НЕ сбрасываем: если до этого без relay не получилось,
+        // сохраняем его для последующих recreate в этой же сессии.
         peerReconnect.current[remoteId] = entry;
         mlog.v('conn', `connection healthy remote=${remoteId}`, { connectionState: cs });
+        setParticipantStatus(remoteId, 'connected');
+        void logSelectedCandidatePair();
         return;
       }
       if (cs === 'failed') {
@@ -456,7 +578,7 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
         iceGatheringState: ice,
         initiator,
       });
-      const entry = bumpReconnectEntry();
+      const entry = ensureReconnectEntry(remoteId);
 
       if (state === 'connected' || state === 'completed') {
         if (entry.disconnectTimerId) { clearTimeout(entry.disconnectTimerId); entry.disconnectTimerId = null; }
@@ -464,9 +586,10 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
           clearTimeout(entry.recreateTimerId);
           entry.recreateTimerId = null;
         }
-        entry.count = 0;
+        entry.attempts = 0;
         peerReconnect.current[remoteId] = entry;
         mlog.info('ice', `ICE stable remote=${remoteId}`, { state });
+        setParticipantStatus(remoteId, 'connected');
         return;
       }
 
@@ -475,6 +598,7 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
           remoteId,
           initiator,
         });
+        setParticipantStatus(remoteId, 'reconnecting');
         if (entry.disconnectTimerId) clearTimeout(entry.disconnectTimerId);
         entry.disconnectTimerId = setTimeout(() => {
           if (!isMountedRef.current || p.destroyed) return;
@@ -507,15 +631,15 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
         recreatePeer(remoteId);
       }
     });
-  }, [currentUser.id, recreatePeer]);
+  }, [currentUser.id, recreatePeer, ensureReconnectEntry, setParticipantStatus]);
 
   /**
    * Нужен forward-ref, т.к. `recreatePeer` вызывает `setupPeer`, а `setupPeer` ниже.
    * Альтернатива — реорганизовать файл; минимальное изменение через ref безопаснее.
    */
-  const setupPeerRef = useRef<((remoteId: string, initiator: boolean) => Promise<any>) | null>(null);
+  const setupPeerRef = useRef<((remoteId: string, initiator: boolean, opts?: { forceRelay?: boolean }) => Promise<any>) | null>(null);
 
-  const setupPeer = useCallback(async (remoteId: string, initiator: boolean) => {
+  const setupPeer = useCallback(async (remoteId: string, initiator: boolean, opts?: { forceRelay?: boolean }) => {
     if (!isMountedRef.current) {
       mlog.v('peer', 'setupPeer skipped: unmounted', { remoteId, initiator });
       return null;
@@ -537,14 +661,23 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
       id: t.id,
       enabled: t.enabled,
     }));
-    mlog.info('peer', 'setupPeer start', { remoteId, initiator, localTracks });
+    const forceRelay = !!opts?.forceRelay;
+    mlog.info('peer', 'setupPeer start', { remoteId, initiator, localTracks, forceRelay });
     creatingPeers.current.add(remoteId);
-    
+    setParticipantStatus(remoteId, 'connecting');
+
     try {
         const Peer = (await import('simple-peer')).default;
-        const rtcConfig = await getWebRtcIceConfig();
+        const baseRtcConfig = await getWebRtcIceConfig();
+        // При force-relay убираем host/srflx кандидатов и заставляем идти строго через TURN.
+        // Эскалация после нескольких неудач (см. recreatePeer): если TURN рабочий — поднимется,
+        // если нет — провалится быстро, а не зависнет в restartIce-цикле.
+        const rtcConfig: RTCConfiguration = forceRelay
+          ? { ...baseRtcConfig, iceTransportPolicy: 'relay' }
+          : baseRtcConfig;
         mlog.v('peer', 'setupPeer ICE config', {
           remoteId,
+          forceRelay,
           ...summarizeRtcConfiguration(rtcConfig),
         });
         const p = new Peer({
@@ -648,7 +781,7 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
         }
         return null;
     }
-  }, [firestore, meeting.id, currentUser.id, attachResilience]);
+  }, [firestore, meeting.id, currentUser.id, attachResilience, setParticipantStatus]);
 
   useEffect(() => {
     setupPeerRef.current = setupPeer;
@@ -1100,10 +1233,11 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
 
   return {
     participants, localStream, isMicMuted, isVideoOff, isScreenSharing, isHandRaised, backgroundConfig, facingMode,
-    toggleMic, toggleVideo, toggleHand, switchCamera, toggleScreenShare, setBackgroundConfig, stopAllMedia, 
+    toggleMic, toggleVideo, toggleHand, switchCamera, toggleScreenShare, setBackgroundConfig, stopAllMedia,
     isParticipantSynced,
-    setIsHandRaised: (val: boolean) => { 
-        setIsHandRaised(val); 
+    retryPeer,
+    setIsHandRaised: (val: boolean) => {
+        setIsHandRaised(val);
         if (firestore) updateDoc(doc(firestore, `meetings/${meeting.id}/participants`, currentUser.id), { isHandRaised: val, lastSeen: new Date().toISOString() });
     }
   };

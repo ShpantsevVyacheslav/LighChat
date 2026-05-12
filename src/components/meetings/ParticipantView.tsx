@@ -5,8 +5,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { 
-  VideoOff, MicOff, Maximize, Hand, CircleDot, MonitorPlay, SignalLow, SignalZero
+import {
+  VideoOff, MicOff, Maximize, Hand, CircleDot, MonitorPlay, SignalLow, SignalZero,
+  Loader2, AlertTriangle, RotateCw
 } from 'lucide-react';
 import type { BackgroundConfig } from '@/hooks/use-meeting-webrtc';
 import type { PeerConnectionQuality } from '@/lib/webrtc/peer-stats';
@@ -34,6 +35,12 @@ interface ParticipantState {
    * это поле не проставляется.
    */
   connectionQuality?: PeerConnectionQuality;
+  /**
+   * Состояние WebRTC-связи (см. use-meeting-webrtc).
+   * Для локального тайла не проставляется. Используется для оверлея
+   * «Переподключение…» / «Соединение потеряно».
+   */
+  connectionStatus?: 'connecting' | 'connected' | 'reconnecting' | 'failed';
 }
 
 /** grid — плитки в сетке (ячейка задаётся родителем, обычно 16:9); stage — крупное видео докладчика; strip задаётся через isCompact */
@@ -51,6 +58,11 @@ interface ParticipantViewProps {
   isHost?: boolean;
   onSpeaking?: (isSpeaking: boolean) => void;
   onClick?: () => void;
+  /**
+   * Колбэк кнопки «Повторить» при `connectionStatus === 'failed'`. Если не передан —
+   * кнопка не рисуется (актуально для локального тайла или превью-компонент в галерее).
+   */
+  onRetryConnection?: () => void;
 }
 
 function SmallReactionIndicator({ reaction }: { reaction: string | null }) {
@@ -77,7 +89,7 @@ function SmallReactionIndicator({ reaction }: { reaction: string | null }) {
   );
 }
 
-const ParticipantViewComponent = ({ 
+const ParticipantViewComponent = ({
   participant,
   isLocal = false,
   className,
@@ -86,7 +98,8 @@ const ParticipantViewComponent = ({
   gridTileSizing = 'square',
   isHost = false,
   onSpeaking,
-  onClick
+  onClick,
+  onRetryConnection,
 }: ParticipantViewProps) => {
   const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -340,6 +353,36 @@ const ParticipantViewComponent = ({
         )}
       </div>
 
+      {!isLocal && (participant.connectionStatus === 'connecting' || participant.connectionStatus === 'reconnecting') && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 bg-black/55 backdrop-blur-sm pointer-events-none">
+          <Loader2 className={cn('text-white animate-spin', isCompact ? 'h-5 w-5' : 'h-8 w-8')} />
+          <span className={cn('font-medium text-white/90', isCompact ? 'text-[10px]' : 'text-sm')}>
+            {participant.connectionStatus === 'connecting'
+              ? t('meetingParticipant.connecting')
+              : t('meetingParticipant.reconnecting')}
+          </span>
+        </div>
+      )}
+      {!isLocal && participant.connectionStatus === 'failed' && (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-3 bg-black/70 backdrop-blur-sm">
+          <AlertTriangle className={cn('text-red-400', isCompact ? 'h-5 w-5' : 'h-8 w-8')} />
+          <span className={cn('font-medium text-white text-center px-3', isCompact ? 'text-[10px]' : 'text-sm')}>
+            {t('meetingParticipant.connectionLost')}
+          </span>
+          {onRetryConnection && !isCompact && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="gap-2 bg-white/10 hover:bg-white/20 text-white border border-white/20"
+              onClick={(e) => { e.stopPropagation(); onRetryConnection(); }}
+            >
+              <RotateCw className="h-3.5 w-3.5" />
+              {t('meetingParticipant.retry')}
+            </Button>
+          )}
+        </div>
+      )}
+
       {!isCompact && (
         <div className="absolute top-4 right-4 z-40 transition-opacity opacity-0 group-hover:opacity-100 flex gap-2">
             {isPipAvailable && hasVideo && (
@@ -374,11 +417,13 @@ export const ParticipantView = React.memo(ParticipantViewComponent, (prev, next)
         p1.avatar === p2.avatar &&
         p1.avatarThumb === p2.avatarThumb &&
         p1.connectionQuality === p2.connectionQuality &&
+        p1.connectionStatus === p2.connectionStatus &&
         prev.isLocal === next.isLocal &&
         prev.isCompact === next.isCompact &&
         prev.layout === next.layout &&
         prev.gridTileSizing === next.gridTileSizing &&
         prev.isHost === next.isHost &&
+        prev.onRetryConnection === next.onRetryConnection &&
         JSON.stringify(p1.backgroundConfig) === JSON.stringify(p2.backgroundConfig)
     );
 });

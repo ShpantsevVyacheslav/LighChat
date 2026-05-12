@@ -2017,6 +2017,10 @@ export const messagesPtBr = {
       guest: 'Convidado',
       unstableConnection: 'Conexão instável',
       poorConnection: 'Conexão fraca',
+      connecting: 'Conectando…',
+      reconnecting: 'Reconectando…',
+      connectionLost: 'Conexão perdida',
+      retry: 'Tentar de novo',
     },
     audioCall: {
       accessErrorTitle: 'Erro de acesso',
@@ -2882,6 +2886,10 @@ export const messagesPtBr = {
     guest: 'Convidado',
     unstableConnection: 'Conexão instável',
     poorConnection: 'Conexão fraca',
+    connecting: 'Conectando…',
+    reconnecting: 'Reconectando…',
+    connectionLost: 'Conexão perdida',
+    retry: 'Tentar de novo',
   },
   meetingJoin: {
     back: 'Voltar',
@@ -3303,6 +3311,10 @@ export const messagesPtBr = {
       guest: 'Convidado',
       unstableConnection: 'Conexão instável',
       poorConnection: 'Conexão fraca',
+      connecting: 'Conectando…',
+      reconnecting: 'Reconectando…',
+      connectionLost: 'Conexão perdida',
+      retry: 'Tentar de novo',
     },
   },
 } satisfies AppMessages;

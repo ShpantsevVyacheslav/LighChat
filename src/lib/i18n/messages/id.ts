@@ -2017,6 +2017,10 @@ export const messagesId = {
       guest: 'Tamu',
       unstableConnection: 'Koneksi tidak stabil',
       poorConnection: 'Koneksi buruk',
+      connecting: 'Menyambungkan…',
+      reconnecting: 'Menyambungkan ulang…',
+      connectionLost: 'Koneksi terputus',
+      retry: 'Coba lagi',
     },
     audioCall: {
       accessErrorTitle: 'Kesalahan akses',
@@ -2882,6 +2886,10 @@ export const messagesId = {
     guest: 'Tamu',
     unstableConnection: 'Koneksi tidak stabil',
     poorConnection: 'Koneksi buruk',
+    connecting: 'Menyambungkan…',
+    reconnecting: 'Menyambungkan ulang…',
+    connectionLost: 'Koneksi terputus',
+    retry: 'Coba lagi',
   },
   meetingJoin: {
     back: 'Kembali',
@@ -3303,6 +3311,10 @@ export const messagesId = {
       guest: 'Tamu',
       unstableConnection: 'Koneksi tidak stabil',
       poorConnection: 'Koneksi buruk',
+      connecting: 'Menyambungkan…',
+      reconnecting: 'Menyambungkan ulang…',
+      connectionLost: 'Koneksi terputus',
+      retry: 'Coba lagi',
     },
   },
 } satisfies AppMessages;

@@ -2017,6 +2017,10 @@ export const messagesRu = {
       guest: 'Гость',
       unstableConnection: 'Нестабильное соединение',
       poorConnection: 'Плохое соединение',
+      connecting: 'Подключение…',
+      reconnecting: 'Переподключение…',
+      connectionLost: 'Соединение потеряно',
+      retry: 'Повторить',
     },
     audioCall: {
       accessErrorTitle: 'Ошибка доступа',
@@ -2882,6 +2886,10 @@ export const messagesRu = {
     guest: 'Гость',
     unstableConnection: 'Нестабильное соединение',
     poorConnection: 'Плохое соединение',
+    connecting: 'Подключение…',
+    reconnecting: 'Переподключение…',
+    connectionLost: 'Соединение потеряно',
+    retry: 'Повторить',
   },
   meetingJoin: {
     back: 'Назад',
@@ -3303,6 +3311,10 @@ export const messagesRu = {
       guest: 'Гость',
       unstableConnection: 'Нестабильное соединение',
       poorConnection: 'Плохое соединение',
+      connecting: 'Подключение…',
+      reconnecting: 'Переподключение…',
+      connectionLost: 'Соединение потеряно',
+      retry: 'Повторить',
     },
   },
 } satisfies AppMessages;

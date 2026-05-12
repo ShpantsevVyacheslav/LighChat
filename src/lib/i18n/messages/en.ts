@@ -2015,6 +2015,10 @@ export const messagesEn = {
       guest: 'Guest',
       unstableConnection: 'Unstable connection',
       poorConnection: 'Poor connection',
+      connecting: 'Connecting…',
+      reconnecting: 'Reconnecting…',
+      connectionLost: 'Connection lost',
+      retry: 'Retry',
     },
     audioCall: {
       accessErrorTitle: 'Access error',
@@ -2880,6 +2884,10 @@ export const messagesEn = {
     guest: 'Guest',
     unstableConnection: 'Unstable connection',
     poorConnection: 'Poor connection',
+    connecting: 'Connecting…',
+    reconnecting: 'Reconnecting…',
+    connectionLost: 'Connection lost',
+    retry: 'Retry',
   },
   meetingJoin: {
     back: 'Back',
@@ -3301,6 +3309,10 @@ export const messagesEn = {
       guest: 'Guest',
       unstableConnection: 'Unstable connection',
       poorConnection: 'Poor connection',
+      connecting: 'Connecting…',
+      reconnecting: 'Reconnecting…',
+      connectionLost: 'Connection lost',
+      retry: 'Retry',
     },
   },
 };

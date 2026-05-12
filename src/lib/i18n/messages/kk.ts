@@ -2017,6 +2017,10 @@ export const messagesKk = {
       guest: 'Қонақ',
       unstableConnection: 'Тұрақсыз байланыс',
       poorConnection: 'Нашар байланыс',
+      connecting: 'Қосылуда…',
+      reconnecting: 'Қайта қосылу…',
+      connectionLost: 'Байланыс үзілді',
+      retry: 'Қайталау',
     },
     audioCall: {
       accessErrorTitle: 'Кіру қатесі',
@@ -2882,6 +2886,10 @@ export const messagesKk = {
     guest: 'Қонақ',
     unstableConnection: 'Тұрақсыз байланыс',
     poorConnection: 'Нашар байланыс',
+    connecting: 'Қосылуда…',
+    reconnecting: 'Қайта қосылу…',
+    connectionLost: 'Байланыс үзілді',
+    retry: 'Қайталау',
   },
   meetingJoin: {
     back: 'Артқа',
@@ -3303,6 +3311,10 @@ export const messagesKk = {
       guest: 'Қонақ',
       unstableConnection: 'Тұрақсыз байланыс',
       poorConnection: 'Нашар байланыс',
+      connecting: 'Қосылуда…',
+      reconnecting: 'Қайта қосылу…',
+      connectionLost: 'Байланыс үзілді',
+      retry: 'Қайталау',
     },
   },
 } satisfies AppMessages;

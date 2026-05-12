@@ -1,4 +1,5 @@
 import { logger } from '@/lib/logger';
+import { analyzeIceServers, type IceTransportStats } from '@/lib/webrtc/ice-analyze';
 
 const DEFAULT_STUN_SERVERS = ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'];
 const ICE_CONFIG_FETCH_TIMEOUT_MS = 4000;
@@ -19,6 +20,24 @@ type IceHealthResponse = {
 
 let cachedIceConfig: { value: RTCConfiguration; expiresAt: number } | null = null;
 let lastLoggedSource: string | null = null;
+
+/**
+ * Последняя посчитанная диагностика ICE-конфигурации.
+ * Доступна через `getWebRtcIceDiagnostics()` — UI может прочитать `hasTurn`
+ * и показать админу баннер, если TURN недоступен (тогда пиры за NAT не
+ * соберутся, и это надо чинить в env, а не в коде).
+ */
+export type WebRtcIceDiagnostics = {
+  source: string;
+  reason?: string;
+  serverCount: number;
+  transports: IceTransportStats;
+};
+let lastDiagnostics: WebRtcIceDiagnostics | null = null;
+
+export function getWebRtcIceDiagnostics(): WebRtcIceDiagnostics | null {
+  return lastDiagnostics;
+}
 
 function parseTurnUrls(raw: string | undefined): string[] {
   if (!raw) return [];
@@ -82,14 +101,37 @@ function fallbackIceConfig(): RTCConfiguration {
   };
 }
 
-function logIceSource(source: string, reason?: string): void {
-  if (lastLoggedSource === source) return;
-  lastLoggedSource = source;
-  if (reason) {
-    logger.debug('webrtc-ice', `source: ${source}`, { reason });
+function logIceSource(source: string, reason: string | undefined, config: RTCConfiguration): void {
+  const servers = config.iceServers || [];
+  const transports = analyzeIceServers(servers);
+  lastDiagnostics = {
+    source,
+    reason,
+    serverCount: servers.length,
+    transports,
+  };
+
+  const transportSummary = `stun=${transports.stun + transports.stuns} turn=${transports.turn} turns=${transports.turns}`;
+  const sourceKey = `${source}|${transports.hasTurn}|${transports.hasTurns}`;
+  if (lastLoggedSource === sourceKey) return;
+  lastLoggedSource = sourceKey;
+
+  if (!transports.hasTurn && !transports.hasTurns) {
+    // Без TURN-relay пиры за симметричным NAT не соберутся — это самый частый
+    // источник цикла «Connection failed» в проде.
+    logger.warn(
+      'webrtc-ice',
+      `no TURN available — peers behind symmetric NAT will fail. source=${source} servers=${servers.length} (${transportSummary})`,
+      reason ? { reason } : undefined,
+    );
     return;
   }
-  logger.debug('webrtc-ice', `source: ${source}`);
+
+  if (reason) {
+    logger.debug('webrtc-ice', `source=${source} servers=${servers.length} (${transportSummary})`, { reason });
+    return;
+  }
+  logger.debug('webrtc-ice', `source=${source} servers=${servers.length} (${transportSummary})`);
 }
 
 async function fetchIceConfigFromApi(): Promise<{ config: RTCConfiguration; source: string; reason?: string } | null> {
@@ -173,10 +215,10 @@ export async function getWebRtcIceConfig(): Promise<RTCConfiguration> {
   const value = remote?.config || fallbackIceConfig();
 
   if (remote) {
-    logIceSource(remote.source, remote.reason);
+    logIceSource(remote.source, remote.reason, value);
   } else {
     void fetchIceHealthHint();
-    logIceSource('fallback-local');
+    logIceSource('fallback-local', undefined, value);
   }
 
   cachedIceConfig = {

@@ -2017,6 +2017,10 @@ export const messagesTr = {
       guest: 'Misafir',
       unstableConnection: 'Kararsız bağlantı',
       poorConnection: 'Zayıf bağlantı',
+      connecting: 'Bağlanıyor…',
+      reconnecting: 'Yeniden bağlanıyor…',
+      connectionLost: 'Bağlantı kesildi',
+      retry: 'Tekrar dene',
     },
     audioCall: {
       accessErrorTitle: 'Erişim hatası',
@@ -2882,6 +2886,10 @@ export const messagesTr = {
     guest: 'Misafir',
     unstableConnection: 'Kararsız bağlantı',
     poorConnection: 'Zayıf bağlantı',
+    connecting: 'Bağlanıyor…',
+    reconnecting: 'Yeniden bağlanıyor…',
+    connectionLost: 'Bağlantı kesildi',
+    retry: 'Tekrar dene',
   },
   meetingJoin: {
     back: 'Geri',
@@ -3303,6 +3311,10 @@ export const messagesTr = {
       guest: 'Misafir',
       unstableConnection: 'Kararsız bağlantı',
       poorConnection: 'Zayıf bağlantı',
+      connecting: 'Bağlanıyor…',
+      reconnecting: 'Yeniden bağlanıyor…',
+      connectionLost: 'Bağlantı kesildi',
+      retry: 'Tekrar dene',
     },
   },
 } satisfies AppMessages;

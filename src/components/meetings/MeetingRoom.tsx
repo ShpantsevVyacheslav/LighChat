@@ -364,6 +364,7 @@ export function MeetingRoom({
             setManualFocusId(p.id);
           }}
           onSpeaking={(isSpeaking) => isSpeaking && handleSpeakerChange(p.id)}
+          onRetryConnection={() => rtc.retryPeer(p.id)}
         />
       )),
     ];
@@ -526,11 +527,12 @@ export function MeetingRoom({
                         onClick={() => setManualFocusId(currentUser.id)}
                     />
                     {participantList.map(p => (
-                        <ParticipantView 
-                            key={p.id} participant={p} isCompact={true} isHost={p.id === meeting.hostId} 
+                        <ParticipantView
+                            key={p.id} participant={p} isCompact={true} isHost={p.id === meeting.hostId}
                             className={cn("w-44 sm:w-56 shrink-0", effectiveFocusId === p.id && "ring-2 ring-primary")}
                             onClick={() => setManualFocusId(p.id)}
                             onSpeaking={(isSpeaking) => isSpeaking && handleSpeakerChange(p.id)}
+                            onRetryConnection={() => rtc.retryPeer(p.id)}
                         />
                     ))}
                 </div>
@@ -539,12 +541,17 @@ export function MeetingRoom({
             <main className="flex-1 p-4 flex items-center justify-center bg-slate-950 relative overflow-hidden">
                 {viewMode === 'speaker' && focusedParticipant ? (
                     <div className="w-full h-full flex items-center justify-center animate-in zoom-in-95 duration-500 px-2">
-                        <ParticipantView 
-                            participant={focusedParticipant as any} 
-                            isLocal={focusedParticipant.id === currentUser.id} 
-                            isHost={focusedParticipant.id === meeting.hostId} 
+                        <ParticipantView
+                            participant={focusedParticipant as any}
+                            isLocal={focusedParticipant.id === currentUser.id}
+                            isHost={focusedParticipant.id === meeting.hostId}
                             layout="stage"
                             className="max-w-6xl w-full shadow-2xl"
+                            onRetryConnection={
+                              focusedParticipant.id !== currentUser.id
+                                ? () => rtc.retryPeer(focusedParticipant.id)
+                                : undefined
+                            }
                         />
                     </div>
                 ) : (

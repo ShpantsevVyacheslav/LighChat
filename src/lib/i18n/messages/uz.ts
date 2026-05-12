@@ -2017,6 +2017,10 @@ export const messagesUz = {
       guest: 'Mehmon',
       unstableConnection: 'Beqaror aloqa',
       poorConnection: 'Yomon aloqa',
+      connecting: 'Ulanmoqda…',
+      reconnecting: 'Qayta ulanmoqda…',
+      connectionLost: 'Aloqa uzildi',
+      retry: 'Qayta urinish',
     },
     audioCall: {
       accessErrorTitle: 'Kirish xatosi',
@@ -2882,6 +2886,10 @@ export const messagesUz = {
     guest: 'Mehmon',
     unstableConnection: 'Beqaror aloqa',
     poorConnection: 'Yomon aloqa',
+    connecting: 'Ulanmoqda…',
+    reconnecting: 'Qayta ulanmoqda…',
+    connectionLost: 'Aloqa uzildi',
+    retry: 'Qayta urinish',
   },
   meetingJoin: {
     back: 'Orqaga',
@@ -3303,6 +3311,10 @@ export const messagesUz = {
       guest: 'Mehmon',
       unstableConnection: 'Beqaror aloqa',
       poorConnection: 'Yomon aloqa',
+      connecting: 'Ulanmoqda…',
+      reconnecting: 'Qayta ulanmoqda…',
+      connectionLost: 'Aloqa uzildi',
+      retry: 'Qayta urinish',
     },
   },
 } satisfies AppMessages;

@@ -2017,6 +2017,10 @@ export const messagesEsMx = {
       guest: 'Invitado',
       unstableConnection: 'Conexión inestable',
       poorConnection: 'Conexión débil',
+      connecting: 'Conectando…',
+      reconnecting: 'Reconectando…',
+      connectionLost: 'Conexión perdida',
+      retry: 'Reintentar',
     },
     audioCall: {
       accessErrorTitle: 'error de acceso',
@@ -2882,6 +2886,10 @@ export const messagesEsMx = {
     guest: 'Invitado',
     unstableConnection: 'Conexión inestable',
     poorConnection: 'Conexión débil',
+    connecting: 'Conectando…',
+    reconnecting: 'Reconectando…',
+    connectionLost: 'Conexión perdida',
+    retry: 'Reintentar',
   },
   meetingJoin: {
     back: 'Atrás',
@@ -3303,6 +3311,10 @@ export const messagesEsMx = {
       guest: 'Invitado',
       unstableConnection: 'Conexión inestable',
       poorConnection: 'Conexión débil',
+      connecting: 'Conectando…',
+      reconnecting: 'Reconectando…',
+      connectionLost: 'Conexión perdida',
+      retry: 'Reintentar',
     },
   },
 } satisfies AppMessages;
