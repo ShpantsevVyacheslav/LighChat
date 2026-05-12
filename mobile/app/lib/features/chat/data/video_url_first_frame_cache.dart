@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import '../ui/chat_gallery_video_local_cache.dart';
 import 'local_cache_entry_registry.dart';
 import 'media_load_scheduler.dart';
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 /// Кэш первого кадра сетевого видео (jpg) для превью в ленте и сетке «Медиа».
 class VideoUrlFirstFrameCache {
@@ -82,9 +83,7 @@ class VideoUrlFirstFrameCache {
         return existingEarly;
       }
     } catch (e, st) {
-      if (kDebugMode) {
-        debugPrint('VideoUrlFirstFrameCache pre-check failed: $e\n$st');
-      }
+      appLogger.w('VideoUrlFirstFrameCache pre-check failed', error: e, stackTrace: st);
       _inFlight.remove(videoUrl);
       return null;
     }
@@ -113,12 +112,10 @@ class VideoUrlFirstFrameCache {
       final session = await FFmpegKit.execute(cmd);
       final code = await session.getReturnCode();
       if (!ReturnCode.isSuccess(code)) {
-        if (kDebugMode) {
-          debugPrint(
-            'VideoUrlFirstFrameCache ffmpeg failed for $videoUrl code=$code'
-            ' (input=${localCached == null ? 'network' : 'local'})',
-          );
-        }
+        appLogger.w(
+          'VideoUrlFirstFrameCache ffmpeg failed for $videoUrl code=$code'
+          ' (input=${localCached == null ? 'network' : 'local'})',
+        );
         return null;
       }
       if (!await existingEarly.exists() || await existingEarly.length() < 32) {
@@ -127,9 +124,7 @@ class VideoUrlFirstFrameCache {
       _memory[videoUrl] = existingEarly;
       return existingEarly;
     } catch (e, st) {
-      if (kDebugMode) {
-        debugPrint('VideoUrlFirstFrameCache failed: $e\n$st');
-      }
+      appLogger.w('VideoUrlFirstFrameCache failed', error: e, stackTrace: st);
       // Не кэшируем «ошибку» в _memory: иначе getOrCreate навсегда возвращает null
       // до перезапуска приложения (см. containsKey в getOrCreate).
       return null;

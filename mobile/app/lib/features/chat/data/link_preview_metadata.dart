@@ -6,6 +6,7 @@ import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
 
 import 'link_preview_diagnostics.dart';
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 class LinkPreviewMetadata {
   const LinkPreviewMetadata({
@@ -147,9 +148,7 @@ class LinkPreviewMetadataCache {
           .timeout(timeout);
 
       if (resp.statusCode < 200 || resp.statusCode >= 300) {
-        if (kDebugMode) {
-          debugPrint('[link_preview] $url -> HTTP ${resp.statusCode}');
-        }
+        appLogger.d('[link_preview] $url -> HTTP ${resp.statusCode}');
         return null;
       }
 
@@ -204,9 +203,7 @@ class LinkPreviewMetadataCache {
             : videoType.trim().toLowerCase(),
       );
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('[link_preview] $url -> error: $e');
-      }
+      appLogger.d('[link_preview] $url -> error', error: e);
       return null;
     }
   }

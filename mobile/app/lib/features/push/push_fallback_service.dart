@@ -44,10 +44,20 @@ class PushFallbackService {
   Future<void> _ensurePluginInitialized() async {
     if (_pluginInitialized) return;
     // На desktop (Windows/Linux) Android/Darwin init не используются;
-    // плагин требует MIN-init, чтобы `show()` работал.
+    // плагин требует MIN-init, чтобы `show()` работал. Каждая из платформ
+    // в `flutter_local_notifications` валидирует свой *обязательный*
+    // settings-объект — пропуск приводит к
+    // `Invalid argument(s): <Platform> settings must be set...`.
     await _plugin.initialize(
       settings: const InitializationSettings(
         linux: LinuxInitializationSettings(defaultActionName: 'Open LighChat'),
+        windows: WindowsInitializationSettings(
+          appName: 'LighChat',
+          appUserModelId: 'com.lighchat.app',
+          // GUID для toast activation — сгенерирован один раз и зафиксирован
+          // в коде. Менять только при изменении appUserModelId.
+          guid: 'a8d4f0e2-3a1b-4d6c-9f5e-7b2c8d9e0f1a',
+        ),
       ),
     );
     _pluginInitialized = true;

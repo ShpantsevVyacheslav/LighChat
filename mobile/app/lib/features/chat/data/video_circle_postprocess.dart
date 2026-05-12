@@ -5,6 +5,7 @@ import 'package:ffmpeg_kit_min_gpl/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_min_gpl/return_code.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 /// Post-processing for recorded "video circles".
 ///
@@ -63,12 +64,9 @@ Future<XFile> mirrorVideoCircleIfNeeded({
       final ok = ReturnCode.isSuccess(code);
       final log = await session.getOutput();
       if (!ok) {
-        if (kDebugMode) {
-          debugPrint(
-            'mirrorVideoCircleIfNeeded: ffmpeg failed '
-            '(audio=$audioMode) code=$code inSize=$inLen\n$log',
-          );
-        }
+        appLogger.w(
+          'mirrorVideoCircleIfNeeded: ffmpeg failed (audio=$audioMode) code=$code inSize=$inLen\n$log',
+        );
         try {
           final f = File(out);
           if (await f.exists()) await f.delete();
@@ -77,12 +75,9 @@ Future<XFile> mirrorVideoCircleIfNeeded({
       }
       final f = File(out);
       if (!await f.exists() || await f.length() < 32) {
-        if (kDebugMode) {
-          debugPrint(
-            'mirrorVideoCircleIfNeeded: output missing or tiny '
-            '(audio=$audioMode) inSize=$inLen\n$log',
-          );
-        }
+        appLogger.w(
+          'mirrorVideoCircleIfNeeded: output missing or tiny (audio=$audioMode) inSize=$inLen\n$log',
+        );
         return null;
       }
       return XFile(out, mimeType: 'video/mp4');
@@ -91,13 +86,11 @@ Future<XFile> mirrorVideoCircleIfNeeded({
     final withAudio = await runMirror(out: outPath, audioMode: 'aac');
     if (withAudio != null) return withAudio;
 
-    if (kDebugMode) {
-      debugPrint('mirrorVideoCircleIfNeeded: retry without audio');
-    }
+    appLogger.d('mirrorVideoCircleIfNeeded: retry without audio');
     final noAudio = await runMirror(out: outPathNoAudio, audioMode: 'none');
     return noAudio ?? input;
   } catch (e, st) {
-    debugPrint('videoCircle mirror postprocess failed: $e\n$st');
+    appLogger.w('videoCircle mirror postprocess failed', error: e, stackTrace: st);
     return input;
   }
 }

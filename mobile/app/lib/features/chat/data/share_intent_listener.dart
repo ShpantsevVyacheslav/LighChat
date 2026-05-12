@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 import 'share_intent_payload.dart';
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 /// Подписка на системный «Поделиться» (iOS Share Extension / Android
 /// `ACTION_SEND(_MULTIPLE)`). При получении payload навигирует на
@@ -38,7 +39,7 @@ class ShareIntentListener {
       // вернётся повторно (контракт receive_sharing_intent).
       ReceiveSharingIntent.instance.reset();
     } catch (e, st) {
-      debugPrint('ShareIntentListener.initial failed: $e\n$st');
+      appLogger.w('ShareIntentListener.initial failed', error: e, stackTrace: st);
     }
   }
 
@@ -47,11 +48,11 @@ class ShareIntentListener {
       _streamSub = ReceiveSharingIntent.instance.getMediaStream().listen(
         _dispatch,
         onError: (Object e, StackTrace st) {
-          debugPrint('ShareIntentListener.stream error: $e\n$st');
+          appLogger.w('ShareIntentListener.stream error', error: e, stackTrace: st);
         },
       );
     } catch (e, st) {
-      debugPrint('ShareIntentListener.stream attach failed: $e\n$st');
+      appLogger.w('ShareIntentListener.stream attach failed', error: e, stackTrace: st);
     }
   }
 

@@ -10,6 +10,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'chat_ios_image_markup.dart';
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 class ChatImageEditorResult {
   const ChatImageEditorResult({required this.files, required this.caption});
@@ -170,7 +171,7 @@ class _ChatImageEditorScreenState extends State<ChatImageEditorScreen> {
       });
       _previewByIndex[_currentIndex] = previewJpeg;
     } catch (e, st) {
-      debugPrint('chat image editor: load failed: $e\n$st');
+      appLogger.w('chat image editor: load failed', error: e, stackTrace: st);
       if (!mounted || token != _loadToken) return;
       setState(() => _loading = false);
     }
@@ -357,7 +358,7 @@ class _ChatImageEditorScreenState extends State<ChatImageEditorScreen> {
       });
       _persistCurrentDraftCompact();
     } catch (e, st) {
-      debugPrint('chat image crop failed: $e\n$st');
+      appLogger.w('chat image crop failed', error: e, stackTrace: st);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.image_editor_crop_failed)),
@@ -434,7 +435,7 @@ class _ChatImageEditorScreenState extends State<ChatImageEditorScreen> {
       });
       _persistCurrentDraftCompact();
     } catch (e, st) {
-      debugPrint('chat image native markup failed: $e\n$st');
+      appLogger.w('chat image native markup failed', error: e, stackTrace: st);
     } finally {
       if (sourceFile != null) {
         unawaited(

@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
@@ -17,7 +19,13 @@ Future<void> bootstrap() async {
 
   // Prevent native Firebase from crashing the process when options are clearly
   // not meant for this platform (e.g. web appId on macOS/iOS/Android).
-  if (!kIsWeb) {
+  //
+  // Исключения — Windows и Linux: у них **легитимно** используются web-style
+  // appId, потому что нативного Firebase SDK для этих платформ нет
+  // (`firebase_core` под Windows/Linux работает через web REST). Не
+  // фильтруем `:web:` для них, иначе `Firebase.initializeApp` не вызывается
+  // и весь auth/firestore стек падает с `[core/no-app]`.
+  if (!kIsWeb && !Platform.isWindows && !Platform.isLinux) {
     final opts = DefaultFirebaseOptions.currentPlatform;
     if (opts.appId.contains(':web:')) {
       logger.w(

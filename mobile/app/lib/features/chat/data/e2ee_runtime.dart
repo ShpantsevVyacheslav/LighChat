@@ -28,6 +28,7 @@ import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 /// Результат дешифровки. Отдельный класс, а не `String?`, чтобы различать
 /// «сообщение не E2EE» от «не удалось расшифровать».
@@ -149,7 +150,7 @@ class MobileE2eeRuntime {
       return MobileDecryptionResult.ok(plain);
     } catch (e, st) {
       if (kDebugMode) {
-        debugPrint('[E2EE] decrypt failed for $conversationId/$messageId: $e\n$st');
+        appLogger.w('[E2EE] decrypt failed for $conversationId/$messageId', error: e, stackTrace: st);
       }
       return MobileDecryptionResult.failed('E2EE_DECRYPT_FAILED');
     }
@@ -361,7 +362,7 @@ class MobileE2eeRuntime {
       return _ResolvedChatKey(key: healed, epoch: targetEpoch);
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('[E2EE] heal attempt failed for $conversationId: $e');
+        appLogger.w('[E2EE] heal attempt failed for $conversationId', error: e);
       }
       return null;
     }
@@ -393,7 +394,7 @@ class MobileE2eeRuntime {
       return raw;
     } on E2eeSessionException catch (e) {
       if (kDebugMode) {
-        debugPrint('[E2EE] unwrap failed $conversationId:$epoch → ${e.code}');
+        appLogger.w('[E2EE] unwrap failed $conversationId:$epoch → ${e.code}');
       }
       return null;
     }

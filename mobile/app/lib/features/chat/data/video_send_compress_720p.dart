@@ -5,6 +5,7 @@ import 'package:ffmpeg_kit_min_gpl/return_code.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 class VideoSendCompress720pResult {
   const VideoSendCompress720pResult({
@@ -46,7 +47,7 @@ Future<VideoSendCompress720pResult> maybeCompressVideoForSend720p(XFile input) a
       return VideoSendCompress720pResult(file: input, didCompress: false);
     }
   } catch (e) {
-    debugPrint('maybeCompressVideoForSend720p: probe failed: $e');
+    appLogger.w('maybeCompressVideoForSend720p: probe failed', error: e);
     return VideoSendCompress720pResult(file: input, didCompress: false);
   } finally {
     try {
@@ -92,7 +93,7 @@ Future<VideoSendCompress720pResult> maybeCompressVideoForSend720p(XFile input) a
     final session = await FFmpegKit.execute(cmd);
     final code = await session.getReturnCode();
     if (!ReturnCode.isSuccess(code)) {
-      debugPrint('maybeCompressVideoForSend720p: ffmpeg failed: $code');
+      appLogger.w('maybeCompressVideoForSend720p: ffmpeg failed code=$code');
       return VideoSendCompress720pResult(file: input, didCompress: false);
     }
     if (!await File(outPath).exists()) {
@@ -104,7 +105,7 @@ Future<VideoSendCompress720pResult> maybeCompressVideoForSend720p(XFile input) a
       didCompress: true,
     );
   } catch (e) {
-    debugPrint('maybeCompressVideoForSend720p: compress failed: $e');
+    appLogger.w('maybeCompressVideoForSend720p: compress failed', error: e);
     return VideoSendCompress720pResult(file: input, didCompress: false);
   }
 }
