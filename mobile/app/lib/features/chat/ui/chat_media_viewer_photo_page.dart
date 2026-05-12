@@ -1,10 +1,13 @@
 import 'dart:io' show File;
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/app_logger.dart';
 import '../data/chat_image_cache_manager.dart';
 import 'chat_cached_network_image.dart';
+import 'chat_media_zoom_math.dart' as zoom_math;
 
 /// Фото в полноэкранной галерее: pinch-zoom, двойной тап.
 ///
@@ -48,9 +51,6 @@ class _ChatMediaViewerPhotoPageState extends State<ChatMediaViewerPhotoPage>
   static const double _doubleTapScale = 2.75;
   static const double _tapStripeFraction = 0.22;
   static const double _zoomedThreshold = 1.01;
-
-  /// iOS-style rubber-band коэффициент: чем меньше — тем «жёстче» резина.
-  static const double _rubberBandCoeff = 0.55;
 
   Size? _imageSize;
   Size _viewport = Size.zero;
@@ -167,86 +167,17 @@ class _ChatMediaViewerPhotoPageState extends State<ChatMediaViewerPhotoPage>
     super.dispose();
   }
 
-  /// Прямоугольник реального изображения внутри screen-sized child-а (scale=1).
-  Rect _contentRect() {
-    final v = _viewport;
-    if (v.isEmpty) return Rect.zero;
-    final src = _imageSize;
-    if (src == null || src.isEmpty) return Offset.zero & v;
-    final fit = applyBoxFit(BoxFit.contain, src, v);
-    final dst = fit.destination;
-    return Rect.fromLTWH(
-      (v.width - dst.width) / 2,
-      (v.height - dst.height) / 2,
-      dst.width,
-      dst.height,
-    );
-  }
-
-  /// iOS-стиль: чем дальше тащим за границу, тем сильнее сопротивление,
-  /// но никогда не доходит до полного значения. `dim` — характерный размер
-  /// для нормализации (ширина или высота экрана).
-  double _rubberBand(double offset, double dim) {
-    if (offset == 0 || dim <= 0) return 0;
-    final sign = offset.isNegative ? -1.0 : 1.0;
-    final x = offset.abs();
-    return sign * dim * (1 - 1 / (_rubberBandCoeff * x / dim + 1));
-  }
-
-  /// Идеальное (в-границах) положение `shownLeft` для данной ширины контента.
-  /// Возвращает (min, max) допустимого диапазона.
-  ({double min, double max}) _rangeFor(double shownDim, double viewportDim) {
-    if (shownDim > viewportDim) {
-      // Контент больше viewport — допустимый диапазон: shown[Left] от
-      // viewport - shown до 0 (край контента не отрывается от края экрана).
-      return (min: viewportDim - shownDim, max: 0);
-    }
-    final center = (viewportDim - shownDim) / 2;
-    return (min: center, max: center);
-  }
-
-  /// Считает новое положение translation по правилам:
-  /// - если `rubber` = false: жёсткий кламп к границе/центру;
-  /// - если `rubber` = true: за границей применяется rubber-band затухание.
+  /// Считает новое положение translation для текущей матрицы (делегат в
+  /// `zoom_math` чтобы можно было покрыть юнит-тестами без рендеринга).
   ({double tx, double ty}) _computeTarget({required bool rubber}) {
-    final v = _viewport;
-    final content = _contentRect();
-    final m = widget.transformationController.value;
-    final scale = m.getMaxScaleOnAxis();
-    final t = m.getTranslation();
-    final tx = t.x;
-    final ty = t.y;
-
-    if (v.isEmpty || content.isEmpty) return (tx: tx, ty: ty);
-
-    final shownLeft = content.left * scale + tx;
-    final shownTop = content.top * scale + ty;
-    final shownW = content.width * scale;
-    final shownH = content.height * scale;
-
-    final rx = _rangeFor(shownW, v.width);
-    final ry = _rangeFor(shownH, v.height);
-
-    double newShownLeft = shownLeft.clamp(rx.min, rx.max);
-    double newShownTop = shownTop.clamp(ry.min, ry.max);
-
-    if (rubber) {
-      // Восстанавливаем overshoot (если был) и применяем затухание.
-      if (shownLeft > rx.max) {
-        newShownLeft = rx.max + _rubberBand(shownLeft - rx.max, v.width);
-      } else if (shownLeft < rx.min) {
-        newShownLeft = rx.min - _rubberBand(rx.min - shownLeft, v.width);
-      }
-      if (shownTop > ry.max) {
-        newShownTop = ry.max + _rubberBand(shownTop - ry.max, v.height);
-      } else if (shownTop < ry.min) {
-        newShownTop = ry.min - _rubberBand(ry.min - shownTop, v.height);
-      }
-    }
-
-    return (
-      tx: newShownLeft - content.left * scale,
-      ty: newShownTop - content.top * scale,
+    return zoom_math.computeClampedTranslation(
+      matrix: widget.transformationController.value,
+      content: zoom_math.contentRectFor(
+        imageSize: _imageSize,
+        viewport: _viewport,
+      ),
+      viewport: _viewport,
+      rubber: rubber,
     );
   }
 
@@ -274,7 +205,12 @@ class _ChatMediaViewerPhotoPageState extends State<ChatMediaViewerPhotoPage>
     _applyMatrixTranslation(t.tx, t.ty);
   }
 
-  void _onInteractionStart(ScaleStartDetails _) {
+  void _onInteractionStart(ScaleStartDetails d) {
+    if (kDebugMode) {
+      appLogger.d(
+        '[photo-viewer] interactionStart pointers=${d.pointerCount}',
+      );
+    }
     _interacting = true;
     // Останавливаем spring-back, если он был в процессе.
     if (_springAnim.isAnimating) {
@@ -283,7 +219,13 @@ class _ChatMediaViewerPhotoPageState extends State<ChatMediaViewerPhotoPage>
     }
   }
 
-  void _onInteractionEnd(ScaleEndDetails _) {
+  void _onInteractionEnd(ScaleEndDetails d) {
+    if (kDebugMode) {
+      final scale = widget.transformationController.value.getMaxScaleOnAxis();
+      appLogger.d(
+        '[photo-viewer] interactionEnd scale=$scale v=${d.velocity.pixelsPerSecond}',
+      );
+    }
     _interacting = false;
     final t = _computeTarget(rubber: false);
     final m = widget.transformationController.value;
@@ -317,13 +259,20 @@ class _ChatMediaViewerPhotoPageState extends State<ChatMediaViewerPhotoPage>
   }
 
   void _onSpringStatus(AnimationStatus status) {
-    if (status == AnimationStatus.completed ||
-        status == AnimationStatus.dismissed) {
+    // Реагируем ТОЛЬКО на completed. Если ловить dismissed, listener
+    // удалится при `forward(from: 0)` — value=0 переводит status в
+    // dismissed раньше чем анимация делает первый кадр.
+    if (status == AnimationStatus.completed) {
       _disposeSpringListener();
     }
   }
 
   void _animateZoomTo(Matrix4 target) {
+    if (kDebugMode) {
+      appLogger.d(
+        '[photo-viewer] animateZoomTo targetScale=${target.getMaxScaleOnAxis()}',
+      );
+    }
     _disposeZoomListener();
     if (_springAnim.isAnimating) {
       _springAnim.stop();
@@ -349,8 +298,11 @@ class _ChatMediaViewerPhotoPageState extends State<ChatMediaViewerPhotoPage>
   }
 
   void _onZoomStatus(AnimationStatus status) {
-    if (status == AnimationStatus.completed ||
-        status == AnimationStatus.dismissed) {
+    if (kDebugMode) {
+      appLogger.d('[photo-viewer] zoomAnim status=$status');
+    }
+    // ТОЛЬКО completed (см. комментарий в _onSpringStatus).
+    if (status == AnimationStatus.completed) {
       _disposeZoomListener();
       _enforceConstraints();
     }
@@ -359,6 +311,11 @@ class _ChatMediaViewerPhotoPageState extends State<ChatMediaViewerPhotoPage>
   void _handleDoubleTap(TapDownDetails d) {
     final currentScale = widget.transformationController.value
         .getMaxScaleOnAxis();
+    if (kDebugMode) {
+      appLogger.d(
+        '[photo-viewer] doubleTap scale=$currentScale focal=${d.localPosition}',
+      );
+    }
     if (currentScale > _zoomedThreshold) {
       _animateZoomTo(Matrix4.identity());
       return;

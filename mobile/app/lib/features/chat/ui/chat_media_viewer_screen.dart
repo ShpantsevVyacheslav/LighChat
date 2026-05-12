@@ -3,7 +3,8 @@ import 'dart:io' show Directory, File, FileSystemException, HttpException;
 import 'dart:ui' show ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' as intl;
@@ -13,6 +14,7 @@ import 'package:lighchat_models/lighchat_models.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../core/app_logger.dart';
 import '../data/chat_image_cache_manager.dart';
 import '../data/chat_media_gallery.dart';
 import '../data/local_cache_entry_registry.dart';
@@ -1143,8 +1145,12 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage>
   }
 
   void _onZoomAnimStatus(AnimationStatus status) {
-    if (status == AnimationStatus.completed ||
-        status == AnimationStatus.dismissed) {
+    if (kDebugMode) {
+      appLogger.d('[video-viewer] zoomAnim status=$status');
+    }
+    // ТОЛЬКО completed: dismissed срабатывает при forward(from: 0) →
+    // value = 0 на втором вызове, и listener умирает до первого кадра.
+    if (status == AnimationStatus.completed) {
       _disposeZoomAnimListener();
     }
   }
@@ -1152,6 +1158,11 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage>
   void _handleVideoDoubleTap(TapDownDetails d) {
     final c = widget.transformationController;
     final scale = c.value.getMaxScaleOnAxis();
+    if (kDebugMode) {
+      appLogger.d(
+        '[video-viewer] doubleTap scale=$scale focal=${d.localPosition}',
+      );
+    }
     if (scale > _videoZoomedThreshold) {
       _animateZoomTo(Matrix4.identity());
       return;
@@ -1725,55 +1736,77 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage>
               aspectRatio: c.value.aspectRatio > 0
                   ? c.value.aspectRatio
                   : 16 / 9,
-              child: ValueListenableBuilder<VideoPlayerValue>(
-                valueListenable: c,
-                builder: (context, value, _) {
-                  final playing = value.isPlaying;
-                  if (playing != _lastNotifiedPlaying) {
-                    _lastNotifiedPlaying = playing;
-                    final cb = widget.onPlaybackStateChanged;
-                    final idx = widget.pageIndex;
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      cb?.call(idx, playing);
-                    });
-                  }
-                  if (_controlsVisible != _lastNotifiedControlsVisible) {
-                    _lastNotifiedControlsVisible = _controlsVisible;
-                    final cb = widget.onControlsVisibleChanged;
-                    final idx = widget.pageIndex;
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      cb?.call(idx, _controlsVisible);
-                    });
-                  }
-                  final duration = _safeDuration(value);
-                  final basePos = _scrubbing ? _scrubPosition : value.position;
-                  final position = Duration(
-                    milliseconds: basePos.inMilliseconds.clamp(
-                      0,
-                      duration.inMilliseconds,
-                    ),
-                  );
-                  final sliderMax = duration.inMilliseconds > 0
-                      ? duration.inMilliseconds.toDouble()
-                      : 1.0;
-                  final sliderValue = position.inMilliseconds.toDouble().clamp(
-                    0.0,
-                    sliderMax,
-                  );
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // InteractiveViewer ВНЕ ValueListenableBuilder — иначе он
+                  // ребилдится на каждое обновление позиции (~30 раз/сек) и
+                  // ScaleGestureRecognizer не успевает собрать pinch.
+                  InteractiveViewer(
+                    clipBehavior: Clip.hardEdge,
+                    transformationController: widget.transformationController,
+                    minScale: 1,
+                    maxScale: 4,
+                    panEnabled: true,
+                    scaleEnabled: true,
+                    onInteractionStart: (d) {
+                      if (kDebugMode) {
+                        appLogger.d(
+                          '[video-viewer] interactionStart pointers=${d.pointerCount}',
+                        );
+                      }
+                    },
+                    onInteractionEnd: (d) {
+                      if (kDebugMode) {
+                        final scale = widget.transformationController.value
+                            .getMaxScaleOnAxis();
+                        appLogger.d(
+                          '[video-viewer] interactionEnd scale=$scale',
+                        );
+                      }
+                    },
+                    child: VideoPlayer(c),
+                  ),
+                  ValueListenableBuilder<VideoPlayerValue>(
+                    valueListenable: c,
+                    builder: (context, value, _) {
+                      final playing = value.isPlaying;
+                      if (playing != _lastNotifiedPlaying) {
+                        _lastNotifiedPlaying = playing;
+                        final cb = widget.onPlaybackStateChanged;
+                        final idx = widget.pageIndex;
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          cb?.call(idx, playing);
+                        });
+                      }
+                      if (_controlsVisible != _lastNotifiedControlsVisible) {
+                        _lastNotifiedControlsVisible = _controlsVisible;
+                        final cb = widget.onControlsVisibleChanged;
+                        final idx = widget.pageIndex;
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          cb?.call(idx, _controlsVisible);
+                        });
+                      }
+                      final duration = _safeDuration(value);
+                      final basePos = _scrubbing
+                          ? _scrubPosition
+                          : value.position;
+                      final position = Duration(
+                        milliseconds: basePos.inMilliseconds.clamp(
+                          0,
+                          duration.inMilliseconds,
+                        ),
+                      );
+                      final sliderMax = duration.inMilliseconds > 0
+                          ? duration.inMilliseconds.toDouble()
+                          : 1.0;
+                      final sliderValue = position.inMilliseconds
+                          .toDouble()
+                          .clamp(0.0, sliderMax);
 
-                  return Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      InteractiveViewer(
-                        clipBehavior: Clip.hardEdge,
-                        transformationController:
-                            widget.transformationController,
-                        minScale: 1,
-                        maxScale: 4,
-                        panEnabled: true,
-                        scaleEnabled: true,
-                        child: VideoPlayer(c),
-                      ),
+                      return Stack(
+                        fit: StackFit.expand,
+                        children: [
                       if (_switchingQuality)
                         Positioned.fill(
                           child: ColoredBox(
@@ -1955,6 +1988,8 @@ class _GalleryVideoPageState extends State<_GalleryVideoPage>
                     ],
                   );
                 },
+              ),
+                ],
               ),
             ),
           ),
