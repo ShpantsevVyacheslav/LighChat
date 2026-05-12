@@ -170,6 +170,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
   String? _composerTextBeforeStickerSearch;
   double _lastKeyboardHeight = 0;
   double _stickersTransitionFooterFloor = 0;
+  double _stickerPanelLockedHeight = 0;
   Timer? _stickersTransitionFooterTimer;
   String? _pendingFocusMessageId;
   bool _inThreadSearch = false;
@@ -730,12 +731,18 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
     }
     _captureKeyboardHeight();
     final hadKeyboard = keyboardInset > 0;
+    final lockedH = keyboardInset > 0
+        ? keyboardInset
+        : (_lastKeyboardHeight > 0
+              ? _lastKeyboardHeight
+              : MediaQuery.of(context).size.height * 0.42);
     if (mounted) {
       setState(() {
         _composerTextBeforeStickerSearch = _composerController.text;
         _composerController.clear();
         _stickersSearchQuery = '';
         _stickersPanelFullscreen = false;
+        _stickerPanelLockedHeight = lockedH;
         _stickersPanelOpen = true;
       });
     }
@@ -768,6 +775,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
       _composerTextBeforeStickerSearch = null;
       _stickersPanelFullscreen = false;
       _stickersSearchQuery = '';
+      _stickerPanelLockedHeight = 0;
     });
   }
 
@@ -2813,19 +2821,24 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                         MediaQuery.viewInsetsOf(context).bottom;
                                     final mq = MediaQuery.of(context);
                                     final defaultH = mq.size.height * 0.42;
-                                    final keyboardLikeH =
-                                        _lastKeyboardHeight > 0
-                                        ? _lastKeyboardHeight
-                                        : defaultH;
                                     final fullScreenH = (mq.size.height * 0.92)
                                         .clamp(
                                           mq.size.height * 0.62,
                                           mq.size.height - 1,
                                         );
+                                    // Locked snapshot — фиксируется при
+                                    // открытии шторки, не пересматривается
+                                    // на каждый кадр kb-анимации.
+                                    final lockedPanelH =
+                                        _stickerPanelLockedHeight > 0
+                                        ? _stickerPanelLockedHeight
+                                        : (_lastKeyboardHeight > 0
+                                              ? _lastKeyboardHeight
+                                              : defaultH);
                                     final panelHeight = _stickersPanelOpen
                                         ? (_stickersPanelFullscreen
                                               ? fullScreenH
-                                              : keyboardLikeH)
+                                              : lockedPanelH)
                                         : 0.0;
                                     // ВАЖНО: Scaffold thread'а с
                                     // `resizeToAvoidBottomInset: false`,

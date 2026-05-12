@@ -206,6 +206,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   // клавиатуро-эквивалентной высоты шторки стикеров без скачков.
   double _lastKeyboardHeight = 0;
 
+  /// Высота шторки, **зафиксированная в момент открытия**. Пока шторка
+  /// открыта — больше не пересматриваем, чтобы panel не схлопывался
+  /// вместе с уезжающей клавиатурой (см. didChangeMetrics → captureKb
+  /// обновляет `_lastKeyboardHeight` на каждый кадр анимации kb).
+  double _stickerPanelLockedHeight = 0;
+
   /// Минимальная резервируемая высота под composer'ом на время
   /// переключений keyboard ↔ sticker panel. Пока выставлена, footer
   /// держит эту высоту, чтобы поле ввода не «прыгало» вниз пока
@@ -2582,20 +2588,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                         final mq = MediaQuery.of(context);
                                         final defaultH =
                                             mq.size.height * 0.42;
-                                        final keyboardLikeH =
-                                            _lastKeyboardHeight > 0
-                                            ? _lastKeyboardHeight
-                                            : defaultH;
                                         final fullScreenH =
                                             (mq.size.height * 0.92).clamp(
                                               mq.size.height * 0.62,
                                               mq.size.height - 1,
                                             );
+                                        // Высота панели — locked snapshot,
+                                        // взятый при открытии. Не пересматриваем
+                                        // её каждый кадр, иначе panel
+                                        // схлопывается вместе с уезжающей
+                                        // клавиатурой.
+                                        final lockedPanelH =
+                                            _stickerPanelLockedHeight > 0
+                                            ? _stickerPanelLockedHeight
+                                            : (_lastKeyboardHeight > 0
+                                                  ? _lastKeyboardHeight
+                                                  : defaultH);
                                         final panelHeight =
                                             _stickersPanelOpen
                                             ? (_stickersPanelFullscreen
                                                   ? fullScreenH
-                                                  : keyboardLikeH)
+                                                  : lockedPanelH)
                                             : 0.0;
                                         // ВАЖНО: Scaffold здесь с
                                         // `resizeToAvoidBottomInset: false`
@@ -2621,16 +2634,29 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                           'panelH': panelHeight,
                                           'kbInset': keyboardInset,
                                           'lastKb': _lastKeyboardHeight,
+                                          'lockedH': _stickerPanelLockedHeight,
                                           'floor':
                                               _stickersTransitionFooterFloor,
                                           'footer': footerHeight,
                                         });
                                         if (!_stickersPanelOpen) {
-                                          if (footerHeight <= 0) {
-                                            return const SizedBox.shrink();
-                                          }
-                                          return SizedBox(
-                                            height: footerHeight,
+                                          // Wrap в AnimatedSize: на panel→kb
+                                          // переходе floor=defaultH (~401) ←
+                                          // kbInset=345 даёт остаточный
+                                          // 57 px-drop когда fallback таймер
+                                          // отпускает floor. AnimatedSize
+                                          // сглаживает его за 180 ms.
+                                          return AnimatedSize(
+                                            duration: const Duration(
+                                              milliseconds: 180,
+                                            ),
+                                            curve: Curves.easeOutCubic,
+                                            alignment: Alignment.topCenter,
+                                            child: footerHeight <= 0
+                                                ? const SizedBox.shrink()
+                                                : SizedBox(
+                                                    height: footerHeight,
+                                                  ),
                                           );
                                         }
                                         final stickerRepo = ref.read(
@@ -4846,12 +4872,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     }
     _captureKeyboardHeight();
     final hadKeyboard = keyboardInset > 0;
+    // Фиксируем высоту шторки СЕЙЧАС: реальный kbInset > всё остальное,
+    // иначе lastKb, иначе дефолт 42% экрана. Эта величина живёт всё
+    // время пока панель открыта и не пересматривается при дальнейших
+    // обновлениях `_lastKeyboardHeight` (которые иначе схлопывают
+    // панель вместе с убегающей клавиатурой).
+    final lockedH = keyboardInset > 0
+        ? keyboardInset
+        : (_lastKeyboardHeight > 0
+              ? _lastKeyboardHeight
+              : MediaQuery.of(context).size.height * 0.42);
     if (mounted) {
       setState(() {
         _composerTextBeforeStickerSearch = _controller.text;
         _controller.clear();
         _stickersSearchQuery = '';
         _stickersPanelFullscreen = false;
+        _stickerPanelLockedHeight = lockedH;
         _stickersPanelOpen = true;
       });
     }
@@ -4900,6 +4937,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       _composerTextBeforeStickerSearch = null;
       _stickersPanelFullscreen = false;
       _stickersSearchQuery = '';
+      _stickerPanelLockedHeight = 0;
     });
   }
 
