@@ -86,4 +86,5 @@ export { cleanupDurakTurnTimeouts } from './triggers/scheduler/cleanupDurakTurnT
 export { sendScheduledMessages } from './triggers/scheduler/sendScheduledMessages';
 export { mediaRetentionCleanupDaily } from './triggers/scheduler/mediaRetentionCleanupDaily';
 export { enforceStorageQuotasDaily } from './triggers/scheduler/enforceStorageQuotasDaily';
+export { evidenceCleanupDaily } from './triggers/scheduler/evidenceCleanupDaily';
 export { rollupDailyAnalytics } from './triggers/scheduler/rollupDailyAnalytics';
