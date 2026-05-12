@@ -443,9 +443,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     if (views.isEmpty) return;
     final view = views.first;
     final height = view.viewInsets.bottom / view.devicePixelRatio;
-    // Сбрасываем floor СИНХРОННО как только клавиатура догнала
-    // удерживаемую высоту — даёт seamless-переход panel→keyboard
-    // без поздних рывков composer'а при срабатывании fallback-таймера.
     if (_stickersTransitionFooterFloor > 0 &&
         height >= _stickersTransitionFooterFloor - 1) {
       _stickersTransitionFooterTimer?.cancel();
@@ -456,6 +453,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       }
     }
     if (height <= 0 || (height - _lastKeyboardHeight).abs() < 0.5) return;
+    _stickerLog('captureKb', {
+      'height': height,
+      'prevLastKb': _lastKeyboardHeight,
+      'panelOpen': _stickersPanelOpen,
+    });
     if (!mounted) {
       _lastKeyboardHeight = height;
       return;
@@ -2612,27 +2614,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                           keyboardInset,
                                           _stickersTransitionFooterFloor,
                                         ].reduce((a, b) => a > b ? a : b);
-                                        // AnimatedSize гладко интерполирует
-                                        // ЛЮБОЕ изменение footerHeight (≈180 ms,
-                                        // easeOutCubic) — страховка от рывков
-                                        // при разной высоте клавиатуры (с/без
-                                        // predictive bar), при истечении floor
-                                        // и других edge-кейсах. На штатном
-                                        // keyboard↔panel переходе footer
-                                        // фактически константен и анимация
-                                        // ничего не делает.
+                                        _stickerLog('footerBuild', {
+                                          'panelOpen': _stickersPanelOpen,
+                                          'panelFullscreen':
+                                              _stickersPanelFullscreen,
+                                          'panelH': panelHeight,
+                                          'kbInset': keyboardInset,
+                                          'lastKb': _lastKeyboardHeight,
+                                          'floor':
+                                              _stickersTransitionFooterFloor,
+                                          'footer': footerHeight,
+                                        });
                                         if (!_stickersPanelOpen) {
-                                          return AnimatedSize(
-                                            duration: const Duration(
-                                              milliseconds: 180,
-                                            ),
-                                            curve: Curves.easeOutCubic,
-                                            alignment: Alignment.topCenter,
-                                            child: footerHeight <= 0
-                                                ? const SizedBox.shrink()
-                                                : SizedBox(
-                                                    height: footerHeight,
-                                                  ),
+                                          if (footerHeight <= 0) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          return SizedBox(
+                                            height: footerHeight,
                                           );
                                         }
                                         final stickerRepo = ref.read(
@@ -2690,16 +2688,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                         // рендерится на полной высоте, низ
                                         // прячется за клавиатурой (она
                                         // системно поверх Flutter-view).
-                                        return AnimatedSize(
-                                          duration: const Duration(
-                                            milliseconds: 180,
-                                          ),
-                                          curve: Curves.easeOutCubic,
-                                          alignment: Alignment.topCenter,
-                                          child: SizedBox(
-                                            height: footerHeight,
-                                            child: panel,
-                                          ),
+                                        return SizedBox(
+                                          height: footerHeight,
+                                          child: panel,
                                         );
                                       },
                                     ),
@@ -4812,15 +4803,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     Duration hold = const Duration(milliseconds: 800),
   }) {
     if (!mounted || height <= 0) return;
+    _stickerLog('hold.set', {'height': height, 'holdMs': hold.inMilliseconds});
     _stickersTransitionFooterTimer?.cancel();
     setState(() => _stickersTransitionFooterFloor = height);
     _stickersTransitionFooterTimer = Timer(hold, () {
       if (!mounted) return;
-      // Fallback: клавиатура не поднялась за hold ms (например,
-      // пользователь свернул чат или редактор отказал в фокусе).
-      // Сбрасываем floor мягко: AnimatedSize ниже сгладит изменение.
+      _stickerLog('hold.fallback', {'wasFloor': _stickersTransitionFooterFloor});
       setState(() => _stickersTransitionFooterFloor = 0);
     });
+  }
+
+  void _stickerLog(String tag, Map<String, Object?> data) {
+    // Простой print — попадает в xcrun simctl/Console.app и `flutter logs`
+    // даже в release-сборке. debugPrint в release глушится.
+    // ignore: avoid_print
+    print('STICKER_PANEL[$tag] $data');
   }
 
   Future<void> _openStickersGifPanelImpl() async {
@@ -4836,17 +4833,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       return;
     }
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    _stickerLog('open.enter', {
+      'kbInset': keyboardInset,
+      'lastKb': _lastKeyboardHeight,
+      'panelOpen': _stickersPanelOpen,
+      'panelFullscreen': _stickersPanelFullscreen,
+      'floor': _stickersTransitionFooterFloor,
+    });
     if (keyboardInset > 0 &&
         (keyboardInset - _lastKeyboardHeight).abs() > 0.5) {
       _lastKeyboardHeight = keyboardInset;
     }
     _captureKeyboardHeight();
     final hadKeyboard = keyboardInset > 0;
-    // Открываем шторку СНАЧАЛА (с keyboard-equivalent height) — она
-    // окажется «под» клавиатурой. Затем гасим клавиатуру, и пока iOS
-    // анимирует её исчезновение, пол держится за счёт viewInsets, а
-    // потом — за счёт panelHeight. Это даёт seamless-переход без
-    // схлопывания composer'a.
     if (mounted) {
       setState(() {
         _composerTextBeforeStickerSearch = _controller.text;
@@ -4856,9 +4855,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         _stickersPanelOpen = true;
       });
     }
+    _stickerLog('open.afterSetState', {
+      'lastKb': _lastKeyboardHeight,
+      'panelOpen': _stickersPanelOpen,
+    });
     if (hadKeyboard) {
       FocusManager.instance.primaryFocus?.unfocus();
       await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+      if (!mounted) return;
+      _stickerLog('open.kbHidden', {
+        'kbInset': MediaQuery.viewInsetsOf(context).bottom,
+      });
     }
   }
 
@@ -4879,6 +4886,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   void _closeStickersPanel() {
     if (!mounted) return;
+    _stickerLog('close', {
+      'wasOpen': _stickersPanelOpen,
+      'floor': _stickersTransitionFooterFloor,
+      'stack': StackTrace.current.toString().split('\n').take(4).join(' | '),
+    });
     setState(() {
       _stickersPanelOpen = false;
       _controller.text = _composerTextBeforeStickerSearch ?? _controller.text;
