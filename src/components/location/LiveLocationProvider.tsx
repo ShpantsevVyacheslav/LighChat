@@ -13,6 +13,7 @@ import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import type { User } from '@/lib/types';
 import { isLiveShareExpired, isLiveShareVisible } from '@/lib/live-location-utils';
+import { logger } from '@/lib/logger';
 
 const THROTTLE_MS = 15_000;
 
@@ -68,7 +69,7 @@ export function LiveLocationProvider({ children }: { children: React.ReactNode }
     try {
       await updateDoc(doc(fs, 'users', uid), { liveLocationShare: deleteField() });
     } catch (e) {
-      console.error('[LighChat:liveLocation] stopSharing failed', e);
+      logger.error('live-location', 'stopSharing failed', e);
     }
   }, []);
 
@@ -86,7 +87,7 @@ export function LiveLocationProvider({ children }: { children: React.ReactNode }
       clearModuleWatch();
       lastStartedAt = null;
       updateDoc(doc(firestore, 'users', user.id), { liveLocationShare: deleteField() }).catch((e) =>
-        console.error('[LighChat:liveLocation] cleanup expired', e)
+        logger.error('live-location', 'cleanup expired', e)
       );
       return;
     }
@@ -118,7 +119,7 @@ export function LiveLocationProvider({ children }: { children: React.ReactNode }
           'liveLocationShare.lng': lng,
           'liveLocationShare.accuracyM': accuracyM,
           'liveLocationShare.updatedAt': updatedAt,
-        }).catch((e) => console.error('[LighChat:liveLocation] watch update', e));
+        }).catch((e) => logger.error('live-location', 'watch update', e));
       },
       () => {},
       { enableHighAccuracy: false, maximumAge: 15_000 }

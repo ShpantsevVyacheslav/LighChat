@@ -41,6 +41,7 @@ import { participantListAvatarUrl } from '@/lib/user-avatar-display';
 import { ruEnSubstringMatch } from '@/lib/ru-latin-search-normalize';
 import { Card, CardContent } from '@/components/ui/card';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
+import { logger } from '@/lib/logger';
 
 const CONTACT_KEY_PREFIX = 'contact:';
 
@@ -295,7 +296,7 @@ export function ChatForwardSheet() {
         router.back();
       }
     } catch (error) {
-      console.error('Failed to parse messages from session storage', error);
+      logger.error('forward', 'parse messages from session storage', error);
       toast({ variant: 'destructive', title: t('chat.forward.loadError') });
       router.back();
     }
@@ -347,7 +348,7 @@ export function ChatForwardSheet() {
         const uid = selectionKey.slice(CONTACT_KEY_PREFIX.length);
         const otherUser = allUsers.find((u) => u.id === uid);
         if (!otherUser) {
-          console.warn('[ChatForwardSheet] contact user not loaded', uid);
+          logger.warn('forward', 'contact user not loaded', uid);
           return null;
         }
         const convId = await createOrOpenDirectChat(firestore, currentUser, otherUser);
@@ -461,7 +462,7 @@ export function ChatForwardSheet() {
       handleClose();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      console.error('Failed to bulk forward:', e);
+      logger.error('forward', 'bulk forward failed', e);
       toast({ variant: 'destructive', title: t('chat.forward.forwardError'), description: message });
       setIsSending(false);
     }

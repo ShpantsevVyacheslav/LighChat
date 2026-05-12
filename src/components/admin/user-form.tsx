@@ -49,6 +49,7 @@ import {
   type UserFormValues,
 } from "@/lib/user-form-schema";
 import { useI18n } from "@/hooks/use-i18n";
+import { logger } from "@/lib/logger";
 
 export type { UserFormValues } from "@/lib/user-form-schema";
 
@@ -175,7 +176,7 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
               description: t("admin.userForm.toastAvatarReadyDesc"),
             });
           } catch (e) {
-            console.error("[UserForm] avatar preview", e);
+            logger.error('user-form', 'avatar preview', e);
             toast({ variant: "destructive", title: t("admin.userForm.toastPhotoProcessErrorTitle") });
           }
         });
@@ -211,7 +212,7 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
           toast({ title: t("admin.userForm.toastAvatarUpdatedTitle"), description: t("admin.userForm.toastAvatarUpdatedDesc") });
         } catch (error: unknown) {
           const message = error instanceof Error ? error.message : String(error);
-          console.error("[UserForm] avatar upload failed:", error);
+          logger.error('user-form', 'avatar upload failed', error);
           toast({ variant: "destructive", title: t("admin.userForm.toastUploadErrorTitle"), description: message });
         }
       });
@@ -275,7 +276,7 @@ export function UserForm({ initialData, onSave, onCancel, isSubmitting, isProfil
         });
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
-        console.error("[UserForm] profile avatar pair upload failed:", error);
+        logger.error('user-form', 'profile avatar pair upload failed', error);
         toast({ variant: "destructive", title: t("admin.userForm.toastUploadErrorTitle"), description: message });
       }
     });

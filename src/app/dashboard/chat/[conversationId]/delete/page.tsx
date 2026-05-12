@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Loader2 } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 export default function DeleteConversationPage() {
   const router = useRouter();
@@ -48,7 +49,7 @@ export default function DeleteConversationPage() {
             conversationIds: arrayRemove(conversationId),
           });
         } catch (indexErr) {
-          console.warn('[DeleteConversation] userChats arrayRemove after delete:', indexErr);
+          logger.warn('delete-conv', 'userChats arrayRemove after delete', indexErr);
         }
       }
       toast({
@@ -81,7 +82,7 @@ export default function DeleteConversationPage() {
           router.push('/dashboard/chat');
           return;
         } catch (hideErr) {
-          console.error('[DeleteConversation] hide-from-userChats fallback failed:', hideErr);
+          logger.error('delete-conv', 'hide-from-userChats fallback failed', hideErr);
         }
       }
       const message =
@@ -91,11 +92,11 @@ export default function DeleteConversationPage() {
         typeof (error as { message?: unknown }).message === 'string'
           ? (error as { message: string }).message
           : t('chatOps.deleteDialog.fallbackError');
-      console.error(
-        'Failed to delete chat:',
-        error,
-        { conversationId, uid: authUser?.id, participantIds: conversation?.participantIds }
-      );
+      logger.error('delete-conv', 'Failed to delete chat', error, {
+        conversationId,
+        uid: authUser?.id,
+        participantIds: conversation?.participantIds,
+      });
       toast({
         variant: 'destructive',
         title: t('chatOps.deleteDialog.toastErrorTitle'),

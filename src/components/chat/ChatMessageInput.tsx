@@ -41,6 +41,7 @@ import { ChatAttachPollDialog, type ChatPollCreateInput } from '@/components/cha
 import { ChatScheduleMessageDialog } from '@/components/chat/ChatScheduleMessageDialog';
 import { AudioMessagePreviewBar } from '@/components/chat/AudioMessagePreviewBar';
 import { normalizeFilesAsStickersIfApplicable } from '@/lib/ios-sticker-detect';
+import { logger } from '@/lib/logger';
 import { chatDraftPlainFromHtml,
   clearChatMessageDraft,
   getChatMessageDraft,
@@ -383,7 +384,7 @@ const ChatMessageInputInner = (
             if (currentReplyingTo) onCancelReply();
             clearChatMessageDraft(currentUser.id, draftKey);
         } catch (e) {
-            console.error('Failed to schedule message:', e);
+            logger.error('composer', 'schedule message failed', e);
         }
     };
 
@@ -457,7 +458,7 @@ const ChatMessageInputInner = (
             }
             clearChatMessageDraft(currentUser.id, draftKey);
         } catch (error) {
-            console.error("Failed to send message:", error);
+            logger.error('composer', 'send message failed', error);
         } finally {
             setIsSending(false);
         }
@@ -575,7 +576,7 @@ const ChatMessageInputInner = (
         try {
             await onSendMessage(undefined, [file], currentReplyingTo, undefined);
         } catch (error) {
-            console.error("Failed to send audio:", error);
+            logger.error('composer', 'send audio failed', error);
         } finally {
             setIsSending(false);
         }
