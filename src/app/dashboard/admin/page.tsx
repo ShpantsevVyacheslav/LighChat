@@ -73,7 +73,7 @@ export default function AdminPage() {
             {t('adminPage.tabStorage')}
           </TabsTrigger>
           <TabsTrigger value="costs" className="rounded-xl">
-            Затраты
+            {t('adminPage.tabCosts')}
           </TabsTrigger>
           <TabsTrigger value="push" className="rounded-xl">
             {t('adminPage.tabPush')}

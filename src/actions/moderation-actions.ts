@@ -5,8 +5,62 @@ import { z } from 'zod';
 import { adminDb } from '@/firebase/admin';
 import { assertAdminByIdToken, verifyUserByIdToken } from '@/actions/admin-actions';
 import { logAdminAction } from '@/lib/server/audit-log';
-import type { MessageReport, ReportStatus, ModerationAction, MessageHiddenByAdmin } from '@/lib/types';
+import type { MessageReport, Notification, ReportStatus, ModerationAction, MessageHiddenByAdmin } from '@/lib/types';
 import { logger } from '@/lib/logger';
+
+/**
+ * Best-effort notification к автору жалобы по итогам ревью. Пишем в
+ * `users/{reporterId}/notifications/{auto}` — клиент уже подписан на эту
+ * коллекцию для собственных уведомлений.
+ *
+ * Ошибки тут не пробрасываем: пользователь должен увидеть «жалоба
+ * рассмотрена», но если шаг провалится — flow модерации не блокируется
+ * (статус жалобы уже обновлён в основной операции).
+ */
+async function notifyReporterOfDecision(opts: {
+  reportId: string;
+  reporterId: string;
+  status: ReportStatus;
+  actionTaken: ModerationAction;
+}): Promise<void> {
+  try {
+    const { reporterId, status, actionTaken } = opts;
+    if (!reporterId) return;
+    let title: string;
+    let body: string;
+    if (status === 'action_taken') {
+      title = 'Жалоба рассмотрена';
+      body = actionTaken === 'hidden'
+        ? 'Сообщение скрыто модератором.'
+        : actionTaken === 'user_blocked'
+          ? 'Автор сообщения заблокирован.'
+          : actionTaken === 'user_warned'
+            ? 'Автору вынесено предупреждение.'
+            : 'По жалобе приняты меры.';
+    } else if (status === 'dismissed') {
+      title = 'Жалоба рассмотрена';
+      body = 'Модератор не нашёл нарушений в сообщении.';
+    } else if (status === 'reviewed') {
+      title = 'Жалоба рассмотрена';
+      body = 'Модератор изучил жалобу.';
+    } else {
+      return;
+    }
+    const ref = adminDb.collection('users').doc(reporterId).collection('notifications').doc();
+    const notification: Notification = {
+      id: ref.id,
+      userId: reporterId,
+      title,
+      body,
+      link: '',
+      createdAt: new Date().toISOString(),
+      isRead: false,
+    };
+    await ref.set(notification);
+  } catch (e) {
+    logger.error('moderation', 'notifyReporterOfDecision failed', { reportId: opts.reportId, e });
+  }
+}
 
 // SECURITY: Firestore document IDs are interpolated into paths; reject any
 // shape that would let `..` / `/` walk outside the expected collection.
@@ -238,6 +292,9 @@ export async function reviewAndHideReportAction(input: {
     });
     await batch.commit();
 
+    const reportSnap = await reportRef.get();
+    const reporterId = reportSnap.exists ? String(reportSnap.data()?.reporterId ?? '') : '';
+
     await Promise.all([
       logAdminAction({
         actorId: actor.uid,
@@ -252,6 +309,12 @@ export async function reviewAndHideReportAction(input: {
         action: 'moderation.review_report',
         target: { type: 'message', id: parsed.data.reportId },
         details: { status: 'action_taken', actionTaken: 'hidden', atomic: true },
+      }),
+      notifyReporterOfDecision({
+        reportId: parsed.data.reportId,
+        reporterId,
+        status: 'action_taken',
+        actionTaken: 'hidden',
       }),
     ]);
 
@@ -277,20 +340,32 @@ export async function reviewReportAction(input: {
   try {
     const actor = await assertAdminByIdToken(parsed.data.idToken);
 
-    await adminDb.collection('messageReports').doc(parsed.data.reportId).update({
+    const reportRef = adminDb.collection('messageReports').doc(parsed.data.reportId);
+    await reportRef.update({
       status: parsed.data.status,
       actionTaken: parsed.data.actionTaken ?? 'none',
       reviewedBy: actor.uid,
       reviewedAt: new Date().toISOString(),
     });
 
-    await logAdminAction({
-      actorId: actor.uid,
-      actorName: actor.name,
-      action: 'moderation.review_report',
-      target: { type: 'message', id: parsed.data.reportId },
-      details: { status: parsed.data.status, actionTaken: parsed.data.actionTaken },
-    });
+    const reportSnap = await reportRef.get();
+    const reporterId = reportSnap.exists ? String(reportSnap.data()?.reporterId ?? '') : '';
+
+    await Promise.all([
+      logAdminAction({
+        actorId: actor.uid,
+        actorName: actor.name,
+        action: 'moderation.review_report',
+        target: { type: 'message', id: parsed.data.reportId },
+        details: { status: parsed.data.status, actionTaken: parsed.data.actionTaken },
+      }),
+      notifyReporterOfDecision({
+        reportId: parsed.data.reportId,
+        reporterId,
+        status: parsed.data.status,
+        actionTaken: parsed.data.actionTaken ?? 'none',
+      }),
+    ]);
 
     return { ok: true };
   } catch (e: unknown) {
