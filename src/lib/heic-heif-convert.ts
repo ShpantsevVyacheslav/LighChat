@@ -5,6 +5,8 @@
  * `<img>` не декодирует HEIC, стикеры с iOS иначе отображаются «битым» файлом.
  */
 
+import { logger } from '@/lib/logger';
+
 export function isHeicHeifMime(type: string | undefined | null): boolean {
   const t = (type || '').toLowerCase();
   return t.includes('heic') || t.includes('heif');
@@ -36,7 +38,7 @@ export async function fetchUrlAndConvertHeicToPngObjectUrl(url: string): Promise
     const png = await convertHeicHeifBlobToPngBlob(blob);
     return URL.createObjectURL(png);
   } catch (e) {
-    console.warn('[LighChat:heic] convert display URL failed', e);
+    logger.warn('heic', 'convert display URL failed', e);
     return null;
   }
 }

@@ -29,6 +29,7 @@ import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { useCollection, useMemoFirebase } from '@/firebase';
 import type { ChatAttachment, ReplyContext } from '@/lib/types';
+import { logger } from '@/lib/logger';
 
 type ToastFn = (opts: {
   title: string;
@@ -141,7 +142,7 @@ export function useScheduledMessages(opts: {
           description: format(sendAt, 'd MMMM yyyy, HH:mm', { locale: ru }),
         });
       } catch (e) {
-        console.error('Failed to schedule message:', e);
+        logger.error('scheduled-msgs', 'schedule failed', e);
         toast({
           variant: 'destructive',
           title: t('chat.scheduleMessageFailed'),

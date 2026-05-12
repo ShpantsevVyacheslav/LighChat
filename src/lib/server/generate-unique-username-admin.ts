@@ -3,6 +3,7 @@ import {
   isNormalizedUsernameTokenAllowed,
   normalizeUsernameCandidate,
 } from "@/lib/username-candidate";
+import { logger } from "@/lib/logger";
 
 async function isUsernameTakenInRegistrationIndexAdmin(opts: {
   normalizedUsername: string;
@@ -16,8 +17,9 @@ async function isUsernameTakenInRegistrationIndexAdmin(opts: {
     if (owner === opts.exceptUid) return false;
     return true;
   } catch (e) {
-    console.warn(
-      "[generate-unique-username-admin] registrationIndex read failed",
+    logger.warn(
+      'gen-unique-username',
+      'registrationIndex read failed',
       e,
     );
     return "error";

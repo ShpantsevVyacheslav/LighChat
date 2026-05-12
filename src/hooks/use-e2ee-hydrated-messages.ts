@@ -26,6 +26,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { logger } from '@/lib/logger';
 import type {
   ChatAttachment,
   ChatMessage,
@@ -140,7 +141,7 @@ export function useE2eeHydratedMessages<T extends ChatMessage>(
             return next;
           });
         } catch (err) {
-          console.warn('[e2ee] media resolve failed', {
+          logger.warn('e2ee', 'media resolve failed', {
             messageId: task.messageId,
             fileId: task.envelope.fileId,
             err,

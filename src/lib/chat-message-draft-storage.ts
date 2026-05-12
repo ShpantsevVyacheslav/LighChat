@@ -1,4 +1,5 @@
 import type { ReplyContext } from '@/lib/types';
+import { logger } from '@/lib/logger';
 
 export const CHAT_MESSAGE_DRAFT_CHANGED_EVENT = 'lighchat:chatMessageDraftChanged';
 
@@ -37,7 +38,7 @@ function writeMap(userId: string, map: Record<string, StoredChatMessageDraft>) {
   try {
     localStorage.setItem(keyForUser(userId), JSON.stringify(map));
   } catch (e) {
-    console.warn('[LighChat] chat draft save failed', e);
+    logger.warn('chat-draft', 'save failed', e);
   }
 }
 

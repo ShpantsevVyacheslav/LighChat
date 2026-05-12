@@ -6,6 +6,7 @@ import { Firestore } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 import { FirebaseStorage } from 'firebase/storage';
+import { logger } from '@/lib/logger';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -87,7 +88,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
         setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
       },
       (error) => { // Auth listener error
-        console.error("FirebaseProvider: onAuthStateChanged error:", error);
+        logger.error('firebase-provider', 'onAuthStateChanged error', error);
         setUserAuthState({ user: null, isUserLoading: false, userError: error });
       }
     );

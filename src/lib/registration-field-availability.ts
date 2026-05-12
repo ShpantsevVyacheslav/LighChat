@@ -15,6 +15,7 @@
 import { type Firestore } from "firebase/firestore";
 import { getApp } from "firebase/app";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import { logger } from "@/lib/logger";
 
 type CheckPayload = {
   type: "phone" | "email" | "username";
@@ -39,7 +40,7 @@ function callCheck(payload: CheckPayload): Promise<CheckResult> {
 }
 
 function logCallError(err: unknown): void {
-  console.warn("[registration-field-availability] callable failed", err);
+  logger.warn('registration', 'callable failed', err);
 }
 
 export async function isRegistrationPhoneTaken(

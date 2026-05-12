@@ -2,6 +2,8 @@
  * Расшифровка ошибок проверки админа (Firebase Admin verifyIdToken и т.д.).
  * Не в файле с «use server» — иначе Next требует async у всех экспортов.
  */
+import { logger } from '@/lib/logger';
+
 export function interpretAdminAccessError(e: unknown): string {
   if (e instanceof Error) {
     if (e.message === 'FORBIDDEN' || e.message === 'UNAUTHORIZED') {
@@ -9,7 +11,7 @@ export function interpretAdminAccessError(e: unknown): string {
     }
   }
 
-  console.error('[Firebase Admin] проверка доступа:', e);
+  logger.error('admin-access', 'проверка доступа', e);
 
   const rec = e as { code?: string; message?: string };
   const code = String(rec?.code ?? '');

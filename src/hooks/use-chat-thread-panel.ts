@@ -23,6 +23,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { doc, getDoc, type Firestore } from 'firebase/firestore';
 import type { ChatMessage } from '@/lib/types';
+import { logger } from '@/lib/logger';
 
 const PANEL_WIDTH_DEFAULT = 520;
 const PANEL_WIDTH_MIN = 420;
@@ -129,7 +130,7 @@ export function useChatThreadPanel(opts: {
         onThreadRootMessageConsumed?.();
       })
       .catch((e) => {
-        console.warn('[useChatThreadPanel] open thread from URL failed', e);
+        logger.warn('thread-panel', 'open thread from URL failed', e);
         if (!cancelled) {
           toast({ title: t('chat.threadOpenError'), variant: 'destructive' });
           onThreadRootMessageConsumed?.();

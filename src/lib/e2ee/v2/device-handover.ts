@@ -52,6 +52,7 @@ import {
   wrapChatKeyForDeviceV2,
 } from '@/lib/e2ee/v2/webcrypto-v2';
 import { fromBase64 } from '@/lib/e2ee/b64';
+import { logger } from '@/lib/logger';
 import {
   chatSystemEvents,
   postChatSystemEventV2,
@@ -172,7 +173,7 @@ export async function handoverDeviceAccessV2(params: {
       // best-effort: один чат недоступен (например, удалён, hidden DM, etc.)
       // — пропускаем, не валим handover целиком.
       // eslint-disable-next-line no-console
-      console.warn('[handover] skip conversation', cid, e);
+      logger.warn('e2ee-handover', 'skip conversation', { cid, e });
     }
   }
 

@@ -2,6 +2,7 @@
 
 import { getImageMetadata } from '@/lib/media-utils';
 import { convertHeicHeifBlobToPngBlob, isHeicHeifFileName, isHeicHeifMime } from '@/lib/heic-heif-convert';
+import { logger } from '@/lib/logger';
 
 /**
  * Авто-пометка `sticker_*` для стикеров iOS (вставка, клавиатура) и для малых HEIC/HEIF
@@ -168,7 +169,7 @@ export async function normalizeFileAsStickerIfApplicable(
     try {
       pngBlob = await convertHeicHeifBlobToPngBlob(file);
     } catch (e) {
-      console.warn('[LighChat:sticker] HEIC→PNG failed', e);
+      logger.warn('ios-sticker', 'HEIC→PNG failed', e);
       return file;
     }
     const probe = new File([pngBlob], 'probe.png', { type: 'image/png', lastModified: file.lastModified });

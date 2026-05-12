@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { useI18n } from '@/hooks/use-i18n';
+import { logger } from '@/lib/logger';
 
 type BlockedUsersPageClientProps = {
   currentUserId: string;
@@ -54,7 +55,7 @@ export function BlockedUsersPageClient({ currentUserId }: BlockedUsersPageClient
         });
         toast({ title: t('profile.blockedPage.unblocked') });
       } catch (e) {
-        console.error('[BlockedUsersPageClient] unblock', e);
+        logger.error('blocked-users', 'unblock', e);
         toast({ variant: 'destructive', title: t('profile.blockedPage.unblockError') });
       } finally {
         setBusyId(null);

@@ -32,6 +32,7 @@
 
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from 'firebase/app-check';
 import type { FirebaseApp } from 'firebase/app';
+import { logger } from '@/lib/logger';
 
 const RECAPTCHA_ENTERPRISE_SITE_KEY = '6Lc9OuQsAAAAAGgdcyaGqJawglB5wylD0-uu1BH_';
 
@@ -63,7 +64,7 @@ export function initLighChatAppCheck(app: FirebaseApp): AppCheck | null {
     // Не валим инициализацию Firebase если App Check не стартанул —
     // Monitor mode не блокирует, прод не упадёт. Но логируем — заметим
     // регрессию по метрикам в Console.
-    console.warn('[Firebase] App Check init failed', e);
+    logger.warn('app-check', 'init failed', e);
     return null;
   }
 }
