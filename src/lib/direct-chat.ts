@@ -16,6 +16,7 @@ import {
   isFirestorePermissionDeniedError,
   logFirestorePermissionDenied,
 } from '@/lib/firestore-permission-debug';
+import { logger } from '@/lib/logger';
 
 function isFirestoreInternalError(error: unknown): boolean {
   return (
@@ -78,7 +79,7 @@ export async function createOrOpenDirectChat(
     // В полевых условиях иногда приходит FirestoreError(code=internal) на чтении
     // отсутствующего canonical-документа. Не блокируем — попробуем найти/создать чат ниже.
     if (!isFirestoreInternalError(e)) throw e;
-    console.warn('[createOrOpenDirectChat] canonical getDoc internal, continue with fallback path', {
+    logger.warn('direct-chat', 'canonical getDoc internal, continue with fallback path', {
       canonicalId,
       currentUserId: currentUser.id,
       otherUserId: otherUser.id,
@@ -121,7 +122,7 @@ export async function createOrOpenDirectChat(
     // Legacy-поиск не критичен. Если Firestore отдал internal, продолжаем
     // по canonical-пути (dm_*), чтобы не блокировать создание чата.
     if (!isFirestoreInternalError(e)) throw e;
-    console.warn('[createOrOpenDirectChat] fallback query internal, continue with canonical create', {
+    logger.warn('direct-chat', 'fallback query internal, continue with canonical create', {
       canonicalId,
       currentUserId: currentUser.id,
       otherUserId: otherUser.id,
@@ -195,7 +196,7 @@ export async function createOrOpenDirectChat(
     }
     // Fallback: если транзакция упала внутренней ошибкой, пробуем идемпотентно создать без транзакции.
     if (!isFirestoreInternalError(e)) throw e;
-    console.warn('[createOrOpenDirectChat] runTransaction internal, fallback to direct create', {
+    logger.warn('direct-chat', 'runTransaction internal, fallback to direct create', {
       canonicalId,
       currentUserId: currentUser.id,
       otherUserId: otherUser.id,

@@ -4,6 +4,7 @@ import { adminDb } from '@/firebase/admin';
 import { assertAdminByIdToken } from '@/actions/admin-actions';
 import { logAdminAction } from '@/lib/server/audit-log';
 import type { Announcement, AnnouncementType, UserRole } from '@/lib/types';
+import { logger } from '@/lib/logger';
 
 export async function createAnnouncementAction(input: {
   idToken: string;
@@ -45,7 +46,7 @@ export async function createAnnouncementAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[createAnnouncementAction]', e);
+    logger.error('announcements', 'createAnnouncementAction', e);
     return { ok: false, error: 'Ошибка создания объявления' };
   }
 }
@@ -72,7 +73,7 @@ export async function updateAnnouncementAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[updateAnnouncementAction]', e);
+    logger.error('announcements', 'updateAnnouncementAction', e);
     return { ok: false, error: 'Ошибка обновления' };
   }
 }
@@ -97,7 +98,7 @@ export async function deleteAnnouncementAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[deleteAnnouncementAction]', e);
+    logger.error('announcements', 'deleteAnnouncementAction', e);
     return { ok: false, error: 'Ошибка удаления' };
   }
 }

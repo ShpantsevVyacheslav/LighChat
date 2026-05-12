@@ -13,6 +13,7 @@ import {
   deleteUserStickerPack,
 } from '@/lib/user-sticker-packs-client';
 import type { UserStickerItemDoc, UserStickerPackDoc } from '@/lib/user-sticker-packs';
+import { logger } from '@/lib/logger';
 
 type PackRow = UserStickerPackDoc & { id: string };
 type ItemRow = UserStickerItemDoc & { id: string };
@@ -59,7 +60,7 @@ export function useUserStickerPacks(userId: string | undefined) {
     async (rawName: string): Promise<string | null> => {
       if (!firestore || !userId) return null;
       const id = await createUserStickerPack(firestore, userId, rawName);
-      if (id) console.info('[LighChat:stickers] pack created', { packId: id, userId });
+      if (id) logger.debug('stickers', 'pack created', { packId: id, userId });
       return id;
     },
     [firestore, userId]
@@ -89,7 +90,7 @@ export function useUserStickerPacks(userId: string | undefined) {
       const now = new Date().toISOString();
       await updateDoc(doc(firestore, 'users', userId, 'stickerPacks', newPackId), { updatedAt: now });
       setSelectedPackId(newPackId);
-      console.info('[LighChat:stickers] pack duplicated', { from: sourcePack.id, to: newPackId });
+      logger.debug('stickers', 'pack duplicated', { from: sourcePack.id, to: newPackId });
       return newPackId;
     },
     [createPack, firestore, userId]
@@ -110,7 +111,7 @@ export function useUserStickerPacks(userId: string | undefined) {
       deleteDocumentNonBlocking(itemRef);
       const now = new Date().toISOString();
       updateDoc(doc(firestore, 'users', userId, 'stickerPacks', packId), { updatedAt: now }).catch(() => {});
-      console.info('[LighChat:stickers] item delete requested', { packId, itemId });
+      logger.debug('stickers', 'item delete requested', { packId, itemId });
     },
     [firestore, userId]
   );

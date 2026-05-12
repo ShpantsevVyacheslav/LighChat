@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { translateSearchQueryToEn } from '@/lib/translate-search-query';
 import { callerIpFromRequest, requireUserFromRequest } from '@/lib/server/route-auth';
 import { consumeRouteRateLimit } from '@/lib/server/route-rate-limit';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
@@ -151,10 +152,9 @@ export async function GET(req: NextRequest) {
   }
   const key = process.env.GIPHY_API_KEY;
   if (!key) {
-    console.warn(
-      '[giphy/search] GIPHY_API_KEY is not set. ' +
-        'Add it via `firebase apphosting:secrets:set GIPHY_API_KEY` ' +
-        'and update apphosting.yaml.',
+    logger.warn(
+      'giphy',
+      'GIPHY_API_KEY is not set. Add it via `firebase apphosting:secrets:set GIPHY_API_KEY` and update apphosting.yaml.',
     );
     return NextResponse.json(
       {
@@ -205,7 +205,7 @@ export async function GET(req: NextRequest) {
   try {
     const res = await fetch(giphyUrl.toString(), { next: { revalidate: 0 } });
     if (!res.ok) {
-      console.warn('[giphy/search]', res.status, await res.text().catch(() => ''));
+      logger.warn('giphy', 'response not ok', { status: res.status, body: await res.text().catch(() => '') });
       return NextResponse.json({ ok: false, error: 'giphy_http', items: [] });
     }
     const data = (await res.json()) as {
@@ -286,7 +286,7 @@ export async function GET(req: NextRequest) {
       translatedFrom,
     });
   } catch (e) {
-    console.error('[giphy/search]', e);
+    logger.error('giphy', 'fetch failed', e);
     return NextResponse.json({ ok: false, error: 'fetch_failed', items: [] });
   }
 }

@@ -10,6 +10,7 @@ import {
   parseE2eeEncryptedDataTypes,
 } from "@/lib/e2ee/e2ee-data-type-policy";
 import { normalizeBubbleRadius } from "@/lib/chat-bubble-radius";
+import { logger } from "@/lib/logger";
 
 export const DEFAULT_CHAT_SETTINGS: ChatSettings = {
   fontSize: "medium",
@@ -120,7 +121,7 @@ export function useSettings() {
         await updateDoc(doc(firestore, "users", user.id), { chatSettings: merged });
         return true;
       } catch (err) {
-        console.error("Failed to update chat settings:", err);
+        logger.error('settings', 'update chat settings failed', err);
         return false;
       }
     },
@@ -135,7 +136,7 @@ export function useSettings() {
         await updateDoc(doc(firestore, "users", user.id), { notificationSettings: merged });
         return true;
       } catch (err) {
-        console.error("Failed to update notification settings:", err);
+        logger.error('settings', 'update notification settings failed', err);
         return false;
       }
     },
@@ -150,7 +151,7 @@ export function useSettings() {
         await updateDoc(doc(firestore, "users", user.id), { privacySettings: merged });
         return true;
       } catch (err) {
-        console.error("Failed to update privacy settings:", err);
+        logger.error('settings', 'update privacy settings failed', err);
         return false;
       }
     },
