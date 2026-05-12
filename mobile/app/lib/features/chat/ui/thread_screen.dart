@@ -2854,16 +2854,15 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                       _stickersTransitionFooterFloor,
                                     ].reduce((a, b) => a > b ? a : b);
                                     if (!_stickersPanelOpen) {
-                                      return AnimatedSize(
-                                        duration: const Duration(
-                                          milliseconds: 180,
-                                        ),
-                                        curve: Curves.easeOutCubic,
-                                        alignment: Alignment.topCenter,
-                                        child: footerHeight <= 0
-                                            ? const SizedBox.shrink()
-                                            : SizedBox(height: footerHeight),
-                                      );
+                                      // Без AnimatedSize (см. chat_screen):
+                                      // locked snapshot уже даёт стабильный
+                                      // footer, mount-animation 0→panelH
+                                      // была причиной «composer проседает
+                                      // на мгновение при panel→keyboard».
+                                      if (footerHeight <= 0) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      return SizedBox(height: footerHeight);
                                     }
                                     final repo = ref.read(
                                       userStickerPacksRepositoryProvider,

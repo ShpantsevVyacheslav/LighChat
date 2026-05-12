@@ -459,11 +459,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       }
     }
     if (height <= 0 || (height - _lastKeyboardHeight).abs() < 0.5) return;
-    _stickerLog('captureKb', {
-      'height': height,
-      'prevLastKb': _lastKeyboardHeight,
-      'panelOpen': _stickersPanelOpen,
-    });
     if (!mounted) {
       _lastKeyboardHeight = height;
       return;
@@ -2627,36 +2622,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                           keyboardInset,
                                           _stickersTransitionFooterFloor,
                                         ].reduce((a, b) => a > b ? a : b);
-                                        _stickerLog('footerBuild', {
-                                          'panelOpen': _stickersPanelOpen,
-                                          'panelFullscreen':
-                                              _stickersPanelFullscreen,
-                                          'panelH': panelHeight,
-                                          'kbInset': keyboardInset,
-                                          'lastKb': _lastKeyboardHeight,
-                                          'lockedH': _stickerPanelLockedHeight,
-                                          'floor':
-                                              _stickersTransitionFooterFloor,
-                                          'footer': footerHeight,
-                                        });
                                         if (!_stickersPanelOpen) {
-                                          // Wrap в AnimatedSize: на panel→kb
-                                          // переходе floor=defaultH (~401) ←
-                                          // kbInset=345 даёт остаточный
-                                          // 57 px-drop когда fallback таймер
-                                          // отпускает floor. AnimatedSize
-                                          // сглаживает его за 180 ms.
-                                          return AnimatedSize(
-                                            duration: const Duration(
-                                              milliseconds: 180,
-                                            ),
-                                            curve: Curves.easeOutCubic,
-                                            alignment: Alignment.topCenter,
-                                            child: footerHeight <= 0
-                                                ? const SizedBox.shrink()
-                                                : SizedBox(
-                                                    height: footerHeight,
-                                                  ),
+                                          // БЕЗ AnimatedSize: при переходе
+                                          // panel→keyboard виджет-тип
+                                          // менялся (SizedBox в panelOpen-
+                                          // ветке → AnimatedSize здесь),
+                                          // у нового AnimatedSize
+                                          // currentSize = 0 и он анимировал
+                                          // 0 → 345 за 180 ms, из-за чего
+                                          // composer на мгновение
+                                          // проседал вниз. Locked snapshot
+                                          // (см. _stickerPanelLockedHeight)
+                                          // уже даёт стабильный footer на
+                                          // штатных переходах — анимация
+                                          // больше не нужна.
+                                          if (footerHeight <= 0) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          return SizedBox(
+                                            height: footerHeight,
                                           );
                                         }
                                         final stickerRepo = ref.read(
@@ -4829,21 +4813,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     Duration hold = const Duration(milliseconds: 800),
   }) {
     if (!mounted || height <= 0) return;
-    _stickerLog('hold.set', {'height': height, 'holdMs': hold.inMilliseconds});
     _stickersTransitionFooterTimer?.cancel();
     setState(() => _stickersTransitionFooterFloor = height);
     _stickersTransitionFooterTimer = Timer(hold, () {
       if (!mounted) return;
-      _stickerLog('hold.fallback', {'wasFloor': _stickersTransitionFooterFloor});
       setState(() => _stickersTransitionFooterFloor = 0);
     });
-  }
-
-  void _stickerLog(String tag, Map<String, Object?> data) {
-    // Простой print — попадает в xcrun simctl/Console.app и `flutter logs`
-    // даже в release-сборке. debugPrint в release глушится.
-    // ignore: avoid_print
-    print('STICKER_PANEL[$tag] $data');
   }
 
   Future<void> _openStickersGifPanelImpl() async {
@@ -4859,13 +4834,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       return;
     }
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-    _stickerLog('open.enter', {
-      'kbInset': keyboardInset,
-      'lastKb': _lastKeyboardHeight,
-      'panelOpen': _stickersPanelOpen,
-      'panelFullscreen': _stickersPanelFullscreen,
-      'floor': _stickersTransitionFooterFloor,
-    });
     if (keyboardInset > 0 &&
         (keyboardInset - _lastKeyboardHeight).abs() > 0.5) {
       _lastKeyboardHeight = keyboardInset;
@@ -4892,17 +4860,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         _stickersPanelOpen = true;
       });
     }
-    _stickerLog('open.afterSetState', {
-      'lastKb': _lastKeyboardHeight,
-      'panelOpen': _stickersPanelOpen,
-    });
     if (hadKeyboard) {
       FocusManager.instance.primaryFocus?.unfocus();
       await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
-      if (!mounted) return;
-      _stickerLog('open.kbHidden', {
-        'kbInset': MediaQuery.viewInsetsOf(context).bottom,
-      });
     }
   }
 
@@ -4923,11 +4883,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   void _closeStickersPanel() {
     if (!mounted) return;
-    _stickerLog('close', {
-      'wasOpen': _stickersPanelOpen,
-      'floor': _stickersTransitionFooterFloor,
-      'stack': StackTrace.current.toString().split('\n').take(4).join(' | '),
-    });
     setState(() {
       _stickersPanelOpen = false;
       _controller.text = _composerTextBeforeStickerSearch ?? _controller.text;
