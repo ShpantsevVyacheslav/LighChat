@@ -3,8 +3,8 @@
  *
  * Что делает:
  *  - Один единственный ассинк-хэндлер `logE2eeEvent(...)` печатает событие в
- *    `console.info` с единым префиксом `[e2ee/v2]` и — опционально — вызывает
- *    подключаемый subscriber (см. `setE2eeTelemetrySink`).
+ *    `logger.debug` (через wrapper) с единым префиксом `[e2ee/v2]` и —
+ *    опционально — вызывает подключаемый subscriber (см. `setE2eeTelemetrySink`).
  *  - События типизированы, чтобы при rollout'е было проще фильтровать логи и
  *    подключать реальную аналитику (Datadog/Firebase Analytics/Sentry).
  *
@@ -17,6 +17,8 @@
  * (conversationId, userId, deviceId). НИКОГДА не логируем открытый текст,
  * шифротекст, ключи, отпечатки в полной форме.
  */
+
+import { logger } from '@/lib/logger';
 
 export type E2eeTelemetryEventType =
   | 'e2ee.v2.enable.success'
@@ -73,9 +75,9 @@ export function logE2eeEvent(
   payload: E2eeTelemetryPayload = {}
 ): void {
   try {
-    // Console — всегда: в DevTools и в Sentry breadcrumbs это попадёт.
-    // eslint-disable-next-line no-console
-    console.info(`[e2ee/v2] ${type}`, payload);
+    // logger.debug — глушится в prod, виден в dev / при verbose flag.
+    // Все consumer'ы могут подцепиться через activeSink (Sentry breadcrumbs).
+    logger.debug('e2ee', type, payload);
     activeSink?.(type, payload);
   } catch {
     /* intentionally silent — telemetry must never break the crypto path */

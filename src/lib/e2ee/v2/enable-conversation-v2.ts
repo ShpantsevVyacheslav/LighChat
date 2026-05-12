@@ -24,6 +24,7 @@ import {
   postChatSystemEventV2,
 } from '@/lib/e2ee/v2/system-events';
 import { logE2eeEvent, normalizeErrorCode } from '@/lib/e2ee/v2/telemetry';
+import { logger } from '@/lib/logger';
 
 export async function enableE2eeOnConversationV2(
   firestore: Firestore,
@@ -98,7 +99,7 @@ export async function enableE2eeOnConversationV2(
     });
   } catch (e) {
     // Маркер — это UX-нюанс, не блокируем основной путь.
-    console.warn('[e2ee/v2] system-event post failed:', e);
+    logger.warn('e2ee', 'system-event post failed', e);
   }
 }
 
@@ -146,6 +147,6 @@ export async function tryAutoEnableE2eeV2NewDirectChat(
       deviceLabel: options.deviceLabel,
     });
   } catch (e) {
-    console.warn('[e2ee/v2] auto-enable skipped:', e);
+    logger.warn('e2ee', 'auto-enable skipped', e);
   }
 }

@@ -5,6 +5,8 @@
  *
  * @param onSetupFailed — если startListen() синхронно бросает, вызывается здесь (сбросить isLoading и т.п.).
  */
+import { logger } from '@/lib/logger';
+
 export function scheduleFirestoreListen(
   startListen: () => () => void,
   onSetupFailed?: (error: unknown) => void
@@ -17,7 +19,7 @@ export function scheduleFirestoreListen(
     try {
       innerUnsub = startListen();
     } catch (e) {
-      console.error("[LighChat] Firestore listen failed:", e);
+      logger.error('schedule-listen', 'Firestore listen failed', e);
       onSetupFailed?.(e);
     }
   };
@@ -33,7 +35,7 @@ export function scheduleFirestoreListen(
     try {
       innerUnsub?.();
     } catch (e) {
-      console.warn("[LighChat] Firestore listen cleanup warning:", e);
+      logger.warn('schedule-listen', 'cleanup warning', e);
     }
   };
 }

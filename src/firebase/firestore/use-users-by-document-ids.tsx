@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { scheduleFirestoreListen } from '@/firebase/schedule-firestore-listen';
+import { logger } from '@/lib/logger';
 
 export type UserWithId = User & { id: string };
 
@@ -92,7 +93,7 @@ export function useUsersByDocumentIds(
               }
             },
             (err) => {
-              console.error('[useUsersByDocumentIds] snapshot error', err);
+              logger.error('users-by-ids', 'snapshot error', err);
               setIsLoading(false);
             }
           )
@@ -103,7 +104,7 @@ export function useUsersByDocumentIds(
           try {
             u();
           } catch (e) {
-            console.warn('[useUsersByDocumentIds] unsubscribe', e);
+            logger.warn('users-by-ids', 'unsubscribe', e);
           }
         });
       };

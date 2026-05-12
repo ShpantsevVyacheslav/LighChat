@@ -4,6 +4,7 @@ import { doc, runTransaction, updateDoc, increment, writeBatch, type Firestore }
 import type { ChatAttachment, ChatMessage, User, ReplyContext } from '@/lib/types';
 import { isAttachmentLikelyIosStickerCutout } from '@/lib/ios-sticker-detect';
 import { isGridGalleryAttachment, isGridGalleryVideo } from '@/components/chat/attachment-visual';
+import { logger } from '@/lib/logger';
 
 // Track messages currently being marked as read to prevent double-decrementing counters.
 // We no longer clear this with setTimeout to prevent race conditions on slow connections.
@@ -159,7 +160,7 @@ export async function markMessagesAsRead(
         // We keep IDs in inFlightReadIds until page refresh to be 100% sure we don't re-read them
         // if onSnapshot is slow to update local state.
     } catch (e) {
-        console.error("[ChatUtils] Failed to mark messages as read:", e);
+        logger.error('chat-utils', 'mark messages as read failed', e);
         filteredIds.forEach(id => inFlightReadIds.delete(id));
         throw e;
     }
@@ -206,7 +207,7 @@ export async function markConversationAsRead(
             [`unreadThreadCounts.${userId}`]: 0
         });
     } catch (e) {
-        console.error("[ChatUtils] Failed to mark as read:", e);
+        logger.error('chat-utils', 'mark as read failed', e);
     }
 }
 

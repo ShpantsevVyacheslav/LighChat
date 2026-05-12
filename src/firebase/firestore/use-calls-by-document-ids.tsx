@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import type { Call } from '@/lib/types';
 import { scheduleFirestoreListen } from '@/firebase/schedule-firestore-listen';
+import { logger } from '@/lib/logger';
 
 export type CallWithId = Call & { id: string };
 
@@ -97,7 +98,7 @@ export function useCallsByDocumentIds(
                 }
               },
               (err) => {
-                console.error('[useCallsByDocumentIds] snapshot error', err);
+                logger.error('calls-by-ids', 'snapshot error', err);
                 safeSetLoading(false);
               }
             )
@@ -108,7 +109,7 @@ export function useCallsByDocumentIds(
             try {
               u();
             } catch (e) {
-              console.warn('[useCallsByDocumentIds] unsubscribe', e);
+              logger.warn('calls-by-ids', 'unsubscribe', e);
             }
           });
         };
