@@ -458,7 +458,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         _stickersTransitionFooterFloor = 0;
       }
     }
-    if (height <= 0 || (height - _lastKeyboardHeight).abs() < 0.5) return;
+    // Только РАСТЁМ. didChangeMetrics срабатывает на каждый кадр
+    // iOS-анимации скрытия клавиатуры (345 → 317 → … → 0.28), и
+    // если бы мы записывали каждое значение, _lastKeyboardHeight
+    // оседал бы у нуля. После этого `hold` в
+    // `_switchFromStickersToKeyboard` брал ≈0 и composer падал
+    // в самый низ перед поднятием клавиатуры.
+    if (height <= 0 || height <= _lastKeyboardHeight + 0.5) return;
     if (!mounted) {
       _lastKeyboardHeight = height;
       return;
@@ -4867,13 +4873,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   void _switchFromStickersToKeyboard() {
-    // Перед закрытием шторки фиксируем «пол» равный последней высоте
-    // клавиатуры/шторки. Пока iOS поднимает клавиатуру, footer держится
-    // на этой высоте, composer не падает вниз и тут же поднимается
-    // обратно (без прыжков чата).
-    final hold = _lastKeyboardHeight > 0
-        ? _lastKeyboardHeight
-        : MediaQuery.of(context).size.height * 0.42;
+    // Используем locked-snapshot — захваченную при открытии шторки
+    // высоту, она = реальной kb на тот момент. `_lastKeyboardHeight`
+    // здесь брать НЕЛЬЗЯ: didChangeMetrics во время iOS-анимации
+    // скрытия kb тянет его вниз, и к моменту тапа на иконку
+    // клавиатуры он может оказаться ≈0 (хотя теперь monotonic-grow
+    // в _captureKeyboardHeight это страхует).
+    final hold = _stickerPanelLockedHeight > 0
+        ? _stickerPanelLockedHeight
+        : (_lastKeyboardHeight > 0
+              ? _lastKeyboardHeight
+              : MediaQuery.of(context).size.height * 0.42);
     _holdStickersFooterTransition(hold);
     _closeStickersPanel();
     WidgetsBinding.instance.addPostFrameCallback((_) {

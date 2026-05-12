@@ -242,7 +242,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
         _stickersTransitionFooterFloor = 0;
       }
     }
-    if (height <= 0 || (height - _lastKeyboardHeight).abs() < 0.5) return;
+    // См. chat_screen: только растём, чтобы не сохранять мусорные
+    // значения из середины iOS-анимации скрытия клавиатуры.
+    if (height <= 0 || height <= _lastKeyboardHeight + 0.5) return;
     if (!mounted) {
       _lastKeyboardHeight = height;
       return;
@@ -753,9 +755,13 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
   }
 
   void _switchFromStickersToKeyboard() {
-    final hold = _lastKeyboardHeight > 0
-        ? _lastKeyboardHeight
-        : MediaQuery.of(context).size.height * 0.42;
+    // Locked snapshot (см. chat_screen) — стабильная высота,
+    // захваченная при открытии шторки.
+    final hold = _stickerPanelLockedHeight > 0
+        ? _stickerPanelLockedHeight
+        : (_lastKeyboardHeight > 0
+              ? _lastKeyboardHeight
+              : MediaQuery.of(context).size.height * 0.42);
     _holdStickersFooterTransition(hold);
     _closeStickersPanel();
     WidgetsBinding.instance.addPostFrameCallback((_) {
