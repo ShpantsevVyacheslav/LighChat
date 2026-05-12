@@ -159,6 +159,21 @@ GoRouter createRouter() {
             return '/workspace/chats/$cid';
           }
         }
+        // Tabs (Контакты / Звонки / Видеоконф / Настройки / Админ) на
+        // desktop рендерятся в правой панели workspace shell, чтобы
+        // master (список чатов) оставался виден слева. Веб-аналог:
+        // `DashboardBottomNav variant=chatSidebar` + смена URL внутри
+        // того же layout'а.
+        //
+        // Detail-маршруты типа `/contacts/user/:id`, `/calls/:callId`,
+        // `/meetings/:meetingId`, `/settings/*`, `/admin/:section`
+        // остаются fullscreen — это вторичные экраны, попадание
+        // в которые подразумевает push.
+        if (path == '/contacts') return '/workspace/contacts';
+        if (path == '/calls') return '/workspace/calls';
+        if (path == '/meetings') return '/workspace/meetings';
+        if (path == '/settings') return '/workspace/settings';
+        if (path == '/admin') return '/workspace/admin';
       }
 
       // First-login welcome animation: показывается per-uid + per-device.
@@ -569,6 +584,40 @@ GoRouter createRouter() {
         builder: (context, state) => WorkspaceShellScreen(
           conversationId: state.pathParameters['conversationId'],
           threadParentMessageId: state.pathParameters['parentMessageId'],
+        ),
+      ),
+      // Detail-tabs внутри workspace shell. Master (список чатов) остаётся
+      // виден слева — повторяет web layout, где DashboardBottomNav
+      // `variant=chatSidebar` переключает контент правой панели,
+      // а левая колонка (с папками + чатами) не пропадает.
+      GoRoute(
+        path: '/workspace/contacts',
+        builder: (context, state) => const WorkspaceShellScreen(
+          detailKind: WorkspaceDetailKind.contacts,
+        ),
+      ),
+      GoRoute(
+        path: '/workspace/calls',
+        builder: (context, state) => const WorkspaceShellScreen(
+          detailKind: WorkspaceDetailKind.calls,
+        ),
+      ),
+      GoRoute(
+        path: '/workspace/meetings',
+        builder: (context, state) => const WorkspaceShellScreen(
+          detailKind: WorkspaceDetailKind.meetings,
+        ),
+      ),
+      GoRoute(
+        path: '/workspace/settings',
+        builder: (context, state) => const WorkspaceShellScreen(
+          detailKind: WorkspaceDetailKind.settings,
+        ),
+      ),
+      GoRoute(
+        path: '/workspace/admin',
+        builder: (context, state) => const WorkspaceShellScreen(
+          detailKind: WorkspaceDetailKind.admin,
         ),
       ),
     ],

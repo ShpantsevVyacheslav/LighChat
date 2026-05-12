@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:lighchat_mobile/app_providers.dart';
-import 'package:lighchat_mobile/features/admin/data/user_role_provider.dart';
 import 'chat_folders_rail.dart' show activeFoldersRailIdProvider;
 
 /// Узкая (64dp) вертикальная панель слева — повторяет web-layout LighChat:
@@ -22,17 +22,13 @@ import 'chat_folders_rail.dart' show activeFoldersRailIdProvider;
 /// │  …   │ ← spacer
 /// │      │
 /// ├──────┤
-/// │ 💬   │ ← Чаты
-/// │ 📇   │ ← Контакты
-/// │ 📞   │ ← Звонки
-/// │ 🎥   │ ← Видеоконф.
-/// ├──────┤
-/// │ 👨   │ ← Аватар → профиль
+/// │ 👨   │ ← Аватар → /account
 /// └──────┘
 /// ```
 ///
-/// Tabs в нижней части (как в web). Folders группированы в верхней
-/// под logo. Active state подсвечивает только selected folder ИЛИ active tab.
+/// Tabs (Чаты / Контакты / Звонки / Видеоконф / Настройки) живут НЕ здесь,
+/// а горизонтально под master-pane (ChatListPane bottom nav) — это
+/// соответствует web-варианту `DashboardBottomNav variant=chatSidebar`.
 class WorkspaceUnifiedRail extends ConsumerWidget {
   const WorkspaceUnifiedRail({
     super.key,
@@ -40,11 +36,10 @@ class WorkspaceUnifiedRail extends ConsumerWidget {
     required this.onLogoTap,
   });
 
-  /// Текущий URL — для подсветки активного таба (`/workspace/chats`,
-  /// `/workspace/contacts`, etc.).
+  /// Текущий URL — пока не используется (folders state — отдельный provider).
   final String activeRoute;
 
-  /// Клик по логотипу — обычно toggle collapse master pane.
+  /// Клик по логотипу — toggle collapse master pane.
   final VoidCallback onLogoTap;
 
   static const double railWidth = 64;
@@ -53,7 +48,6 @@ class WorkspaceUnifiedRail extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = Theme.of(context).colorScheme;
     final user = ref.watch(authUserProvider).asData?.value;
-    final role = ref.watch(userRoleProvider).asData?.value ?? AppUserRole.user;
     final activeFolder = ref.watch(activeFoldersRailIdProvider);
 
     return Container(
@@ -116,53 +110,8 @@ class WorkspaceUnifiedRail extends ConsumerWidget {
             ),
           ),
 
-          // Tabs (как в веб — снизу).
-          const Divider(height: 1, thickness: 1),
-          _TabIconButton(
-            icon: Icons.chat_bubble_outline,
-            activeIcon: Icons.chat_bubble,
-            tooltip: 'Чаты',
-            active: _isActive('/workspace') || _isActive('/chats'),
-            onTap: () => context.go('/workspace'),
-          ),
-          _TabIconButton(
-            icon: Icons.contacts_outlined,
-            activeIcon: Icons.contacts,
-            tooltip: 'Контакты',
-            active: _isActive('/contacts'),
-            onTap: () => context.go('/contacts'),
-          ),
-          _TabIconButton(
-            icon: Icons.call_outlined,
-            activeIcon: Icons.call,
-            tooltip: 'Звонки',
-            active: _isActive('/calls'),
-            onTap: () => context.go('/calls'),
-          ),
-          _TabIconButton(
-            icon: Icons.videocam_outlined,
-            activeIcon: Icons.videocam,
-            tooltip: 'Видеоконференции',
-            active: _isActive('/meetings'),
-            onTap: () => context.go('/meetings'),
-          ),
-          if (role.canAccessAdmin)
-            _TabIconButton(
-              icon: Icons.admin_panel_settings_outlined,
-              activeIcon: Icons.admin_panel_settings,
-              tooltip: 'Админ',
-              active: _isActive('/admin'),
-              onTap: () => context.push('/admin'),
-            ),
-          _TabIconButton(
-            icon: Icons.settings_outlined,
-            activeIcon: Icons.settings,
-            tooltip: 'Настройки',
-            active: _isActive('/settings'),
-            onTap: () => context.push('/settings'),
-          ),
-
           // Avatar — самый низ.
+          const Divider(height: 1, thickness: 1),
           const SizedBox(height: 6),
           GestureDetector(
             onTap: () => context.push('/account'),
@@ -191,10 +140,6 @@ class WorkspaceUnifiedRail extends ConsumerWidget {
 
   void _selectFolder(WidgetRef ref, String folderId) {
     ref.read(activeFoldersRailIdProvider.notifier).state = folderId;
-  }
-
-  bool _isActive(String prefix) {
-    return activeRoute == prefix || activeRoute.startsWith('$prefix/');
   }
 }
 
@@ -269,52 +214,6 @@ class _FolderIconButton extends StatelessWidget {
             icon,
             color: active ? c.primary : c.onSurfaceVariant,
             size: 22,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TabIconButton extends StatelessWidget {
-  const _TabIconButton({
-    required this.icon,
-    required this.activeIcon,
-    required this.tooltip,
-    required this.active,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final IconData activeIcon;
-  final String tooltip;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = Theme.of(context).colorScheme;
-    return Tooltip(
-      message: tooltip,
-      preferBelow: false,
-      verticalOffset: 0,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          width: WorkspaceUnifiedRail.railWidth,
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: active
-              ? BoxDecoration(
-                  border: Border(
-                    left: BorderSide(color: c.primary, width: 3),
-                  ),
-                  color: c.primary.withValues(alpha: 0.08),
-                )
-              : null,
-          child: Icon(
-            active ? activeIcon : icon,
-            color: active ? c.primary : c.onSurfaceVariant,
-            size: 24,
           ),
         ),
       ),

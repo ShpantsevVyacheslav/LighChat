@@ -2,24 +2,60 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:lighchat_mobile/features/admin/ui/admin_shell_screen.dart';
+import 'chat_calls_screen.dart';
+import 'chat_contacts_screen.dart';
 import 'chat_list_screen.dart' show ChatListPane;
+import 'chat_meetings_screen.dart';
 import 'chat_screen.dart';
+import 'chat_settings_screen.dart';
 import 'thread_screen.dart';
 import 'workspace_unified_rail.dart';
+
+/// Тип контента, отображаемого в правой (detail) панели workspace shell.
+/// Master-pane (список чатов) при этом ОСТАЁТСЯ виден — переключается
+/// только правая часть, повторяя layout web-версии LighChat.
+enum WorkspaceDetailKind {
+  /// Чат (открытый conversationId) или плейсхолдер «Выберите чат».
+  chat,
+
+  /// Контакты.
+  contacts,
+
+  /// Журнал звонков.
+  calls,
+
+  /// Видеоконференции.
+  meetings,
+
+  /// Настройки.
+  settings,
+
+  /// Админ-панель (role-gated на роутере).
+  admin,
+}
 
 /// Desktop multi-pane layout (как в веб-версии LighChat):
 ///
 ///   ┌──────┬──────────┬─────────────┬──────────┐
-///   │ rail │ chat list│  open chat  │ thread   │
-///   │ 64dp │  flex    │  flex       │ 420dp    │
-///   │uni-  │  master  │  detail     │ opt.     │
-///   │fied  │          │             │          │
+///   │ rail │ chat list│   detail    │ thread   │
+///   │ 64dp │ + bottom │             │ 420dp    │
+///   │logo+ │   nav    │             │ opt.     │
+///   │folde-│  master  │             │          │
+///   │rs +  │          │             │          │
+///   │ava   │          │             │          │
 ///   └──────┴──────────┴─────────────┴──────────┘
 ///
-/// Rail объединяет folders + tabs (как в web) в одну колонку 64dp.
-/// Master-pane: resizable (drag-handle между ним и detail), персистится
-/// в SharedPreferences. Кнопка collapse (по лого) сворачивает master —
-/// остаётся только rail + detail (для фокус-режима).
+/// - Rail (64dp): logo (top), folders, avatar (bottom).
+/// - Master (chat list, resizable 260–520dp): список диалогов + bottom-nav
+///   с табами (Чаты / Контакты / Звонки / Видеоконф) под ним.
+/// - Detail (flex): зависит от [detailKind] — открытый чат, contacts,
+///   calls, meetings, settings или admin. Master при этом не пропадает.
+/// - Thread (420dp, optional): обсуждение справа от чата при достаточной
+///   ширине окна и активном thread route.
+///
+/// Кнопка collapse (по лого) сворачивает master — остаётся только rail +
+/// detail (для фокус-режима).
 ///
 /// Адаптация по ширине окна:
 /// - **≥1440dp**: до 4 колонок (rail + list + detail + thread).
@@ -31,6 +67,7 @@ class WorkspaceShellScreen extends StatefulWidget {
     super.key,
     this.conversationId,
     this.threadParentMessageId,
+    this.detailKind = WorkspaceDetailKind.chat,
   });
 
   final String? conversationId;
@@ -38,6 +75,9 @@ class WorkspaceShellScreen extends StatefulWidget {
   /// Если задан — рендерим thread pane справа от ChatScreen.
   /// URL-маршрут: `/workspace/chats/:cid/thread/:tid`.
   final String? threadParentMessageId;
+
+  /// Какой экран рендерить в правой панели (master остаётся видимым).
+  final WorkspaceDetailKind detailKind;
 
   static const double _twoPaneBreakpoint = 840;
   static const double _threePaneBreakpoint = 1024;
@@ -48,9 +88,13 @@ class WorkspaceShellScreen extends StatefulWidget {
   static const double _masterMinWidth = 260;
   static const double _masterMaxWidth = 520;
 
-  static const double _threadWidth = 420;
+  // Thread pane: ширина настраиваемая, в этих границах.
+  static const double _threadDefaultWidth = 420;
+  static const double _threadMinWidth = 320;
+  static const double _threadMaxWidth = 640;
 
   static const String _kMasterWidthKey = 'workspace.masterWidth';
+  static const String _kThreadWidthKey = 'workspace.threadWidth';
   static const String _kCollapsedKey = 'workspace.masterCollapsed';
 
   @override
@@ -59,6 +103,7 @@ class WorkspaceShellScreen extends StatefulWidget {
 
 class _WorkspaceShellScreenState extends State<WorkspaceShellScreen> {
   double _masterWidth = WorkspaceShellScreen._masterDefaultWidth;
+  double _threadWidth = WorkspaceShellScreen._threadDefaultWidth;
   bool _collapsed = false;
   bool _loaded = false;
 
@@ -71,6 +116,7 @@ class _WorkspaceShellScreenState extends State<WorkspaceShellScreen> {
   Future<void> _loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final w = prefs.getDouble(WorkspaceShellScreen._kMasterWidthKey);
+    final tw = prefs.getDouble(WorkspaceShellScreen._kThreadWidthKey);
     final c = prefs.getBool(WorkspaceShellScreen._kCollapsedKey) ?? false;
     if (!mounted) return;
     setState(() {
@@ -78,6 +124,12 @@ class _WorkspaceShellScreenState extends State<WorkspaceShellScreen> {
         _masterWidth = w.clamp(
           WorkspaceShellScreen._masterMinWidth,
           WorkspaceShellScreen._masterMaxWidth,
+        );
+      }
+      if (tw != null) {
+        _threadWidth = tw.clamp(
+          WorkspaceShellScreen._threadMinWidth,
+          WorkspaceShellScreen._threadMaxWidth,
         );
       }
       _collapsed = c;
@@ -90,10 +142,40 @@ class _WorkspaceShellScreenState extends State<WorkspaceShellScreen> {
     await prefs.setDouble(WorkspaceShellScreen._kMasterWidthKey, w);
   }
 
+  Future<void> _persistThreadWidth(double w) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(WorkspaceShellScreen._kThreadWidthKey, w);
+  }
+
   Future<void> _toggleCollapsed() async {
     setState(() => _collapsed = !_collapsed);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(WorkspaceShellScreen._kCollapsedKey, _collapsed);
+  }
+
+  Widget _buildDetailPane() {
+    switch (widget.detailKind) {
+      case WorkspaceDetailKind.contacts:
+        return const ChatContactsScreen();
+      case WorkspaceDetailKind.calls:
+        return const ChatCallsScreen();
+      case WorkspaceDetailKind.meetings:
+        return const ChatMeetingsScreen();
+      case WorkspaceDetailKind.settings:
+        return const ChatSettingsScreen();
+      case WorkspaceDetailKind.admin:
+        return const AdminShellScreen();
+      case WorkspaceDetailKind.chat:
+        if (widget.conversationId == null) {
+          return _EmptyDetailPlaceholder(
+            onExpandMaster: _collapsed ? _toggleCollapsed : null,
+          );
+        }
+        return ChatScreen(
+          key: ValueKey(widget.conversationId),
+          conversationId: widget.conversationId!,
+        );
+    }
   }
 
   @override
@@ -108,24 +190,25 @@ class _WorkspaceShellScreenState extends State<WorkspaceShellScreen> {
         builder: (context, constraints) {
           final w = constraints.maxWidth;
           if (w < WorkspaceShellScreen._twoPaneBreakpoint) {
+            // Compact: единственная панель. Detail приоритетнее — это
+            // прямое поведение мобильного приложения, чтобы пользователь
+            // мог легко вернуться через кнопку «назад» в детальном экране.
+            if (widget.detailKind != WorkspaceDetailKind.chat) {
+              return _buildDetailPane();
+            }
             return widget.conversationId == null
-                ? ChatListPane()
+                ? const ChatListPane()
                 : ChatScreen(conversationId: widget.conversationId!);
           }
 
           final showRail = w >= WorkspaceShellScreen._threePaneBreakpoint;
-          final showThreadPane = w >= WorkspaceShellScreen._fourPaneBreakpoint &&
+          final showThreadPane = w >=
+                  WorkspaceShellScreen._fourPaneBreakpoint &&
               widget.threadParentMessageId != null &&
-              widget.conversationId != null;
+              widget.conversationId != null &&
+              widget.detailKind == WorkspaceDetailKind.chat;
 
-          final detailPane = widget.conversationId == null
-              ? _EmptyDetailPlaceholder(
-                  onExpandMaster: _collapsed ? _toggleCollapsed : null,
-                )
-              : ChatScreen(
-                  key: ValueKey(widget.conversationId),
-                  conversationId: widget.conversationId!,
-                );
+          final detailPane = _buildDetailPane();
           final threadPane = showThreadPane
               ? _ThreadPane(
                   key: ValueKey(
@@ -139,9 +222,7 @@ class _WorkspaceShellScreenState extends State<WorkspaceShellScreen> {
             children: [
               if (showRail) ...[
                 WorkspaceUnifiedRail(
-                  activeRoute: widget.conversationId == null
-                      ? '/workspace'
-                      : '/workspace/chats/${widget.conversationId}',
+                  activeRoute: _activeRoute(),
                   onLogoTap: _toggleCollapsed,
                 ),
                 const VerticalDivider(width: 1, thickness: 1),
@@ -152,7 +233,10 @@ class _WorkspaceShellScreenState extends State<WorkspaceShellScreen> {
                   child: _MasterPane(
                     showCollapse: true,
                     onCollapse: _toggleCollapsed,
-                    hideBottomNav: showRail,
+                    // Bottom-nav в chat list-е оставляем видимым — там
+                    // живут tabs (Чаты / Контакты / Звонки / Видеоконф),
+                    // как в web (`DashboardBottomNav variant=chatSidebar`).
+                    hideBottomNav: false,
                   ),
                 ),
                 _ResizableSplitter(
@@ -169,9 +253,21 @@ class _WorkspaceShellScreenState extends State<WorkspaceShellScreen> {
               ],
               Expanded(child: detailPane),
               if (threadPane != null) ...[
-                const VerticalDivider(width: 1, thickness: 1),
+                _ResizableSplitter(
+                  onDrag: (delta) {
+                    setState(() {
+                      // Перетаскивание влево уменьшает thread (расширяет
+                      // detail) — поэтому вычитаем delta.dx.
+                      _threadWidth = (_threadWidth - delta).clamp(
+                        WorkspaceShellScreen._threadMinWidth,
+                        WorkspaceShellScreen._threadMaxWidth,
+                      );
+                    });
+                  },
+                  onDragEnd: () => _persistThreadWidth(_threadWidth),
+                ),
                 SizedBox(
-                  width: WorkspaceShellScreen._threadWidth,
+                  width: _threadWidth,
                   child: threadPane,
                 ),
               ],
@@ -180,6 +276,25 @@ class _WorkspaceShellScreenState extends State<WorkspaceShellScreen> {
         },
       ),
     );
+  }
+
+  String _activeRoute() {
+    switch (widget.detailKind) {
+      case WorkspaceDetailKind.contacts:
+        return '/workspace/contacts';
+      case WorkspaceDetailKind.calls:
+        return '/workspace/calls';
+      case WorkspaceDetailKind.meetings:
+        return '/workspace/meetings';
+      case WorkspaceDetailKind.settings:
+        return '/workspace/settings';
+      case WorkspaceDetailKind.admin:
+        return '/workspace/admin';
+      case WorkspaceDetailKind.chat:
+        return widget.conversationId == null
+            ? '/workspace'
+            : '/workspace/chats/${widget.conversationId}';
+    }
   }
 }
 
