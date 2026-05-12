@@ -27,6 +27,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { getFunctions, httpsCallable, type HttpsCallableResult } from 'firebase/functions';
 import type { PlatformBillingConfig, PlatformSettingsDoc } from '@/lib/types';
 import { DollarSign, Loader2, RefreshCw, Settings2 } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 /**
  * UI-таб «Затраты»: вызывает callable `fetchBillingSummary`, который
@@ -123,7 +124,7 @@ export function AdminCostsPanel() {
           setConfigTableId(billing.tableId);
         }
       } catch (e) {
-        console.error('[AdminCostsPanel] load config', e);
+        logger.error('admin-costs', 'load config', e);
       } finally {
         if (!cancelled) setConfigLoaded(true);
       }
@@ -157,7 +158,7 @@ export function AdminCostsPanel() {
       setEditingConfig(false);
       toast({ title: 'Конфигурация Billing Export сохранена' });
     } catch (e) {
-      console.error('[AdminCostsPanel] saveConfig', e);
+      logger.error('admin-costs', 'saveConfig', e);
       toast({ variant: 'destructive', title: 'Не удалось сохранить конфигурацию' });
     } finally {
       setSavingConfig(false);
@@ -197,7 +198,7 @@ export function AdminCostsPanel() {
         }
       }
     } catch (e) {
-      console.error('[AdminCostsPanel] fetchBillingSummary', e);
+      logger.error('admin-costs', 'fetchBillingSummary', e);
       toast({ variant: 'destructive', title: 'Не удалось вызвать fetchBillingSummary' });
     } finally {
       setLoading(false);

@@ -1037,7 +1037,13 @@ const ChatMessageItemComponent = ({
                     messageId={message.id}
                     messageSenderId={message.senderId}
                     messageSenderName={allUsers.find(u => u.id === message.senderId)?.name}
-                    messageText={message.text ?? undefined}
+                    // Для E2EE-сообщений `message.text` — это ciphertext (или пусто),
+                    // а plaintext лежит в `e2eeDecryptedByMessageId`. Шлём именно
+                    // расшифрованный HTML, чтобы админ в модерации увидел реальный
+                    // контент (E2EE-инвариант осознанно нарушается репортером —
+                    // см. UX-предупреждение в ReportMessageDialog для E2EE-чатов).
+                    messageText={displayTextHtml || undefined}
+                    isE2ee={hasDecryptedEntry || !!message.e2ee?.ciphertext}
                 />
             )}
         </div>

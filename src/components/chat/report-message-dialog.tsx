@@ -49,6 +49,14 @@ interface ReportMessageDialogProps {
   messageSenderId: string;
   messageSenderName?: string;
   messageText?: string;
+  /**
+   * Сообщение в E2EE-чате (текст уже расшифрован на стороне репортера).
+   * Включает UX-предупреждение: отправляя жалобу, репортер сознательно
+   * передаёт администратору расшифрованную копию сообщения. Сервер
+   * ключей не имеет — без этой передачи модерация E2EE-чатов
+   * невозможна в принципе.
+   */
+  isE2ee?: boolean;
 }
 
 export function ReportMessageDialog({
@@ -59,6 +67,7 @@ export function ReportMessageDialog({
   messageSenderId,
   messageSenderName,
   messageText,
+  isE2ee,
 }: ReportMessageDialogProps) {
   const isUserReport = !messageId;
   const { user } = useAuth();
@@ -134,6 +143,20 @@ export function ReportMessageDialog({
               className="rounded-xl min-h-[60px] resize-none"
             />
           </div>
+
+          {isE2ee && !isUserReport && (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs space-y-1">
+              <p className="font-medium text-amber-700 dark:text-amber-400">
+                Сообщение зашифровано E2E
+              </p>
+              <p className="text-muted-foreground">
+                Чтобы модератор мог рассмотреть жалобу, мы приложим
+                расшифрованную копию текста сообщения. Файлы (если есть)
+                в этой версии пока не передаются — приложите скриншот в
+                комментарии при необходимости.
+              </p>
+            </div>
+          )}
 
           <Button
             onClick={submit}
