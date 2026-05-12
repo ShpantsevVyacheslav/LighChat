@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
 
 import 'package:lighchat_mobile/core/app_logger.dart';
@@ -133,6 +134,31 @@ GoRouter createRouter() {
           (state.matchedLocation == '/auth' ||
               state.matchedLocation == '/auth/qr')) {
         return '/chats';
+      }
+
+      // Desktop (macOS/Windows/Linux): авто-редирект с mobile-маршрутов
+      // `/chats` и `/chats/:id` на 5-pane workspace layout
+      // (`/workspace/*`). Mobile + web остаются на старых путях.
+      //
+      // На compact-экранах desktop'а (узкое окно) WorkspaceShellScreen
+      // сам отдаёт mobile-like single-pane fallback, поэтому редирект
+      // безопасен независимо от ширины окна.
+      if (!kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.macOS ||
+              defaultTargetPlatform == TargetPlatform.windows ||
+              defaultTargetPlatform == TargetPlatform.linux)) {
+        final path = uri.path;
+        if (path == '/chats') return '/workspace';
+        if (path.startsWith('/chats/') && !path.contains('/thread/')) {
+          // `/chats/:id` → `/workspace/chats/:id`. Thread-deeplinks
+          // `/chats/:cid/thread/:tid` пока оставляем на legacy fullscreen
+          // пути — конвертация в `/workspace/chats/:cid/thread/:tid`
+          // требует дополнительной проверки роутера.
+          final cid = path.substring('/chats/'.length);
+          if (cid.isNotEmpty && !cid.contains('/')) {
+            return '/workspace/chats/$cid';
+          }
+        }
       }
 
       // First-login welcome animation: показывается per-uid + per-device.
