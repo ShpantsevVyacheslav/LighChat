@@ -90,7 +90,11 @@ export function AdminModerationPanel() {
     return onSnapshot(
       q,
       (snap) => {
-        setReports(snap.docs.map((d) => d.data() as MessageReport));
+        // Перезаписываем `id` из doc.id: старые жалобы могли быть созданы
+        // до того, как мы стали сохранять id в самом документе, и тогда
+        // report.id остаётся undefined → server action валидирует поле
+        // как FirestoreIdSchema и возвращает «Некорректные параметры».
+        setReports(snap.docs.map((d) => ({ ...(d.data() as MessageReport), id: d.id })));
         setHasMore(snap.docs.length >= reportsLimit);
         setLoading(false);
       },
