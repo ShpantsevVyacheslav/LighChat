@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { adminDb } from '@/firebase/admin';
 import { assertAdminByIdToken } from '@/actions/admin-actions';
 import type { ChatAttachment, MessageHiddenByAdmin } from '@/lib/types';
+import { logger } from '@/lib/logger';
 
 const FirestoreIdSchema = z
   .string()
@@ -95,7 +96,7 @@ export async function fetchReportedMessageDetailsAction(input: {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
-    console.error('[fetchReportedMessageDetailsAction]', e);
+    logger.error('admin-reported-msg', 'fetchReportedMessageDetailsAction', e);
     return { ok: false, error: 'Не удалось загрузить сообщение' };
   }
 }

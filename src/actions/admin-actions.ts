@@ -2,6 +2,7 @@
 
 import { adminAuth, adminDb } from '@/firebase/admin';
 import { logAdminAction } from '@/lib/server/audit-log';
+import { logger } from '@/lib/logger';
 
 // SECURITY: prefer Firebase Custom Claims (stored in the signed JWT) over a
 // Firestore-side role document. Custom Claims:
@@ -104,7 +105,7 @@ export async function adminSetUserPasswordAction(input: {
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') {
       return { ok: false, error: 'Недостаточно прав' };
     }
-    console.error('[adminSetUserPasswordAction]', e);
+    logger.error('admin', 'adminSetUserPasswordAction', e);
     return { ok: false, error: 'Не удалось сменить пароль' };
   }
 }

@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { messagesEn } from '@/lib/i18n/messages/en';
 import { messagesRu } from '@/lib/i18n/messages/ru';
+import { logger } from '@/lib/logger';
 
 export default function GlobalError({
   error,
@@ -11,7 +12,7 @@ export default function GlobalError({
   error: Error & { digest?: string };
 }) {
   useEffect(() => {
-    console.error('Global Runtime Error:', error);
+    logger.error('global-error', 'Runtime Error', error);
   }, [error]);
 
   const messages = useMemo(() => {

@@ -18,6 +18,7 @@ import type { Firestore } from 'firebase/firestore';
 import type { User } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/hooks/use-i18n';
+import { logger } from '@/lib/logger';
 
 export type BlockDurationPreset = 'forever' | '1h' | '24h' | '7d' | '30d' | 'custom';
 
@@ -80,7 +81,7 @@ export function UserBlockDialog({
       onOpenChange(false);
       onDone?.();
     } catch (e) {
-      console.error(e);
+      logger.error('user-block', 'block/unblock failed', e);
       toast({ variant: 'destructive', title: t('admin.blockDialog.blockError') });
     } finally {
       setLoading(false);

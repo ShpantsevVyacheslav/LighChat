@@ -3,6 +3,7 @@
 import { adminDb } from '@/firebase/admin';
 import { assertAdminByIdToken } from '@/actions/admin-actions';
 import { interpretAdminAccessError } from '@/lib/admin-access-errors';
+import { logger } from '@/lib/logger';
 
 export type AdminConversationParticipant = {
   id: string;
@@ -62,7 +63,7 @@ export async function listAdminConversationsAction(input: {
     conversations.sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id, 'ru'));
     return { ok: true, conversations };
   } catch (e) {
-    console.error('[listAdminConversationsAction]', e);
+    logger.error('admin-conv', 'listAdminConversationsAction', e);
     return { ok: false, error: 'Не удалось загрузить список чатов' };
   }
 }

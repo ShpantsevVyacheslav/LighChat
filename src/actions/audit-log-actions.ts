@@ -3,6 +3,7 @@
 import { adminDb } from '@/firebase/admin';
 import { assertAdminByIdToken } from '@/actions/admin-actions';
 import type { AuditAction, AuditLogEntry } from '@/lib/types';
+import { logger } from '@/lib/logger';
 
 // SECURITY: logAdminAction was previously exported from this 'use server' file,
 // which made it a publicly-callable RPC endpoint. Any unauthenticated client
@@ -48,7 +49,7 @@ export async function fetchAuditLogAction(input: {
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') {
       return { ok: false, error: 'Недостаточно прав' };
     }
-    console.error('[fetchAuditLogAction]', e);
+    logger.error('audit-log', 'fetchAuditLogAction', e);
     return { ok: false, error: 'Ошибка загрузки журнала' };
   }
 }

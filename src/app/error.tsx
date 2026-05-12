@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCcw, AlertTriangle } from 'lucide-react';
 import { useI18n } from '@/hooks/use-i18n';
+import { logger } from '@/lib/logger';
 
 export default function Error({
   error,
@@ -16,7 +17,7 @@ export default function Error({
 
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error('Runtime Error:', error);
+    logger.error('error-page', 'Runtime Error', error);
   }, [error]);
 
   return (

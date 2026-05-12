@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import type { User } from '@/lib/types';
 import { isAccountBlocked } from '@/lib/account-block-utils';
 import { Loader2, Ban, Edit, Mail, Phone, Shield, ShieldOff } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 /**
  * Read-only профиль пользователя для админа: открывается из любых
@@ -70,7 +71,7 @@ export function AdminUserProfileDialog({ open, onOpenChange, userId }: Props) {
         }
         setUser({ id: snap.id, ...(snap.data() as Omit<User, 'id'>) });
       } catch (e) {
-        console.error('[AdminUserProfileDialog]', e);
+        logger.error('admin-user-profile', 'load profile failed', e);
         if (!cancelled) setError('Не удалось загрузить профиль');
       } finally {
         if (!cancelled) setLoading(false);

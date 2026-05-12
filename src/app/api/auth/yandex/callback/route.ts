@@ -7,6 +7,7 @@ import {
 } from "@/lib/server/yandex-oauth";
 import { issueFirebaseCustomTokenForYandexProfile } from "@/lib/server/yandex-firebase-custom-token";
 import { resolvePublicOrigin } from "@/lib/server/public-origin";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 
@@ -81,7 +82,7 @@ export async function GET(request: NextRequest) {
     res.cookies.delete(STATE_COOKIE);
     return res;
   } catch (e: unknown) {
-    console.error("[yandex/callback] unhandled error", e);
+    logger.error('yandex-callback', 'unhandled error', e);
     return redirectWithError(request, "server");
   }
 }

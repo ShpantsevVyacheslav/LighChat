@@ -19,6 +19,7 @@ import { Loader2, Bell } from 'lucide-react';
 import { useAuth as useFirebaseAuth } from '@/firebase';
 import type { UserRole } from '@/lib/types';
 import { useI18n } from '@/hooks/use-i18n';
+import { logger } from '@/lib/logger';
 
 type Audience = 'all' | 'admin' | 'worker' | 'uids';
 
@@ -75,7 +76,7 @@ export function AdminPushNotificationsPanel() {
         toast({ variant: 'destructive', title: res.error || t('admin.pushNotifications.sendError') });
       }
     } catch (e) {
-      console.error(e);
+      logger.error('admin-push', 'send notification failed', e);
       toast({ variant: 'destructive', title: t('admin.pushNotifications.sendError') });
     } finally {
       setSending(false);
