@@ -30,6 +30,15 @@ class DesktopAutoUpdater {
   /// Подключает feed и запускает проверку обновлений раз в час.
   ///
   /// Можно безопасно вызвать несколько раз — повторные вызовы игнорируются.
+  ///
+  /// **На старте не вызывает `checkForUpdates()` автоматически** — пока
+  /// appcast/RELEASES не выложен на `lighchat.online/updates/*`, auto-check
+  /// показывает диалог "Ошибка обновления" на старте (см. Sparkle/Squirrel
+  /// failure UI). Проверка происходит только по явному запросу пользователя
+  /// через [checkNow] (например, кнопка «Проверить обновления» в настройках).
+  ///
+  /// Чтобы включить auto-check обратно — выложите feed файлы и установите
+  /// env `LIGHCHAT_ENABLE_AUTO_UPDATE_CHECK=1` при сборке.
   Future<void> initialize({String? feedUrl}) async {
     if (!isSupported || _initialized) return;
     _initialized = true;
@@ -39,14 +48,19 @@ class DesktopAutoUpdater {
       await autoUpdater.setFeedURL(url);
       // Проверка раз в час; пользователь получит prompt при наличии обновления.
       await autoUpdater.setScheduledCheckInterval(3600);
-      // Первая проверка через 30 секунд после старта, чтобы не блокировать UI.
-      unawaited(
-        Future<void>.delayed(const Duration(seconds: 30), () {
-          autoUpdater.checkForUpdates().catchError((Object e) {
-            if (kDebugMode) debugPrint('[auto-updater] check failed: $e');
-          });
-        }),
-      );
+
+      const autoCheckEnabled =
+          bool.fromEnvironment('LIGHCHAT_ENABLE_AUTO_UPDATE_CHECK');
+      if (autoCheckEnabled) {
+        // Первая проверка через 30 секунд после старта.
+        unawaited(
+          Future<void>.delayed(const Duration(seconds: 30), () {
+            autoUpdater.checkForUpdates().catchError((Object e) {
+              if (kDebugMode) debugPrint('[auto-updater] check failed: $e');
+            });
+          }),
+        );
+      }
     } catch (e) {
       if (kDebugMode) debugPrint('[auto-updater] init failed: $e');
     }

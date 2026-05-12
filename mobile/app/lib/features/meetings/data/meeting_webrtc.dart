@@ -9,6 +9,7 @@ import 'meeting_ice_servers.dart';
 import 'meeting_peer_stats.dart';
 import 'meeting_repository.dart';
 import 'meeting_signaling.dart';
+import 'package:lighchat_mobile/core/app_logger.dart';
 
 /// Контроллер peer-to-peer mesh-комнаты митинга на стороне Flutter.
 ///
@@ -186,7 +187,7 @@ class MeetingWebRtc {
         'sdpMid': cand.sdpMid,
         'sdpMLineIndex': cand.sdpMLineIndex,
       }).catchError((e) {
-        if (kDebugMode) debugPrint('[meeting-webrtc] send candidate failed: $e');
+        appLogger.w('[meeting-webrtc] send candidate failed', error: e);
       });
     };
 
@@ -221,7 +222,7 @@ class MeetingWebRtc {
         'sdp': offer.sdp,
       });
     } catch (e) {
-      if (kDebugMode) debugPrint('[meeting-webrtc] negotiate($iceRestart) failed: $e');
+      appLogger.w('[meeting-webrtc] negotiate(iceRestart=$iceRestart) failed', error: e);
     }
   }
 
@@ -270,7 +271,7 @@ class MeetingWebRtc {
     }
     if (tracker.count >= _maxReconnects) {
       if (kDebugMode) {
-        debugPrint('[meeting-webrtc] [$remoteId] reconnect limit reached, giving up');
+        appLogger.w('[meeting-webrtc] [$remoteId] reconnect limit reached, giving up');
       }
       return;
     }
@@ -339,7 +340,7 @@ class MeetingWebRtc {
         }
       } catch (e) {
         if (kDebugMode) {
-          debugPrint('[meeting-webrtc] apply signal ${doc.type} from ${doc.from} failed: $e');
+          appLogger.w('[meeting-webrtc] apply signal ${doc.type} from ${doc.from} failed', error: e);
         }
       } finally {
         await _signaling.delete(s.ref);
@@ -386,7 +387,7 @@ class MeetingWebRtc {
         'facingMode': _frontCamera ? 'user' : 'environment',
       });
     } catch (e) {
-      if (kDebugMode) debugPrint('[meeting-webrtc] switchCamera failed: $e');
+      appLogger.w('[meeting-webrtc] switchCamera failed', error: e);
     }
   }
 
@@ -463,7 +464,7 @@ class MeetingWebRtc {
       });
       _emit(MeetingWebRtcEvent.localScreen(true));
     } catch (e) {
-      if (kDebugMode) debugPrint('[meeting-webrtc] startScreenShare failed: $e');
+      appLogger.w('[meeting-webrtc] startScreenShare failed', error: e);
       _screenSharing = false;
       rethrow;
     }
@@ -511,7 +512,7 @@ class MeetingWebRtc {
         }
       } catch (e) {
         if (kDebugMode) {
-          debugPrint('[meeting-webrtc] replaceTrack for ${entry.remoteId} failed: $e');
+          appLogger.w('[meeting-webrtc] replaceTrack for ${entry.remoteId} failed', error: e);
         }
       }
     }
