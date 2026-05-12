@@ -18,11 +18,14 @@ library;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuth;
+// FirebaseException re-exported by cloud_firestore — отдельный firebase_core import не нужен.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -122,6 +125,42 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
     return user?.uid;
   }
 
+  /// [diag QR-pairing] Подробное описание ошибки для UI + Xcode console.
+  /// Конкретно для `cloud_firestore/internal` хотим увидеть: какой именно
+  /// плагин (cloud_firestore vs firebase_auth vs core), code, plain message,
+  /// раздел `details` (например, gRPC status) и полный stack trace.
+  String _formatErrorDetail(String stage, Object e, StackTrace? st) {
+    final buf = StringBuffer();
+    buf.writeln('stage: $stage');
+    buf.writeln('runtimeType: ${e.runtimeType}');
+    if (e is FirebaseException) {
+      buf.writeln('plugin: ${e.plugin}');
+      buf.writeln('code: ${e.code}');
+      if (e.message != null) buf.writeln('message: ${e.message}');
+      // ignore: avoid_dynamic_calls
+      try {
+        final d = (e as dynamic).details;
+        if (d != null) buf.writeln('details: $d');
+      } catch (_) {}
+    } else {
+      buf.writeln('toString: $e');
+    }
+    if (st != null) {
+      buf.writeln('--- stack ---');
+      buf.writeln(st.toString());
+    }
+    return buf.toString();
+  }
+
+  /// [diag QR-pairing] Snapshot auth-состояния перед Firestore операцией.
+  /// `cloud_firestore/internal` иногда маскирует случаи когда `auth.currentUser == null`
+  /// или token expired/невалидный.
+  String _authDiagSnapshot() {
+    final u = FirebaseAuth.instance.currentUser;
+    return 'auth.currentUser: ${u == null ? 'null' : 'uid=${u.uid} anon=${u.isAnonymous} '
+        'providers=${u.providerData.map((p) => p.providerId).toList()}'}';
+  }
+
   Future<void> _rejectInitiatorSession(String sessionId) async {
     final uid = await _currentUid();
     if (uid == null) return;
@@ -135,39 +174,68 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
   // -------------------- INITIATOR --------------------
 
   Future<void> _startInitiator() async {
+    debugPrint('[QR-PAIR] _startInitiator begin');
     setState(() {
       _mode = _Mode.initiator;
       _initStage = _InitiatorStage.starting;
       _initError = null;
     });
-    final uid = await _currentUid();
-    if (uid == null) {
+    String? uid;
+    try {
+      uid = await _currentUid();
+      debugPrint('[QR-PAIR] uid resolved: ${uid ?? 'null'}');
+      debugPrint('[QR-PAIR] ${_authDiagSnapshot()}');
+    } catch (e, st) {
+      debugPrint('[QR-PAIR] _currentUid FAIL: $e\n$st');
+      if (!mounted) return;
       setState(() {
         _initStage = _InitiatorStage.error;
-        _initError = AppLocalizations.of(context)!.e2ee_qr_uid_error;
+        _initError = _formatErrorDetail('resolve uid', e, st);
       });
       return;
     }
+    if (uid == null) {
+      setState(() {
+        _initStage = _InitiatorStage.error;
+        _initError = '${AppLocalizations.of(context)!.e2ee_qr_uid_error}\n\n${_authDiagSnapshot()}';
+      });
+      return;
+    }
+    final localUid = uid;
     try {
+      debugPrint('[QR-PAIR] calling initiateMobilePairingSession userId=$localUid');
       final session = await initiateMobilePairingSession(
         firestore: FirebaseFirestore.instance,
-        userId: uid,
+        userId: localUid,
       );
+      debugPrint('[QR-PAIR] initiateMobilePairingSession ok sessionId=${session.sessionId}');
       if (!mounted) return;
       setState(() {
         _initSession = session;
         _initStage = _InitiatorStage.waiting;
       });
+      debugPrint('[QR-PAIR] subscribing to watchMobilePairingSession');
       _initSub = watchMobilePairingSession(
         firestore: FirebaseFirestore.instance,
-        userId: uid,
+        userId: localUid,
         sessionId: session.sessionId,
-      ).listen((data) => _onInitiatorUpdate(uid, session, data));
-    } catch (e) {
+      ).listen((data) {
+        debugPrint('[QR-PAIR] session snapshot state=${data?['state']}');
+        _onInitiatorUpdate(localUid, session, data);
+      }, onError: (err, st) {
+        debugPrint('[QR-PAIR] watch session onError: $err\n$st');
+        if (!mounted) return;
+        setState(() {
+          _initStage = _InitiatorStage.error;
+          _initError = _formatErrorDetail('watchMobilePairingSession', err is Object ? err : Exception('$err'), st is StackTrace ? st : null);
+        });
+      });
+    } catch (e, st) {
+      debugPrint('[QR-PAIR] initiate FAIL: $e\n$st\n${_authDiagSnapshot()}');
       if (!mounted) return;
       setState(() {
         _initStage = _InitiatorStage.error;
-        _initError = e.toString();
+        _initError = '${_formatErrorDetail('initiateMobilePairingSession', e, st)}\n${_authDiagSnapshot()}';
       });
     }
   }
@@ -709,24 +777,59 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
           ),
         ];
       case _InitiatorStage.error:
+        final errText = _initError ?? l10n.e2ee_qr_unknown_error;
         return [
           const SizedBox(height: 12),
           const Icon(Icons.error_outline, color: Colors.redAccent, size: 44),
           const SizedBox(height: 12),
-          Text(
-            _initError ?? l10n.e2ee_qr_unknown_error,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.redAccent),
+          // [diag QR-pairing] Скроллируемый + selectable текст полной ошибки
+          // (FirebaseException code/plugin/message/stack + auth snapshot).
+          // Кнопка «Копировать» рядом — для отправки в bug-report.
+          Container(
+            constraints: const BoxConstraints(maxHeight: 320),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.redAccent.withOpacity(0.08),
+              border: Border.all(color: Colors.redAccent.withOpacity(0.4)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: SingleChildScrollView(
+              child: SelectableText(
+                errText,
+                style: const TextStyle(
+                  color: Colors.redAccent,
+                  fontFamily: 'Menlo',
+                  fontSize: 11,
+                  height: 1.3,
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Center(
-            child: TextButton(
-              onPressed: () => setState(() {
-                _mode = _Mode.pick;
-                _initSession = null;
-                _initError = null;
-              }),
-              child: Text(l10n.e2ee_qr_back_to_pick_label),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.copy, size: 16),
+                  label: const Text('Копировать'),
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: errText));
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Ошибка скопирована')),
+                    );
+                  },
+                ),
+                TextButton(
+                  onPressed: () => setState(() {
+                    _mode = _Mode.pick;
+                    _initSession = null;
+                    _initError = null;
+                  }),
+                  child: Text(l10n.e2ee_qr_back_to_pick_label),
+                ),
+              ],
             ),
           ),
         ];

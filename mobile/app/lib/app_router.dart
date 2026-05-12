@@ -12,6 +12,7 @@ import 'features/auth/registration_profile_gate.dart';
 import 'features/auth/ui/auth_screen.dart';
 import 'features/auth/ui/google_complete_profile_screen.dart';
 import 'features/auth/ui/qr_login_screen.dart';
+import 'features/auth/ui/yandex_sign_in_webview_screen.dart';
 import 'features/auth/ui/profile_screen.dart';
 import 'features/chat/data/share_intent_payload.dart';
 import 'features/chat/ui/chat_forward_screen.dart';
@@ -55,6 +56,8 @@ import 'features/features_tour/ui/features_index_screen.dart';
 import 'features/features_tour/ui/features_topic_screen.dart';
 import 'features/legal/data/legal_documents.dart' as legal_data;
 import 'features/legal/ui/legal_document_screen.dart';
+import 'features/admin/ui/admin_shell_screen.dart';
+import 'features/chat/ui/workspace_shell_screen.dart';
 
 /// Notifier, который дёргает GoRouter на пересчёт redirect-ов при изменении
 /// auth-стейта. Без этого при cold-start с persistent Firebase session первый
@@ -161,6 +164,13 @@ GoRouter createRouter() {
     },
     routes: <RouteBase>[
       GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
+      // Yandex OAuth webview → customToken (Cloud Function signInWithYandex).
+      // На macOS Debug `signInWithCustomToken` всё равно упрётся в keychain
+      // без paid Apple Developer Program; на iOS/Android работает.
+      GoRoute(
+        path: '/auth/yandex',
+        builder: (context, state) => const YandexSignInWebViewScreen(),
+      ),
       GoRoute(
         path: '/auth/qr',
         builder: (context, state) => const QrLoginScreen(),
@@ -500,6 +510,43 @@ GoRouter createRouter() {
             ),
           );
         },
+      ),
+      GoRoute(
+        path: '/admin',
+        builder: (context, state) => const AdminShellScreen(),
+      ),
+      GoRoute(
+        path: '/admin/:section',
+        builder: (context, state) =>
+            AdminShellScreen(initialSection: state.pathParameters['section']),
+      ),
+      // Desktop master-detail для чата. `/chats/:id` (мобильный путь)
+      // не редиректит сюда автоматически — этот путь активируется только
+      // когда что-то явно ведёт на `/workspace/*` (deep link, кнопка из
+      // адаптивного UI). Mobile-пути полностью сохраняют прежнее
+      // поведение.
+      GoRoute(
+        path: '/workspace',
+        builder: (context, state) => const WorkspaceShellScreen(),
+      ),
+      GoRoute(
+        path: '/workspace/chats/:conversationId',
+        builder: (context, state) => WorkspaceShellScreen(
+          conversationId: state.pathParameters['conversationId'],
+        ),
+      ),
+      // Thread pane как 5-я колонка master-detail. Открывается явным
+      // push'ом из ChatScreen / WorkspaceShellScreen, когда ширина окна
+      // достаточная (≥1440dp). На узких экранах WorkspaceShellScreen
+      // игнорирует threadParentMessageId — там thread открывается
+      // обычным fullscreen ThreadScreen через legacy `/chats/.../thread/...`.
+      GoRoute(
+        path:
+            '/workspace/chats/:conversationId/thread/:parentMessageId',
+        builder: (context, state) => WorkspaceShellScreen(
+          conversationId: state.pathParameters['conversationId'],
+          threadParentMessageId: state.pathParameters['parentMessageId'],
+        ),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

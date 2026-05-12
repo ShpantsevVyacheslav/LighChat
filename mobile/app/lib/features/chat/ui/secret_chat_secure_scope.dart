@@ -1,7 +1,6 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/material.dart';
-import 'package:flutter_windowmanager_plus/flutter_windowmanager_plus.dart';
+
+import '../../../platform/screenshot_protection_facade.dart';
 
 class SecretChatSecureScope extends StatefulWidget {
   const SecretChatSecureScope({super.key, required this.enabled, required this.child});
@@ -14,16 +13,11 @@ class SecretChatSecureScope extends StatefulWidget {
 }
 
 class _SecretChatSecureScopeState extends State<SecretChatSecureScope> {
-  bool _applied = false;
-
   Future<void> _apply(bool enabled) async {
-    if (!Platform.isAndroid) return;
     if (enabled) {
-      await FlutterWindowManagerPlus.addFlags(FlutterWindowManagerPlus.FLAG_SECURE);
-      _applied = true;
-    } else if (_applied) {
-      await FlutterWindowManagerPlus.clearFlags(FlutterWindowManagerPlus.FLAG_SECURE);
-      _applied = false;
+      await ScreenshotProtectionFacade.instance.enable();
+    } else {
+      await ScreenshotProtectionFacade.instance.disable();
     }
   }
 

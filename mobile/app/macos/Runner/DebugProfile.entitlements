@@ -2,11 +2,29 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>com.apple.security.app-sandbox</key>
-	<true/>
+	<!--
+	  Debug-сборка для Personal Team (free Apple ID, без paid Developer Program).
+	  С `com.apple.security.app-sandbox = true` приложение запирается в
+	  data-protection keychain, требующий keychain-access-groups entitlement,
+	  который Personal Team не выдаёт. Поэтому sandbox в Debug отключён —
+	  это даёт доступ к legacy macOS keychain без entitlement (используется
+	  `flutter_secure_storage` с `useDataProtectionKeyChain: false`).
+
+	  ⚠️ Release.entitlements оставлен с sandbox=true. Для production-сборки
+	  потребуется paid Apple Developer Program + keychain-access-groups
+	  entitlement + provisioning profile.
+	-->
 	<key>com.apple.security.cs.allow-jit</key>
 	<true/>
+	<key>com.apple.security.network.client</key>
+	<true/>
 	<key>com.apple.security.network.server</key>
+	<true/>
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+	<key>com.apple.security.device.camera</key>
+	<true/>
+	<key>com.apple.security.cs.disable-library-validation</key>
 	<true/>
 </dict>
 </plist>

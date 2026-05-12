@@ -6,7 +6,8 @@ LighChat - мессенджер и платформа видеоконферен
 
 - Web (Next.js App Router)
 - PWA (мобильная установка, offline/иконки/manifest)
-- Desktop (Electron shell)
+- Mobile (Flutter — iOS + Android, см. `mobile/app`)
+- Desktop (Flutter — macOS + Windows + Linux, см. `mobile/app/lib/features/desktop_shell/`; Electron-shell декомиссирован)
 
 ## Бизнес-возможности
 
@@ -20,7 +21,7 @@ LighChat - мессенджер и платформа видеоконферен
 - Frontend: Next.js 14, React 18, TypeScript, Tailwind, shadcn/ui
 - Backend-as-a-Service: Firebase Auth, Firestore, Storage, Cloud Functions, FCM, Hosting
 - Realtime/media: Firestore listeners, WebRTC (`simple-peer`), MediaPipe
-- Desktop: Electron + electron-builder
+- Mobile + Desktop: Flutter 3.41+ (Dart 3.11), Riverpod 3, GoRouter 16, flutter_webrtc; desktop-таргеты macos/windows/linux. Сборка через `flutter build {macos,windows,linux} --release`, дистрибуция через GitHub Actions matrix (`.github/workflows/desktop.yml`).
 
 ## Главные точки входа
 

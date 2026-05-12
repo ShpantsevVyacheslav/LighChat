@@ -15,6 +15,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:pointycastle/export.dart';
 
 import 'webcrypto_compat.dart';
@@ -141,8 +142,22 @@ Future<MobileInitiatorSession> initiateMobilePairingSession({
   required FirebaseFirestore firestore,
   required String userId,
 }) async {
-  final eph = await generateEcdhP256KeyPair();
-  final pubSpki = await eph.exportSpkiPublic();
+  debugPrint('[QR-PAIR/init] step=1 generate ECDH P-256 keypair');
+  final EcdhP256KeyPair eph;
+  try {
+    eph = await generateEcdhP256KeyPair();
+  } catch (e, st) {
+    debugPrint('[QR-PAIR/init] FAIL generateEcdhP256KeyPair: $e\n$st');
+    rethrow;
+  }
+  debugPrint('[QR-PAIR/init] step=2 export SPKI public');
+  final Uint8List pubSpki;
+  try {
+    pubSpki = await eph.exportSpkiPublic();
+  } catch (e, st) {
+    debugPrint('[QR-PAIR/init] FAIL exportSpkiPublic: $e\n$st');
+    rethrow;
+  }
   final pubB64 = base64.encode(pubSpki);
   final sessionId = _randomSessionId();
   final nowIso = DateTime.now().toUtc().toIso8601String();
@@ -150,18 +165,26 @@ Future<MobileInitiatorSession> initiateMobilePairingSession({
       .toUtc()
       .add(e2eePairingTtl)
       .toIso8601String();
-  await firestore
-      .collection('users')
-      .doc(userId)
-      .collection('e2eePairingSessions')
-      .doc(sessionId)
-      .set(<String, Object?>{
-    'sessionId': sessionId,
-    'createdAt': nowIso,
-    'expiresAt': expiresIso,
-    'state': 'awaiting_scan',
-    'initiatorEphPubSpkiB64': pubB64,
-  });
+  final path = 'users/$userId/e2eePairingSessions/$sessionId';
+  debugPrint('[QR-PAIR/init] step=3 firestore.set path=$path pubB64.len=${pubB64.length}');
+  try {
+    await firestore
+        .collection('users')
+        .doc(userId)
+        .collection('e2eePairingSessions')
+        .doc(sessionId)
+        .set(<String, Object?>{
+      'sessionId': sessionId,
+      'createdAt': nowIso,
+      'expiresAt': expiresIso,
+      'state': 'awaiting_scan',
+      'initiatorEphPubSpkiB64': pubB64,
+    });
+  } catch (e, st) {
+    debugPrint('[QR-PAIR/init] FAIL firestore.set path=$path: $e\n$st');
+    rethrow;
+  }
+  debugPrint('[QR-PAIR/init] step=4 firestore.set OK; building QR payload');
   final payload = PairingQrPayload(
     uid: userId,
     sessionId: sessionId,

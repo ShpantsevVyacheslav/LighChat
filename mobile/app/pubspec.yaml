@@ -67,6 +67,10 @@ dependencies:
   firebase_storage: any
   firebase_messaging: any
   firebase_crashlytics: any
+  # Продуктовая/маркетинговая аналитика. На Windows/Linux SDK не доступен —
+  # туда события уходят через httpsCallable `logAnalyticsEvent`
+  # (см. mobile/app/lib/features/analytics/analytics_service.dart).
+  firebase_analytics: any
   # [audit CR-002] App Check для iOS App Attest + Android Play Integrity.
   firebase_app_check: any
   timezone: any
@@ -113,9 +117,24 @@ dependencies:
   flutter_windowmanager_plus: ^1.0.0
   intl: any
   local_auth: ^2.3.0
+  # Native Apple Sign-In для iOS + macOS. Использует SDK Apple вместо
+  # `_auth.signInWithProvider` (который не реализован в firebase_auth_macos).
+  # Возвращает identityToken, конвертируется в Firebase OAuthCredential.
+  sign_in_with_apple: ^6.1.0
   flutter_secure_storage: ^9.2.4
   battery_plus: ^6.2.1
   syncfusion_flutter_pdfviewer: ^31.1.21
+  path: ^1.9.0
+
+  # Desktop (macOS / Windows / Linux). Не используются на iOS/Android — guard
+  # вызовы через PlatformCapabilities.isDesktop.
+  window_manager: ^0.5.1
+  tray_manager: ^0.5.1
+  launch_at_startup: ^0.5.1
+  desktop_drop: ^0.6.0
+  fl_chart: ^1.1.1
+  screen_retriever: ^0.2.0
+  auto_updater: ^1.0.0
 
 dev_dependencies:
   flutter_test:
@@ -127,6 +146,19 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+  # Используется CI workflow .github/workflows/desktop.yml для упаковки
+  # Windows-сборки в MSIX. Не используется в runtime, не попадает в bundle.
+  msix: ^3.16.10
+
+msix_config:
+  display_name: LighChat
+  publisher_display_name: LighChat
+  identity_name: com.lighchat.LighChat
+  msix_version: 1.0.0.0
+  logo_path: assets/lighchat_mark.png
+  capabilities: internetClient, microphone, webcam, location
+  protocol_activation: lighchat
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

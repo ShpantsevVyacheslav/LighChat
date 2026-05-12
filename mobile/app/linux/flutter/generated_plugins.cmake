@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  desktop_drop
   emoji_picker_flutter
   file_selector_linux
   flutter_secure_storage_linux
@@ -10,9 +11,12 @@ list(APPEND FLUTTER_PLUGIN_LIST
   gtk
   irondash_engine_context
   record_linux
+  screen_retriever_linux
   super_native_extensions
   syncfusion_pdfviewer_linux
+  tray_manager
   url_launcher_linux
+  window_manager
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

@@ -1,0 +1,210 @@
+name: Desktop (Flutter)
+
+# Сборка Flutter-десктопа для macOS / Windows / Linux. Запускается на
+# каждом теге v* (release), а также вручную через workflow_dispatch.
+#
+# Подписи (Apple Developer ID, Windows EV cert) и notarization
+# подключаются через GitHub Secrets — пока не настроены, артефакты
+# выкладываются без подписи (на macOS — adhoc, на Windows — SmartScreen
+# warning). Для пользовательского release-flow сначала настройте секреты,
+# затем уберите `if: false` в соответствующих шагах.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Тэг релиза (например v1.0.0). Без него — pre-release.'
+        required: false
+        default: ''
+
+defaults:
+  run:
+    working-directory: mobile/app
+
+jobs:
+  build-macos:
+    name: macOS DMG
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.6'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build macOS app
+        run: flutter build macos --release
+
+      - name: Create DMG
+        run: |
+          brew install create-dmg
+          create-dmg \
+            --volname "LighChat" \
+            --window-pos 200 120 \
+            --window-size 600 380 \
+            --icon-size 100 \
+            --hide-extension lighchat_mobile.app \
+            --app-drop-link 425 185 \
+            "LighChat-macos.dmg" \
+            "build/macos/Build/Products/Release/lighchat_mobile.app"
+
+      # TODO: notarize через xcrun notarytool — требует APPLE_ID_EMAIL,
+      # APPLE_ID_PASSWORD (app-specific), APPLE_TEAM_ID секреты.
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lighchat-macos-dmg
+          path: mobile/app/LighChat-macos.dmg
+
+  build-windows:
+    name: Windows portable + MSIX
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.6'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Windows app
+        run: flutter build windows --release
+
+      # Portable ZIP — простейший способ запуска без установки. Распакуй
+      # архив на пользовательской машине и запусти `lighchat_mobile.exe`.
+      # Никаких разрешений / Developer Mode / Smart Screen exceptions
+      # не требуется. Подходит для бета-тестов.
+      - name: Pack portable ZIP
+        shell: pwsh
+        run: |
+          $src = "build/windows/x64/runner/Release"
+          $dst = "LighChat-windows-portable.zip"
+          Compress-Archive -Path "$src/*" -DestinationPath $dst -CompressionLevel Optimal
+          Get-ChildItem $dst
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lighchat-windows-portable
+          path: LighChat-windows-portable.zip
+
+      # MSIX-пакет: side-load инсталляция (двойной клик → установить).
+      # Для установки **unsigned** MSIX нужно либо включить Developer Mode
+      # (Settings → Privacy & security → For developers), либо однократно
+      # импортировать self-signed cert ниже в Trusted Root CA.
+      # Для полностью бесшовной установки нужен EV Code Signing certificate
+      # ($300-700/год).
+      - name: Generate self-signed certificate
+        shell: pwsh
+        run: |
+          $cert = New-SelfSignedCertificate `
+            -Type CodeSigning `
+            -Subject "CN=LighChat Self-Signed (Dev Only)" `
+            -KeyAlgorithm RSA `
+            -KeyLength 2048 `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -KeyUsage DigitalSignature `
+            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+          $pwd = ConvertTo-SecureString -String "lighchat-self-signed" -Force -AsPlainText
+          $pfxPath = "$PWD\lighchat-selfsigned.pfx"
+          $cerPath = "$PWD\lighchat-selfsigned.cer"
+          Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath $pfxPath -Password $pwd | Out-Null
+          Export-Certificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath $cerPath | Out-Null
+          echo "CERT_PFX_PATH=$pfxPath" >> $env:GITHUB_ENV
+          echo "CERT_PFX_PASSWORD=lighchat-self-signed" >> $env:GITHUB_ENV
+          Write-Host "Self-signed cert exported to:"
+          Write-Host "  PFX (для подписи): $pfxPath"
+          Write-Host "  CER (импорт в Trusted Root на target machine): $cerPath"
+
+      - name: Generate MSIX
+        shell: pwsh
+        working-directory: mobile/app
+        run: |
+          flutter pub global activate msix
+          flutter pub run msix:create --certificate-path "$env:CERT_PFX_PATH" --certificate-password "$env:CERT_PFX_PASSWORD"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lighchat-windows-msix
+          path: |
+            mobile/app/build/windows/x64/runner/Release/*.msix
+            lighchat-selfsigned.cer
+
+  build-linux:
+    name: Linux AppImage
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build clang cmake libgtk-3-dev pkg-config \
+            liblzma-dev libsecret-1-dev libjsoncpp-dev libnotify-dev \
+            libsqlite3-dev fuse libfuse2
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.6'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Linux app
+        run: flutter build linux --release
+
+      - name: Package AppImage
+        run: |
+          curl -L -o appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+          # Минимальный AppDir: бинарник + .desktop + иконка.
+          # Для production добавьте через appimage-builder с metainfo.xml.
+          mkdir -p AppDir/usr/bin
+          cp -r build/linux/x64/release/bundle/* AppDir/usr/bin/
+          cat > AppDir/lighchat.desktop <<'EOF'
+          [Desktop Entry]
+          Name=LighChat
+          Exec=lighchat_mobile
+          Icon=lighchat
+          Type=Application
+          Categories=Network;InstantMessaging;
+          MimeType=x-scheme-handler/lighchat;
+          EOF
+          cp assets/lighchat_mark.png AppDir/lighchat.png
+          ./appimagetool AppDir LighChat-linux.AppImage
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lighchat-linux-appimage
+          path: mobile/app/LighChat-linux.AppImage
+
+  release:
+    name: Publish GitHub Release
+    needs: [build-macos, build-windows, build-linux]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { merge-multiple: true, path: artifacts }
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true

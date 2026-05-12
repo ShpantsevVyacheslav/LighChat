@@ -6,12 +6,15 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Checks if the application is running inside Electron.
+ * Electron-wrapper удалён (декомиссирован в пользу Flutter desktop, см.
+ * `mobile/app/lib/features/desktop_shell/`). Функция оставлена как
+ * stub-noop для существующих call-sites — все ветки `isElectron()`
+ * теперь dead-code и могут быть постепенно удалены.
+ *
+ * @deprecated Always returns `false`. Удалите call-sites при следующем
+ * рефакторинге компонента.
  */
 export function isElectron(): boolean {
-  if (typeof window !== 'undefined' && typeof window.navigator !== 'undefined') {
-    return window.navigator.userAgent.toLowerCase().indexOf(' electron/') > -1;
-  }
   return false;
 }
 

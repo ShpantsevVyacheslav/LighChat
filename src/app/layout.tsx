@@ -6,6 +6,7 @@ import { Providers } from '@/components/providers';
 import { cn } from '@/lib/utils';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { ThemeProvider } from '@/components/theme-provider';
+import { AnalyticsProvider } from '@/components/analytics/AnalyticsProvider';
 import { Inter, Space_Grotesk, Montserrat } from 'next/font/google';
 
 /** Локальная выдача шрифтов (без fonts.googleapis.com) — снимает таймауты в сетях без доступа к Google. */
@@ -220,9 +221,11 @@ export default async function RootLayout({
           nonce={nonce}
         >
           <FirebaseClientProvider>
-            <Providers>
-              {children}
-            </Providers>
+            <AnalyticsProvider>
+              <Providers>
+                {children}
+              </Providers>
+            </AnalyticsProvider>
           </FirebaseClientProvider>
           <Toaster />
         </ThemeProvider>

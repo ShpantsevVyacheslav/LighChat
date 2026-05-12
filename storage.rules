@@ -186,6 +186,32 @@ service firebase.storage {
         && isAcceptableChatMediaType();
     }
 
+    /**
+     * Evidence для жалоб на E2EE-сообщения. Reporter декриптует
+     * содержимое локально и кладёт plaintext-копию сюда, чтобы админ мог
+     * рассмотреть жалобу. Путь привязан к UID репортера, чтобы
+     * пользователь не мог писать поверх чужих evidence.
+     *
+     *  - write: только сам пользователь под своим uid, с теми же
+     *    type/size guard'ами, что и у обычных чат-вложений.
+     *  - read: только админ (модератор) — никто, кроме админа, не должен
+     *    видеть содержимое чужой E2EE-беседы, даже её участники, через
+     *    эту копию.
+     *  - delete: админ + сам автор (на случай rollback при ошибке
+     *    сабмита жалобы — клиент чистит за собой).
+     *
+     * Очистка по TTL: scheduled CF `evidenceCleanupDaily` удаляет
+     * evidence resolved-жалоб через 90 дней после `reviewedAt`.
+     */
+    match /moderation-evidence/{ownerUid}/{allPaths=**} {
+      allow read: if isFirestoreAdmin();
+      allow delete: if isFirestoreAdmin()
+        || (signedIn() && request.auth.uid == ownerUid);
+      allow write: if signedIn() && request.auth.uid == ownerUid
+        && isAcceptableChatMediaSize()
+        && isAcceptableChatMediaType();
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

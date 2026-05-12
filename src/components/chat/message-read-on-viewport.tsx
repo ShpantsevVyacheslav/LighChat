@@ -13,6 +13,7 @@ import type { ChatMessage } from '@/lib/types';
 import { markMessagesAsRead } from '@/lib/chat-utils';
 import { isIncomingUnreadForViewer } from '@/lib/message-read-status';
 import { incrementChatPerfCounter } from '@/components/chat/chat-performance-metrics';
+import { logger } from '@/lib/logger';
 
 /** Ref на DOM-скроллер Virtuoso (см. prop scrollerRef) — root для IntersectionObserver. */
 export const ChatViewportScrollerRefContext = createContext<MutableRefObject<HTMLElement | null> | null>(
@@ -132,7 +133,7 @@ export function MessageReadOnViewport({
         threadParentId,
         suppressReadReceipts,
       ).catch((e) => {
-        console.error('[MessageReadOnViewport] mark read failed', e);
+        logger.error('msg-read', 'mark read failed', e);
         sessionReadIds.current.delete(messageId);
       });
     };
@@ -144,7 +145,7 @@ export function MessageReadOnViewport({
         }
       });
     } catch (e) {
-      console.warn('[MessageReadOnViewport] IntersectionObserver unsupported or invalid root (iOS/WebKit)', e);
+      logger.warn('msg-read', 'IntersectionObserver unsupported or invalid root (iOS/WebKit)', e);
       return;
     }
   }, [

@@ -24,9 +24,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.windows:
         return windows;
       case TargetPlatform.linux:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions are not configured for Linux.',
-        );
+        return linux;
       default:
         throw UnsupportedError(
           'DefaultFirebaseOptions are not supported for this platform.',
@@ -73,7 +71,13 @@ class DefaultFirebaseOptions {
     projectId: 'project-72b24',
     storageBucket: 'project-72b24.firebasestorage.app',
     iosClientId: '262148817877-eolh9e7k10oa2r77tf3umv7jv1so0vrm.apps.googleusercontent.com',
-    iosBundleId: 'com.lighchat.lighchatMobile',
+    // Bundle ID подписи macOS Debug — `com.lighchat.lighchat` (Personal Team
+    // T896C2B2FW). Должен быть добавлен в whitelist iOS API key
+    // (AIzaSyBfedXYICIrF0VPOXkmqB72QoW6J3fEXpg) в Google Cloud Console:
+    // https://console.cloud.google.com/apis/credentials?project=project-72b24
+    // → выбрать iOS API key → Application restrictions → iOS apps → Add
+    // bundle ID `com.lighchat.lighchat`.
+    iosBundleId: 'com.lighchat.lighchat',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
@@ -84,6 +88,21 @@ class DefaultFirebaseOptions {
     authDomain: 'project-72b24.firebaseapp.com',
     storageBucket: 'project-72b24.firebasestorage.app',
     measurementId: 'G-9JZKTFGSFK',
+  );
+
+  // На Linux нет официального Firebase SDK (firebase_core_linux community
+  // обёртка существует, но нестабильна). Конфиг = web-credentials; реальная
+  // инициализация делается на уровне сервисов: Auth/Firestore вызываются
+  // через REST (identitytoolkit + firestore.googleapis.com), а Messaging
+  // заменяется на PushFallbackService поверх Firestore listener.
+  static const FirebaseOptions linux = FirebaseOptions(
+    apiKey: 'AIzaSyA_IC-6IpJF4LZshdwx6bXoZnu9PfmqMfE',
+    appId: '1:262148817877:web:3239547f31e45289f0335c',
+    messagingSenderId: '262148817877',
+    projectId: 'project-72b24',
+    authDomain: 'project-72b24.firebaseapp.com',
+    storageBucket: 'project-72b24.firebasestorage.app',
+    measurementId: 'G-YG1C6DD3TC',
   );
 
 }

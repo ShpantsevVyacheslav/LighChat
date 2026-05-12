@@ -224,6 +224,10 @@ function ReportCard({
 
   const attachments = details?.attachments ?? [];
   const hasAttachments = attachments.length > 0;
+  // Evidence-вложения: расшифрованные репортером копии E2EE-вложений,
+  // переложенные в `moderation-evidence/{reporterId}/{nonce}/...`.
+  const evidenceAttachments = r.evidenceAttachments ?? [];
+  const hasEvidence = evidenceAttachments.length > 0;
   const isUserLevel = !r.messageId;
   const formatDate = (iso: string) => {
     const d = new Date(iso);
@@ -256,6 +260,11 @@ function ReportCard({
             )}
           </>
         )}
+        {hasEvidence && (
+          <Badge variant="outline" className="text-[10px] border-amber-500/50 text-amber-700 dark:text-amber-400">
+            evidence · {evidenceAttachments.length}
+          </Badge>
+        )}
         <span className="text-xs text-muted-foreground ml-auto">{formatDate(r.createdAt)}</span>
       </div>
 
@@ -273,11 +282,31 @@ function ReportCard({
         </div>
       )}
 
-      {details?.isE2ee && (
+      {hasEvidence && (
+        <div className="space-y-2 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-3">
+          <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400">
+            Evidence от автора жалобы ({evidenceAttachments.length})
+            <span className="ml-1 text-muted-foreground italic">
+              · расшифрованная копия E2EE-вложений; будет удалена автоматически через 90 дней после resolved
+            </span>
+          </p>
+          {evidenceAttachments.map((a, idx) => (
+            <AttachmentPreview key={idx} att={a} />
+          ))}
+        </div>
+      )}
+
+      {details?.isE2ee && !hasEvidence && (
         <p className="text-[11px] text-muted-foreground italic">
           {reportedText
             ? 'Сообщение зашифровано E2E. Показан snapshot, отправленный автором жалобы; вложения недоступны.'
             : 'Сообщение зашифровано E2E — содержимое недоступно. Snapshot текста автор жалобы не приложил.'}
+        </p>
+      )}
+
+      {details?.isE2ee && hasEvidence && (
+        <p className="text-[11px] text-muted-foreground italic">
+          Сообщение зашифровано E2E. Показан snapshot + evidence-копия вложений, переданные автором жалобы.
         </p>
       )}
 

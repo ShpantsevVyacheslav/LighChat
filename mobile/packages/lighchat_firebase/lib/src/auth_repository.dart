@@ -1,4 +1,11 @@
+import 'dart:convert';
+import 'dart:io' show Platform;
+import 'dart:math' as math;
+
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class AuthRepository {
   AuthRepository({FirebaseAuth? auth}) : _auth = auth ?? FirebaseAuth.instance;
@@ -38,15 +45,57 @@ class AuthRepository {
     );
   }
 
-  /// Sign in with Apple (Firebase `OAuthProvider('apple.com')`).
-  /// Requires Apple capability on iOS; Firebase Console → Authentication → Apple enabled.
+  /// Sign in with Apple — native flow через `sign_in_with_apple` package.
+  ///
+  /// На iOS/macOS использует SDK Apple напрямую, обходя
+  /// `_auth.signInWithProvider`, который не реализован в `firebase_auth_macos`.
+  /// Полученный identityToken конвертируется в Firebase `OAuthCredential`
+  /// и подаётся в `_auth.signInWithCredential`.
+  ///
+  /// На Android / web fallback к OAuth provider flow — там работает.
+  ///
+  /// Требования:
+  ///   - Apple Sign-In Service ID в Firebase Console → Authentication.
+  ///   - Capability "Sign In with Apple" в Xcode (iOS/macOS).
+  ///   - На macOS Debug с paid Apple Developer Program — keychain entitlement
+  ///     для persistence; на free ID `signInWithCredential` упрётся в
+  ///     keychain ошибку, но самим Apple Sign-In dialog откроется и
+  ///     credential будет получен (можно использовать для верификации UI).
   Future<void> signInWithApple() async {
-    final provider = OAuthProvider('apple.com');
-    provider.addScope('email');
-    provider.addScope('name');
     const maxAttempts = 3;
     for (var attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
+        if (!kIsWeb &&
+            (Platform.isIOS || Platform.isMacOS) &&
+            await SignInWithApple.isAvailable()) {
+          // Native Apple Sign-In: получаем identityToken + nonce.
+          final rawNonce = _generateNonce();
+          final nonce = _sha256(rawNonce);
+          final credential = await SignInWithApple.getAppleIDCredential(
+            scopes: const [
+              AppleIDAuthorizationScopes.email,
+              AppleIDAuthorizationScopes.fullName,
+            ],
+            nonce: nonce,
+          );
+          final identityToken = credential.identityToken;
+          if (identityToken == null || identityToken.isEmpty) {
+            throw FirebaseAuthException(
+              code: 'apple-no-identity-token',
+              message: 'Apple Sign-In didn’t return identityToken',
+            );
+          }
+          final oauthCredential = OAuthProvider('apple.com').credential(
+            idToken: identityToken,
+            rawNonce: rawNonce,
+          );
+          await _auth.signInWithCredential(oauthCredential);
+          return;
+        }
+        // Android / web / fallback — OAuthProvider flow.
+        final provider = OAuthProvider('apple.com');
+        provider.addScope('email');
+        provider.addScope('name');
         await _auth.signInWithProvider(provider);
         return;
       } on FirebaseAuthException catch (e) {
@@ -58,6 +107,18 @@ class AuthRepository {
       }
     }
   }
+
+  static String _generateNonce([int length = 32]) {
+    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    final rnd = math.Random.secure();
+    return List.generate(
+      length,
+      (_) => charset[rnd.nextInt(charset.length)],
+    ).join();
+  }
+
+  static String _sha256(String input) =>
+      sha256.convert(utf8.encode(input)).toString();
 
   Future<void> signInWithGoogle() async {
     // Matches web parity (Google Auth provider) without pulling the iOS GoogleSignIn pod,

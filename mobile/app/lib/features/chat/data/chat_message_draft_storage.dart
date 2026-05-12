@@ -34,6 +34,11 @@ const String _kDraftAesKeyName = 'lighchat.chatDrafts.aesKey.v1';
 const _kDraftSecureStorage = FlutterSecureStorage(
   aOptions: AndroidOptions(encryptedSharedPreferences: true),
   iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock_this_device),
+  // macOS legacy keychain (без entitlement) — см. device_identity.dart.
+  mOptions: MacOsOptions(
+    accessibility: KeychainAccessibility.first_unlock_this_device,
+    useDataProtectionKeyChain: false,
+  ),
 );
 
 Uint8List? _draftAesKeyMemo;

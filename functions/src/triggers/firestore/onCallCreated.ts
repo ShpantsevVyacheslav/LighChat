@@ -6,6 +6,7 @@ import { MulticastMessage } from "firebase-admin/messaging";
 import { isApnsVoipConfigured, sendApnsVoipMulticast } from "../../lib/apns-voip";
 import { apnsVoipConfigFromJsonSecret } from "../../lib/apns-voip-config-secret";
 import { mergeNotificationSettings } from "../../lib/push-notification-policy";
+import { mirrorPushToFirestore } from "../../lib/push-fallback";
 
 const db = admin.firestore();
 const messaging = admin.messaging();
@@ -175,6 +176,28 @@ export const oncallcreated = onDocumentCreated(
           successCount: response.successCount,
           failureCount: response.failureCount,
         });
+
+        // Параллельно зеркалим в Firestore для Windows/Linux desktop
+        // (PushFallbackService). data-payload идентичен FCM.
+        await mirrorPushToFirestore(db, [
+          {
+            uid: receiverId,
+            title: "Входящий вызов",
+            body: `Вам звонит ${callerName}`,
+            data: {
+              title: "Входящий вызов",
+              body: `Вам звонит ${callerName}`,
+              link: "/dashboard/chat",
+              callId: callId,
+              callerId: callerId,
+              callerName: callerName,
+              isVideo: isVideo ? "1" : "0",
+              type: "incoming_call",
+            },
+          },
+        ]).catch((e: unknown) =>
+          logger.error("[push-fallback] call mirror failed", e),
+        );
       }
 
       if (voipTokens.length > 0) {

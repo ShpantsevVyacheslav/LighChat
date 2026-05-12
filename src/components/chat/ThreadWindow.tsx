@@ -1356,6 +1356,7 @@ export function ThreadWindow({
                                         contactProfiles={contactProfiles}
                                         e2eeDecryptedByMessageId={parentE2eeDecryptedByMessageId}
                                         onRetryMediaNorm={handleRetryMediaNorm}
+                                        getChatKeyRawV2ForEpoch={e2eeConv.getChatKeyRawV2ForEpoch}
                                     />
                                     <div className="mt-2 px-2 py-1">
                                         <div className="relative flex items-center justify-center">
@@ -1444,6 +1445,7 @@ export function ThreadWindow({
                                         contactProfiles={contactProfiles}
                                         e2eeDecryptedByMessageId={threadE2eeMergedMap}
                                         onRetryMediaNorm={handleRetryMediaNorm}
+                                        getChatKeyRawV2ForEpoch={e2eeConv.getChatKeyRawV2ForEpoch}
                                     />
                                 </div>
                             </MessageReadOnViewport>

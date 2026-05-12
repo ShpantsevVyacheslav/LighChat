@@ -90,8 +90,8 @@
 	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
-		<string>voip</string>
-		<string>remote-notification</string>
+		<!-- voip + remote-notification временно убраны для free Apple ID (Personal Team).
+		     После покупки paid Apple Developer Program ($99/год) — верни через git checkout. -->
 		<string>audio</string>
 	</array>
 	<key>UILaunchStoryboardName</key>

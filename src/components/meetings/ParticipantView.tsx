@@ -11,6 +11,7 @@ import {
 import type { BackgroundConfig } from '@/hooks/use-meeting-webrtc';
 import type { PeerConnectionQuality } from '@/lib/webrtc/peer-stats';
 import { useI18n } from '@/hooks/use-i18n';
+import { logger } from '@/lib/logger';
 
 interface ParticipantState {
   id: string;
@@ -173,7 +174,7 @@ const ParticipantViewComponent = ({
         analyserRef.current = null;
       };
     } catch (e) {
-      console.warn("Audio analysis failed", e);
+      logger.warn('meeting-participant', 'Audio analysis failed', e);
     }
   }, [participant?.stream, participant?.isAudioMuted, onSpeaking]);
 
@@ -236,7 +237,7 @@ const ParticipantViewComponent = ({
             (video as any).webkitSetPresentationMode(currentMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture');
         }
     } catch (error) {
-        console.error("Picture-in-Picture failed", error);
+        logger.error('meeting-participant', 'Picture-in-Picture failed', error);
     }
   };
 

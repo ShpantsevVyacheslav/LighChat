@@ -11,6 +11,13 @@ class SecretChatPinDeviceStorage {
     iOptions: IOSOptions(
       accessibility: KeychainAccessibility.first_unlock_this_device,
     ),
+    // macOS Debug без paid Apple Developer ID не имеет
+    // keychain-access-groups entitlement; data-protection keychain
+    // вернёт SecItemAdd -34018. Падаем на legacy keychain.
+    mOptions: MacOsOptions(
+      accessibility: KeychainAccessibility.first_unlock_this_device,
+      useDataProtectionKeyChain: false,
+    ),
   );
 
   static String _keyForConversation(String conversationId) =>

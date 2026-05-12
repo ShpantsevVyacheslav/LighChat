@@ -18,14 +18,33 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.lighchat.deeplink</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>lighchat</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>LighChat использует камеру для видео-звонков и съёмки фото в чате.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>LighChat ищет ваших контактов, уже использующих сервис.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>$(PRODUCT_COPYRIGHT)</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>LighChat использует микрофон для голосовых сообщений и звонков.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>LighChat сохраняет принятые медиа в галерею по вашему запросу.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

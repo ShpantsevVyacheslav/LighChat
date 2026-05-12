@@ -52,6 +52,15 @@ Future<void> bootstrap() async {
 ///   неделю observation переключим на Enforce + functions getoff.
 Future<void> _activateAppCheck() async {
   if (kIsWeb) return;
+  // LOCAL OVERRIDE для free Apple ID (Personal Team) на iOS: AppAttest
+  // provisioning не выдан Apple для Bundle ID на free-аккаунте →
+  // FirebaseAppCheck.activate() возвращает невалидный токен, и следующие
+  // Firestore-запросы маскируются как `[cloud_firestore/internal]`. Сервер
+  // в Monitor mode → App Check токен не обязателен. Возвращаемся к этому
+  // блоку после покупки paid Apple Developer Program:
+  //   git checkout HEAD -- mobile/app/lib/app_bootstrap.dart
+  return;
+  // ignore: dead_code
   try {
     await FirebaseAppCheck.instance.activate(
       appleProvider: kDebugMode

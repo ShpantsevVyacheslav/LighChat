@@ -1190,6 +1190,17 @@ export type MessageReport = {
   reviewedBy?: string;
   reviewedAt?: string;
   createdAt: string;
+  /**
+   * Evidence-вложения, расшифрованные репортером и перезалитые в
+   * админ-only Storage-зону `moderation-evidence/{reporterId}/{nonce}/...`.
+   * Используется ТОЛЬКО для жалоб на E2EE-сообщения, где у сервера нет
+   * ключей. Reporter сознательно раскрывает контент админу — disclosure
+   * показывается в UI диалога жалобы. Очищаются `evidenceCleanupDaily`
+   * через 90 дней после `reviewedAt` (для resolved-жалоб).
+   */
+  evidenceAttachments?: ChatAttachment[];
+  /** Случайный nonce-prefix evidence пути; нужен `evidenceCleanupDaily` для удаления objects. */
+  evidenceNonce?: string;
 };
 
 export type MessageHiddenByAdmin = {

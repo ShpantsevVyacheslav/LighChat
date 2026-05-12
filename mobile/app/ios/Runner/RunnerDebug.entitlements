@@ -2,9 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>aps-environment</key>
-	<string>development</string>
-	<key>com.apple.developer.pushkit.unrestricted-voip</key>
-	<true/>
+	<!--
+	  Push Notifications (aps-environment) и PushKit VoIP временно убраны,
+	  потому что Personal Team (free Apple ID) не поддерживает эти capabilities.
+	  Когда купишь paid Apple Developer Program ($99/год) — верни через:
+	    git checkout HEAD -- ios/Runner/RunnerDebug.entitlements ios/Runner/RunnerRelease.entitlements ios/Runner/Info.plist
+	-->
 </dict>
 </plist>

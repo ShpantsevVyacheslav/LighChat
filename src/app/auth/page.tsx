@@ -51,6 +51,7 @@ import {
 } from "@/components/auth/auth-glass-classes";
 import { TelegramLoginDialog } from "@/components/auth/telegram-login-dialog";
 import { QrLoginPanel } from "@/components/auth/QrLoginPanel";
+import { AnalyticsEvents, track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/hooks/use-i18n";
@@ -243,6 +244,10 @@ export default function AuthPage() {
   const [stage, setStage] = React.useState<AuthStage>("entry");
 
   React.useEffect(() => {
+    track(AnalyticsEvents.authScreenView, { initial_method_hint: 'entry' });
+  }, []);
+
+  React.useEffect(() => {
     if (typeof window === "undefined") return;
     const u = new URL(window.location.href);
     const yandexErr = u.searchParams.get("yandex_error");
@@ -380,10 +385,13 @@ export default function AuthPage() {
 
   const onLogin = async (values: LoginValues) => {
     setIsSubmitting(true);
+    track(AnalyticsEvents.loginAttempt, { method: 'email' });
     const success = await login(values.email, values.password);
     if (success) {
+      track(AnalyticsEvents.loginSuccess, { method: 'email' });
       router.push('/dashboard');
     } else {
+      track(AnalyticsEvents.loginFailure, { method: 'email' });
       setIsSubmitting(false);
     }
   };
@@ -391,6 +399,7 @@ export default function AuthPage() {
   const onRegister = async (values: EmailPasswordRegistrationValues) => {
     setIsSubmitting(true);
     emailRegisterForm.clearErrors();
+    track(AnalyticsEvents.signUpAttempt, { method: 'email' });
     const result = await register({
       name: values.name,
       username: values.username,
@@ -403,8 +412,13 @@ export default function AuthPage() {
       avatarThumbFile: avatarThumbFile || undefined,
     });
     if (result.ok) {
+      // sign_up_success пишется server-side в onUserCreated, чтобы не дублировать.
       router.replace("/dashboard");
     } else {
+      track(AnalyticsEvents.signUpFailure, {
+        method: 'email',
+        error_code: result.conflictField ?? 'unknown',
+      });
       if (result.conflictField) {
         emailRegisterForm.setError(result.conflictField, {
           type: "duplicate",
@@ -446,6 +460,7 @@ export default function AuthPage() {
 
   const onGoogleSignIn = async () => {
     setIsSubmitting(true);
+    track(AnalyticsEvents.loginAttempt, { method: 'google' });
     try {
       await signInWithGoogle();
     } finally {
@@ -455,6 +470,7 @@ export default function AuthPage() {
 
   const onAppleSignIn = async () => {
     setIsSubmitting(true);
+    track(AnalyticsEvents.loginAttempt, { method: 'apple' });
     try {
       await signInWithApple();
     } finally {
@@ -465,9 +481,15 @@ export default function AuthPage() {
   const onTelegramAuthUser = React.useCallback(
     async (user: Record<string, unknown>) => {
       setIsSubmitting(true);
+      track(AnalyticsEvents.loginAttempt, { method: 'telegram' });
       try {
         const ok = await signInWithTelegramPayload(user);
-        if (ok) setTelegramDialogOpen(false);
+        if (ok) {
+          track(AnalyticsEvents.loginSuccess, { method: 'telegram' });
+          setTelegramDialogOpen(false);
+        } else {
+          track(AnalyticsEvents.loginFailure, { method: 'telegram' });
+        }
       } finally {
         setIsSubmitting(false);
       }
@@ -669,7 +691,10 @@ export default function AuthPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => void signInWithYandex()}
+                    onClick={() => {
+                      track(AnalyticsEvents.loginAttempt, { method: 'yandex' });
+                      void signInWithYandex();
+                    }}
                     disabled={isSubmitting}
                     className="h-10 rounded-[12px] border-white/50 bg-white/30 text-slate-900 backdrop-blur-md transition-all active:scale-[0.97] dark:border-white/15 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/10"
                     title={t("auth.yandexTitle")}

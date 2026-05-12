@@ -90,12 +90,28 @@ Flutter-клиент находится в `mobile/app` (iOS/Android).
 
 ## Сборка десктоп-приложения
 
+LighChat desktop собирается из единой Flutter-кодовой базы вместе с мобильным клиентом (`mobile/app`). Поддерживаются **macOS / Windows / Linux**.
+
 ```bash
-npm run build
-npm run dist
+cd mobile/app
+
+# macOS (DMG)
+flutter build macos --release
+brew install create-dmg
+create-dmg --app-drop-link 425 185 LighChat.dmg build/macos/Build/Products/Release/lighchat_mobile.app
+
+# Windows (MSIX)
+flutter build windows --release
+flutter pub run msix:create
+
+# Linux (AppImage)
+flutter build linux --release
+# далее appimagetool из .github/workflows/desktop.yml
 ```
 
-Готовые файлы появятся в папке `dist_desktop`.
+В CI (`.github/workflows/desktop.yml`) собирается matrix-build на macOS-14 / windows-latest / ubuntu-22.04 и публикуются артефакты в GitHub Release на теге `v*`. Подписи (Apple Developer ID, Windows EV cert) подключаются через GitHub Secrets — пока что артефакты идут без подписи.
+
+> **Electron-сборка (`npm run dist`, папка `dist_desktop`) — deprecated.** Заменяется на Flutter desktop; будет удалена после стабилизации Flutter v1 в проде.
 
 ## Деплой Firebase (Hosting / правила)
 

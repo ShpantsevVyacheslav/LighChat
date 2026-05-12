@@ -13,6 +13,7 @@ import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import '../../app_router.dart';
 import '../../l10n/app_localizations.dart';
 import 'push_notification_payload.dart';
+import 'push_runtime_flags.dart';
 
 /// Native incoming-call UI bridge (Android full-screen / iOS CallKit wrapper).
 ///
@@ -36,7 +37,7 @@ class PushNativeCallService {
   }
 
   Future<void> ensureInitialized() async {
-    if (kIsWeb || _eventsBound) return;
+    if (!callKitSupported || _eventsBound) return;
     _eventsBound = true;
     _eventSub = FlutterCallkitIncoming.onEvent.listen(
       (event) => unawaited(_handleEvent(event)),
@@ -106,7 +107,7 @@ class PushNativeCallService {
   }
 
   Future<bool> showIncomingFromData(Map<String, dynamic> rawData) async {
-    if (kIsWeb) return false;
+    if (!callKitSupported) return false;
     final data = rawData.map((k, v) => MapEntry(k.toString(), v));
     final callId = callIdFromPushData(data);
     if (callId == null || callId.trim().isEmpty) return false;

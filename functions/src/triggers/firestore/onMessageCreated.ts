@@ -5,6 +5,7 @@ import { senderListAvatarForPush } from "../../lib/push-sender-avatar";
 import { buildDataPayload, evaluateChatMessagePush } from "../../lib/push-notification-policy";
 import { sendDataMulticastGrouped } from "../../lib/fcm-send-data-batches";
 import { trySetMessageExpireAtForDisappearing } from "../../lib/disappearing-chat-messages";
+import { mirrorPushToFirestore } from "../../lib/push-fallback";
 
 const db = admin.firestore();
 const messaging = admin.messaging();
@@ -157,6 +158,14 @@ export const onmessagecreated = onDocumentCreated(
     const now = new Date();
 
     const sendItems: Array<{ tokens: string[]; data: Record<string, string> }> = [];
+    // Параллельно с FCM зеркалируем уведомления в Firestore для
+    // PushFallbackService (Windows/Linux Flutter-десктоп без FCM SDK).
+    const fallbackEntries: Array<{
+      uid: string;
+      title: string;
+      body: string;
+      data: Record<string, string>;
+    }> = [];
 
     // [audit H-006] Раньше per-recipient делалось 2 await get'а
     // (`users/{uid}` + `chatConversationPrefs/{convId}`) последовательно —
@@ -215,6 +224,12 @@ export const onmessagecreated = onDocumentCreated(
         });
 
         sendItems.push({ tokens, data });
+        fallbackEntries.push({
+          uid: userId,
+          title: senderName,
+          body: decision.body,
+          data,
+        });
       } catch (e) {
         logger.error(`Error building push for recipient ${userId}`, e);
       }
@@ -230,6 +245,13 @@ export const onmessagecreated = onDocumentCreated(
       logger.log(`Message push batches sent for conversation ${conversationId}`);
     } catch (error) {
       logger.error("Error sending message via FCM:", error);
+    }
+    // Зеркалим в Firestore для Windows/Linux-десктопа. Не блокируем
+    // основной FCM-флоу — best-effort, ошибки только логируем.
+    try {
+      await mirrorPushToFirestore(db, fallbackEntries);
+    } catch (error) {
+      logger.error("Error mirroring push to Firestore:", error);
     }
   },
 );

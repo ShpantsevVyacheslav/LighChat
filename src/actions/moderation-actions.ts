@@ -5,7 +5,14 @@ import { z } from 'zod';
 import { adminDb } from '@/firebase/admin';
 import { assertAdminByIdToken, verifyUserByIdToken } from '@/actions/admin-actions';
 import { logAdminAction } from '@/lib/server/audit-log';
-import type { MessageReport, Notification, ReportStatus, ModerationAction, MessageHiddenByAdmin } from '@/lib/types';
+import type {
+  ChatAttachment,
+  MessageReport,
+  Notification,
+  ReportStatus,
+  ModerationAction,
+  MessageHiddenByAdmin,
+} from '@/lib/types';
 import { logger } from '@/lib/logger';
 
 /**
@@ -80,6 +87,28 @@ const ReportReasonSchema = z.enum([
   'spam', 'harassment', 'inappropriate', 'offensive', 'violence', 'fraud', 'other',
 ]);
 
+// nonce evidence-префикса — буквы/цифры/подчёркивание/дефис, длиной до 64.
+// Используется в путях `moderation-evidence/{uid}/{nonce}/...`.
+const EvidenceNonceSchema = z
+  .string()
+  .min(8)
+  .max(64)
+  .regex(/^[A-Za-z0-9_-]+$/, 'invalid_evidence_nonce');
+
+// Один evidence-вложение: URL должен быть Firebase Storage download-URL,
+// path после `/o/` обязан начинаться с `moderation-evidence/{uid}/{nonce}/`
+// (валидация уровня action, поверх Storage-rules).
+const EvidenceAttachmentSchema = z.object({
+  url: z.string().url().max(2048),
+  name: z.string().max(255),
+  type: z.string().max(128),
+  size: z.number().int().nonnegative().max(220 * 1024 * 1024),
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
+});
+
+const MAX_EVIDENCE_ATTACHMENTS = 10;
+
 const CreateMessageReportSchema = z.object({
   idToken: z.string().min(1),
   conversationId: FirestoreIdSchema,
@@ -89,7 +118,31 @@ const CreateMessageReportSchema = z.object({
   messageText: z.string().max(4000).optional(),
   reason: ReportReasonSchema,
   description: z.string().max(2000).optional(),
+  evidenceNonce: EvidenceNonceSchema.optional(),
+  evidenceAttachments: z.array(EvidenceAttachmentSchema).max(MAX_EVIDENCE_ATTACHMENTS).optional(),
 });
+
+/**
+ * Проверяет, что download-URL Firebase Storage указывает на путь
+ * `moderation-evidence/{ownerUid}/{nonce}/...`. Возвращает true только
+ * если URL принадлежит ожидаемому owner+nonce. Защита от того, чтобы
+ * репортер не подсунул в evidence произвольный URL (чужие файлы,
+ * public-data, рекламу и т.п.).
+ */
+function isValidEvidenceUrl(url: string, ownerUid: string, nonce: string): boolean {
+  try {
+    const u = new URL(url);
+    if (!u.hostname.endsWith('firebasestorage.googleapis.com')) return false;
+    const segs = u.pathname.split('/').filter(Boolean);
+    const oIdx = segs.indexOf('o');
+    if (oIdx < 0 || oIdx >= segs.length - 1) return false;
+    const objectPath = decodeURIComponent(segs.slice(oIdx + 1).join('/'));
+    const expectedPrefix = `moderation-evidence/${ownerUid}/${nonce}/`;
+    return objectPath.startsWith(expectedPrefix);
+  } catch {
+    return false;
+  }
+}
 
 const HideMessageSchema = z.object({
   idToken: z.string().min(1),
@@ -123,6 +176,8 @@ export async function createMessageReportAction(input: {
   messageText?: string;
   reason: MessageReport['reason'];
   description?: string;
+  evidenceNonce?: string;
+  evidenceAttachments?: ChatAttachment[];
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const parsed = CreateMessageReportSchema.safeParse(input);
   if (!parsed.success) {
@@ -130,6 +185,28 @@ export async function createMessageReportAction(input: {
   }
   try {
     const reporter = await verifyUserByIdToken(parsed.data.idToken);
+
+    // Валидация evidence URLs: каждый должен лежать в
+    // moderation-evidence/{reporter.uid}/{nonce}/. Любой URL вне этого
+    // пути — это попытка репортера подсунуть произвольную ссылку
+    // (DOS-spam, фишинг через preview, чужие файлы).
+    let evidenceFields: Pick<MessageReport, 'evidenceAttachments' | 'evidenceNonce'> = {};
+    if (parsed.data.evidenceAttachments && parsed.data.evidenceAttachments.length > 0) {
+      if (!parsed.data.evidenceNonce) {
+        return { ok: false, error: 'Evidence передан без nonce — обновите клиента' };
+      }
+      const allValid = parsed.data.evidenceAttachments.every((a) =>
+        isValidEvidenceUrl(a.url, reporter.uid, parsed.data.evidenceNonce!),
+      );
+      if (!allValid) {
+        return { ok: false, error: 'Невалидный путь evidence-вложения' };
+      }
+      evidenceFields = {
+        evidenceAttachments: parsed.data.evidenceAttachments,
+        evidenceNonce: parsed.data.evidenceNonce,
+      };
+    }
+
     const ref = adminDb.collection('messageReports').doc();
     const report: MessageReport = {
       id: ref.id,
@@ -144,6 +221,7 @@ export async function createMessageReportAction(input: {
       description: parsed.data.description?.slice(0, 1000),
       status: 'pending',
       createdAt: new Date().toISOString(),
+      ...evidenceFields,
     };
     await ref.set(report);
     return { ok: true };

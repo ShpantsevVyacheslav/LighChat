@@ -32,6 +32,15 @@ const _secureStorage = FlutterSecureStorage(
   iOptions: IOSOptions(
     accessibility: KeychainAccessibility.first_unlock_this_device,
   ),
+  // macOS: data-protection keychain требует keychain-access-groups
+  // entitlement, который выдаётся только paid Apple Developer Program
+  // (см. SecItemAdd -34018 ошибка в логах при ad-hoc / Personal Team
+  // подписи). Переключаемся на legacy macOS keychain — он доступен
+  // unsandboxed-приложениям без entitlement.
+  mOptions: MacOsOptions(
+    accessibility: KeychainAccessibility.first_unlock_this_device,
+    useDataProtectionKeyChain: false,
+  ),
 );
 
 const String _kDeviceIdKey = 'lighchat.e2ee.v2.deviceId';

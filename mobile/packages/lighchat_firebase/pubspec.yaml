@@ -19,6 +19,12 @@ dependencies:
   firebase_messaging: any
   firebase_storage: any
 
+  # Apple Sign-In native flow для iOS/macOS — см.
+  # `auth_repository.dart::signInWithApple`. Возвращает identityToken,
+  # конвертируется в Firebase OAuthCredential.
+  sign_in_with_apple: ^6.1.0
+  crypto: any
+
   lighchat_models:
     path: ../lighchat_models
 

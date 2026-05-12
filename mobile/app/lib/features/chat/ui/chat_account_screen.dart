@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
+import 'package:lighchat_mobile/features/admin/data/user_role_provider.dart';
 import '../data/app_theme_preference.dart';
+import '../data/desktop_workspace_flag.dart';
 import '../data/user_profile.dart';
 import '../../auth/ui/auth_glass.dart';
 import 'chat_avatar.dart';
@@ -404,6 +406,35 @@ class _AccountView extends StatelessWidget {
                         icon: Icons.gavel_rounded,
                         title: l10n.legal_settings_section_title,
                         onTap: () => context.push('/legal'),
+                      ),
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final role = ref
+                                  .watch(userRoleProvider)
+                                  .asData
+                                  ?.value ??
+                              AppUserRole.user;
+                          if (!role.canAccessAdmin) {
+                            return const SizedBox.shrink();
+                          }
+                          return _MenuItem(
+                            icon: Icons.admin_panel_settings_rounded,
+                            title: 'Админ-панель',
+                            onTap: () => context.push('/admin'),
+                          );
+                        },
+                      ),
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final flagOn =
+                              ref.watch(desktopWorkspaceFlagProvider);
+                          if (!flagOn) return const SizedBox.shrink();
+                          return _MenuItem(
+                            icon: Icons.view_sidebar_rounded,
+                            title: 'Открыть workspace (master-detail)',
+                            onTap: () => context.go('/workspace'),
+                          );
+                        },
                       ),
                       const SizedBox(height: 10),
                       Divider(

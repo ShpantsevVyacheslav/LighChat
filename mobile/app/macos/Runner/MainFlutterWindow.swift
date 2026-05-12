@@ -10,6 +10,31 @@ class MainFlutterWindow: NSWindow {
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 
+    // ScreenshotProtectionFacade (Dart) → MethodChannel "lighchat/screenshot_protection".
+    // enable: NSWindow.sharingType = .none — окно не появляется в скриншотах /
+    // ScreenCaptureKit. disable: возвращаем .readOnly (дефолт).
+    // Также блокируем "Open in Mission Control" preview через collectionBehavior.
+    let screenshotChannel = FlutterMethodChannel(
+      name: "lighchat/screenshot_protection",
+      binaryMessenger: flutterViewController.engine.binaryMessenger
+    )
+    screenshotChannel.setMethodCallHandler { [weak self] call, result in
+      guard let window = self else {
+        result(FlutterError(code: "no_window", message: "Window deallocated", details: nil))
+        return
+      }
+      switch call.method {
+      case "enable":
+        window.sharingType = .none
+        result(nil)
+      case "disable":
+        window.sharingType = .readOnly
+        result(nil)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+
     super.awakeFromNib()
   }
 }

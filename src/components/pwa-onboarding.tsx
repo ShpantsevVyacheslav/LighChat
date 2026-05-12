@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ShieldCheck, Bell, Camera, Mic, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
+import { logger } from '@/lib/logger';
 
 export function PwaOnboarding() {
   const { t } = useI18n();
@@ -46,10 +47,10 @@ export function PwaOnboarding() {
           const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
           stream.getTracks().forEach(track => track.stop());
         } catch (e) {
-          console.warn("Media permissions denied or failed:", e);
+          logger.warn('pwa-onboarding', 'Media permissions denied or failed', e);
         }
       } catch (error) {
-        console.error("Onboarding permissions error:", error);
+        logger.error('pwa-onboarding', 'permissions error', error);
       }
     })();
   };

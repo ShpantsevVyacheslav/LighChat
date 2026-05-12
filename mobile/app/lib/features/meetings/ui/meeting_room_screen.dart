@@ -224,12 +224,17 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
     }
   }
 
-  /// Screen-share сейчас работает только на Android (использует
-  /// `MediaProjection`). На iOS нужен отдельный Broadcast Extension —
-  /// см. `meetings-wire-protocol.md` §8.
+  /// Screen-share работает на Android (MediaProjection), macOS
+  /// (ScreenCaptureKit через flutter_webrtc) и Windows (DXGI desktop
+  /// duplication). На iOS требуется Broadcast Extension —
+  /// см. `meetings-wire-protocol.md` §8. На Linux flutter_webrtc может
+  /// захватывать через X11/Wayland (pipewire), но требует runtime-проверки.
   bool get _screenShareSupported {
     if (kIsWeb) return false;
-    return Platform.isAndroid;
+    return Platform.isAndroid ||
+        Platform.isMacOS ||
+        Platform.isWindows ||
+        Platform.isLinux;
   }
 
   Future<void> _syncPeersFromParticipants(

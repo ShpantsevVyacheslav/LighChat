@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/hooks/use-i18n';
+import { setConsent } from '@/lib/analytics';
 
 const STORAGE_KEY = 'lc_cookie_consent_v1';
 
@@ -27,6 +28,7 @@ export function CookieBanner() {
     } catch {
       /* ignore */
     }
+    setConsent(decision);
     setVisible(false);
   }, []);
 

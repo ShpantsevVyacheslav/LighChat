@@ -54,6 +54,7 @@ export { cancelGameLobby } from './triggers/http/cancelGameLobby';
 export { createDurakTournament } from './triggers/http/createDurakTournament';
 export { createTournamentGameLobby } from './triggers/http/createTournamentGameLobby';
 export { createDurakRematch } from './triggers/http/createDurakRematch';
+export { logAnalyticsEvent } from './triggers/http/logAnalyticsEvent';
 
 // Firestore Triggers
 export { onconversationcreated } from './triggers/firestore/onConversationCreated';
@@ -85,3 +86,4 @@ export { cleanupDurakTurnTimeouts } from './triggers/scheduler/cleanupDurakTurnT
 export { sendScheduledMessages } from './triggers/scheduler/sendScheduledMessages';
 export { mediaRetentionCleanupDaily } from './triggers/scheduler/mediaRetentionCleanupDaily';
 export { enforceStorageQuotasDaily } from './triggers/scheduler/enforceStorageQuotasDaily';
+export { rollupDailyAnalytics } from './triggers/scheduler/rollupDailyAnalytics';

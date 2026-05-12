@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { E2eeFingerprintBadge } from '@/components/chat/E2eeFingerprintBadge';
+import { logger } from '@/lib/logger';
 
 type ConversationEncryptionPanelProps = {
   conversation: Conversation;
@@ -61,7 +62,7 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
       toast({ title: t('chat.encryption.toastEnabled'), description: t('chat.encryption.toastEnabledDesc') });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      console.warn('[e2ee] enable from profile failed', e);
+      logger.warn('e2ee', 'enable from profile failed', e);
       toast({
         variant: 'destructive',
         title: t('chat.encryption.toastEnableError'),
@@ -86,7 +87,7 @@ export function ConversationEncryptionPanel({ conversation, currentUserId }: Con
         description: t('chat.encryption.toastDisabledDesc'),
       });
     } catch (e) {
-      console.warn('[e2ee] disable from profile failed', e);
+      logger.warn('e2ee', 'disable from profile failed', e);
       toast({ variant: 'destructive', title: t('chat.encryption.toastDisableError') });
     } finally {
       setBusy(false);

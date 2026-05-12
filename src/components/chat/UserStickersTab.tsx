@@ -30,6 +30,7 @@ import type { ChatAttachment } from '@/lib/types';
 import { USER_STICKER_MAX_FILE_BYTES, userStickerItemToAttachment } from '@/lib/user-sticker-packs';
 import { USER_STICKER_VIDEO_MAX_UPLOAD_SEC } from '@/lib/sticker-media-normalize';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 type UserStickersTabProps = {
   userId: string;
@@ -115,7 +116,7 @@ export function UserStickersTab({ userId, onPickSticker, className }: UserSticke
         toast({ title: t('chat.userStickers.packCreateFailed'), variant: 'destructive' });
       }
     } catch (e) {
-      console.warn('[LighChat:stickers] createPack', e);
+      logger.warn('stickers', 'createPack', e);
       toast({ title: t('chat.userStickers.packCreateError'), variant: 'destructive' });
     } finally {
       setBusy(false);

@@ -21,24 +21,29 @@ import {
 import { Loader2 } from 'lucide-react';
 import { useI18n } from '@/hooks/use-i18n';
 import { useAuth } from '@/hooks/use-auth';
-import { useUser } from '@/firebase';
+import { useUser, useStorage } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { createMessageReportAction } from '@/actions/moderation-actions';
-import type { ReportReason } from '@/lib/types';
+import type {
+  ChatAttachment,
+  ChatMessageE2eeAttachmentEnvelopeV2,
+  ReportReason,
+} from '@/lib/types';
+import {
+  randomEvidenceNonce,
+  uploadE2eeEvidence,
+} from '@/lib/moderation/upload-e2ee-evidence';
+import { logger } from '@/lib/logger';
 
 /**
  * Универсальный диалог жалобы — поддерживает оба режима:
  *  - **message-report**: `messageId` задан → жалоба на конкретное сообщение
- *    в чате (заголовок «Пожаловаться на сообщение»).
- *  - **user-report**: `messageId` отсутствует → жалоба на пользователя в
- *    целом (заголовок «Пожаловаться на пользователя»). Используется из
- *    `ChatParticipantProfile` (кнопка рядом с «Заблокировать»), что
- *    закрывает H-2 [audit] паритет с mobile.
+ *    в чате.
+ *  - **user-report**: `messageId` отсутствует → жалоба на пользователя.
  *
- * Backend (`createMessageReportAction` + Zod `CreateMessageReportSchema`)
- * уже принимает `messageId?` опционально и кладёт в одну коллекцию
- * `messageReports`; в админ-панели user-report'ы рендерятся как жалобы
- * без «Hide Message» (см. admin-moderation-panel `!r.messageId` disable).
+ * Для E2EE-сообщений с вложениями репортер опционально передаёт
+ * расшифрованную копию (evidence) в админ-only Storage-зону через
+ * `uploadE2eeEvidence`. UI явно предупреждает о disclosure'е.
  */
 interface ReportMessageDialogProps {
   open: boolean;
@@ -49,14 +54,14 @@ interface ReportMessageDialogProps {
   messageSenderId: string;
   messageSenderName?: string;
   messageText?: string;
-  /**
-   * Сообщение в E2EE-чате (текст уже расшифрован на стороне репортера).
-   * Включает UX-предупреждение: отправляя жалобу, репортер сознательно
-   * передаёт администратору расшифрованную копию сообщения. Сервер
-   * ключей не имеет — без этой передачи модерация E2EE-чатов
-   * невозможна в принципе.
-   */
+  /** Включает E2EE-предупреждение и блок «приложить evidence». */
   isE2ee?: boolean;
+  /** E2EE envelope'ы — для evidence-аплоада. null элементы пропускаются. */
+  e2eeAttachments?: Array<ChatMessageE2eeAttachmentEnvelopeV2 | null>;
+  /** Эпоха сообщения для получения chat key. */
+  messageEpoch?: number;
+  /** Геттер chat key, обычно `e2eeConv.getChatKeyRawV2ForEpoch`. */
+  getChatKeyRawV2ForEpoch?: (epoch: number) => Promise<ArrayBuffer | null>;
 }
 
 export function ReportMessageDialog({
@@ -68,39 +73,90 @@ export function ReportMessageDialog({
   messageSenderName,
   messageText,
   isE2ee,
+  e2eeAttachments,
+  messageEpoch,
+  getChatKeyRawV2ForEpoch,
 }: ReportMessageDialogProps) {
   const isUserReport = !messageId;
   const { user } = useAuth();
   const { user: firebaseUser } = useUser();
+  const storage = useStorage();
   const { toast } = useToast();
   const { t } = useI18n();
   const [reason, setReason] = useState<ReportReason>('inappropriate');
   const [description, setDescription] = useState('');
   const [sending, setSending] = useState(false);
+  const [includeMedia, setIncludeMedia] = useState(true);
+  const [evidenceStage, setEvidenceStage] = useState<'idle' | 'uploading' | 'done'>('idle');
+
+  const realE2eeEnvelopes = (e2eeAttachments ?? []).filter(
+    (e): e is ChatMessageE2eeAttachmentEnvelopeV2 => !!e,
+  );
+  const hasE2eeMedia =
+    !!isE2ee && !isUserReport && realE2eeEnvelopes.length > 0 && !!messageId &&
+    typeof messageEpoch === 'number' && !!getChatKeyRawV2ForEpoch && !!storage;
 
   const submit = async () => {
     if (!user || !firebaseUser) return;
     setSending(true);
-    // SECURITY: server derives reporterId/reporterName from this idToken via
-    // verifyUserByIdToken; client cannot impersonate another uid.
-    const idToken = await firebaseUser.getIdToken();
-    const res = await createMessageReportAction({
-      idToken,
-      conversationId,
-      messageId,
-      messageSenderId,
-      messageSenderName,
-      messageText,
-      reason,
-      description: description.trim() || undefined,
-    });
-    setSending(false);
-    if (res.ok) {
-      toast({ title: t('chat.report.submitted') });
-      onOpenChange(false);
-      setDescription('');
-    } else {
-      toast({ variant: 'destructive', title: res.error });
+    try {
+      const idToken = await firebaseUser.getIdToken();
+
+      let evidenceNonce: string | undefined;
+      let evidenceAttachments: ChatAttachment[] | undefined;
+
+      if (hasE2eeMedia && includeMedia) {
+        setEvidenceStage('uploading');
+        try {
+          const nonce = randomEvidenceNonce();
+          const uploaded = await uploadE2eeEvidence({
+            storage: storage!,
+            conversationId,
+            messageId: messageId!,
+            reporterUid: user.id,
+            evidenceNonce: nonce,
+            envelopes: realE2eeEnvelopes,
+            getChatKeyRawV2ForEpoch: getChatKeyRawV2ForEpoch!,
+            messageEpoch: messageEpoch!,
+          });
+          if (uploaded.length > 0) {
+            evidenceNonce = nonce;
+            evidenceAttachments = uploaded;
+          }
+          setEvidenceStage('done');
+        } catch (e) {
+          logger.error('moderation-report', 'uploadE2eeEvidence', e);
+          setEvidenceStage('idle');
+          toast({
+            variant: 'destructive',
+            title: 'Не удалось приложить evidence-копию',
+            description: 'Жалоба будет отправлена без вложений.',
+          });
+        }
+      }
+
+      const res = await createMessageReportAction({
+        idToken,
+        conversationId,
+        messageId,
+        messageSenderId,
+        messageSenderName,
+        messageText,
+        reason,
+        description: description.trim() || undefined,
+        evidenceNonce,
+        evidenceAttachments,
+      });
+      if (res.ok) {
+        toast({ title: t('chat.report.submitted') });
+        onOpenChange(false);
+        setDescription('');
+      } else {
+        toast({ variant: 'destructive', title: res.error });
+      }
+    } finally {
+      setSending(false);
+      setEvidenceStage('idle');
     }
   };
 
@@ -145,16 +201,31 @@ export function ReportMessageDialog({
           </div>
 
           {isE2ee && !isUserReport && (
-            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs space-y-1">
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs space-y-2">
               <p className="font-medium text-amber-700 dark:text-amber-400">
                 Сообщение зашифровано E2E
               </p>
               <p className="text-muted-foreground">
                 Чтобы модератор мог рассмотреть жалобу, мы приложим
-                расшифрованную копию текста сообщения. Файлы (если есть)
-                в этой версии пока не передаются — приложите скриншот в
-                комментарии при необходимости.
+                расшифрованную копию текста сообщения.
+                {hasE2eeMedia && ' Вложения (файлы) будут расшифрованы локально и переданы как evidence в admin-only зону Storage — никто, кроме админа, к ним не получит доступа.'}
               </p>
+              {hasE2eeMedia && (
+                <label className="flex items-center gap-2 cursor-pointer pt-1">
+                  <input
+                    type="checkbox"
+                    checked={includeMedia}
+                    onChange={(e) => setIncludeMedia(e.target.checked)}
+                    disabled={sending}
+                  />
+                  <span>Приложить вложения ({realE2eeEnvelopes.length} шт.)</span>
+                </label>
+              )}
+              {evidenceStage === 'uploading' && (
+                <p className="flex items-center gap-1 text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Шифрованная расшифровка и upload evidence…
+                </p>
+              )}
             </div>
           )}
 

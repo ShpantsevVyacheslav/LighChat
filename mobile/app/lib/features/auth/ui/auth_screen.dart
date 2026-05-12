@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, TargetPlatform;
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -18,6 +18,8 @@ import 'yandex_sign_in_webview_screen.dart';
 import '../../shared/ui/app_back_button.dart';
 import '../../shared/ui/platform_keyboard_dismiss_behavior.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../analytics/analytics_events.dart';
+import '../../analytics/analytics_provider.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -31,11 +33,40 @@ class AuthScreen extends ConsumerStatefulWidget {
 ///  - [methods] — текущая форма email/password + OAuth-сетка.
 enum _AuthStage { entry, methods }
 
+/// `firebase_auth_macos` не реализует `signInWithProvider`. Показываем
+/// пользователю осмысленное сообщение вместо unhandled exception. Возвращает
+/// `true`, если вызов нужно прервать (платформа = macOS).
+bool oauthBlockedOnMacOSCheck(BuildContext context) {
+  if (kIsWeb || defaultTargetPlatform != TargetPlatform.macOS) return false;
+  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+    const SnackBar(
+      content: Text(
+        'Вход через Google/Apple/Яндекс/Telegram на macOS-Desktop пока '
+        'недоступен (firebase_auth_macos не поддерживает signInWithProvider). '
+        'Используйте email + пароль или QR-вход.',
+      ),
+      duration: Duration(seconds: 6),
+    ),
+  );
+  return true;
+}
+
 class _AuthScreenState extends ConsumerState<AuthScreen> {
   bool _busy = false;
   String? _error;
   bool _redirectingSignedInUser = false;
   _AuthStage _stage = _AuthStage.entry;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(analyticsServiceProvider).logEvent(
+            AnalyticsEvents.authScreenView,
+            const <String, Object?>{'initial_method_hint': 'entry'},
+          );
+    });
+  }
 
   Future<void> _openRegisterSheet() async {
     await Navigator.of(context).push<void>(
@@ -52,6 +83,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     AuthRepository repo,
     Future<void> Function() signIn,
   ) async {
+    if (oauthBlockedOnMacOSCheck(context)) return;
     final ok = await _run(signIn, goChatsOnSuccess: false);
     if (!ok || !mounted) return;
     final user = FirebaseAuth.instance.currentUser;
@@ -739,6 +771,7 @@ class _RegisterSheetBodyState extends ConsumerState<_RegisterSheetBody> {
   /// успешный signIn создаёт users/{uid} через CF onUserCreated, дальше
   /// дозаполняется при необходимости.
   Future<void> _runOAuth(Future<void> Function() signIn) async {
+    if (oauthBlockedOnMacOSCheck(context)) return;
     setState(() {
       _busy = true;
       _oauthError = null;
@@ -773,7 +806,13 @@ class _RegisterSheetBodyState extends ConsumerState<_RegisterSheetBody> {
     final dark = scheme.brightness == Brightness.dark;
     final firebaseReady = ref.watch(firebaseReadyProvider);
     final repo = ref.watch(authRepositoryProvider);
-    final canOAuth = firebaseReady && repo != null && !_busy;
+    // На macOS firebase_auth_macos не реализует `signInWithProvider`
+    // (logs: "signInWithProvider is not supported on the MacOS platform.").
+    // Поэтому OAuth-кнопки (Google/Apple/Yandex/Telegram) на macOS Debug
+    // disabled до тех пор, пока не подключим Google Sign-In SDK / Yandex
+    // OAuth webview напрямую и не получим customToken через CF.
+    final isMacOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
+    final canOAuth = firebaseReady && repo != null && !_busy && !isMacOS;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

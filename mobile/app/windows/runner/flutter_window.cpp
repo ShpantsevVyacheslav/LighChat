@@ -2,6 +2,9 @@
 
 #include <optional>
 
+#include <flutter/method_channel.h>
+#include <flutter/standard_method_codec.h>
+
 #include "flutter/generated_plugin_registrant.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
@@ -26,6 +29,42 @@ bool FlutterWindow::OnCreate() {
   }
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
+
+  // ScreenshotProtectionFacade (Dart) → MethodChannel "lighchat/screenshot_protection".
+  // enable: SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE) — окно
+  // становится чёрным в OBS / Teams / Zoom / Print Screen.
+  // disable: WDA_NONE возвращает обычный режим.
+  auto& messenger = *flutter_controller_->engine()->messenger();
+  static flutter::MethodChannel<flutter::EncodableValue> screenshot_channel(
+      &messenger, "lighchat/screenshot_protection",
+      &flutter::StandardMethodCodec::GetInstance());
+  HWND root_hwnd = GetHandle();
+  screenshot_channel.SetMethodCallHandler(
+      [root_hwnd](
+          const flutter::MethodCall<flutter::EncodableValue>& call,
+          std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>
+              result) {
+        const auto& method = call.method_name();
+        if (method == "enable") {
+          if (root_hwnd != nullptr &&
+              SetWindowDisplayAffinity(root_hwnd, WDA_EXCLUDEFROMCAPTURE)) {
+            result->Success();
+          } else {
+            result->Error("set_affinity_failed",
+                          "SetWindowDisplayAffinity returned false");
+          }
+        } else if (method == "disable") {
+          if (root_hwnd != nullptr &&
+              SetWindowDisplayAffinity(root_hwnd, WDA_NONE)) {
+            result->Success();
+          } else {
+            result->Error("set_affinity_failed",
+                          "SetWindowDisplayAffinity returned false");
+          }
+        } else {
+          result->NotImplemented();
+        }
+      });
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();

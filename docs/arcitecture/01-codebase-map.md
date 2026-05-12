@@ -63,13 +63,16 @@
 
 ## Desktop and tooling
 
-- `electron/main.js`, `electron/preload.js` - desktop shell.
+- `electron/main.js`, `electron/preload.js` - **deprecated** desktop shell поверх Next.js. Заменяется на Flutter desktop (`mobile/app` macOS/Windows/Linux); подлежит удалению после стабилизации v1 Flutter-сборки.
+- `mobile/app/macos`, `mobile/app/windows`, `mobile/app/linux` - нативные runner-каркасы Flutter desktop. macOS: `Podfile` с `platform :osx, '11.0'` + post_install override, entitlements включают `network.client`, `device.{audio-input,camera}`, contacts, location, downloads; `Info.plist` содержит `CFBundleURLTypes` для схемы `lighchat://`.
+- `mobile/app/lib/features/desktop_shell/` - десктоп-оболочка Flutter (см. AGENTS.md): окно/трей/badge/drop/deep links/single-instance/auto-updater.
+- `.github/workflows/desktop.yml` - CI matrix: macOS DMG (`create-dmg`), Windows MSIX (`flutter pub run msix:create`), Linux AppImage (`appimagetool`). На теге `v*` публикует артефакты в GitHub Release.
 - `scripts/*` - утилиты генерации иконок/брендинга.
 - `public/*` - статика и PWA-ассеты.
 
 ## Mobile (Flutter)
 
-- `mobile/app` - Flutter приложение (iOS/Android) — новый клиент для стора.
+- `mobile/app` - Flutter приложение для **iOS / Android / macOS / Windows / Linux**. Единая кодовая база; платформо-зависимое поведение изолировано в `lib/platform/platform_capabilities.dart`.
   - `lib/features/chat/ui/chat_list_screen.dart` - список чатов, папки, поиск, empty-state, запуск нового чата.
   - `lib/features/chat/ui/chat_contacts_screen.dart` - отдельная страница контактов (`/contacts`), список контактов и синхронизация телефонной книги по phone/email.
   - `lib/features/chat/ui/new_chat_screen.dart`, `lib/features/chat/ui/new_group_chat_screen.dart` - новый личный чат (поиск с секциями «контакты / все пользователи») и создание группы; маршруты `/chats/new`, `/chats/new/group` в `lib/app_router.dart`.

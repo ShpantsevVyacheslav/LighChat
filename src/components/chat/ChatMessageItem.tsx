@@ -134,6 +134,11 @@ interface ChatMessageItemProps {
     isStarred?: boolean;
     onToggleStar?: (messageId: string, nextStarred: boolean) => void;
     onRetryMediaNorm?: (message: ChatMessage) => void | Promise<void>;
+    /**
+     * Геттер chat-ключа для E2EE-evidence-upload в [report-message-dialog].
+     * Пробрасывается из `useE2eeConversation` через ChatWindow.
+     */
+    getChatKeyRawV2ForEpoch?: (epoch: number) => Promise<ArrayBuffer | null>;
 }
 
 const ChatMessageItemComponent = ({
@@ -158,6 +163,7 @@ const ChatMessageItemComponent = ({
     isStarred = false,
     onToggleStar,
     onRetryMediaNorm,
+    getChatKeyRawV2ForEpoch,
 }: ChatMessageItemProps) => {
     const { t } = useI18n();
     const isCurrentUser = message.senderId === currentUser.id;
@@ -1044,6 +1050,9 @@ const ChatMessageItemComponent = ({
                     // см. UX-предупреждение в ReportMessageDialog для E2EE-чатов).
                     messageText={displayTextHtml || undefined}
                     isE2ee={hasDecryptedEntry || !!message.e2ee?.ciphertext}
+                    e2eeAttachments={message.e2ee?.attachments}
+                    messageEpoch={message.e2ee?.epoch}
+                    getChatKeyRawV2ForEpoch={getChatKeyRawV2ForEpoch}
                 />
             )}
         </div>

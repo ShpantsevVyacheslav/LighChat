@@ -4,8 +4,10 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
+  auto_updater_windows
   battery_plus
   cloud_firestore
+  desktop_drop
   emoji_picker_flutter
   file_selector_windows
   firebase_auth
@@ -19,10 +21,13 @@ list(APPEND FLUTTER_PLUGIN_LIST
   local_auth_windows
   permission_handler_windows
   record_windows
+  screen_retriever_windows
   share_plus
   super_native_extensions
   syncfusion_pdfviewer_windows
+  tray_manager
   url_launcher_windows
+  window_manager
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

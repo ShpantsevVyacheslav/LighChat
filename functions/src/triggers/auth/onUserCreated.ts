@@ -3,6 +3,9 @@ import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import { logger } from "firebase-functions/v1";
 
+import { AnalyticsEvents } from "../../analytics/events";
+import { recordAnalyticsEvent } from "../../analytics/recordEvent";
+
 function buildProfileQrLink(userId: string, username?: string | null): string {
   const normalizedUsername = String(username ?? "").trim().replace(/^@/, "").toLowerCase();
   if (normalizedUsername) {
@@ -89,6 +92,25 @@ export const onUserCreated = functions.auth.user().onCreate(async (user) => {
     } else {
       logger.log(`users/${user.uid} already had profile; onUserCreated skipped write.`);
     }
+
+    // Analytics: серверная серверная запись sign_up_success — единый источник
+    // правды для воронки регистраций. Метод определяется по providerData
+    // (Firebase Auth не отдаёт его в onCreate напрямую для всех провайдеров,
+    // поэтому проверяем по uid-префиксу и email/phone).
+    let method = "email";
+    if (user.uid.startsWith("tg_")) method = "telegram";
+    else if (user.uid.startsWith("ya_")) method = "yandex";
+    else if (isAnonymous) method = "guest";
+    else if (user.providerData?.[0]?.providerId === "google.com") method = "google";
+    else if (user.providerData?.[0]?.providerId === "apple.com") method = "apple";
+    else if (user.phoneNumber) method = "phone_otp";
+
+    await recordAnalyticsEvent({
+      event: AnalyticsEvents.signUpSuccess,
+      uid: user.uid,
+      params: { method, is_anonymous: isAnonymous },
+      source: "auth_trigger",
+    });
 
     // [audit H-008] Индекс TTL гостей для cleanupGuestAccounts. Раньше тот
     // сканировал ВСЕХ Auth-users каждый час (`listUsers(1000) × 24/day`)

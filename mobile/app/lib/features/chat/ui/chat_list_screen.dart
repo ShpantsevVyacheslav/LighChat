@@ -20,20 +20,46 @@ import '../../settings/data/energy_saving_preference.dart';
 import '../../../l10n/app_localizations.dart';
 
 import 'chat_folder_bar.dart';
+import 'chat_folders_rail.dart' show activeFoldersRailIdProvider;
 import 'chat_list_item.dart';
 import 'chat_bottom_nav.dart';
 import 'chat_shell_backdrop.dart';
 import '../../features_tour/data/features_welcome_pending.dart';
 import '../../features_tour/ui/features_welcome_sheet.dart';
 
-class ChatListScreen extends ConsumerStatefulWidget {
+/// Полный экран списка чатов: `Scaffold` + [ChatListPane] внутри.
+///
+/// Тонкая обёртка, чтобы переиспользовать [ChatListPane] на десктопе
+/// без Scaffold (внутри master-detail layout). На мобайле поведение
+/// строго эквивалентно прежнему — все методы и lifecycle переехали в
+/// [_ChatListPaneState], `ChatListScreen` рендерит только `Scaffold`.
+class ChatListScreen extends StatelessWidget {
   const ChatListScreen({super.key});
 
   @override
-  ConsumerState<ChatListScreen> createState() => _ChatListScreenState();
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      resizeToAvoidBottomInset: false,
+      body: ChatListPane(),
+    );
+  }
 }
 
-class _ChatListScreenState extends ConsumerState<ChatListScreen> {
+/// Тело списка чатов без `Scaffold`. На мобиле используется внутри
+/// [ChatListScreen]; на десктопе будет встроена как master-pane в
+/// `TwoPaneLayout`. **Поведение мобильного варианта не должно меняться.**
+class ChatListPane extends ConsumerStatefulWidget {
+  const ChatListPane({super.key, this.hideBottomNav = false});
+
+  /// На desktop master-detail layout (`WorkspaceShellScreen`) нижняя
+  /// навигация скрыта — её роль играет вертикальный rail слева.
+  final bool hideBottomNav;
+
+  @override
+  ConsumerState<ChatListPane> createState() => _ChatListPaneState();
+}
+
+class _ChatListPaneState extends ConsumerState<ChatListPane> {
   @override
   void initState() {
     super.initState();
@@ -103,18 +129,17 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   @override
   Widget build(BuildContext context) {
     final firebaseReady = ref.watch(firebaseReadyProvider);
-    final userAsync = ref.watch(authUserProvider);
 
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      body: !firebaseReady
-          ? Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                AppLocalizations.of(context)!.chat_list_firebase_not_configured,
-              ),
-            )
-          : userAsync.when(
+    if (!firebaseReady) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          AppLocalizations.of(context)!.chat_list_firebase_not_configured,
+        ),
+      );
+    }
+    final userAsync = ref.watch(authUserProvider);
+    return userAsync.when(
               data: (user) {
                 if (user == null) {
                   // Hard-redirect away from chats when signed out.
@@ -158,6 +183,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                           userChatIndex: idx,
                           folders: folders,
                           conversations: visibleConversations,
+                          hideBottomNav: widget.hideBottomNav,
                         );
                       },
                       loading: () => _bootLoading(
@@ -196,8 +222,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                   AppLocalizations.of(context)!.chat_auth_error(e.toString()),
                 ),
               ),
-            ),
-    );
+            );
   }
 
   List<ChatFolder> _buildFolders({
@@ -272,12 +297,17 @@ class _ChatListBody extends ConsumerStatefulWidget {
     required this.userChatIndex,
     required this.folders,
     required this.conversations,
+    this.hideBottomNav = false,
   });
 
   final String currentUserId;
   final UserChatIndex? userChatIndex;
   final List<ChatFolder> folders;
   final List<ConversationWithId> conversations;
+
+  /// Скрыть [ChatBottomNav] на desktop в master-detail layout — навигация
+  /// перенесена в левый вертикальный rail [WorkspaceNavRail].
+  final bool hideBottomNav;
 
   @override
   ConsumerState<_ChatListBody> createState() => _ChatListBodyState();
@@ -566,6 +596,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       if (!mounted) return;
       if (_activeFolderId == folder.id) {
         setState(() => _activeFolderId = 'all');
+        ref.read(activeFoldersRailIdProvider.notifier).state = 'all';
       }
     } catch (e) {
       if (!context.mounted) return;
@@ -1228,6 +1259,20 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
 
   @override
   Widget build(BuildContext context) {
+    // Двусторонняя синхронизация active folder с
+    // `activeFoldersRailIdProvider`, который читает desktop
+    // `ChatFoldersRail`. Когда rail переключает папку — наш state
+    // догоняет на следующий кадр; когда мы переключаем через локальный
+    // setState, пишем туда же (см. `setState(() => _activeFolderId = X)`
+    // ниже + явный `ref.read(...)` после него).
+    final railFolderId = ref.watch(activeFoldersRailIdProvider);
+    if (railFolderId != _activeFolderId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _activeFolderId != railFolderId) {
+          setState(() => _activeFolderId = railFolderId);
+        }
+      });
+    }
     final userDoc =
         ref
             .watch(userChatSettingsDocProvider(widget.currentUserId))
@@ -1494,6 +1539,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                       }
                       if (!mounted) return;
                       setState(() => _activeFolderId = id);
+                      ref.read(activeFoldersRailIdProvider.notifier).state = id;
                     },
                     unreadByFolderId: unreadByFolder,
                     onLongPressFolder: (folder) =>
@@ -1954,20 +2000,21 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                           ),
                     ),
                   ),
-                  ChatBottomNav(
-                    activeTab: ChatBottomNavTab.chats,
-                    onChatsTap: () => context.go('/chats'),
-                    onContactsTap: () => context.go('/contacts'),
-                    onCallsTap: () => context.go('/calls'),
-                    onMeetingsTap: () => context.go('/meetings'),
-                    onProfileTap: () => context.push('/account'),
-                    avatarUrl: selfAvatar,
-                    userTitle: selfName,
-                    bottomNavAppearance: bottomNavAppearance,
-                    bottomNavIconNames: bottomNavIconNames,
-                    bottomNavIconGlobalStyle: bottomNavGlobalStyle,
-                    bottomNavIconStyles: bottomNavIconStyles,
-                  ),
+                  if (!widget.hideBottomNav)
+                    ChatBottomNav(
+                      activeTab: ChatBottomNavTab.chats,
+                      onChatsTap: () => context.go('/chats'),
+                      onContactsTap: () => context.go('/contacts'),
+                      onCallsTap: () => context.go('/calls'),
+                      onMeetingsTap: () => context.go('/meetings'),
+                      onProfileTap: () => context.push('/account'),
+                      avatarUrl: selfAvatar,
+                      userTitle: selfName,
+                      bottomNavAppearance: bottomNavAppearance,
+                      bottomNavIconNames: bottomNavIconNames,
+                      bottomNavIconGlobalStyle: bottomNavGlobalStyle,
+                      bottomNavIconStyles: bottomNavIconStyles,
+                    ),
                 ],
               ),
             ),
