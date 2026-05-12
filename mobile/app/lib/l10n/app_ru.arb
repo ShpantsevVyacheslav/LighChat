@@ -3640,6 +3640,27 @@
   "meeting_chat_delete": "Удалить",
   "meeting_chat_deleted": "Сообщение удалено",
   "meeting_chat_edited_mark": "• изм.",
+  "meeting_chat_reply": "Ответить",
+  "meeting_chat_react": "Реакция",
+  "meeting_chat_copied": "Скопировано",
+  "meeting_chat_editing": "Редактирование",
+  "meeting_chat_reply_to": "Ответ {name}",
+  "@meeting_chat_reply_to": {
+    "placeholders": { "name": {} }
+  },
+  "meeting_chat_attachment_placeholder": "Вложение",
+  "meeting_timer_remaining": "Осталось {time}",
+  "@meeting_timer_remaining": {
+    "placeholders": { "time": {} }
+  },
+  "meeting_timer_elapsed": "{time}",
+  "@meeting_timer_elapsed": {
+    "placeholders": { "time": {} }
+  },
+  "meeting_back_to_chats": "К чатам",
+  "meeting_open_chats": "Открыть чаты",
+  "meeting_lobby_open_settings": "Открыть настройки",
+  "meeting_minimized_resume": "Нажмите, чтобы вернуться",
   "e2ee_decrypt_image_failed": "Не удалось расшифровать изображение",
   "e2ee_decrypt_video_failed": "Не удалось расшифровать видео",
   "e2ee_decrypt_audio_failed": "Не удалось расшифровать аудио",

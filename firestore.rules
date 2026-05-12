@@ -659,9 +659,17 @@ service cloud.firestore {
         allow create: if isMeetingMember(meetingId)
           && request.resource.data.senderId == request.auth.uid
           && chatMessageSizeOk();
+        // Reactions: every meeting member can toggle their own emoji on any
+        // message. The update is only allowed when the only field that
+        // changed is `reactions` (the bubble can render but not edit
+        // anything else). Author/admin still has the full edit/delete path
+        // below.
         allow update: if isMeetingMember(meetingId)
-          && (resource.data.senderId == request.auth.uid || isMeetingAdmin(meetingId))
-          && chatMessageSizeOk();
+          && chatMessageSizeOk()
+          && (
+            (resource.data.senderId == request.auth.uid || isMeetingAdmin(meetingId))
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+          );
         allow delete: if isMeetingMember(meetingId) && (
           resource.data.senderId == request.auth.uid
           || isMeetingAdmin(meetingId)

@@ -12454,6 +12454,78 @@ abstract class AppLocalizations {
   /// **'• изм.'**
   String get meeting_chat_edited_mark;
 
+  /// No description provided for @meeting_chat_reply.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ответить'**
+  String get meeting_chat_reply;
+
+  /// No description provided for @meeting_chat_react.
+  ///
+  /// In ru, this message translates to:
+  /// **'Реакция'**
+  String get meeting_chat_react;
+
+  /// No description provided for @meeting_chat_copied.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скопировано'**
+  String get meeting_chat_copied;
+
+  /// No description provided for @meeting_chat_editing.
+  ///
+  /// In ru, this message translates to:
+  /// **'Редактирование'**
+  String get meeting_chat_editing;
+
+  /// No description provided for @meeting_chat_reply_to.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ответ {name}'**
+  String meeting_chat_reply_to(Object name);
+
+  /// No description provided for @meeting_chat_attachment_placeholder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вложение'**
+  String get meeting_chat_attachment_placeholder;
+
+  /// No description provided for @meeting_timer_remaining.
+  ///
+  /// In ru, this message translates to:
+  /// **'Осталось {time}'**
+  String meeting_timer_remaining(Object time);
+
+  /// No description provided for @meeting_timer_elapsed.
+  ///
+  /// In ru, this message translates to:
+  /// **'{time}'**
+  String meeting_timer_elapsed(Object time);
+
+  /// No description provided for @meeting_back_to_chats.
+  ///
+  /// In ru, this message translates to:
+  /// **'К чатам'**
+  String get meeting_back_to_chats;
+
+  /// No description provided for @meeting_open_chats.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть чаты'**
+  String get meeting_open_chats;
+
+  /// No description provided for @meeting_lobby_open_settings.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть настройки'**
+  String get meeting_lobby_open_settings;
+
+  /// No description provided for @meeting_minimized_resume.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нажмите, чтобы вернуться'**
+  String get meeting_minimized_resume;
+
   /// No description provided for @e2ee_decrypt_image_failed.
   ///
   /// In ru, this message translates to:

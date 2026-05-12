@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../chat/ui/chat_avatar.dart';
 import '../data/meeting_models.dart';
 import '../data/meeting_peer_stats.dart';
 
@@ -188,25 +189,13 @@ class _MeetingParticipantTileState extends State<MeetingParticipantTile> {
 
   Widget _avatarPlaceholder(BuildContext context) {
     final p = widget.participant;
-    final initial = p.name.isNotEmpty ? p.name.characters.first.toUpperCase() : '?';
     return Container(
       color: const Color(0xFF111827),
       alignment: Alignment.center,
-      child: CircleAvatar(
+      child: ChatAvatar(
+        title: p.name,
         radius: 40,
-        backgroundColor: const Color(0xFF1F2937),
-        backgroundImage:
-            p.avatarThumb != null ? NetworkImage(p.avatarThumb!) : null,
-        child: p.avatarThumb == null
-            ? Text(
-                initial,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                ),
-              )
-            : null,
+        avatarUrl: p.avatarThumb ?? p.avatar,
       ),
     );
   }

@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -175,23 +177,43 @@ class MeetingControls extends StatelessWidget {
       ),
     ];
 
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final w in buttons) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: w,
-                ),
+    // Полупрозрачная «стеклянная» подложка: панель плывёт поверх видео,
+    // не съедая отдельную строку. См. MeetingRoomScreen — рендерится в Stack.
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.transparent,
+                Colors.black.withValues(alpha: 0.18),
+                Colors.black.withValues(alpha: 0.40),
               ],
-            ],
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final w in buttons) ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: w,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -245,32 +267,44 @@ class _ReactionButton extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (ctx) => SafeArea(
         top: false,
-        child: Container(
-          margin: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1F2937),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              for (final e in MeetingControls.reactionEmojis)
-                InkResponse(
-                  radius: 32,
-                  onTap: () {
-                    Navigator.of(ctx).maybePop();
-                    onSendReaction(e);
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Text(
-                      e,
-                      style: const TextStyle(fontSize: 32),
-                    ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0x99101521),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.12),
                   ),
                 ),
-            ],
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    for (final e in MeetingControls.reactionEmojis)
+                      InkResponse(
+                        radius: 32,
+                        onTap: () {
+                          Navigator.of(ctx).maybePop();
+                          onSendReaction(e);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Text(
+                            e,
+                            style: const TextStyle(fontSize: 32),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -299,6 +333,13 @@ class _IconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Прозрачные «таблеточные» кнопки: фон 30% от исходного цвета, тонкая
+    // светлая рамка вместо плотного круга. Активные состояния (red/blue)
+    // оставляем заметными — поэтому смешиваем альфу только для нейтральных.
+    final isAccent = background != Colors.white24 && background != Colors.white10;
+    final effective = isAccent
+        ? background
+        : Colors.black.withValues(alpha: 0.28);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(28),
@@ -309,13 +350,19 @@ class _IconButton extends StatelessWidget {
             alignment: Alignment.topRight,
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
-                  color: background,
+                  color: effective,
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isAccent
+                        ? Colors.white.withValues(alpha: 0.20)
+                        : Colors.white.withValues(alpha: 0.16),
+                    width: 1,
+                  ),
                 ),
-                child: Icon(icon, color: iconColor, size: 28),
+                child: Icon(icon, color: iconColor, size: 26),
               ),
               if (badge != null)
                 Positioned(

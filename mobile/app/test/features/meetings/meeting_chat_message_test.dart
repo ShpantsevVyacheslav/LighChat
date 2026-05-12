@@ -154,5 +154,123 @@ void main() {
         isNull,
       );
     });
+
+    test('parses replyTo nested map', () {
+      final m = MeetingChatMessage.fromFirestore('m1', <String, dynamic>{
+        'senderId': 'u-2',
+        'senderName': 'Bob',
+        'text': 'reply!',
+        'attachments': <dynamic>[],
+        'createdAt': Timestamp.fromDate(DateTime.utc(2026, 5, 12)),
+        'replyTo': <String, dynamic>{
+          'messageId': 'm-orig',
+          'senderId': 'u-1',
+          'senderName': 'Alice',
+          'preview': 'original text',
+        },
+      })!;
+      expect(m.replyTo, isNotNull);
+      expect(m.replyTo!.messageId, 'm-orig');
+      expect(m.replyTo!.senderId, 'u-1');
+      expect(m.replyTo!.senderName, 'Alice');
+      expect(m.replyTo!.preview, 'original text');
+    });
+
+    test('replyTo null when payload malformed', () {
+      // Отсутствует обязательный messageId.
+      final m = MeetingChatMessage.fromFirestore('m1', <String, dynamic>{
+        'senderId': 'u-2',
+        'senderName': 'Bob',
+        'text': 'x',
+        'attachments': <dynamic>[],
+        'replyTo': <String, dynamic>{
+          'senderId': 'u-1',
+          'senderName': 'Alice',
+        },
+      })!;
+      expect(m.replyTo, isNull);
+    });
+
+    test('parses reactions map and filters empty buckets', () {
+      final m = MeetingChatMessage.fromFirestore('m1', <String, dynamic>{
+        'senderId': 'u-1',
+        'senderName': 'Alice',
+        'text': 'hi',
+        'attachments': <dynamic>[],
+        'reactions': <String, dynamic>{
+          '👍': <dynamic>['u-1', 'u-2'],
+          '🔥': <dynamic>['u-3'],
+          // Пустые наборы реакций не сохраняем — иначе UI рисовал бы
+          // «пустой» chip с count 0.
+          '😢': <dynamic>[],
+          // Невалидный uid в массиве — мусор фильтруем.
+          '🎉': <dynamic>[null, 42, ''],
+        },
+      })!;
+      expect(m.reactions.keys.toSet(), {'👍', '🔥'});
+      expect(m.reactions['👍'], ['u-1', 'u-2']);
+      expect(m.reactions['🔥'], ['u-3']);
+    });
+
+    test('parses senderAvatar when present', () {
+      final m = MeetingChatMessage.fromFirestore('m1', <String, dynamic>{
+        'senderId': 'u-1',
+        'senderName': 'Alice',
+        'text': 'hi',
+        'attachments': <dynamic>[],
+        'senderAvatar': 'https://cdn.lighchat/u-1.png',
+      })!;
+      expect(m.senderAvatar, 'https://cdn.lighchat/u-1.png');
+    });
+
+    test('senderAvatar null on empty string', () {
+      final m = MeetingChatMessage.fromFirestore('m1', <String, dynamic>{
+        'senderId': 'u-1',
+        'senderName': 'Alice',
+        'text': 'hi',
+        'attachments': <dynamic>[],
+        'senderAvatar': '',
+      })!;
+      expect(m.senderAvatar, isNull);
+    });
+  });
+
+  group('MeetingChatReplyTo', () {
+    test('toMap → fromMap round-trip preserves payload', () {
+      const original = MeetingChatReplyTo(
+        messageId: 'm-1',
+        senderId: 'u-1',
+        senderName: 'Alice',
+        preview: 'original text',
+      );
+      final reparsed = MeetingChatReplyTo.fromMap(original.toMap());
+      expect(reparsed, isNotNull);
+      expect(reparsed!.messageId, 'm-1');
+      expect(reparsed.senderId, 'u-1');
+      expect(reparsed.senderName, 'Alice');
+      expect(reparsed.preview, 'original text');
+    });
+
+    test('fromMap returns null for non-map / missing messageId', () {
+      expect(MeetingChatReplyTo.fromMap(null), isNull);
+      expect(MeetingChatReplyTo.fromMap('string'), isNull);
+      expect(
+        MeetingChatReplyTo.fromMap(<String, dynamic>{
+          'senderId': 'u-1',
+          'senderName': 'Alice',
+        }),
+        isNull,
+      );
+    });
+
+    test('fromMap defaults missing preview to empty string', () {
+      final r = MeetingChatReplyTo.fromMap(<String, dynamic>{
+        'messageId': 'm-1',
+        'senderId': 'u-1',
+        'senderName': 'Alice',
+      });
+      expect(r, isNotNull);
+      expect(r!.preview, '');
+    });
   });
 }

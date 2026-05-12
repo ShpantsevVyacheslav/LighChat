@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:io' show Platform;
+import 'dart:ui' show FontFeature;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import '../../../l10n/app_localizations.dart';
 
 import '../data/meeting_invite_link.dart';
@@ -12,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../data/meeting_active_speaker_resolve.dart';
+import '../data/meeting_duration_format.dart';
 import '../data/meeting_models.dart';
 import '../data/meeting_peer_stats.dart';
 import '../data/meeting_pip_controller.dart';
@@ -225,10 +228,12 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
   }
 
   /// Screen-share работает на Android (MediaProjection), macOS
-  /// (ScreenCaptureKit через flutter_webrtc) и Windows (DXGI desktop
-  /// duplication). На iOS требуется Broadcast Extension —
-  /// см. `meetings-wire-protocol.md` §8. На Linux flutter_webrtc может
-  /// захватывать через X11/Wayland (pipewire), но требует runtime-проверки.
+  /// (ScreenCaptureKit через flutter_webrtc) и Windows (DXGI).
+  /// На iOS требуется ReplayKit Broadcast Extension; готовый плагин
+  /// поставляется в `ios/MeetingScreenShareExtension/` (надо добавить
+  /// target в Xcode — см. `ios/MeetingScreenShareExtension/README.md`).
+  /// После добавления target'а: переключить `_screenShareSupported`
+  /// → `Platform.isIOS == true`.
   bool get _screenShareSupported {
     if (kIsWeb) return false;
     return Platform.isAndroid ||
@@ -514,6 +519,22 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
     );
   }
 
+  /// Идём в /chats без разрыва митинга. На Android конференция уходит в
+  /// нативный PiP. На iOS — в PiP через нативный плагин (см.
+  /// `LighChatPipPlugin`). Если PiP не поддержан — `Navigator.pop` всё равно
+  /// отработает, но тогда митинг прервётся (явно показано в snackbar).
+  Future<void> _openChatsKeepingMeeting() async {
+    if (_pipSupported) {
+      _pipLifecycle.suppressAutoOnce();
+      try {
+        await _pipController.enterPip();
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    // GoRouter подключен в WorkspaceShell — выходим на список чатов.
+    context.go('/chats');
+  }
+
   Widget _roomBody(
     BuildContext context, {
     required MeetingDoc meeting,
@@ -528,21 +549,44 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
           MeetingParticipant(id: widget.selfUid, name: widget.selfName),
     );
 
+    final media = MediaQuery.of(context);
+    final isPhone = media.size.shortestSide < 600;
+    final shutterWidth =
+        isPhone ? media.size.width : 380.0.clamp(320.0, media.size.width * 0.5);
+
     return Stack(
       fit: StackFit.expand,
       children: [
-        Column(
-          children: [
-            _header(meeting),
-            Expanded(child: _layoutBody(participants, self)),
-            _buildControls(participants, requests, isHostOrAdmin),
-          ],
-        ),
+        // Видеосетка — без шапки/контролов: и шапка, и контролы рендерятся
+        // абсолютно (#17): кнопки плывут поверх видео, видеосетке достаётся
+        // вся высота.
+        Positioned.fill(child: _layoutBody(participants, self)),
+
+        // Реакции (летящие эмодзи) — на весь экран, не блокируют клики.
         Positioned.fill(
           child: IgnorePointer(
             child: MeetingReactionsOverlay(participants: participants),
           ),
         ),
+
+        // Шапка: затемнение сверху + плашки.
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: _headerOverlay(meeting),
+        ),
+
+        // Нижняя панель управления. Поверх видео.
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: _buildControls(participants, requests, isHostOrAdmin),
+        ),
+
+        // Floating messages — кликабельны (открыть чат-сайдбар на вкладке
+        // «Чат»). Положение чуть выше кнопок, чтобы не перекрывали.
         Positioned(
           left: 0,
           right: 0,
@@ -551,144 +595,180 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
             meetingId: widget.meetingId,
             selfUid: widget.selfUid,
             enabled: !_sidebarOpen,
+            onTap: () => setState(() => _sidebarOpen = true),
           ),
         ),
+
+        // Скрим под шторку.
         if (_sidebarOpen)
           Positioned.fill(
             child: GestureDetector(
               onTap: () => setState(() => _sidebarOpen = false),
-              child: Container(color: Colors.black54),
+              child: Container(color: Colors.black.withValues(alpha: 0.55)),
             ),
           ),
+
+        // Шторка: на телефоне — на весь экран, на планшете — справа 380 px.
         AnimatedPositioned(
           duration: const Duration(milliseconds: 240),
           curve: Curves.easeOutCubic,
-          right: _sidebarOpen ? 0 : -340,
+          right: _sidebarOpen ? 0 : -shutterWidth,
           top: 0,
           bottom: 0,
-          width: 340,
-          child: Material(
-            elevation: 12,
-            color: Colors.transparent,
-            child: MeetingSidebar(
-              currentUserId: widget.selfUid,
-              currentUserName: widget.selfName,
-              meeting: meeting,
-              participants: participants,
-              requests: requests,
-              isHostOrAdmin: isHostOrAdmin,
-              onClose: () => setState(() => _sidebarOpen = false),
-              onForceMuteAudio: (userId) async {
+          width: shutterWidth,
+          child: MeetingSidebar(
+            currentUserId: widget.selfUid,
+            currentUserName: widget.selfName,
+            currentUserAvatar: widget.selfAvatar,
+            meeting: meeting,
+            participants: participants,
+            requests: requests,
+            isHostOrAdmin: isHostOrAdmin,
+            onClose: () => setState(() => _sidebarOpen = false),
+            onForceMuteAudio: (userId) async {
+              await ref
+                  .read(meetingRepositoryProvider)
+                  .updateOwnParticipant(
+                    widget.meetingId,
+                    userId,
+                    {'forceMuteAudio': true},
+                  )
+                  .catchError((_) {});
+            },
+            onForceMuteVideo: (userId) async {
+              await ref
+                  .read(meetingRepositoryProvider)
+                  .updateOwnParticipant(
+                    widget.meetingId,
+                    userId,
+                    {'forceMuteVideo': true},
+                  )
+                  .catchError((_) {});
+            },
+            onKick: (userId) async {
+              await FirebaseFirestore.instance
+                  .collection('meetings/${widget.meetingId}/participants')
+                  .doc(userId)
+                  .delete()
+                  .catchError((_) {});
+            },
+            onApproveRequest: (userId) async {
+              try {
                 await ref
-                    .read(meetingRepositoryProvider)
-                    .updateOwnParticipant(
-                      widget.meetingId,
-                      userId,
-                      {'forceMuteAudio': true},
-                    )
-                    .catchError((_) {});
-              },
-              onForceMuteVideo: (userId) async {
+                    .read(meetingCallablesProvider)
+                    .respondToMeetingRequest(
+                      meetingId: widget.meetingId,
+                      userId: userId,
+                      approve: true,
+                    );
+              } catch (_) {}
+            },
+            onDenyRequest: (userId) async {
+              try {
                 await ref
-                    .read(meetingRepositoryProvider)
-                    .updateOwnParticipant(
-                      widget.meetingId,
-                      userId,
-                      {'forceMuteVideo': true},
-                    )
-                    .catchError((_) {});
-              },
-              onKick: (userId) async {
-                await FirebaseFirestore.instance
-                    .collection('meetings/${widget.meetingId}/participants')
-                    .doc(userId)
-                    .delete()
-                    .catchError((_) {});
-              },
-              onApproveRequest: (userId) async {
-                try {
-                  await ref
-                      .read(meetingCallablesProvider)
-                      .respondToMeetingRequest(
-                        meetingId: widget.meetingId,
-                        userId: userId,
-                        approve: true,
-                      );
-                } catch (_) {}
-              },
-              onDenyRequest: (userId) async {
-                try {
-                  await ref
-                      .read(meetingCallablesProvider)
-                      .respondToMeetingRequest(
-                        meetingId: widget.meetingId,
-                        userId: userId,
-                        approve: false,
-                      );
-                } catch (_) {}
-              },
-            ),
+                    .read(meetingCallablesProvider)
+                    .respondToMeetingRequest(
+                      meetingId: widget.meetingId,
+                      userId: userId,
+                      approve: false,
+                    );
+              } catch (_) {}
+            },
           ),
         ),
       ],
     );
   }
 
-  Widget _header(MeetingDoc meeting) {
-    return SafeArea(
-      bottom: false,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(left: 4),
-                child: Text(
-                  meeting.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-            if (!_initialized)
-              const Padding(
-                padding: EdgeInsets.only(left: 8),
-                child: SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white54,
-                  ),
-                ),
-              ),
-            IconButton(
-              tooltip: _viewMode == _MeetingViewMode.grid
-                  ? AppLocalizations.of(context)!.meeting_speaker_mode
-                  : AppLocalizations.of(context)!.meeting_grid_mode,
-              onPressed: _toggleViewMode,
-              icon: Icon(
-                _viewMode == _MeetingViewMode.grid
-                    ? Icons.view_agenda_rounded
-                    : Icons.grid_view_rounded,
-                color: Colors.white,
-              ),
-            ),
-            IconButton(
-              tooltip: AppLocalizations.of(context)!.meeting_copy_link_tooltip,
-              onPressed: () async {
-                final link = meetingWebJoinLink(widget.meetingId);
-                await Clipboard.setData(ClipboardData(text: link));
-              },
-              icon: const Icon(Icons.link_rounded, color: Colors.white),
-            ),
+  /// Шапка митинга, плавающая поверх видео: имя, таймер, переключатель
+  /// раскладки, копирование ссылки, кнопки навигации.
+  Widget _headerOverlay(MeetingDoc meeting) {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black.withValues(alpha: 0.40),
+            Colors.transparent,
           ],
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(4, 6, 4, 10),
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: l10n.meeting_back_to_chats,
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                onPressed: _openChatsKeepingMeeting,
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      meeting.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    _MeetingDurationBadge(
+                      createdAt: meeting.createdAt,
+                      expiresAt: meeting.expiresAt,
+                    ),
+                  ],
+                ),
+              ),
+              if (!_initialized)
+                const Padding(
+                  padding: EdgeInsets.only(left: 8),
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white54,
+                    ),
+                  ),
+                ),
+              IconButton(
+                tooltip: _viewMode == _MeetingViewMode.grid
+                    ? l10n.meeting_speaker_mode
+                    : l10n.meeting_grid_mode,
+                onPressed: _toggleViewMode,
+                icon: Icon(
+                  _viewMode == _MeetingViewMode.grid
+                      ? Icons.view_agenda_rounded
+                      : Icons.grid_view_rounded,
+                  color: Colors.white,
+                ),
+              ),
+              IconButton(
+                tooltip: l10n.meeting_open_chats,
+                icon: const Icon(Icons.chat_bubble_outline_rounded,
+                    color: Colors.white),
+                onPressed: _openChatsKeepingMeeting,
+              ),
+              IconButton(
+                tooltip: l10n.meeting_copy_link_tooltip,
+                onPressed: () async {
+                  final link = meetingWebJoinLink(widget.meetingId);
+                  await Clipboard.setData(ClipboardData(text: link));
+                },
+                icon: const Icon(Icons.link_rounded, color: Colors.white),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -837,24 +917,98 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
         ),
     ];
 
-    final count = tiles.length;
-    int cols;
-    if (count <= 1) {
-      cols = 1;
-    } else if (count <= 4) {
-      cols = 2;
-    } else {
-      cols = 3;
-    }
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: GridView.count(
-        crossAxisCount: cols,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
-        childAspectRatio: count == 1 ? 0.62 : 0.9,
-        physics: const BouncingScrollPhysics(),
-        children: tiles,
+    return OrientationBuilder(
+      builder: (ctx, orientation) {
+        final isLandscape = orientation == Orientation.landscape;
+        final count = tiles.length;
+
+        // Один участник — занимаем всю доступную площадь без grid'а.
+        // Иначе видео сжималось бы в тонкую полоску при повороте.
+        if (count == 1) {
+          return Padding(
+            padding: const EdgeInsets.all(8),
+            child: tiles.first,
+          );
+        }
+
+        int cols;
+        double aspect;
+        if (isLandscape) {
+          cols = count <= 2 ? 2 : 3;
+          aspect = 1.6;
+        } else {
+          if (count <= 4) {
+            cols = 2;
+          } else {
+            cols = 3;
+          }
+          aspect = 0.9;
+        }
+        return Padding(
+          padding: const EdgeInsets.all(8),
+          child: GridView.count(
+            crossAxisCount: cols,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: aspect,
+            physics: const BouncingScrollPhysics(),
+            children: tiles,
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Тикалка длительности митинга в шапке. Если задан `expiresAt` — обратный
+/// отсчёт; иначе секундомер от `createdAt`.
+class _MeetingDurationBadge extends StatefulWidget {
+  const _MeetingDurationBadge({
+    required this.createdAt,
+    required this.expiresAt,
+  });
+  final DateTime createdAt;
+  final DateTime? expiresAt;
+
+  @override
+  State<_MeetingDurationBadge> createState() => _MeetingDurationBadgeState();
+}
+
+class _MeetingDurationBadgeState extends State<_MeetingDurationBadge> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final timer = computeMeetingTimer(
+      now: DateTime.now(),
+      createdAt: widget.createdAt,
+      expiresAt: widget.expiresAt,
+    );
+    final text = timer.isCountdown
+        ? l10n.meeting_timer_remaining(timer.formatted)
+        : l10n.meeting_timer_elapsed(timer.formatted);
+    return Text(
+      text,
+      style: TextStyle(
+        color: meetingTimerColorFor(timer.level),
+        fontSize: 11,
+        fontFeatures: const [FontFeature.tabularFigures()],
+        fontWeight: FontWeight.w600,
       ),
     );
   }

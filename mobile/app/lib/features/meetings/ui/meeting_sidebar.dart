@@ -1,23 +1,28 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../chat/ui/chat_avatar.dart';
 import '../data/meeting_chat_message.dart';
 import '../data/meeting_chat_storage_upload.dart';
 import '../data/meeting_models.dart';
 import '../data/meeting_providers.dart';
+import '../data/meeting_sidebar_tabs.dart';
 import 'meeting_chat_message_bubble.dart';
 import 'meeting_polls_panel.dart';
 
 /// Сайдбар митинга:
 ///   - «Участники» — список members, для host — force-mute/kick;
+///   - «Заявки»   — только host/admin **в приватном** митинге, сразу после
+///     «Участники»;
 ///   - «Опросы»   — `meetings/{id}/polls`, паритет web;
-///   - «Чат»      — `meetings/{id}/messages`;
-///   - «Заявки»   — только host/admin.
+///   - «Чат»      — `meetings/{id}/messages` (long-press → меню как в общем
+///     чате, инлайн-правка/ответ, реакции).
 ///
 /// Чат: live-лента, вложения в Storage (`meeting-attachments/…`), long-press
 /// для копирования / правки текста / мягкого удаления (`isDeleted`). Пока
@@ -29,6 +34,7 @@ class MeetingSidebar extends ConsumerStatefulWidget {
     super.key,
     required this.currentUserId,
     required this.currentUserName,
+    required this.currentUserAvatar,
     required this.meeting,
     required this.participants,
     required this.requests,
@@ -39,6 +45,7 @@ class MeetingSidebar extends ConsumerStatefulWidget {
     required this.onKick,
     required this.onApproveRequest,
     required this.onDenyRequest,
+    this.initialTabIndex,
   });
 
   final String currentUserId;
@@ -46,6 +53,7 @@ class MeetingSidebar extends ConsumerStatefulWidget {
   /// Имя, под которым будут публиковаться сообщения чата. Берём из
   /// `participants/{uid}.name` (или `displayName`) выше по дереву.
   final String currentUserName;
+  final String? currentUserAvatar;
 
   final MeetingDoc meeting;
   final List<MeetingParticipant> participants;
@@ -57,6 +65,7 @@ class MeetingSidebar extends ConsumerStatefulWidget {
   final void Function(String userId) onKick;
   final void Function(String userId) onApproveRequest;
   final void Function(String userId) onDenyRequest;
+  final int? initialTabIndex;
 
   @override
   ConsumerState<MeetingSidebar> createState() => _MeetingSidebarState();
@@ -64,9 +73,7 @@ class MeetingSidebar extends ConsumerStatefulWidget {
 
 class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
     with TickerProviderStateMixin {
-  /// Индекс вкладки «Чат» (после «Участники» и «Опросы»).
-  static const int _kChatTabIndex = 2;
-
+  late MeetingSidebarTabsLayout _layout;
   late TabController _tabController;
   int _tabCount = 0;
 
@@ -91,20 +98,32 @@ class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
   }
 
   void _rebuildTabControllerIfNeeded() {
-    final count = 3 + (widget.isHostOrAdmin ? 1 : 0);
-    if (_tabCount == count) return;
+    final layout = MeetingSidebarTabsLayout.from(
+      isPrivate: widget.meeting.isPrivate,
+      isHostOrAdmin: widget.isHostOrAdmin,
+    );
+    if (_tabCount == layout.totalCount) {
+      _layout = layout;
+      return;
+    }
     if (_tabCount > 0) {
       _tabController.removeListener(_onTabChanged);
       _tabController.dispose();
     }
-    _tabController = TabController(length: count, vsync: this);
+    _layout = layout;
+    final initial = (widget.initialTabIndex ?? 0).clamp(0, layout.totalCount - 1);
+    _tabController = TabController(
+      length: layout.totalCount,
+      vsync: this,
+      initialIndex: initial,
+    );
     _tabController.addListener(_onTabChanged);
-    _tabCount = count;
+    _tabCount = layout.totalCount;
   }
 
   void _onTabChanged() {
     if (!mounted || _tabController.indexIsChanging) return;
-    if (_tabController.index != _kChatTabIndex) return;
+    if (_tabController.index != _layout.chatIndex) return;
     final list =
         ref.read(meetingChatMessagesProvider(widget.meeting.id)).asData?.value;
     if (list != null && list.isNotEmpty) {
@@ -124,7 +143,7 @@ class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
       setState(() {});
       return;
     }
-    if (_tabController.index == _kChatTabIndex) {
+    if (_tabController.index == _layout.chatIndex) {
       final lastId = list.last.id;
       if (_chatReadAnchorId != lastId) {
         setState(() => _chatReadAnchorId = lastId);
@@ -175,39 +194,65 @@ class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
     final l10n = AppLocalizations.of(context)!;
     final tabs = <Tab>[
       Tab(text: l10n.meeting_tab_participants(widget.participants.length.toString())),
+      if (_layout.showRequests)
+        Tab(text: l10n.meeting_tab_requests(widget.requests.length.toString())),
       Tab(
-        text: activePolls > 0 ? l10n.meeting_tab_polls_count(activePolls.toString()) : l10n.meeting_tab_polls,
+        text: activePolls > 0
+            ? l10n.meeting_tab_polls_count(activePolls.toString())
+            : l10n.meeting_tab_polls,
       ),
-      Tab(text: unread > 0 ? l10n.meeting_tab_chat_count(unread.toString()) : l10n.meeting_tab_chat),
-      if (widget.isHostOrAdmin) Tab(text: l10n.meeting_tab_requests(widget.requests.length.toString())),
+      Tab(
+        text: unread > 0
+            ? l10n.meeting_tab_chat_count(unread.toString())
+            : l10n.meeting_tab_chat,
+      ),
     ];
-    return SafeArea(
-      top: true,
-      bottom: false,
-      child: Container(
-        color: const Color(0xFF0B1020),
-        child: Column(
-          children: [
-            _header(context),
-            TabBar(
-              controller: _tabController,
-              tabs: tabs,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white54,
-              indicatorColor: const Color(0xFF3B82F6),
-            ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _participantsList(context),
-                  _pollsTab(context),
-                  _chatTab(context),
-                  if (widget.isHostOrAdmin) _requestsList(context),
-                ],
+
+    return ClipRRect(
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(18),
+        bottomLeft: Radius.circular(18),
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0x99101521),
+            border: Border(
+              left: BorderSide(
+                color: Colors.white.withValues(alpha: 0.10),
               ),
             ),
-          ],
+          ),
+          child: SafeArea(
+            top: true,
+            bottom: false,
+            child: Column(
+              children: [
+                _header(context),
+                TabBar(
+                  controller: _tabController,
+                  tabs: tabs,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white54,
+                  indicatorColor: const Color(0xFF3B82F6),
+                ),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _participantsList(context),
+                      if (_layout.showRequests) _requestsList(context),
+                      _pollsTab(context),
+                      _chatTab(context),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -242,23 +287,18 @@ class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: widget.participants.length,
-      separatorBuilder: (_, _) => const Divider(height: 1, color: Colors.white10),
+      separatorBuilder: (_, _) =>
+          const Divider(height: 1, color: Colors.white10),
       itemBuilder: (context, i) {
         final p = widget.participants[i];
         final isSelf = p.id == widget.currentUserId;
         final isHost = widget.meeting.hostId == p.id;
         final canModerate = widget.isHostOrAdmin && !isSelf && !isHost;
         return ListTile(
-          leading: CircleAvatar(
-            backgroundColor: const Color(0xFF1F2937),
-            backgroundImage:
-                p.avatarThumb != null ? NetworkImage(p.avatarThumb!) : null,
-            child: p.avatarThumb == null
-                ? Text(
-                    p.name.characters.first.toUpperCase(),
-                    style: const TextStyle(color: Colors.white),
-                  )
-                : null,
+          leading: ChatAvatar(
+            title: p.name,
+            radius: 18,
+            avatarUrl: p.avatarThumb ?? p.avatar,
           ),
           title: Text(
             isSelf ? '${p.name} (Вы)' : p.name,
@@ -345,9 +385,10 @@ class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
         meetingId: widget.meeting.id,
         currentUserId: widget.currentUserId,
         currentUserName: widget.currentUserName,
+        currentUserAvatar: widget.currentUserAvatar,
         messages: messages,
         tabController: _tabController,
-        chatTabIndex: _kChatTabIndex,
+        chatTabIndex: _layout.chatIndex,
       ),
     );
   }
@@ -370,16 +411,10 @@ class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
         final r = widget.requests[i];
         final isPending = r.status == 'pending';
         return ListTile(
-          leading: CircleAvatar(
-            backgroundColor: const Color(0xFF1F2937),
-            backgroundImage:
-                r.avatar != null ? NetworkImage(r.avatar!) : null,
-            child: r.avatar == null
-                ? Text(
-                    r.name.characters.first.toUpperCase(),
-                    style: const TextStyle(color: Colors.white),
-                  )
-                : null,
+          leading: ChatAvatar(
+            title: r.name,
+            radius: 18,
+            avatarUrl: r.avatar,
           ),
           title:
               Text(r.name, style: const TextStyle(color: Colors.white)),
@@ -417,12 +452,14 @@ class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
   }
 }
 
-/// Внутренности вкладки «Чат»: список, вложения, правка/удаление, автопрокрутка.
+/// Внутренности вкладки «Чат»: список, вложения, инлайн правка/ответ,
+/// реакции, автопрокрутка. Меню действий вынесено в [MeetingChatMessageBubble].
 class _ChatTabBody extends ConsumerStatefulWidget {
   const _ChatTabBody({
     required this.meetingId,
     required this.currentUserId,
     required this.currentUserName,
+    required this.currentUserAvatar,
     required this.messages,
     required this.tabController,
     required this.chatTabIndex,
@@ -431,6 +468,7 @@ class _ChatTabBody extends ConsumerStatefulWidget {
   final String meetingId;
   final String currentUserId;
   final String currentUserName;
+  final String? currentUserAvatar;
   final List<MeetingChatMessage> messages;
   final TabController tabController;
   final int chatTabIndex;
@@ -449,8 +487,16 @@ class _StagedAttachment {
 class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
   final _scroll = ScrollController();
   final _input = TextEditingController();
+  final _inputFocus = FocusNode();
   bool _sending = false;
   final List<_StagedAttachment> _staging = [];
+
+  /// Идёт инлайн-правка: id целевого сообщения + превью текста.
+  String? _editingMessageId;
+  String? _editingPreview;
+
+  /// Активный reply (то, что покажется выше композера).
+  MeetingChatMessage? _replyTo;
 
   int _lastMessageCount = 0;
 
@@ -498,6 +544,7 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
     widget.tabController.removeListener(_onTabVisible);
     _scroll.dispose();
     _input.dispose();
+    _inputFocus.dispose();
     super.dispose();
   }
 
@@ -534,12 +581,90 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
     setState(() => _staging.addAll(add));
   }
 
+  void _startInlineEdit(MeetingChatMessage msg) {
+    final raw = msg.text ?? '';
+    setState(() {
+      _editingMessageId = msg.id;
+      _editingPreview =
+          raw.length > 140 ? '${raw.substring(0, 140)}…' : raw;
+      _replyTo = null;
+      _input.text = raw;
+      _input.selection =
+          TextSelection.fromPosition(TextPosition(offset: raw.length));
+    });
+    FocusScope.of(context).requestFocus(_inputFocus);
+  }
+
+  void _cancelInlineEdit() {
+    setState(() {
+      _editingMessageId = null;
+      _editingPreview = null;
+      _input.clear();
+    });
+  }
+
+  void _startReply(MeetingChatMessage msg) {
+    setState(() {
+      _replyTo = msg;
+      _editingMessageId = null;
+      _editingPreview = null;
+    });
+    FocusScope.of(context).requestFocus(_inputFocus);
+  }
+
+  void _cancelReply() {
+    setState(() => _replyTo = null);
+  }
+
+  Future<void> _toggleReaction(
+    MeetingChatMessage msg,
+    String emoji,
+    bool currentlyReacted,
+  ) async {
+    try {
+      await ref.read(meetingChatRepositoryProvider).toggleReaction(
+            meetingId: widget.meetingId,
+            messageId: msg.id,
+            userId: widget.currentUserId,
+            emoji: emoji,
+            currentlyReacted: currentlyReacted,
+          );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.meeting_save_error(e.toString()))),
+      );
+    }
+  }
+
   Future<void> _send() async {
     if (_sending) return;
     final textRaw = _input.text;
-    if (textRaw.trim().isEmpty && _staging.isEmpty) return;
+    if (textRaw.trim().isEmpty && _staging.isEmpty && _editingMessageId == null) {
+      return;
+    }
+    // l10n надо взять до первого `await` — после suspend BuildContext
+    // нестабилен.
+    final attachmentPlaceholder =
+        AppLocalizations.of(context)!.meeting_chat_attachment_placeholder;
     setState(() => _sending = true);
     try {
+      // Инлайн-правка существующего сообщения.
+      if (_editingMessageId != null) {
+        await ref.read(meetingChatRepositoryProvider).updateMessageText(
+              meetingId: widget.meetingId,
+              messageId: _editingMessageId!,
+              text: textRaw,
+            );
+        if (!mounted) return;
+        setState(() {
+          _editingMessageId = null;
+          _editingPreview = null;
+          _input.clear();
+        });
+        return;
+      }
+
       final storage = ref.read(meetingFirebaseStorageProvider);
       final maps = <Map<String, dynamic>>[];
       for (final s in _staging) {
@@ -552,15 +677,35 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
         );
         maps.add(att.toFirestoreMap());
       }
+
+      Map<String, dynamic>? replyToMap;
+      final r = _replyTo;
+      if (r != null) {
+        final preview = (r.text != null && r.text!.isNotEmpty)
+            ? r.text!
+            : (r.attachments.isNotEmpty ? attachmentPlaceholder : '');
+        replyToMap = MeetingChatReplyTo(
+          messageId: r.id,
+          senderId: r.senderId,
+          senderName: r.senderName,
+          preview: preview.length > 200 ? '${preview.substring(0, 200)}…' : preview,
+        ).toMap();
+      }
+
       await ref.read(meetingChatRepositoryProvider).sendMessage(
             meetingId: widget.meetingId,
             senderId: widget.currentUserId,
             senderName: widget.currentUserName,
             text: textRaw,
             attachmentMaps: maps,
+            replyToMap: replyToMap,
+            senderAvatar: widget.currentUserAvatar,
           );
       _input.clear();
-      setState(() => _staging.clear());
+      setState(() {
+        _staging.clear();
+        _replyTo = null;
+      });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -568,45 +713,6 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
       );
     } finally {
       if (mounted) setState(() => _sending = false);
-    }
-  }
-
-  Future<void> _editMessage(MeetingChatMessage msg) async {
-    final c = TextEditingController(text: msg.text ?? '');
-    final r = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.meeting_edit_message_title),
-        content: TextField(
-          controller: c,
-          maxLines: 5,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(AppLocalizations.of(context)!.common_cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, c.text.trim()),
-            child: Text(AppLocalizations.of(context)!.common_save),
-          ),
-        ],
-      ),
-    );
-    if (r == null || r.isEmpty) return;
-    try {
-      await ref.read(meetingChatRepositoryProvider).updateMessageText(
-            meetingId: widget.meetingId,
-            messageId: msg.id,
-            text: r,
-          );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.meeting_save_error(e.toString()))),
-      );
     }
   }
 
@@ -666,8 +772,11 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
                     return MeetingChatMessageBubble(
                       message: m,
                       isSelf: isSelf,
-                      onEditText: isSelf ? _editMessage : null,
+                      selfUserId: widget.currentUserId,
+                      onEditText: isSelf ? _startInlineEdit : null,
                       onDelete: isSelf ? () => _confirmDelete(m) : null,
+                      onReply: _startReply,
+                      onToggleReaction: _toggleReaction,
                     );
                   },
                 ),
@@ -678,12 +787,25 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
   }
 
   Widget _inputBar() {
+    final l10n = AppLocalizations.of(context)!;
     return SafeArea(
       top: false,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (_editingMessageId != null)
+            _ComposerEditingBanner(
+              previewPlain: _editingPreview ?? '',
+              onCancel: _cancelInlineEdit,
+              l10n: l10n,
+            ),
+          if (_replyTo != null)
+            _ComposerReplyBanner(
+              replyTo: _replyTo!,
+              onCancel: _cancelReply,
+              l10n: l10n,
+            ),
           if (_staging.isNotEmpty)
             SizedBox(
               height: 40,
@@ -715,59 +837,83 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.attach_file_rounded,
-                      color: Colors.white54),
-                  onPressed: _sending ? null : _pickAttachments,
-                ),
+                if (_editingMessageId == null)
+                  IconButton(
+                    icon: const Icon(Icons.attach_file_rounded,
+                        color: Colors.white54),
+                    onPressed: _sending ? null : _pickAttachments,
+                  ),
                 Expanded(
-                  child: TextField(
-                    controller: _input,
-                    minLines: 1,
-                    maxLines: 5,
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => _send(),
-                    style: const TextStyle(color: Colors.white),
-                    cursorColor: const Color(0xFF60A5FA),
-                    decoration: InputDecoration(
-                      hintText: AppLocalizations.of(context)!.meeting_message_hint,
-                      hintStyle: const TextStyle(color: Colors.white38),
-                      filled: true,
-                      fillColor: Colors.white10,
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: BorderSide.none,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 40),
+                    child: TextField(
+                      controller: _input,
+                      focusNode: _inputFocus,
+                      minLines: 1,
+                      maxLines: 5,
+                      textCapitalization: TextCapitalization.sentences,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _send(),
+                      style: const TextStyle(color: Colors.white),
+                      cursorColor: const Color(0xFF60A5FA),
+                      decoration: InputDecoration(
+                        hintText: AppLocalizations.of(context)!.meeting_message_hint,
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        filled: true,
+                        fillColor: Colors.white10,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 4),
-                Material(
-                  color: _sending
-                      ? Colors.white12
-                      : const Color(0xFF2563EB),
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: _sending ? null : _send,
-                    child: SizedBox(
-                      width: 44,
-                      height: 44,
+                const SizedBox(width: 6),
+                // Send button: высота композера (40 px) — паритет с основным
+                // чатом мобилки. Раньше было 44 px и кнопка торчала.
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _sending
+                        ? Colors.white12
+                        : const Color(0xFF2A79FF),
+                    boxShadow: _sending
+                        ? null
+                        : const [
+                            BoxShadow(
+                              color: Color(0x592A79FF),
+                              blurRadius: 14,
+                              offset: Offset(0, 5),
+                            ),
+                          ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: _sending ? null : _send,
                       child: _sending
                           ? const Padding(
-                              padding: EdgeInsets.all(12),
+                              padding: EdgeInsets.all(10),
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: Colors.white70,
                               ),
                             )
-                          : const Icon(Icons.send_rounded, color: Colors.white),
+                          : const Icon(
+                              Icons.send_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
                     ),
                   ),
                 ),
@@ -775,6 +921,148 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Полоса над композером при инлайн-правке текста — стилем зеркалит
+/// `ComposerEditingBanner` основного чата.
+class _ComposerEditingBanner extends StatelessWidget {
+  const _ComposerEditingBanner({
+    required this.previewPlain,
+    required this.onCancel,
+    required this.l10n,
+  });
+  final String previewPlain;
+  final VoidCallback onCancel;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.edit_rounded, size: 22, color: Color(0xFF60A5FA)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.meeting_chat_editing.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.4,
+                        color: Color(0xFF60A5FA),
+                      ),
+                    ),
+                    if (previewPlain.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        previewPlain,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white.withValues(alpha: 0.70),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: onCancel,
+                icon: Icon(
+                  Icons.close_rounded,
+                  color: Colors.white.withValues(alpha: 0.65),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ComposerReplyBanner extends StatelessWidget {
+  const _ComposerReplyBanner({
+    required this.replyTo,
+    required this.onCancel,
+    required this.l10n,
+  });
+  final MeetingChatMessage replyTo;
+  final VoidCallback onCancel;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final preview = (replyTo.text != null && replyTo.text!.isNotEmpty)
+        ? replyTo.text!
+        : (replyTo.attachments.isNotEmpty
+            ? l10n.meeting_chat_attachment_placeholder
+            : '');
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+      child: Material(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            children: [
+              const Icon(Icons.reply_rounded,
+                  size: 22, color: Color(0xFF60A5FA)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.meeting_chat_reply_to(replyTo.senderName),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF60A5FA),
+                      ),
+                    ),
+                    if (preview.isNotEmpty)
+                      Text(
+                        preview,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white.withValues(alpha: 0.70),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: onCancel,
+                icon: Icon(
+                  Icons.close_rounded,
+                  color: Colors.white.withValues(alpha: 0.65),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

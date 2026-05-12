@@ -58,9 +58,11 @@ class _MeetingReactionsOverlayState extends State<MeetingReactionsOverlay>
   }
 
   void _spawn(String emoji) {
-    final burstSize = 14 + _rnd.nextInt(5);
+    // ~25 эмодзи на одну реакцию: больше, чтобы заполнить экран, но рассеянная
+    // задержка не даёт «стене эмодзи» одномоментно блокировать UI.
+    final burstSize = 24 + _rnd.nextInt(8);
     for (var i = 0; i < burstSize; i++) {
-      final delay = Duration(milliseconds: _rnd.nextInt(700));
+      final delay = Duration(milliseconds: _rnd.nextInt(900));
       Future.delayed(delay, () {
         if (!mounted) return;
         _spawnSingle(emoji);
@@ -71,10 +73,12 @@ class _MeetingReactionsOverlayState extends State<MeetingReactionsOverlay>
   void _spawnSingle(String emoji) {
     final ctrl = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 2400 + _rnd.nextInt(1800)),
+      // 3.6–6.0 с: ощутимо медленнее предыдущих 2.4–4.2 с — глаз успевает
+      // прочитать эмодзи, прежде чем тот улетает за верх экрана.
+      duration: Duration(milliseconds: 3600 + _rnd.nextInt(2400)),
     );
-    final left = 18.0 + _rnd.nextDouble() * 64.0;
-    final scale = 0.7 + _rnd.nextDouble() * 0.7;
+    final left = 14.0 + _rnd.nextDouble() * 72.0;
+    final scale = 0.75 + _rnd.nextDouble() * 0.7;
     final item = _FlyItem(
       emoji: emoji,
       controller: ctrl,

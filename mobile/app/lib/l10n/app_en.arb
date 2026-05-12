@@ -3325,6 +3325,27 @@
   "meeting_chat_delete": "Delete",
   "meeting_chat_deleted": "Message deleted",
   "meeting_chat_edited_mark": "• edited",
+  "meeting_chat_reply": "Reply",
+  "meeting_chat_react": "React",
+  "meeting_chat_copied": "Copied",
+  "meeting_chat_editing": "Editing",
+  "meeting_chat_reply_to": "Reply to {name}",
+  "@meeting_chat_reply_to": {
+    "placeholders": { "name": {} }
+  },
+  "meeting_chat_attachment_placeholder": "Attachment",
+  "meeting_timer_remaining": "Left {time}",
+  "@meeting_timer_remaining": {
+    "placeholders": { "time": {} }
+  },
+  "meeting_timer_elapsed": "{time}",
+  "@meeting_timer_elapsed": {
+    "placeholders": { "time": {} }
+  },
+  "meeting_back_to_chats": "Back to chats",
+  "meeting_open_chats": "Open chats",
+  "meeting_lobby_open_settings": "Open settings",
+  "meeting_minimized_resume": "Tap to return to call",
   "e2ee_decrypt_image_failed": "Failed to decrypt image",
   "e2ee_decrypt_video_failed": "Failed to decrypt video",
   "e2ee_decrypt_audio_failed": "Failed to decrypt audio",

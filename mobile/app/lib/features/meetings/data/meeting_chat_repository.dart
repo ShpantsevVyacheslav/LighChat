@@ -59,12 +59,16 @@ class MeetingChatRepository {
   }
 
   /// Сообщение с текстом и/или вложениями (wire как на web).
+  /// [replyToMap] — карта `{messageId, senderId, senderName, preview}` если это reply.
+  /// [senderAvatar] — URL аватара отправителя на момент отправки.
   Future<void> sendMessage({
     required String meetingId,
     required String senderId,
     required String senderName,
     required String text,
     required List<Map<String, dynamic>> attachmentMaps,
+    Map<String, dynamic>? replyToMap,
+    String? senderAvatar,
   }) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty && attachmentMaps.isEmpty) return;
@@ -77,7 +81,35 @@ class MeetingChatRepository {
     if (trimmed.isNotEmpty) {
       data['text'] = trimmed;
     }
+    if (replyToMap != null) {
+      data['replyTo'] = replyToMap;
+    }
+    if (senderAvatar != null && senderAvatar.isNotEmpty) {
+      data['senderAvatar'] = senderAvatar;
+    }
     await _messagesCol(meetingId).add(data);
+  }
+
+  /// Переключить реакцию текущего пользователя на сообщение. Использует
+  /// `arrayUnion`/`arrayRemove` чтобы избежать гонок.
+  Future<void> toggleReaction({
+    required String meetingId,
+    required String messageId,
+    required String userId,
+    required String emoji,
+    required bool currentlyReacted,
+  }) async {
+    final doc = _messagesCol(meetingId).doc(messageId);
+    final field = 'reactions.$emoji';
+    if (currentlyReacted) {
+      await doc.update(<String, Object?>{
+        field: FieldValue.arrayRemove(<String>[userId]),
+      });
+    } else {
+      await doc.update(<String, Object?>{
+        field: FieldValue.arrayUnion(<String>[userId]),
+      });
+    }
   }
 
   /// Обновить текст (web: `updatedAt` — ISO-строка).

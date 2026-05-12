@@ -7107,6 +7107,48 @@ class AppLocalizationsEs extends AppLocalizations {
   String get meeting_chat_edited_mark => '• editado';
 
   @override
+  String get meeting_chat_reply => 'Ответить';
+
+  @override
+  String get meeting_chat_react => 'Реакция';
+
+  @override
+  String get meeting_chat_copied => 'Скопировано';
+
+  @override
+  String get meeting_chat_editing => 'Редактирование';
+
+  @override
+  String meeting_chat_reply_to(Object name) {
+    return 'Ответ $name';
+  }
+
+  @override
+  String get meeting_chat_attachment_placeholder => 'Вложение';
+
+  @override
+  String meeting_timer_remaining(Object time) {
+    return 'Осталось $time';
+  }
+
+  @override
+  String meeting_timer_elapsed(Object time) {
+    return '$time';
+  }
+
+  @override
+  String get meeting_back_to_chats => 'К чатам';
+
+  @override
+  String get meeting_open_chats => 'Открыть чаты';
+
+  @override
+  String get meeting_lobby_open_settings => 'Открыть настройки';
+
+  @override
+  String get meeting_minimized_resume => 'Нажмите, чтобы вернуться';
+
+  @override
   String get e2ee_decrypt_image_failed => 'Error al descifrar imagen';
 
   @override

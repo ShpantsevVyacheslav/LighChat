@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../chat/ui/chat_avatar.dart';
 import '../data/meeting_models.dart';
 import '../data/meeting_providers.dart';
 import 'meeting_room_screen.dart';
@@ -47,7 +48,8 @@ class MeetingJoinScreen extends ConsumerStatefulWidget {
   ConsumerState<MeetingJoinScreen> createState() => _MeetingJoinScreenState();
 }
 
-class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
+class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
+    with WidgetsBindingObserver {
   late final TextEditingController _nameCtrl;
   late final String _requestId;
   bool _requestSubmitted = false;
@@ -62,17 +64,34 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
   bool _initialMicMuted = false;
   bool _initialCameraOff = false;
   bool _consumed = false;
+  bool _rendererInitialized = false;
 
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.initialName ?? '');
     _requestId = _generateRequestId();
+    WidgetsBinding.instance.addObserver(this);
     _bootstrapPreview();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Когда юзер возвращается из системных настроек (выдал разрешение
+    // камеры), повторим bootstrap. Без этого превью оставалось пустым даже
+    // после получения доступа.
+    if (state == AppLifecycleState.resumed) {
+      if (_previewStream == null && !_consumed && mounted) {
+        _bootstrapPreview();
+      }
+    }
+  }
+
   Future<void> _bootstrapPreview() async {
-    await _previewRenderer.initialize();
+    if (!_rendererInitialized) {
+      await _previewRenderer.initialize();
+      _rendererInitialized = true;
+    }
     try {
       final cam = await Permission.camera.request();
       final mic = await Permission.microphone.request();
@@ -102,8 +121,12 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
       }
       _previewStream = stream;
       _previewRenderer.srcObject = stream;
+      // Если пользователь до этого видел «доступ запрещён», теперь сбрасываем
+      // флаги: камера снова доступна.
       setState(() {
         _previewReady = true;
+        _previewDenied = false;
+        _initialCameraOff = false;
       });
     } catch (e) {
       appLogger.w('[meeting-lobby] preview failed', error: e);
@@ -154,6 +177,7 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _nameCtrl.dispose();
     if (!_consumed) {
       _stopPreview();
@@ -473,14 +497,35 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Center(
-                    child: Text(
-                      l10n.meeting_lobby_camera_blocked,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                        height: 1.35,
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          l10n.meeting_lobby_camera_blocked,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                            height: 1.35,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor:
+                                Colors.white.withValues(alpha: 0.12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () async {
+                            await openAppSettings();
+                          },
+                          icon: const Icon(Icons.settings_rounded, size: 16),
+                          label: Text(l10n.meeting_lobby_open_settings),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -557,20 +602,10 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen> {
       ),
       child: Row(
         children: [
-          CircleAvatar(
+          ChatAvatar(
+            title: displayName,
             radius: 22,
-            backgroundColor: Colors.white.withValues(alpha: 0.12),
-            backgroundImage:
-                (avatar != null && avatar.isNotEmpty) ? NetworkImage(avatar) : null,
-            child: (avatar == null || avatar.isEmpty)
-                ? Text(
-                    displayName.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  )
-                : null,
+            avatarUrl: avatar,
           ),
           const SizedBox(width: 12),
           Expanded(

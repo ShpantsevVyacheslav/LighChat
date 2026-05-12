@@ -7021,6 +7021,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get meeting_chat_edited_mark => '• edited';
 
   @override
+  String get meeting_chat_reply => 'Reply';
+
+  @override
+  String get meeting_chat_react => 'React';
+
+  @override
+  String get meeting_chat_copied => 'Copied';
+
+  @override
+  String get meeting_chat_editing => 'Editing';
+
+  @override
+  String meeting_chat_reply_to(Object name) {
+    return 'Reply to $name';
+  }
+
+  @override
+  String get meeting_chat_attachment_placeholder => 'Attachment';
+
+  @override
+  String meeting_timer_remaining(Object time) {
+    return 'Left $time';
+  }
+
+  @override
+  String meeting_timer_elapsed(Object time) {
+    return '$time';
+  }
+
+  @override
+  String get meeting_back_to_chats => 'Back to chats';
+
+  @override
+  String get meeting_open_chats => 'Open chats';
+
+  @override
+  String get meeting_lobby_open_settings => 'Open settings';
+
+  @override
+  String get meeting_minimized_resume => 'Tap to return to call';
+
+  @override
   String get e2ee_decrypt_image_failed => 'Failed to decrypt image';
 
   @override

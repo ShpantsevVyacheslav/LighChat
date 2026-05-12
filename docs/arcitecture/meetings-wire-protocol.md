@@ -98,15 +98,23 @@ force-mute). Read — только участникам.
 
 ### `meetings/{meetingId}/messages/{autoId}` — чат митинга
 
-| поле           | тип                   | описание                                   |
-|----------------|-----------------------|--------------------------------------------|
-| `senderId`     | string                | `auth.uid` (обязательно)                   |
-| `senderName`   | string                | для офлайн-отображения без участника       |
-| `text`         | string?               | текст сообщения                            |
-| `attachments`  | ChatAttachment[]      | вложения (как в обычном чате)              |
-| `createdAt`    | serverTimestamp       |                                            |
+| поле            | тип                                  | описание                                            |
+|-----------------|--------------------------------------|-----------------------------------------------------|
+| `senderId`      | string                               | `auth.uid` (обязательно)                            |
+| `senderName`    | string                               | для офлайн-отображения без участника                |
+| `senderAvatar`  | string?                              | URL аватара на момент отправки (для тулзов уведомлений) |
+| `text`          | string?                              | текст сообщения                                     |
+| `attachments`   | ChatAttachment[]                     | вложения (как в обычном чате)                       |
+| `createdAt`     | serverTimestamp                      |                                                     |
+| `updatedAt`     | string? (ISO-8601)                   | время последней правки текста                       |
+| `isDeleted`     | bool?                                | мягкое удаление                                     |
+| `replyTo`       | `{messageId, senderId, senderName, preview}`? | ответ на сообщение                          |
+| `reactions`     | `Record<emoji, uid[]>`?              | реакции пользователей на сообщение                  |
 
-Правила: read/create — member; update/delete — автор или host/admin.
+Правила: read/create — member; update/delete текста — автор или host/admin.
+**Обновление только поля `reactions`** разрешено любому member'у — это даёт каждому
+участнику возможность ставить/снимать свою реакцию (`arrayUnion`/`arrayRemove`),
+не имея прав на правку чужого текста.
 
 ### `meetings/{meetingId}/polls/{pollId}` — голосования внутри митинга
 
