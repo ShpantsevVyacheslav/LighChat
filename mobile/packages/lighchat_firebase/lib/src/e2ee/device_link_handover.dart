@@ -16,12 +16,48 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 
 import 'device_firestore.dart';
 import 'device_identity.dart';
 import 'session_firestore.dart';
 import 'system_events.dart';
 import 'webcrypto_compat.dart';
+
+/// [QR-PAIR fix] iOS Firestore SDK иногда возвращает `[cloud_firestore/internal]`
+/// для batch-query `conversations.where(participantIds, arrayContains)`,
+/// особенно когда у юзера много чатов + есть persistent cache.
+///
+/// Стратегия:
+///  1. Первая попытка — default (через cache, server-fallback по умолчанию).
+///  2. На `internal` → retry с `GetOptions(source: Source.server)` чтобы
+///     пропустить локальный кэш (если он повреждён).
+///  3. Третья попытка — снова server с задержкой 800ms (gRPC transient).
+///  4. После 3-х неудач — выбрасываем оригинал.
+///
+/// Не вызываем `clearPersistence()` — это сносит ВСЕ snapshot listener'ы
+/// в приложении (chat list, profile и т.д.), пользователь увидит пустоту
+/// и долгий reconnect. Лучше fall back на server-only get.
+Future<QuerySnapshot<Map<String, dynamic>>> _getConversationsWithRetry(
+  Query<Map<String, dynamic>> query,
+) async {
+  for (var attempt = 0; attempt < 3; attempt++) {
+    try {
+      final source = attempt == 0 ? Source.serverAndCache : Source.server;
+      debugPrint('[handover] conversations.get attempt=${attempt + 1} source=$source');
+      return await query.get(GetOptions(source: source));
+    } on FirebaseException catch (e, st) {
+      debugPrint('[handover] conversations.get FAIL attempt=${attempt + 1} code=${e.code} plugin=${e.plugin} msg=${e.message}');
+      if (e.code != 'internal' || attempt == 2) {
+        debugPrint('[handover] conversations.get giving up\n$st');
+        rethrow;
+      }
+      await Future<void>.delayed(Duration(milliseconds: 400 * (attempt + 1)));
+    }
+  }
+  // unreachable (loop либо возвращает, либо rethrows на attempt==2)
+  throw StateError('conversations.get retry loop exhausted');
+}
 
 class DeviceHandoverProgress {
   const DeviceHandoverProgress({
@@ -105,10 +141,11 @@ Future<DeviceHandoverResult> handoverDeviceAccessMobile({
     identity: donorIdentity,
   );
 
-  final convs = await firestore
-      .collection('conversations')
-      .where('participantIds', arrayContains: userId)
-      .get();
+  final convs = await _getConversationsWithRetry(
+    firestore
+        .collection('conversations')
+        .where('participantIds', arrayContains: userId),
+  );
   final targets = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
   for (final d in convs.docs) {
     final data = d.data();
