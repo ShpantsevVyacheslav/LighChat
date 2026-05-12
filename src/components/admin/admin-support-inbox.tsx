@@ -23,6 +23,7 @@ import {
 import type { SupportTicket, SupportTicketMessage, TicketStatus } from '@/lib/types';
 import { useI18n } from '@/hooks/use-i18n';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
 
 const STATUS_LABEL_KEYS: Record<TicketStatus, string> = {
   open: 'adminPage.supportStatusLabels.open',
@@ -82,7 +83,7 @@ export function AdminSupportInbox() {
         toast({ variant: 'destructive', title: res.error || 'Не удалось загрузить тикеты' });
       }
     } catch (e) {
-      console.error('[AdminSupportInbox] loadTickets', e);
+      logger.error('admin-support', 'loadTickets', e);
       toast({ variant: 'destructive', title: 'Не удалось загрузить тикеты' });
     } finally {
       setLoading(false);
@@ -107,7 +108,7 @@ export function AdminSupportInbox() {
         toast({ variant: 'destructive', title: res.error || 'Не удалось загрузить ещё' });
       }
     } catch (e) {
-      console.error('[AdminSupportInbox] loadMore', e);
+      logger.error('admin-support', 'loadMore', e);
       toast({ variant: 'destructive', title: 'Не удалось загрузить ещё' });
     } finally {
       setLoadingMore(false);
@@ -129,7 +130,7 @@ export function AdminSupportInbox() {
         toast({ variant: 'destructive', title: res.error || 'Не удалось загрузить сообщения тикета' });
       }
     } catch (e) {
-      console.error('[AdminSupportInbox] openTicket', e);
+      logger.error('admin-support', 'openTicket', e);
       toast({ variant: 'destructive', title: 'Не удалось загрузить сообщения тикета' });
     } finally {
       setLoadingMessages(false);
@@ -150,7 +151,7 @@ export function AdminSupportInbox() {
         toast({ variant: 'destructive', title: res.error || 'Не удалось отправить ответ' });
       }
     } catch (e) {
-      console.error('[AdminSupportInbox] sendReply', e);
+      logger.error('admin-support', 'sendReply', e);
       toast({ variant: 'destructive', title: 'Не удалось отправить ответ' });
     } finally {
       setSending(false);
@@ -170,7 +171,7 @@ export function AdminSupportInbox() {
       setSelectedTicket({ ...selectedTicket, status });
       loadTickets();
     } catch (e) {
-      console.error('[AdminSupportInbox] changeStatus', e);
+      logger.error('admin-support', 'changeStatus', e);
       toast({ variant: 'destructive', title: 'Не удалось изменить статус' });
     }
   };

@@ -9,6 +9,7 @@ import {
   applyPhoneMask,
   normalizePhoneDigits,
 } from "@/lib/phone-utils";
+import { logger } from "@/lib/logger";
 
 const DICEBEAR_AVATAR_HOST = "api.dicebear.com";
 
@@ -35,8 +36,9 @@ async function isRegistrationPhoneTakenForUidAdmin(
     if (owner === exceptUid) return false;
     return true;
   } catch (e) {
-    console.warn(
-      "[merge-provider-profile-firestore-admin] registrationIndex read failed; skip phone write",
+    logger.warn(
+      'merge-provider-profile',
+      'registrationIndex read failed; skip phone write',
       e,
     );
     return "error";
@@ -66,9 +68,9 @@ export async function mergeProviderPhoneAndAvatarIntoUserDocAdmin(opts: {
     const snap = await userRef.get();
     if (snap.exists) break;
     if (attempt === 5) {
-      console.info(
-        "[merge-provider-profile-firestore-admin] users/%s not ready yet; skip merge",
-        uid,
+      logger.debug(
+        'merge-provider-profile',
+        `users/${uid} not ready yet; skip merge`,
       );
       return;
     }
@@ -116,8 +118,9 @@ export async function mergeProviderPhoneAndAvatarIntoUserDocAdmin(opts: {
   try {
     await userRef.set(patch, { merge: true });
   } catch (e) {
-    console.error(
-      `[merge-provider-profile-firestore-admin] users/${uid} merge failed`,
+    logger.error(
+      'merge-provider-profile',
+      `users/${uid} merge failed`,
       e,
     );
   }

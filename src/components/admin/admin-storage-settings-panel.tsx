@@ -39,6 +39,7 @@ import {
   type AdminConversationListItem,
 } from '@/actions/admin-conversations-list-action';
 import { useAuth as useFirebaseAuth } from '@/firebase';
+import { logger } from '@/lib/logger';
 
 const MAIN_DOC = 'main';
 
@@ -101,7 +102,7 @@ export function AdminStorageSettingsPanel() {
         setUsersLoading(false);
       },
       (err) => {
-        console.error('[AdminStorageSettings] users onSnapshot', err);
+        logger.error('admin-storage-settings', 'users onSnapshot', err);
         setUsersLoading(false);
       },
     );
@@ -120,7 +121,7 @@ export function AdminStorageSettingsPanel() {
         if (cancelled) return;
         if (res.ok) setConversations(res.conversations);
       } catch (e) {
-        console.error('[AdminStorageSettings] listAdminConversations', e);
+        logger.error('admin-storage-settings', 'listAdminConversations', e);
       } finally {
         if (!cancelled) setConvosLoading(false);
       }
@@ -192,7 +193,7 @@ export function AdminStorageSettingsPanel() {
         );
         setE2eeDefaultForNewDirectChats(data?.e2eeDefaultForNewDirectChats === true);
       } catch (e: unknown) {
-        console.error(e);
+        logger.error('admin-storage-settings', 'load platformSettings failed', e);
         const code = e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
         const isPermission = code === 'permission-denied';
         toast({
@@ -235,7 +236,7 @@ export function AdminStorageSettingsPanel() {
       }
       toast({ title: t('adminPage.storageSettings.saved') });
     } catch (e: unknown) {
-      console.error(e);
+      logger.error('admin-storage-settings', 'save platformSettings failed', e);
       const code = e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
       toast({
         variant: 'destructive',
@@ -272,7 +273,7 @@ export function AdminStorageSettingsPanel() {
       setUserQuotaUserId('');
       setUserQuotaGb('');
     } catch (e) {
-      console.error(e);
+      logger.error('admin-storage-settings', 'user quota write failed', e);
       toast({ variant: 'destructive', title: t('adminPage.storageSettings.quotaWriteError') });
     } finally {
       setSaving(false);
@@ -295,7 +296,7 @@ export function AdminStorageSettingsPanel() {
       setE2eeDefaultForNewDirectChats(checked);
       toast({ title: t('adminPage.storageSettings.e2eSaved'), description: t('adminPage.storageSettings.e2eDescription') });
     } catch (e) {
-      console.error(e);
+      logger.error('admin-storage-settings', 'e2ee default save failed', e);
       toast({ variant: 'destructive', title: t('adminPage.storageSettings.e2eSaveError') });
     } finally {
       setSaving(false);
@@ -324,7 +325,7 @@ export function AdminStorageSettingsPanel() {
       setConvQuotaId('');
       setConvQuotaGb('');
     } catch (e) {
-      console.error(e);
+      logger.error('admin-storage-settings', 'chat quota write failed', e);
       toast({ variant: 'destructive', title: t('adminPage.storageSettings.chatQuotaWriteError') });
     } finally {
       setSaving(false);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ShieldAlert, Loader2, EyeOff, Check, X, Ban, User as UserIcon, Flag } from 'lucide-react';
+import {
+  ShieldAlert,
+  Loader2,
+  EyeOff,
+  Check,
+  X,
+  Ban,
+  User as UserIcon,
+  Flag,
+  Image as ImageIcon,
+  Video,
+  FileAudio,
+  FileIcon,
+  ExternalLink,
+} from 'lucide-react';
 import {
   collection,
   doc,
@@ -29,9 +43,16 @@ import {
   reviewReportAction,
   reviewAndHideReportAction,
 } from '@/actions/moderation-actions';
-import type { MessageReport, ReportStatus, User } from '@/lib/types';
+import {
+  fetchReportedMessageDetailsAction,
+  type ReportedMessageDetails,
+} from '@/actions/admin-reported-message-action';
+import type { ChatAttachment, MessageReport, ReportStatus, User } from '@/lib/types';
 import { useI18n } from '@/hooks/use-i18n';
+import { logger } from '@/lib/logger';
 import { UserBlockDialog } from '@/components/admin/user-block-dialog';
+import { AdminUserProfileDialog } from '@/components/admin/admin-user-profile-dialog';
+import { formatStorageBytes } from '@/lib/format-storage';
 
 const REASON_LABEL_KEYS: Record<string, string> = {
   spam: 'admin.moderation.reasonSpam',
@@ -57,6 +78,295 @@ const STATUS_COLORS: Record<ReportStatus, string> = {
   dismissed: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
 };
 
+/** Стрипает HTML до plain-текста. Используем на клиенте, у нас есть DOM. */
+function htmlToPlainText(html: string): string {
+  if (!html) return '';
+  if (typeof window === 'undefined') return html.replace(/<[^>]+>/g, '').trim();
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  return (tmp.textContent || tmp.innerText || '').trim();
+}
+
+function attachmentKind(att: ChatAttachment): 'image' | 'video' | 'audio' | 'file' {
+  const t = (att.type || '').toLowerCase();
+  if (t.startsWith('image/')) return 'image';
+  if (t.startsWith('video/')) return 'video';
+  if (t.startsWith('audio/')) return 'audio';
+  return 'file';
+}
+
+function AttachmentPreview({ att }: { att: ChatAttachment }) {
+  const kind = attachmentKind(att);
+  if (kind === 'image') {
+    return (
+      <a
+        href={att.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block rounded-xl overflow-hidden border bg-muted/30 hover:opacity-80 transition-opacity"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={att.url}
+          alt={att.name || 'image'}
+          className="max-h-48 w-auto object-contain"
+          loading="lazy"
+        />
+      </a>
+    );
+  }
+  if (kind === 'video') {
+    return (
+      <video
+        src={att.url}
+        controls
+        preload="metadata"
+        className="max-h-48 w-full rounded-xl border bg-black"
+      />
+    );
+  }
+  if (kind === 'audio') {
+    return (
+      <audio src={att.url} controls preload="metadata" className="w-full" />
+    );
+  }
+  return (
+    <a
+      href={att.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 rounded-xl border p-2.5 text-sm hover:bg-muted/30 transition-colors"
+    >
+      <FileIcon className="h-4 w-4 text-muted-foreground" />
+      <span className="truncate flex-1">{att.name || 'файл'}</span>
+      {att.size > 0 && (
+        <span className="text-xs text-muted-foreground">{formatStorageBytes(att.size)}</span>
+      )}
+      <ExternalLink className="h-3 w-3 text-muted-foreground" />
+    </a>
+  );
+}
+
+function AttachmentBadge({ kind }: { kind: ReturnType<typeof attachmentKind> }) {
+  const Icon = kind === 'image' ? ImageIcon : kind === 'video' ? Video : kind === 'audio' ? FileAudio : FileIcon;
+  return (
+    <Badge variant="outline" className="text-[10px] gap-1">
+      <Icon className="h-3 w-3" />
+      {kind === 'image' ? 'изображение' : kind === 'video' ? 'видео' : kind === 'audio' ? 'аудио' : 'файл'}
+    </Badge>
+  );
+}
+
+type ReportCardProps = {
+  report: MessageReport;
+  acting: string | null;
+  onHideAndReview: (r: MessageReport) => void;
+  onDismiss: (r: MessageReport) => void;
+  onOpenBlock: (r: MessageReport) => void;
+  onOpenProfile: (userId: string) => void;
+  currentUserId: string | undefined;
+};
+
+function ReportCard({
+  report: r,
+  acting,
+  onHideAndReview,
+  onDismiss,
+  onOpenBlock,
+  onOpenProfile,
+  currentUserId,
+}: ReportCardProps) {
+  const { t } = useI18n();
+  const firebaseAuth = useFirebaseAuth();
+  const [details, setDetails] = useState<ReportedMessageDetails | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!r.messageId) return;
+    let cancelled = false;
+    setLoadingDetails(true);
+    (async () => {
+      try {
+        const token = await firebaseAuth?.currentUser?.getIdToken();
+        if (!token) return;
+        const res = await fetchReportedMessageDetailsAction({
+          idToken: token,
+          conversationId: r.conversationId,
+          messageId: r.messageId!,
+        });
+        if (cancelled) return;
+        if (res.ok) {
+          setDetails(res.details);
+        } else {
+          setDetailsError(res.error);
+        }
+      } catch (e) {
+        logger.error('admin-moderation', 'fetchReportedMessageDetailsAction', e);
+        if (!cancelled) setDetailsError('Не удалось загрузить детали');
+      } finally {
+        if (!cancelled) setLoadingDetails(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [firebaseAuth, r.conversationId, r.messageId]);
+
+  // Предпочитаем live-fetched HTML (актуальный), fallback — сохранённый
+  // в жалобе snapshot. Оба варианта стрипаются до plain-текста.
+  const liveText = details ? htmlToPlainText(details.textHtml) : '';
+  const reportedText = r.messageText ? htmlToPlainText(r.messageText) : '';
+  const displayText = liveText || reportedText;
+
+  const attachments = details?.attachments ?? [];
+  const hasAttachments = attachments.length > 0;
+  const isUserLevel = !r.messageId;
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  };
+
+  return (
+    <div className="rounded-2xl border p-4 space-y-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Badge variant="secondary" className={`text-[10px] ${STATUS_COLORS[r.status]}`}>
+          {t(STATUS_LABEL_KEYS[r.status])}
+        </Badge>
+        <Badge variant="outline" className="text-[10px]">
+          {REASON_LABEL_KEYS[r.reason] ? t(REASON_LABEL_KEYS[r.reason]) : r.reason}
+        </Badge>
+        {isUserLevel && (
+          <Badge variant="outline" className="text-[10px]">
+            жалоба на пользователя
+          </Badge>
+        )}
+        {hasAttachments && (
+          <>
+            {attachments.slice(0, 3).map((a, idx) => (
+              <AttachmentBadge key={idx} kind={attachmentKind(a)} />
+            ))}
+            {attachments.length > 3 && (
+              <Badge variant="outline" className="text-[10px]">
+                +{attachments.length - 3}
+              </Badge>
+            )}
+          </>
+        )}
+        <span className="text-xs text-muted-foreground ml-auto">{formatDate(r.createdAt)}</span>
+      </div>
+
+      {displayText && (
+        <div className="bg-muted rounded-xl p-2.5 text-sm">
+          <p className="line-clamp-3 whitespace-pre-wrap break-words">{displayText}</p>
+        </div>
+      )}
+
+      {hasAttachments && (
+        <div className="space-y-2">
+          {attachments.map((a, idx) => (
+            <AttachmentPreview key={idx} att={a} />
+          ))}
+        </div>
+      )}
+
+      {details?.isE2ee && (
+        <p className="text-[11px] text-muted-foreground italic">
+          Сообщение зашифровано (E2EE) — содержимое недоступно даже админу.
+        </p>
+      )}
+
+      {loadingDetails && !details && r.messageId && (
+        <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+          <Loader2 className="h-3 w-3 animate-spin" /> Загрузка содержимого…
+        </p>
+      )}
+
+      {detailsError && !details && r.messageId && (
+        <p className="text-[11px] text-destructive">Детали недоступны: {detailsError}</p>
+      )}
+
+      {details?.hiddenByAdmin && (
+        <p className="text-[11px] text-muted-foreground italic">
+          Сообщение уже скрыто администратором {formatDate(details.hiddenByAdmin.at)}.
+        </p>
+      )}
+
+      <div className="space-y-1 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <UserIcon className="h-3 w-3 shrink-0" />
+          <span>{t('admin.moderation.authorLabel')}</span>
+          <button
+            type="button"
+            className="font-semibold text-foreground hover:underline"
+            onClick={() => onOpenProfile(r.messageSenderId)}
+          >
+            {r.messageSenderName ?? r.messageSenderId}
+          </button>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Flag className="h-3 w-3 shrink-0" />
+          <span>{t('admin.moderation.reportedByLabel')}</span>
+          <button
+            type="button"
+            className="font-semibold text-foreground hover:underline"
+            onClick={() => onOpenProfile(r.reporterId)}
+          >
+            {r.reporterName}
+          </button>
+        </div>
+      </div>
+
+      {r.description && (
+        <p className="text-xs text-muted-foreground italic">&laquo;{r.description}&raquo;</p>
+      )}
+
+      {r.status === 'pending' && (
+        <div className="flex flex-wrap gap-2 pt-1">
+          {/* «Скрыть сообщение» — только для жалоб с конкретным
+              messageId, и только если сообщение ещё не скрыто. */}
+          {!isUserLevel && !details?.hiddenByAdmin && (
+            <Button
+              size="sm"
+              variant="destructive"
+              className="rounded-xl"
+              onClick={() => onHideAndReview(r)}
+              disabled={acting === r.id}
+            >
+              {acting === r.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
+              {t('admin.moderation.hideMessage')}
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="destructive"
+            className="rounded-xl"
+            onClick={() => onOpenBlock(r)}
+            disabled={acting === r.id || !currentUserId}
+          >
+            <Ban className="h-3 w-3 mr-1" /> {t('admin.usersList.block')}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-xl"
+            onClick={() => onDismiss(r)}
+            disabled={acting === r.id}
+          >
+            <X className="h-3 w-3 mr-1" /> {t('admin.moderation.dismiss')}
+          </Button>
+        </div>
+      )}
+
+      {r.status === 'action_taken' && (
+        <div className="flex items-center gap-1 text-xs text-green-600">
+          <Check className="h-3 w-3" /> {t('admin.moderation.actionTakenLabel')}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AdminModerationPanel() {
   const { t } = useI18n();
   const firebaseAuth = useFirebaseAuth();
@@ -69,8 +379,7 @@ export function AdminModerationPanel() {
   const [acting, setActing] = useState<string | null>(null);
   const [blockTarget, setBlockTarget] = useState<User | null>(null);
   const [pendingBlockReportId, setPendingBlockReportId] = useState<string | null>(null);
-  // Растущее окно для live-подписки. При нажатии "Показать ещё" увеличиваем
-  // лимит на REPORTS_PAGE; onSnapshot переподписывается на новый запрос.
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const REPORTS_PAGE = 50;
   const [reportsLimit, setReportsLimit] = useState(REPORTS_PAGE);
   const [hasMore, setHasMore] = useState(false);
@@ -99,19 +408,16 @@ export function AdminModerationPanel() {
         setLoading(false);
       },
       (err) => {
-        console.error('[AdminModerationPanel] onSnapshot', err);
+        logger.error('admin-moderation', 'onSnapshot', err);
         setLoading(false);
       },
     );
   }, [firestore, statusFilter, reportsLimit]);
 
-  const handleHideAndReview = async (report: MessageReport) => {
+  const handleHideAndReview = useCallback(async (report: MessageReport) => {
     const token = await firebaseAuth?.currentUser?.getIdToken();
     if (!token) return;
-    if (!report.messageId) {
-      toast({ variant: 'destructive', title: 'У этой жалобы нет конкретного сообщения — её можно только отклонить' });
-      return;
-    }
+    if (!report.messageId) return;
     setActing(report.id);
     try {
       const res = await reviewAndHideReportAction({
@@ -127,14 +433,14 @@ export function AdminModerationPanel() {
         toast({ variant: 'destructive', title: res.error });
       }
     } catch (e) {
-      console.error('[AdminModerationPanel] handleHideAndReview', e);
+      logger.error('admin-moderation', 'handleHideAndReview', e);
       toast({ variant: 'destructive', title: 'Не удалось обработать жалобу' });
     } finally {
       setActing(null);
     }
-  };
+  }, [firebaseAuth, t, toast]);
 
-  const handleDismiss = async (report: MessageReport) => {
+  const handleDismiss = useCallback(async (report: MessageReport) => {
     const token = await firebaseAuth?.currentUser?.getIdToken();
     if (!token) return;
     setActing(report.id);
@@ -151,14 +457,14 @@ export function AdminModerationPanel() {
         toast({ variant: 'destructive', title: res.error });
       }
     } catch (e) {
-      console.error('[AdminModerationPanel] handleDismiss', e);
+      logger.error('admin-moderation', 'handleDismiss', e);
       toast({ variant: 'destructive', title: 'Не удалось отклонить жалобу' });
     } finally {
       setActing(null);
     }
-  };
+  }, [firebaseAuth, t, toast]);
 
-  const handleOpenBlock = async (report: MessageReport) => {
+  const handleOpenBlock = useCallback(async (report: MessageReport) => {
     if (!firestore) return;
     setActing(report.id);
     try {
@@ -170,14 +476,14 @@ export function AdminModerationPanel() {
       setBlockTarget({ id: snap.id, ...(snap.data() as Omit<User, 'id'>) });
       setPendingBlockReportId(report.id);
     } catch (e) {
-      console.error('[AdminModerationPanel] load user for block', e);
+      logger.error('admin-moderation', 'load user for block', e);
       toast({ variant: 'destructive', title: 'Не удалось загрузить пользователя' });
     } finally {
       setActing(null);
     }
-  };
+  }, [firestore, toast]);
 
-  const handleBlockDone = async () => {
+  const handleBlockDone = useCallback(async () => {
     if (!pendingBlockReportId) return;
     const token = await firebaseAuth?.currentUser?.getIdToken();
     if (token) {
@@ -189,12 +495,13 @@ export function AdminModerationPanel() {
       });
     }
     setPendingBlockReportId(null);
-  };
+  }, [firebaseAuth, pendingBlockReportId]);
 
-  const formatDate = (iso: string) => {
-    const d = new Date(iso);
-    return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  };
+  const handleOpenProfile = useCallback((userId: string) => {
+    setProfileUserId(userId);
+  }, []);
+
+  const currentUserId = useMemo(() => currentUser?.id, [currentUser?.id]);
 
   return (
     <Card className="rounded-3xl">
@@ -225,80 +532,16 @@ export function AdminModerationPanel() {
         ) : (
           <div className="space-y-3">
             {reports.map((r) => (
-              <div key={r.id} className="rounded-2xl border p-4 space-y-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="secondary" className={`text-[10px] ${STATUS_COLORS[r.status]}`}>
-                    {t(STATUS_LABEL_KEYS[r.status])}
-                  </Badge>
-                  <Badge variant="outline" className="text-[10px]">
-                    {REASON_LABEL_KEYS[r.reason] ? t(REASON_LABEL_KEYS[r.reason]) : r.reason}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground ml-auto">{formatDate(r.createdAt)}</span>
-                </div>
-
-                {r.messageText && (
-                  <div className="bg-muted rounded-xl p-2.5 text-sm">
-                    <p className="line-clamp-3">{r.messageText}</p>
-                  </div>
-                )}
-
-                <div className="space-y-1 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1.5">
-                    <UserIcon className="h-3 w-3 shrink-0" />
-                    <span>{t('admin.moderation.authorLabel')}</span>
-                    <strong className="text-foreground">{r.messageSenderName ?? r.messageSenderId}</strong>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <Flag className="h-3 w-3 shrink-0" />
-                    <span>{t('admin.moderation.reportedByLabel')}</span>
-                    <strong className="text-foreground">{r.reporterName}</strong>
-                  </div>
-                </div>
-
-                {r.description && (
-                  <p className="text-xs text-muted-foreground italic">&laquo;{r.description}&raquo;</p>
-                )}
-
-                {r.status === 'pending' && (
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="rounded-xl"
-                      onClick={() => handleHideAndReview(r)}
-                      disabled={acting === r.id || !r.messageId}
-                      title={!r.messageId ? 'У этой жалобы нет конкретного сообщения — её можно только отклонить' : undefined}
-                    >
-                      {acting === r.id ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
-                      {t('admin.moderation.hideMessage')}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="rounded-xl"
-                      onClick={() => handleOpenBlock(r)}
-                      disabled={acting === r.id || !currentUser?.id}
-                    >
-                      <Ban className="h-3 w-3 mr-1" /> {t('admin.usersList.block')}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="rounded-xl"
-                      onClick={() => handleDismiss(r)}
-                      disabled={acting === r.id}
-                    >
-                      <X className="h-3 w-3 mr-1" /> {t('admin.moderation.dismiss')}
-                    </Button>
-                  </div>
-                )}
-
-                {r.status === 'action_taken' && (
-                  <div className="flex items-center gap-1 text-xs text-green-600">
-                    <Check className="h-3 w-3" /> {t('admin.moderation.actionTakenLabel')}
-                  </div>
-                )}
-              </div>
+              <ReportCard
+                key={r.id}
+                report={r}
+                acting={acting}
+                onHideAndReview={handleHideAndReview}
+                onDismiss={handleDismiss}
+                onOpenBlock={handleOpenBlock}
+                onOpenProfile={handleOpenProfile}
+                currentUserId={currentUserId}
+              />
             ))}
             {hasMore && (
               <div className="flex justify-center pt-2">
@@ -331,6 +574,14 @@ export function AdminModerationPanel() {
           onDone={handleBlockDone}
         />
       )}
+
+      <AdminUserProfileDialog
+        open={!!profileUserId}
+        onOpenChange={(open) => {
+          if (!open) setProfileUserId(null);
+        }}
+        userId={profileUserId}
+      />
     </Card>
   );
 }

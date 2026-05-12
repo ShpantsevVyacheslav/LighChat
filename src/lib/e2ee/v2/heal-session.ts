@@ -59,6 +59,7 @@ import {
   postChatSystemEventV2,
 } from '@/lib/e2ee/v2/system-events';
 import { logE2eeEvent, normalizeErrorCode } from '@/lib/e2ee/v2/telemetry';
+import { logger } from '@/lib/logger';
 
 export type HealReason =
   | 'no-session-doc'
@@ -218,7 +219,7 @@ export async function healSessionForCurrentDevicesV2(
           event: chatSystemEvents.epochRotated(nextEpoch, currentUserId),
         });
       } catch (e) {
-        console.warn('[e2ee/v2] heal: system-event post failed:', e);
+        logger.warn('e2ee-heal', 'system-event post failed', e);
       }
 
       return { healed: true, reason: diag.reason ?? 'my-device-missing', newEpoch: nextEpoch };
@@ -230,7 +231,7 @@ export async function healSessionForCurrentDevicesV2(
       });
       // Не пробрасываем наверх — heal best-effort. Вызывающий получит
       // `{ healed: false }` и покажет стандартный error-placeholder.
-      console.warn('[e2ee/v2] heal failed:', e);
+      logger.warn('e2ee-heal', 'heal failed', e);
       return { healed: false };
     } finally {
       inflightHeal.delete(cacheKey);
@@ -295,7 +296,7 @@ export async function forceRotateEpochV2(
       event: chatSystemEvents.epochRotated(nextEpoch, currentUserId),
     });
   } catch (e) {
-    console.warn('[e2ee/v2] force-rotate: system-event post failed:', e);
+    logger.warn('e2ee-heal', 'force-rotate: system-event post failed', e);
   }
   return { newEpoch: nextEpoch };
 }
