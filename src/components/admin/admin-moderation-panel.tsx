@@ -39,6 +39,9 @@ import {
 import { useAuth as useFirebaseAuth, useFirestore } from '@/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ruEnSubstringMatch } from '@/lib/ru-latin-search-normalize';
 import {
   reviewReportAction,
   reviewAndHideReportAction,
@@ -47,7 +50,7 @@ import {
   fetchReportedMessageDetailsAction,
   type ReportedMessageDetails,
 } from '@/actions/admin-reported-message-action';
-import type { ChatAttachment, MessageReport, ReportStatus, User } from '@/lib/types';
+import type { ChatAttachment, MessageReport, ReportReason, ReportStatus, User } from '@/lib/types';
 import { useI18n } from '@/hooks/use-i18n';
 import { logger } from '@/lib/logger';
 import { UserBlockDialog } from '@/components/admin/user-block-dialog';
@@ -376,6 +379,11 @@ export function AdminModerationPanel() {
   const [reports, setReports] = useState<MessageReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<ReportStatus | 'all'>('pending');
+  const [reasonFilter, setReasonFilter] = useState<ReportReason | 'all'>('all');
+  const [userSearch, setUserSearch] = useState('');
+  // datetime-local значения: пустые == без ограничения
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [acting, setActing] = useState<string | null>(null);
   const [blockTarget, setBlockTarget] = useState<User | null>(null);
   const [pendingBlockReportId, setPendingBlockReportId] = useState<string | null>(null);
@@ -388,6 +396,53 @@ export function AdminModerationPanel() {
     setReportsLimit(REPORTS_PAGE);
     setHasMore(false);
   }, [statusFilter]);
+
+  const resetClientFilters = useCallback(() => {
+    setReasonFilter('all');
+    setUserSearch('');
+    setDateFrom('');
+    setDateTo('');
+  }, []);
+
+  // Клиент-сайд фильтрация по reason, пользователю и диапазону дат.
+  // Status фильтруется серверно (Firestore where), а composite index с
+  // reason/createdAt-range пришлось бы заводить отдельно — для админ-
+  // панели объёмы небольшие, клиентского фильтра достаточно.
+  const filteredReports = useMemo(() => {
+    const fromMs = dateFrom ? Date.parse(dateFrom) : null;
+    const toMs = dateTo ? Date.parse(dateTo) : null;
+    const search = userSearch.trim();
+    return reports.filter((r) => {
+      if (reasonFilter !== 'all' && r.reason !== reasonFilter) return false;
+      if (fromMs != null) {
+        const t = Date.parse(r.createdAt);
+        if (!Number.isFinite(t) || t < fromMs) return false;
+      }
+      if (toMs != null) {
+        const t = Date.parse(r.createdAt);
+        if (!Number.isFinite(t) || t > toMs) return false;
+      }
+      if (search) {
+        const lower = search.toLowerCase();
+        const haystacks: Array<string | undefined> = [
+          r.messageSenderName,
+          r.messageSenderId,
+          r.reporterName,
+          r.reporterId,
+        ];
+        const match = haystacks.some((h) =>
+          h
+            ? h.toLowerCase().includes(lower) || ruEnSubstringMatch(h, search)
+            : false,
+        );
+        if (!match) return false;
+      }
+      return true;
+    });
+  }, [reports, reasonFilter, userSearch, dateFrom, dateTo]);
+
+  const hasActiveClientFilter =
+    reasonFilter !== 'all' || !!userSearch.trim() || !!dateFrom || !!dateTo;
 
   useEffect(() => {
     if (!firestore) return;
@@ -513,25 +568,102 @@ export function AdminModerationPanel() {
         <CardDescription>{t('admin.moderation.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ReportStatus | 'all')}>
-          <SelectTrigger className="w-[180px] rounded-xl">
-            <SelectValue placeholder={t('admin.moderation.statusPlaceholder')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('admin.moderation.statusAll')}</SelectItem>
-            <SelectItem value="pending">{t('admin.moderation.statusPending')}</SelectItem>
-            <SelectItem value="action_taken">{t('admin.moderation.statusActionTaken')}</SelectItem>
-            <SelectItem value="dismissed">{t('admin.moderation.statusDismissed')}</SelectItem>
-          </SelectContent>
-        </Select>
+        {/* Фильтры */}
+        <div className="rounded-2xl border border-border/60 bg-muted/15 p-3 space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Статус</Label>
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ReportStatus | 'all')}>
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue placeholder={t('admin.moderation.statusPlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('admin.moderation.statusAll')}</SelectItem>
+                  <SelectItem value="pending">{t('admin.moderation.statusPending')}</SelectItem>
+                  <SelectItem value="action_taken">{t('admin.moderation.statusActionTaken')}</SelectItem>
+                  <SelectItem value="dismissed">{t('admin.moderation.statusDismissed')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Причина</Label>
+              <Select value={reasonFilter} onValueChange={(v) => setReasonFilter(v as ReportReason | 'all')}>
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Любая</SelectItem>
+                  <SelectItem value="spam">{t('admin.moderation.reasonSpam')}</SelectItem>
+                  <SelectItem value="harassment">{t('admin.moderation.reasonHarassment')}</SelectItem>
+                  <SelectItem value="inappropriate">{t('admin.moderation.reasonInappropriate')}</SelectItem>
+                  <SelectItem value="offensive">{t('admin.moderation.reasonOffensive')}</SelectItem>
+                  <SelectItem value="violence">{t('admin.moderation.reasonViolence')}</SelectItem>
+                  <SelectItem value="fraud">{t('admin.moderation.reasonFraud')}</SelectItem>
+                  <SelectItem value="other">{t('admin.moderation.reasonOther')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Поиск по пользователю</Label>
+            <Input
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              placeholder="Имя или ID автора / пожаловавшегося"
+              className="rounded-xl"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">С</Label>
+              <Input
+                type="datetime-local"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">По</Label>
+              <Input
+                type="datetime-local"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+          </div>
+          {hasActiveClientFilter && (
+            <div className="flex justify-end">
+              <Button type="button" variant="ghost" size="sm" className="rounded-xl text-xs" onClick={resetClientFilters}>
+                <X className="h-3 w-3 mr-1" /> Сбросить фильтры
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Счётчик */}
+        {!loading && reports.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            Показано: <strong className="text-foreground">{filteredReports.length}</strong>
+            {hasActiveClientFilter && reports.length !== filteredReports.length && (
+              <> из {reports.length} загруженных</>
+            )}
+            {!hasActiveClientFilter && hasMore && <> · доступно ещё</>}
+          </p>
+        )}
 
         {loading ? (
           <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-        ) : reports.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-8">{t('admin.moderation.noReports')}</p>
+        ) : filteredReports.length === 0 ? (
+          <p className="text-center text-sm text-muted-foreground py-8">
+            {hasActiveClientFilter
+              ? 'Нет жалоб, соответствующих фильтрам.'
+              : t('admin.moderation.noReports')}
+          </p>
         ) : (
           <div className="space-y-3">
-            {reports.map((r) => (
+            {filteredReports.map((r) => (
               <ReportCard
                 key={r.id}
                 report={r}
@@ -551,7 +683,7 @@ export function AdminModerationPanel() {
                   className="rounded-xl"
                   onClick={() => setReportsLimit((n) => n + REPORTS_PAGE)}
                 >
-                  Показать ещё
+                  Показать ещё {REPORTS_PAGE}
                 </Button>
               </div>
             )}
