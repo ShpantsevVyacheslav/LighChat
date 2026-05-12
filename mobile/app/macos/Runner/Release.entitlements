@@ -2,7 +2,28 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>com.apple.security.app-sandbox</key>
+	<!--
+	  Release-сборка без paid Apple Developer Program (распространяется
+	  как unsigned DMG). App Sandbox ОТКЛЮЧЁН — без него:
+	    1. Firebase Auth может писать токены в legacy macOS keychain
+	       без `keychain-access-groups` entitlement (который выдаётся
+	       только в paid Developer Program). Иначе SecItemAdd возвращает
+	       -34018 (errSecMissingEntitlement) и пользователь видит ошибку
+	       "An error occurred when accessing the keychain" при попытке
+	       залогиниться.
+	    2. `flutter_secure_storage` с `useDataProtectionKeyChain: false`
+	       тоже работает с legacy keychain (см. lighchat_firebase/
+	       device_identity.dart).
+	    3. Plugin dylibs грузятся без `disable-library-validation`.
+
+	  ⚠️ Когда появится paid Apple Developer Program — обратно включаем
+	  com.apple.security.app-sandbox + добавляем keychain-access-groups
+	  entitlement + notarize через xcrun notarytool. После notarization
+	  пользователи не будут видеть Gatekeeper warning при первом запуске.
+	-->
+	<key>com.apple.security.cs.allow-jit</key>
+	<true/>
+	<key>com.apple.security.cs.disable-library-validation</key>
 	<true/>
 	<key>com.apple.security.network.client</key>
 	<true/>
@@ -11,16 +32,6 @@
 	<key>com.apple.security.device.audio-input</key>
 	<true/>
 	<key>com.apple.security.device.camera</key>
-	<true/>
-	<key>com.apple.security.personal-information.contacts</key>
-	<true/>
-	<key>com.apple.security.personal-information.location</key>
-	<true/>
-	<key>com.apple.security.files.user-selected.read-write</key>
-	<true/>
-	<key>com.apple.security.files.downloads.read-write</key>
-	<true/>
-	<key>com.apple.security.print</key>
 	<true/>
 </dict>
 </plist>
