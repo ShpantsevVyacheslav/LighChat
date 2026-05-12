@@ -20,10 +20,21 @@ class VoiceMessageRecordResult {
 Future<VoiceMessageRecordResult?> showVoiceMessageRecordSheet(
   BuildContext context,
 ) {
+  // На desktop modal bottom sheet использует root navigator, который
+  // покрывает всё окно (rail + chat list + chat). Без ограничения
+  // ширины запись аудио растягивается на весь экран. Ограничиваем
+  // до 560dp — соответствует ширине composer'а на типичном desktop
+  // layout'е и центрируется в окне.
+  final screenW = MediaQuery.sizeOf(context).width;
+  const desktopBreakpoint = 1024.0;
+  final isDesktop = screenW >= desktopBreakpoint;
   return showModalBottomSheet<VoiceMessageRecordResult>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
+    constraints: isDesktop
+        ? const BoxConstraints(maxWidth: 560)
+        : null,
     builder: (ctx) => Padding(
       padding: EdgeInsets.only(
         left: 12,

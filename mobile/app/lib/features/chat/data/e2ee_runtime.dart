@@ -77,6 +77,12 @@ class MobileE2eeRuntime {
   final Map<String, Future<MobileDeviceIdentityV2>> _identityInFlight =
       <String, Future<MobileDeviceIdentityV2>>{};
 
+  /// Per-conversation guard: heal-on-decrypt-fail вызываем максимум один
+  /// раз в `_kHealOnDecryptCooldown`, чтобы не спамить ротации при пакетной
+  /// загрузке истории.
+  final Map<String, DateTime> _lastHealAttempt = <String, DateTime>{};
+  static const Duration _kHealOnDecryptCooldown = Duration(minutes: 5);
+
   /// Лениво создаёт/читает identity из secure-storage и публикует её в
   /// Firestore. Вызов идемпотентен, конкурентные вызовы дедуплицируются.
   Future<MobileDeviceIdentityV2> ensureIdentity() async {
@@ -114,6 +120,18 @@ class MobileE2eeRuntime {
 
   /// Дешифрует сообщение. Никогда не бросает — на ошибку возвращает
   /// `MobileDecryptionResult.failed(code)`.
+  ///
+  /// Для **существующей** epoch (которой шифровался payload) сначала
+  /// пытаемся прочитать chat-key напрямую. Если wrap под наш deviceId
+  /// отсутствует (типично для нового desktop-устройства, чья identity
+  /// появилась после создания сообщения), пробуем триггернуть
+  /// `healSessionForCurrentDevices` — это создаст следующую epoch
+  /// с wrapping'ом под все актуальные devices. Старые сообщения с
+  /// предыдущих epoch'ов от этого НЕ открываются (key для них уже
+  /// потерян), но новые сообщения после ротации придут читаемыми.
+  /// Heal вызывается не чаще раза в [_kHealOnDecryptCooldown] на
+  /// conversation, чтобы не спамить ротации при пакетной загрузке
+  /// истории.
   Future<MobileDecryptionResult> decryptMessage({
     required String conversationId,
     required String messageId,
@@ -125,15 +143,16 @@ class MobileE2eeRuntime {
       return MobileDecryptionResult.failed('E2EE_UNSUPPORTED_PROTO');
     }
     try {
-      // Decrypt-path: heal здесь бессмыслен (ключ, которым шифровался
-      // payload, лежит именно в session payload.epoch). Если эту эпоху
-      // мы прочесть не можем — сообщение для нас потеряно, UI покажет
-      // placeholder.
       final key = await _tryGetChatKey(
         conversationId: conversationId,
         epoch: payload.epoch,
       );
       if (key == null) {
+        appLogger.w(
+          '[E2EE] no chat-key for $conversationId/$messageId epoch=${payload.epoch}; '
+          'attempting heal-on-decrypt-fail (новое устройство?)',
+        );
+        await _maybeHealOnDecryptFail(conversationId);
         return MobileDecryptionResult.failed('E2EE_NO_CHAT_KEY');
       }
       final aad = V2MessageAadContext(
@@ -149,10 +168,54 @@ class MobileE2eeRuntime {
       );
       return MobileDecryptionResult.ok(plain);
     } catch (e, st) {
-      if (kDebugMode) {
-        appLogger.w('[E2EE] decrypt failed for $conversationId/$messageId', error: e, stackTrace: st);
-      }
+      appLogger.w(
+        '[E2EE] decrypt failed for $conversationId/$messageId',
+        error: e,
+        stackTrace: st,
+      );
       return MobileDecryptionResult.failed('E2EE_DECRYPT_FAILED');
+    }
+  }
+
+  Future<void> _maybeHealOnDecryptFail(String conversationId) async {
+    final last = _lastHealAttempt[conversationId];
+    if (last != null && DateTime.now().difference(last) < _kHealOnDecryptCooldown) {
+      return;
+    }
+    _lastHealAttempt[conversationId] = DateTime.now();
+    try {
+      final data = await _readConversationDataForE2ee(conversationId);
+      if (data == null) return;
+      final participantIdsRaw = data['participantIds'];
+      final participantIds = (participantIdsRaw is List
+              ? participantIdsRaw
+              : const <Object?>[])
+          .whereType<String>()
+          .where((s) => s.trim().isNotEmpty)
+          .toList(growable: false);
+      if (participantIds.isEmpty) return;
+      final rawEpoch = data['e2eeKeyEpoch'];
+      final latestEpoch =
+          rawEpoch is int ? rawEpoch : (rawEpoch is num ? rawEpoch.toInt() : 0);
+      final identity = await ensureIdentity();
+      final result = await healSessionForCurrentDevices(
+        firestore: firestore,
+        conversationId: conversationId,
+        currentEpoch: latestEpoch,
+        participantIds: participantIds,
+        currentUserId: userId,
+        identity: identity,
+      );
+      appLogger.i(
+        '[E2EE] heal-on-decrypt-fail для $conversationId: '
+        'healed=${result.healed} newEpoch=${result.newEpoch}',
+      );
+    } catch (e, st) {
+      appLogger.w(
+        '[E2EE] heal-on-decrypt-fail failed для $conversationId',
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 

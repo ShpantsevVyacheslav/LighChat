@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -7,6 +9,16 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../../l10n/app_localizations.dart';
 import '../data/google_maps_urls.dart';
 import 'location_live_countdown.dart';
+
+/// `webview_flutter` нет нативной реализации на Windows / Linux — там
+/// `WebViewController()` крашит UI ("Unimplemented platform interface").
+/// Для этих платформ показываем placeholder + кнопку «Открыть в браузере».
+bool get _supportsInlineWebView {
+  if (kIsWeb) return false; // web использует свой плагин, но мы туда не идём
+  return defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.macOS;
+}
 
 /// Полноэкранная карта: WebView (OSM + Leaflet) + назад + открыть во внешнем браузере.
 class SharedLocationMapScreen extends StatefulWidget {
@@ -28,7 +40,7 @@ class SharedLocationMapScreen extends StatefulWidget {
 }
 
 class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
-  late final WebViewController _web;
+  WebViewController? _web;
   var _loading = true;
   Timer? _loadingTimeout;
 
@@ -42,6 +54,12 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
   @override
   void initState() {
     super.initState();
+    if (!_supportsInlineWebView) {
+      // Windows / Linux: WebView плагин не реализован. Не создаём
+      // controller (это бы крашнуло "Unimplemented platform interface").
+      _loading = false;
+      return;
+    }
     final html = buildOpenStreetMapLeafletHtml(widget.lat, widget.lng);
     _loadingTimeout = Timer(const Duration(seconds: 15), _hideLoader);
     _web = WebViewController()
@@ -61,11 +79,13 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
   }
 
   Future<void> _loadMap(String html) async {
+    final web = _web;
+    if (web == null) return;
     try {
-      await _web.setUserAgent('LighChatMobile/1.0');
+      await web.setUserAgent('LighChatMobile/1.0');
     } catch (_) {}
     try {
-      await _web.loadHtmlString(
+      await web.loadHtmlString(
         html,
         baseUrl: 'https://unpkg.com/',
       );
@@ -91,12 +111,20 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     final exp = widget.liveExpiresAtIso;
+    final web = _web;
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          WebViewWidget(controller: _web),
+          if (web != null)
+            WebViewWidget(controller: web)
+          else
+            _DesktopLocationFallback(
+              lat: widget.lat,
+              lng: widget.lng,
+              onOpenExternal: _openExternal,
+            ),
           if (_loading)
             const Center(
               child: CircularProgressIndicator(color: Colors.white70),
@@ -133,6 +161,63 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
               child: LocationLiveCountdown(expiresAtIso: exp),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Fallback для Windows / Linux: показывает координаты + кнопку «Открыть
+/// в браузере». Inline-карта недоступна (webview_flutter не реализован
+/// на этих платформах).
+class _DesktopLocationFallback extends StatelessWidget {
+  const _DesktopLocationFallback({
+    required this.lat,
+    required this.lng,
+    required this.onOpenExternal,
+  });
+
+  final double lat;
+  final double lng;
+  final Future<void> Function() onOpenExternal;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black,
+      alignment: Alignment.center,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.map_outlined,
+              size: 80,
+              color: Colors.white54,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '${lat.toStringAsFixed(6)}, ${lng.toStringAsFixed(6)}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Карта недоступна на этой платформе.\nОткройте локацию в браузере.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: () => onOpenExternal(),
+              icon: const Icon(Icons.open_in_new_rounded),
+              label: const Text('Открыть в браузере'),
+            ),
+          ],
+        ),
       ),
     );
   }

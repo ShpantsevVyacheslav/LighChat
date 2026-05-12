@@ -151,6 +151,29 @@ dev_dependencies:
   # Windows-сборки в MSIX. Не используется в runtime, не попадает в bundle.
   msix: ^3.16.10
 
+  # Генерирует иконки приложения для всех платформ из единого PNG-источника
+  # (`assets/lighchat_mark.png`). Запуск: `dart run flutter_launcher_icons`.
+  # Конфигурация — внизу файла в секции `flutter_launcher_icons:`.
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  image_path: "assets/lighchat_mark.png"
+  android: true
+  ios: true
+  macos:
+    generate: true
+    image_path: "assets/lighchat_mark.png"
+  windows:
+    generate: true
+    image_path: "assets/lighchat_mark.png"
+    # Windows .ico max size — 256. flutter_launcher_icons сам downscale-ит
+    # от 1024-source.
+    icon_size: 256
+  web:
+    generate: false
+  remove_alpha_ios: true
+  background_color_ios: "#0A0E17"
+
 msix_config:
   display_name: LighChat
   publisher_display_name: LighChat

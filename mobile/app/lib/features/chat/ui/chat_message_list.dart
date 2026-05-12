@@ -1879,6 +1879,15 @@ class _ChatMessageBubble extends StatelessWidget {
                                 onMessageLongPress != null
                             ? () => onMessageLongPress!(message)
                             : null,
+                        // Desktop: правая кнопка мыши вызывает то же
+                        // действие, что и long-press на мобилке (контекстное
+                        // меню сообщения).
+                        onSecondaryTap:
+                            !selectionMode &&
+                                !message.isDeleted &&
+                                onMessageLongPress != null
+                            ? () => onMessageLongPress!(message)
+                            : null,
                         child: wrappedBody,
                       ),
                     ),

@@ -461,14 +461,27 @@ class _ChatComposerState extends State<ChatComposer> {
         _composerColumnKey.currentContext?.findRenderObject() as RenderBox?;
     final mq = MediaQuery.of(context);
     final screenH = mq.size.height;
+    final screenW = mq.size.width;
     var bottomFrom = 100.0;
+    // На desktop overlay рендерится в root Overlay, который покрывает всё
+    // окно (включая rail + chat list слева). Чтобы меню не вылезало
+    // за пределы detail-панели, считаем горизонтальные оффсеты от
+    // RenderBox самого composer'а.
+    var leftFrom = 10.0;
+    var rightFrom = 10.0;
     if (box != null && box.hasSize) {
-      final topY = box.localToGlobal(Offset.zero).dy;
-      bottomFrom = (screenH - topY).clamp(56.0, screenH);
+      final topLeft = box.localToGlobal(Offset.zero);
+      final composerLeft = topLeft.dx;
+      final composerRight = composerLeft + box.size.width;
+      bottomFrom = (screenH - topLeft.dy).clamp(56.0, screenH);
+      leftFrom = (composerLeft + 10).clamp(0.0, screenW);
+      rightFrom = (screenW - composerRight + 10).clamp(0.0, screenW);
     }
     _attachmentOverlayEntry = showComposerAttachmentOverlay(
       context: context,
       bottomFromScreenBottom: bottomFrom,
+      leftFromScreenLeft: leftFrom,
+      rightFromScreenRight: rightFrom,
       onDismissed: () {
         _attachmentOverlayEntry = null;
       },

@@ -241,10 +241,17 @@ class _MenuGridActionTile extends StatelessWidget {
 
 /// Меню у нижнего края, высота по контенту; [bottomFromScreenBottom] — отступ низа панели от низа экрана
 /// (до верхней границы композера).
+///
+/// На desktop overlay живёт в root Overlay (на всё окно), поэтому горизонтальные
+/// оффсеты [leftFromScreenLeft] / [rightFromScreenRight] должны быть вычислены
+/// из RenderBox самого composer'а, чтобы меню не вылезало за пределы detail-панели
+/// (за rail / chat list). По умолчанию 10dp слева/справа — это поведение мобилки.
 OverlayEntry showComposerAttachmentOverlay({
   required BuildContext context,
   required double bottomFromScreenBottom,
   required void Function(ComposerAttachmentAction action) onSelected,
+  double leftFromScreenLeft = 10,
+  double rightFromScreenRight = 10,
   void Function()? onDismissed,
 }) {
   late OverlayEntry entry;
@@ -272,8 +279,8 @@ OverlayEntry showComposerAttachmentOverlay({
               ),
             ),
             Positioned(
-              left: 10,
-              right: 10,
+              left: leftFromScreenLeft,
+              right: rightFromScreenRight,
               bottom: bottomFromScreenBottom,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 560),

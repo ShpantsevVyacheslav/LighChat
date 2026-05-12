@@ -138,16 +138,22 @@ class _ChatListItemState extends State<ChatListItem> {
               transform: Matrix4.translationValues(-_swipeX, 0, 0),
               child: Material(
                 color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    if (_swipeX > 0) {
-                      setState(() => _swipeX = 0);
-                      return;
-                    }
-                    widget.onTap();
-                  },
-                  onLongPress: widget.onLongPress,
-                  borderRadius: BorderRadius.circular(16),
+                child: GestureDetector(
+                  // Desktop: правая кнопка мыши = long-press на мобилке.
+                  // GestureDetector НЕ перехватывает onTap (он остаётся
+                  // у InkWell ниже) — мы регистрируем только secondary tap.
+                  behavior: HitTestBehavior.translucent,
+                  onSecondaryTap: widget.onLongPress,
+                  child: InkWell(
+                    onTap: () {
+                      if (_swipeX > 0) {
+                        setState(() => _swipeX = 0);
+                        return;
+                      }
+                      widget.onTap();
+                    },
+                    onLongPress: widget.onLongPress,
+                    borderRadius: BorderRadius.circular(16),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
@@ -255,6 +261,7 @@ class _ChatListItemState extends State<ChatListItem> {
                       ],
                     ),
                   ),
+                ),
                 ),
               ),
             ),
