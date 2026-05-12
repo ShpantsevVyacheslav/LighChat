@@ -116,7 +116,8 @@ interface MessageEditorProps {
   /** Только курсор/выделение: обновить @-подсказку без «печатает» и прочих побочных эффектов onUpdate. */
   onMentionQueryCursor?: (mentionQuery: string | null) => void;
   onEnter: () => void;
-  editorRef: React.MutableRefObject<any>;
+  /** TipTap editor instance — `Editor | null` из `@tiptap/core`. */
+  editorRef: React.MutableRefObject<import('@tiptap/core').Editor | null>;
   onPasteFiles?: (files: File[]) => void;
   /** true — не отправлять по Enter (например, открыт список @-упоминаний). */
   shouldBlockEnter?: () => boolean;

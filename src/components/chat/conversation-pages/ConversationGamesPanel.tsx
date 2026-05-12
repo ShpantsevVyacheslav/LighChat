@@ -126,7 +126,14 @@ export function ConversationGamesPanel({
         : null,
     [firestore, conversationId]
   );
-  const { data: tournamentIndexRows, isLoading: isLoadingTournaments } = useCollection<any>(tournamentsQuery);
+  // [audit L-006] tournaments-index subcollection пишется CF без жёсткой схемы.
+  // Берём только поля, которые читает UI (см. рендер ниже).
+  const { data: tournamentIndexRows, isLoading: isLoadingTournaments } = useCollection<{
+    id?: string;
+    tournamentId?: string;
+    title?: string;
+    status?: string;
+  }>(tournamentsQuery);
   const tournaments = useMemo(() => tournamentIndexRows ?? [], [tournamentIndexRows]);
 
   const selectedTournamentRef = useMemoFirebase(
@@ -155,7 +162,7 @@ export function ConversationGamesPanel({
         gameKey: 'durak',
         settings: { ...settings, maxPlayers: isGroup ? settings.maxPlayers : 2 },
       });
-      const gameId = (res.data as any)?.gameId as string | undefined;
+      const gameId = (res.data as { gameId?: string } | null)?.gameId;
       if (gameId) {
         toast({ title: t('gamesPanel.gameCreated') });
         onCreatedGameLobby?.(gameId);
@@ -174,7 +181,7 @@ export function ConversationGamesPanel({
     try {
       const fn = httpsCallable(getFunctions(firestore.app, 'us-central1'), 'createDurakTournament');
       const res = await fn({ conversationId, totalGames: tournamentTotalGames });
-      const tid = (res.data as any)?.tournamentId as string | undefined;
+      const tid = (res.data as { tournamentId?: string } | null)?.tournamentId;
       if (tid) setSelectedTournamentId(tid);
       toast({ title: t('gamesPanel.tournamentCreated') });
       setShowTournamentSettings(false);
@@ -195,7 +202,7 @@ export function ConversationGamesPanel({
         tournamentId: selectedTournamentId,
         settings: { ...settings, maxPlayers: isGroup ? settings.maxPlayers : 2 },
       });
-      const gameId = (res.data as any)?.gameId as string | undefined;
+      const gameId = (res.data as { gameId?: string } | null)?.gameId;
       if (gameId) {
         toast({ title: t('gamesPanel.roundCreated') });
         onCreatedGameLobby?.(gameId);
@@ -459,7 +466,7 @@ export function ConversationGamesPanel({
       </ListSection>
 
       <ListSection title={t('gamesPanel.tournaments')} empty={isLoadingTournaments && !tournamentIndexRows ? t('gamesPanel.loading') : t('gamesPanel.noTournaments')}>
-        {tournaments.map((row: any) => (
+        {tournaments.map((row) => (
           <button
             key={row.tournamentId ?? row.id}
             type="button"

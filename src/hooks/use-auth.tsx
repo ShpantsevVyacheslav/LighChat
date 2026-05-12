@@ -988,8 +988,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             return false;
         }
         return true;
-      } catch (e: any) {
+      } catch (e: unknown) {
         logger.error('auth', 'Login error', e);
+        const code = e && typeof e === 'object' && 'code' in e ? String((e as { code: unknown }).code) : '';
         const msg = ({
           'auth/user-not-found': 'Пользователь с таким email не найден.',
           'auth/wrong-password': 'Неверный пароль.',
@@ -998,7 +999,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           'auth/user-disabled': 'Эта учётная запись заблокирована.',
           'auth/too-many-requests': 'Слишком много попыток. Подождите и попробуйте снова.',
           'auth/network-request-failed': 'Ошибка сети. Проверьте подключение.',
-        } as Record<string, string>)[e.code];
+        } as Record<string, string>)[code];
         setError(msg || 'Произошла ошибка при входе. Попробуйте ещё раз.');
         return false;
       }
@@ -1522,8 +1523,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setError(null);
       try {
         return await createUserWithEmailAndPassword(auth, email, password);
-      } catch (e: any) {
-        setError(e.code === 'auth/email-already-use' ? 'Этот email уже используется.' : 'Ошибка при создании пользователя.');
+      } catch (e: unknown) {
+        const code = e && typeof e === 'object' && 'code' in e ? String((e as { code: unknown }).code) : '';
+        setError(code === 'auth/email-already-use' ? 'Этот email уже используется.' : 'Ошибка при создании пользователя.');
         throw e;
       }
     },
@@ -1649,7 +1651,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return emailVerificationSent
           ? { ok: true, emailVerificationSent: true }
           : { ok: true };
-    } catch (e: any) {
+    } catch (e: unknown) {
         logger.error('auth', 'Error updating user profile', e);
         const msg = 'Не удалось обновить профиль.';
         setError(msg);

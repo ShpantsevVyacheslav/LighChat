@@ -61,26 +61,29 @@ export async function ensureUserDocExistsAdmin(opts: {
   try {
     const snap = await ref.get();
     if (!snap.exists) return;
-    const data = snap.data() ?? {};
-    if ((data as any).deletedAt) return;
+    // [audit L-006] Раньше каждое поле читалось через `(data as any).field` —
+    // single `Record<string, unknown>` каст в одном месте даёт ту же гибкость
+    // (поля приходят из Firestore без жёсткой схемы) с явным типом.
+    const data = (snap.data() ?? {}) as Record<string, unknown>;
+    if (data.deletedAt) return;
 
     const patch: Record<string, unknown> = {};
-    const nameNow = String((data as any).name ?? "").trim();
+    const nameNow = String(data.name ?? "").trim();
     if (!nameNow || nameNow === "Новый пользователь" || nameNow === "Yandex") {
       patch.name = displayName || "Новый пользователь";
     }
 
-    const emailNow = String((data as any).email ?? "").trim().toLowerCase();
+    const emailNow = String(data.email ?? "").trim().toLowerCase();
     const nextEmail = String(email ?? "").trim().toLowerCase();
     if (!emailNow && nextEmail) patch.email = nextEmail;
 
-    const avatarNow = String((data as any).avatar ?? "").trim();
+    const avatarNow = String(data.avatar ?? "").trim();
     const nextAvatar = String(avatarUrl ?? "").trim();
     if (nextAvatar && (isDicebearPlaceholderAvatar(avatarNow) || !avatarNow)) {
       patch.avatar = nextAvatar.slice(0, 2048);
     }
 
-    const dobNow = (data as any).dateOfBirth;
+    const dobNow = data.dateOfBirth;
     const nextDob = dateOfBirth ?? null;
     if ((dobNow == null || String(dobNow).trim() === "") && nextDob) {
       patch.dateOfBirth = nextDob;

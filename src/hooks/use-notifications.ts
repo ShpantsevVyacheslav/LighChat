@@ -37,7 +37,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
   });
 }
 
-async function getFCMToken(firebaseApp: any) {
+async function getFCMToken(firebaseApp: import('firebase/app').FirebaseApp) {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
     throw new Error('Service Worker не поддерживается вашим браузером.');
   }

@@ -113,7 +113,18 @@ function ControlGroup({ children }: { children: React.ReactNode }) {
     return <div className="flex items-center gap-2 px-1 shrink-0">{children}</div>;
 }
 
-function ControlButton({ children, onClick, active = false, disabled = false, variant = 'ghost', tooltip, badge, className }: any) {
+interface ControlButtonProps {
+  children: React.ReactNode;
+  onClick?: () => void;
+  active?: boolean;
+  disabled?: boolean;
+  variant?: 'primary' | 'danger' | 'warning' | 'ghost';
+  tooltip?: string;
+  badge?: number | string;
+  className?: string;
+}
+
+function ControlButton({ children, onClick, active = false, disabled = false, variant = 'ghost', tooltip, badge, className }: ControlButtonProps) {
     const variants = {
         primary: active ? "bg-blue-500 text-white shadow-[0_0_20px_rgba(59,130,246,0.5)]" : "bg-white/10 text-white hover:bg-white/20",
         danger: "bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]",

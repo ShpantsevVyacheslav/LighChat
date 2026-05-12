@@ -178,13 +178,13 @@ export function MeetingSidebar({
 
             const messagesCollection = collection(firestore, `meetings/${meetingId}/messages`);
             
-            const messageData: any = {
+            const messageData: Record<string, unknown> = {
                 senderId: currentUser.id,
                 senderName: currentUser.name,
                 attachments: uploadedAttachments,
                 createdAt: serverTimestamp(),
             };
-            
+
             if (text && text.trim()) {
                 messageData.text = text.trim();
             }
@@ -193,8 +193,9 @@ export function MeetingSidebar({
 
             setNewMessageText('');
         }
-    } catch (err: any) {
-        toast({ variant: 'destructive', title: t('meetingSidebar.sendError'), description: err.message });
+    } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        toast({ variant: 'destructive', title: t('meetingSidebar.sendError'), description: msg });
     } finally {
         setIsUploading(false);
     }
@@ -215,7 +216,7 @@ export function MeetingSidebar({
     <>
     <div className={cn("fixed top-6 bottom-8 right-6 z-50 transition-transform duration-500 ease-out flex flex-col", isOpen ? "w-[380px] translate-x-0" : "w-[380px] translate-x-[calc(100%+24px)] pointer-events-none")}>
         <div className="h-full bg-slate-900/40 backdrop-blur-3xl border border-white/10 rounded-3xl flex flex-col overflow-hidden shadow-2xl">
-            <Tabs value={activeTab || 'chat'} onValueChange={(v: any) => onActiveTabChange(v)} className="flex-1 flex flex-col min-h-0">
+            <Tabs value={activeTab || 'chat'} onValueChange={(v) => onActiveTabChange(v as 'participants' | 'polls' | 'chat')} className="flex-1 flex flex-col min-h-0">
                 <div className="px-6 pt-4 pb-2 shrink-0">
                     <div className="flex items-center justify-between mb-3">
                         <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">{t('meetingSidebar.conference')}</h2>
@@ -294,7 +295,7 @@ export function MeetingSidebar({
                                         <MeetingChatMessageItem 
                                             key={msg.id} 
                                             message={msg} 
-                                            currentUser={currentUser as any} 
+                                            currentUser={currentUser}
                                             onEdit={(m) => { setEditingMessage(m); setNewMessageText(m.text || ''); }}
                                             onDelete={() => {
                                                 if (meetingId) {

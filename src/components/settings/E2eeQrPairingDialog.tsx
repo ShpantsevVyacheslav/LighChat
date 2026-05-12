@@ -266,16 +266,14 @@ export function E2eeQrPairingDialog({
         sessionId: payload.sessionId,
         initiatorEphPubSpkiB64: payload.initiatorEphPub,
         privateKeyPkcs8: pkcs8,
-        // deviceDraft передаём минимальный, поля как в Firestore doc:
-        // deviceId/platform/label/publicKeySpki. Initiator прочитает его из
-        // donorPayload.deviceDraft.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // deviceDraft — поля как в Firestore-doc: deviceId/platform/label/publicKeySpki.
+        // Initiator прочитает его из `donorPayload.deviceDraft`.
         deviceDraft: {
           deviceId: myIdentity.deviceId,
           platform: 'web',
           label: navigator.userAgent.split(' ').slice(-2).join(' '),
           publicKeySpki: myIdentity.publicKeySpkiB64,
-        } as any,
+        },
       });
       setDonorCode(res.pairingCode);
       setDonorStage('done');

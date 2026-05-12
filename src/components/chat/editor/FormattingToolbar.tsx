@@ -83,7 +83,13 @@ export function FormattingToolbar({ editor, onBack }: FormattingToolbarProps) {
   );
 }
 
-function FormatButton({ icon: Icon, onClick, active }: any) {
+interface FormatButtonProps {
+  icon: React.ComponentType<{ className?: string }>;
+  onClick: () => void;
+  active: boolean;
+}
+
+function FormatButton({ icon: Icon, onClick, active }: FormatButtonProps) {
   return (
     <button 
       type="button" 

@@ -98,7 +98,7 @@ function redactYandexLoginInfoForLogs(info: YandexLoginInfo): Record<string, unk
   if (typeof out.birthday === "string") out.birthday = "<redacted>";
   const dp = out.default_phone as unknown;
   if (typeof dp === "string") out.default_phone = "<redacted>";
-  else if (dp && typeof dp === "object") out.default_phone = { id: (dp as any).id, number: "<redacted>" };
+  else if (dp && typeof dp === "object") out.default_phone = { id: (dp as { id?: unknown }).id, number: "<redacted>" };
   return out;
 }
 

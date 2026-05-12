@@ -77,7 +77,9 @@ export function watchPeerStats(
       let jitterSamples = 0;
       let rtt: number | null = null;
 
-      reports.forEach((r: any) => {
+      // [audit L-006] RTCStats — base, конкретные поля зависят от `r.type`.
+      // typeof-guard'ы ниже работают, потому что отчёты приходят как любые объекты.
+      reports.forEach((r: RTCStats & Record<string, unknown>) => {
         if (r.type === 'inbound-rtp' && (r.kind === 'video' || r.kind === 'audio')) {
           if (typeof r.packetsReceived === 'number') packetsReceived += r.packetsReceived;
           if (typeof r.packetsLost === 'number') packetsLost += r.packetsLost;

@@ -6,13 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
+import type { MeetingMessage } from '@/lib/types';
 
 interface MeetingChatMessageInputProps {
   value: string;
   onChange: (value: string) => void;
   onSend: (text: string, files: File[]) => Promise<void>;
   isUploading: boolean;
-  editingMessage: any | null;
+  /** Если задано — редактирование существующего message; null при создании. */
+  editingMessage: MeetingMessage | null;
   onCancelEdit: () => void;
 }
 

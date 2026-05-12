@@ -99,7 +99,7 @@ async function internalInitialize(): Promise<FirebaseServices> {
             }),
             ...longPollingFirestoreSettings(),
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.warn(
           'firebase',
           'Firestore с persistentLocalCache не поднялся (часто IndexedDB на iOS). Повтор без кэша.',

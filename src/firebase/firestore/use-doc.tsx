@@ -131,10 +131,10 @@ export function useDoc<T = any>(
           }
         )
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (isMounted) {
         logger.error('use-doc', 'Failed to establish Firestore document listener', err);
-        setError(err);
+        setError(err instanceof Error ? err : null);
         setIsLoading(false);
       }
     }

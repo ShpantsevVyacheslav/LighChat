@@ -76,8 +76,8 @@ export function MeetingPolls({ meetingId, currentUser, participantsCount, allPar
     try {
         const newVotes = { ...(poll.votes || {}), [currentUser.id]: optionIdx };
         const totalVotes = Object.keys(newVotes).length;
-        const updateData: any = { votes: newVotes };
-        
+        const updateData: { votes: typeof newVotes; status?: 'active' | 'ended' } = { votes: newVotes };
+
         // Auto-end logic: if everyone has voted, mark as ended
         if (participantsCount > 0 && totalVotes >= participantsCount) {
             updateData.status = 'ended';

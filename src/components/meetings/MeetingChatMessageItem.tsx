@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
-import type { MeetingMessage, User, ChatAttachment } from '@/lib/types';
+import type { MeetingMessage, ChatAttachment } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
 
@@ -23,7 +23,9 @@ const isOnlyEmojis = (text: string) => {
 
 interface MeetingChatMessageItemProps {
   message: MeetingMessage;
-  currentUser: User;
+  /** [audit L-006] Сужено с `User` до минимально нужного — компонент читает
+   *  только `id` для определения «is me», полный профиль не нужен. */
+  currentUser: { id: string };
   onEdit: (m: MeetingMessage) => void;
   onDelete: () => void;
   onOpenImage: (att: ChatAttachment) => void;

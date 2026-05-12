@@ -8,7 +8,7 @@ if (!admin.apps.length) {
     // in a managed environment like Firebase App Hosting.
     admin.initializeApp();
     console.log("Firebase Admin SDK initialized with auto-discovered credentials.");
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error("Firebase Admin SDK initialization failed:", e);
     // This might happen in a local dev environment if ADC are not set up.
     // However, in the deployed App Hosting environment, this should succeed.

@@ -8,6 +8,9 @@ import {
   CollectionReference,
   DocumentReference,
   SetOptions,
+  type DocumentData,
+  type UpdateData,
+  type WithFieldValue,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -17,7 +20,7 @@ import { logger } from '@/lib/logger';
  * Initiates a setDoc operation for a document reference.
  * Does NOT await the write operation internally.
  */
-export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options: SetOptions = {}) {
+export function setDocumentNonBlocking(docRef: DocumentReference, data: WithFieldValue<DocumentData>, options: SetOptions = {}) {
   return setDoc(docRef, data, options).catch((error: unknown) => {
     const code =
       error && typeof error === "object" && "code" in error
@@ -42,7 +45,7 @@ export function setDocumentNonBlocking(docRef: DocumentReference, data: any, opt
  * Initiates an addDoc operation for a collection reference.
  * Does NOT await the write operation internally.
  */
-export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
+export function addDocumentNonBlocking(colRef: CollectionReference, data: WithFieldValue<DocumentData>) {
   return addDoc(colRef, data)
     .catch(error => {
       const permissionError = new FirestorePermissionError({
@@ -58,7 +61,11 @@ export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
 /**
  * Initiates an updateDoc operation for a document reference.
  */
-export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) {
+/**
+ * [audit L-006] `UpdateData<DocumentData>` — официальный тип SDK для `updateDoc`
+ * payload (поддерживает `FieldValue`, dotted-path keys и пр.). Раньше был `any`.
+ */
+export function updateDocumentNonBlocking(docRef: DocumentReference, data: UpdateData<DocumentData>) {
   return updateDoc(docRef, data)
     .catch((error: unknown) => {
       const code =

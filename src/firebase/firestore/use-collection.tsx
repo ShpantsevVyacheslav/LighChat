@@ -116,10 +116,10 @@ export function useCollection<T = any>(
           }
         )
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (isMounted) {
         logger.error('use-collection', 'Failed to establish Firestore collection listener', err);
-        setError(err);
+        setError(err instanceof Error ? err : null);
         setIsLoading(false);
       }
     }
