@@ -50,10 +50,16 @@ firestore-debug.log
 # Локальная сборка эмулятора (.next, node_modules внутри) — лимит GitHub 100 MB
 .firebase/
 
-# firebase mobile local config (do not commit)
+# firebase mobile local config
+# google-services.json и GoogleService-Info.plist содержат
+# publishable Firebase API keys (с iOS App Restrictions) — НЕ
+# хранятся в git, должны быть подложены на CI/dev машинах вручную.
 mobile/app/android/app/google-services.json
-mobile/app/firebase.json
 **/GoogleService-Info.plist
+# `mobile/app/firebase.json` — конфиг flutterfire CLI (только paths
+# и appId, без секретов). Нужен на CI для upload-crashlytics-symbols
+# step в Xcode build phase. Раньше игнорировался; теперь коммитим
+# с `uploadDebugSymbols: false` чтобы CI не падал без подписи.
 
 # local dev artifacts
 .turbo/

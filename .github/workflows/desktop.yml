@@ -78,7 +78,7 @@ jobs:
           path: mobile/app/LighChat-macos.dmg
 
   build-windows:
-    name: Windows portable + MSIX
+    name: Windows portable
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -111,53 +111,16 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: lighchat-windows-portable
-          path: LighChat-windows-portable.zip
+          path: mobile/app/LighChat-windows-portable.zip
 
-      # MSIX-пакет: side-load инсталляция (двойной клик → установить).
-      # Для установки **unsigned** MSIX нужно либо включить Developer Mode
-      # (Settings → Privacy & security → For developers), либо однократно
-      # импортировать self-signed cert ниже в Trusted Root CA.
-      # Для полностью бесшовной установки нужен EV Code Signing certificate
-      # ($300-700/год).
-      - name: Generate self-signed certificate
-        shell: pwsh
-        run: |
-          $cert = New-SelfSignedCertificate `
-            -Type CodeSigning `
-            -Subject "CN=LighChat Self-Signed (Dev Only)" `
-            -KeyAlgorithm RSA `
-            -KeyLength 2048 `
-            -CertStoreLocation "Cert:\CurrentUser\My" `
-            -KeyUsage DigitalSignature `
-            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
-          Write-Host "Generated cert with thumbprint: $($cert.Thumbprint)"
-          $pwd = ConvertTo-SecureString -String "lighchat-self-signed" -Force -AsPlainText
-          $pfxPath = Join-Path $PWD "lighchat-selfsigned.pfx"
-          $cerPath = Join-Path $PWD "lighchat-selfsigned.cer"
-          # Передаём $cert объект напрямую (не path-string) — надёжнее
-          # на CI runner, где CurrentUser store path иногда резолвится
-          # с задержкой.
-          $cert | Export-PfxCertificate -FilePath $pfxPath -Password $pwd | Out-Null
-          $cert | Export-Certificate -FilePath $cerPath | Out-Null
-          echo "CERT_PFX_PATH=$pfxPath" >> $env:GITHUB_ENV
-          echo "CERT_PFX_PASSWORD=lighchat-self-signed" >> $env:GITHUB_ENV
-          Write-Host "Self-signed cert exported to:"
-          Write-Host "  PFX (для подписи): $pfxPath"
-          Write-Host "  CER (импорт в Trusted Root на target machine): $cerPath"
-
-      - name: Generate MSIX
-        shell: pwsh
-        working-directory: mobile/app
-        run: |
-          flutter pub global activate msix
-          flutter pub run msix:create --certificate-path "$env:CERT_PFX_PATH" --certificate-password "$env:CERT_PFX_PASSWORD"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: lighchat-windows-msix
-          path: |
-            mobile/app/build/windows/x64/runner/Release/*.msix
-            lighchat-selfsigned.cer
+      # MSIX-пакет временно отключён — самоподписанные сертификаты на
+      # windows-latest runner падают на Export-PfxCertificate с
+      # `path not found (0x80070003)` (известная проблема ephemeral
+      # CurrentUser keystore на ephemeral GitHub Actions VM). Для
+      # production-сборки потребуется EV Code Signing certificate
+      # ($300-700/год) — тогда подключим обратно через PFX secret.
+      # Сейчас пользователи получают portable ZIP (распаковка + запуск
+      # exe), без установки.
 
   build-linux:
     name: Linux AppImage
