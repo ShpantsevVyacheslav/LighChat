@@ -9,6 +9,7 @@ import type { Firestore } from 'firebase/firestore';
 import type { FirebaseStorage } from 'firebase/storage';
 import { Icons } from '@/components/icons';
 import { FCM_SERVICE_WORKER_PATH, isLocalDevHostname } from '@/lib/fcm-service-worker';
+import { logger } from '@/lib/logger';
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
@@ -35,10 +36,10 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
       void navigator.serviceWorker
         .register(FCM_SERVICE_WORKER_PATH, { scope: '/' })
         .then((registration) => {
-          console.log('ServiceWorker (PWA + FCM) registration successful with scope: ', registration.scope);
+          logger.debug('client-provider', 'ServiceWorker (PWA + FCM) registration successful', { scope: registration.scope });
         })
         .catch((err) => {
-          console.error('ServiceWorker registration failed: ', err);
+          logger.error('client-provider', 'ServiceWorker registration failed', err);
         });
     }
 
@@ -48,7 +49,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
         setFirebaseServices(services);
         setInitError(null);
       } catch (e) {
-        console.error('[FirebaseClientProvider] initializeFirebase failed after fallbacks', e);
+        logger.error('client-provider', 'initializeFirebase failed after fallbacks', e);
         setInitError(e instanceof Error ? e.message : 'Ошибка инициализации Firebase');
       }
     };

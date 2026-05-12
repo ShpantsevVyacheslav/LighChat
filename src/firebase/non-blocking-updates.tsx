@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { logger } from '@/lib/logger';
 
 /**
  * Initiates a setDoc operation for a document reference.
@@ -24,9 +25,7 @@ export function setDocumentNonBlocking(docRef: DocumentReference, data: any, opt
         : "";
     /** Heartbeat typing — не роняем UI при deny до деплоя правил или гонках. */
     if (code === "permission-denied" && docRef.path.includes("/typing/")) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn("[LighChat] typing doc write denied (deploy firestore rules or check membership)", docRef.path);
-      }
+      logger.debug('non-blocking', 'typing doc write denied (deploy firestore rules or check membership)', docRef.path);
       return;
     }
     const permissionError = new FirestorePermissionError({
@@ -83,9 +82,7 @@ export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) 
        * Next.js global-error.tsx → весь app падает в «Критическую ошибку».
        */
       if (code === 'permission-denied' && (isPresenceWrite || isTypingWrite)) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('[non-blocking-update] permission-denied skipped', { path });
-        }
+        logger.debug('non-blocking', 'permission-denied skipped', { path });
         return;
       }
       const permissionError = new FirestorePermissionError({
@@ -109,9 +106,7 @@ export function deleteDocumentNonBlocking(docRef: DocumentReference) {
         : "";
     /** Не роняем весь UI: очистка typing часто идёт при смене чата; до деплоя правил возможен deny. */
     if (code === "permission-denied" && docRef.path.includes("/typing/")) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn("[LighChat] typing doc delete denied (deploy firestore rules or check auth)", docRef.path);
-      }
+      logger.debug('non-blocking', 'typing doc delete denied (deploy firestore rules or check auth)', docRef.path);
       return;
     }
     const permissionError = new FirestorePermissionError({

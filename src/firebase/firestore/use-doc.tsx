@@ -11,6 +11,7 @@ import {
 import { FirestorePermissionError } from '@/firebase/errors';
 import { scheduleFirestoreListen } from '@/firebase/schedule-firestore-listen';
 import { logFirestorePermissionDenied } from '@/lib/firestore-permission-debug';
+import { logger } from '@/lib/logger';
 
 const TRANSIENT_DOC_ERROR_CODES = new Set<FirestoreError['code']>([
   'internal',
@@ -91,7 +92,7 @@ export function useDoc<T = any>(
           },
           (err: FirestoreError) => {
             if (!isMounted) return;
-            console.error("useDoc (real-time) error:", err);
+            logger.error('use-doc', 'real-time error', err);
             if (err.code === 'permission-denied') {
               transientRetryCountRef.current = 0;
               logFirestorePermissionDenied({
@@ -132,7 +133,7 @@ export function useDoc<T = any>(
       );
     } catch (err: any) {
       if (isMounted) {
-        console.error("Failed to establish Firestore document listener:", err);
+        logger.error('use-doc', 'Failed to establish Firestore document listener', err);
         setError(err);
         setIsLoading(false);
       }
@@ -144,7 +145,7 @@ export function useDoc<T = any>(
         try {
           unsubscribeCombined();
         } catch (e) {
-          console.warn("Firestore document listener cleanup warning:", e);
+          logger.warn('use-doc', 'cleanup warning', e);
         }
       }
     };

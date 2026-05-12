@@ -13,6 +13,7 @@ import {
 import { FirestorePermissionError } from '@/firebase/errors';
 import { scheduleFirestoreListen } from '@/firebase/schedule-firestore-listen';
 import { logFirestorePermissionDenied } from '@/lib/firestore-permission-debug';
+import { logger } from '@/lib/logger';
 
 /** Utility type to add an 'id' field to a given type T. */
 export type WithId<T> = T & { id: string };
@@ -88,7 +89,7 @@ export function useCollection<T = any>(
           },
           (err: FirestoreError) => {
             if (!isMounted) return;
-            console.error("useCollection (real-time) error:", err);
+            logger.error('use-collection', 'real-time error', err);
             const path: string =
               memoizedTargetRefOrQuery.type === 'collection'
                 ? (memoizedTargetRefOrQuery as CollectionReference).path
@@ -117,7 +118,7 @@ export function useCollection<T = any>(
       );
     } catch (err: any) {
       if (isMounted) {
-        console.error("Failed to establish Firestore collection listener:", err);
+        logger.error('use-collection', 'Failed to establish Firestore collection listener', err);
         setError(err);
         setIsLoading(false);
       }
@@ -129,7 +130,7 @@ export function useCollection<T = any>(
         try {
           unsubscribeCombined();
         } catch (e) {
-          console.warn("Firestore collection listener cleanup warning:", e);
+          logger.warn('use-collection', 'cleanup warning', e);
         }
       }
     };

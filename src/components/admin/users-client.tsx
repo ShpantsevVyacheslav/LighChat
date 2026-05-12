@@ -49,6 +49,7 @@ import { Badge } from "@/components/ui/badge";
 import { UserBlockDialog } from "@/components/admin/user-block-dialog";
 import { AdminResetPasswordDialog } from "@/components/admin/admin-reset-password-dialog";
 import { AdminUserSessionsDialog } from "@/components/admin/admin-user-sessions-dialog";
+import { AdminUserProfileDialog } from "@/components/admin/admin-user-profile-dialog";
 import { isAccountBlocked } from "@/lib/account-block-utils";
 import { useToast } from "@/hooks/use-toast";
 import { ruEnSubstringMatch } from "@/lib/ru-latin-search-normalize";
@@ -71,6 +72,7 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
   const [blockTarget, setBlockTarget] = useState<User | null>(null);
   const [resetTarget, setResetTarget] = useState<User | null>(null);
   const [sessionsTarget, setSessionsTarget] = useState<User | null>(null);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
   const router = useRouter();
 
@@ -322,13 +324,18 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
               paginatedUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
-                    <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      className="flex items-center gap-3 text-left hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md"
+                      onClick={() => setProfileUserId(user.id)}
+                      title={t('adminUserProfile.openTitle') ?? 'Открыть профиль'}
+                    >
                         <Avatar className="border border-white/10 shadow-sm">
                             <AvatarImage src={userAvatarListUrl(user)} alt={user.name} className="object-cover" />
                             <AvatarFallback>{(user.name ?? '?').charAt(0)}</AvatarFallback>
                         </Avatar>
                         <span className="font-medium truncate max-w-[150px]">{user.name ?? '—'}</span>
-                    </div>
+                    </button>
                   </TableCell>
                   <TableCell className="max-w-[200px] truncate" title={user.email}>{user.email}</TableCell>
                   <TableCell>{formatPhoneNumberForDisplay(user.phone)}</TableCell>
@@ -576,6 +583,14 @@ export function UsersClient({ embedded = false }: UsersClientProps) {
           )}
         </>
       )}
+
+      <AdminUserProfileDialog
+        open={!!profileUserId}
+        onOpenChange={(open) => {
+          if (!open) setProfileUserId(null);
+        }}
+        userId={profileUserId}
+      />
     </div>
   );
 }

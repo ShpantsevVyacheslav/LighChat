@@ -6,13 +6,14 @@ import {
   signInWithEmailAndPassword,
   // Assume getAuth and app are initialized elsewhere
 } from 'firebase/auth';
+import { logger } from '@/lib/logger';
 
 /** Initiate anonymous sign-in (non-blocking). */
 export function initiateAnonymousSignIn(authInstance: Auth): void {
   // CRITICAL: Call signInAnonymously directly. Do NOT use 'await signInAnonymously(...)'.
   signInAnonymously(authInstance).catch((e) => {
     // We can log this, but we don't want to show it to the user in this non-blocking context
-    console.error("Anonymous sign-in failed:", e);
+    logger.error('auth', 'Anonymous sign-in failed', e);
   });
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
 }
@@ -21,7 +22,7 @@ export function initiateAnonymousSignIn(authInstance: Auth): void {
 export function initiateEmailSignUp(authInstance: Auth, email: string, password: string): void {
   // CRITICAL: Call createUserWithEmailAndPassword directly. Do NOT use 'await createUserWithEmailAndPassword(...)'.
   createUserWithEmailAndPassword(authInstance, email, password).catch((e) => {
-    console.error("Email sign-up failed:", e);
+    logger.error('auth', 'Email sign-up failed', e);
   });
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
 }
@@ -33,7 +34,7 @@ export function initiateEmailSignIn(authInstance: Auth, email: string, password:
     // For sign-in, we don't log "invalid-credential" as an error to avoid console noise
     // on legitimate failed login attempts. Other errors might be worth logging.
     if (e.code !== 'auth/invalid-credential') {
-      console.error("Email sign-in failed:", e);
+      logger.error('auth', 'Email sign-in failed', e);
     }
   });
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
