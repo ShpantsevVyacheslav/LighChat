@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_mobile/core/app_logger.dart';
 import 'package:lighchat_models/lighchat_models.dart';
