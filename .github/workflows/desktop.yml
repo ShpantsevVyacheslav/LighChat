@@ -53,7 +53,20 @@ jobs:
           dart pub global activate flutterfire_cli
           echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
 
+      # GitHub Actions macOS runner кеширует CocoaPods specs repo, и она
+      # часто оказывается устаревшей относительно версий, требуемых
+      # firebase_*/grpc/etc. Без явного `pod repo update` сборка падает:
+      #   "CocoaPods's specs repository is too out-of-date to satisfy
+      #    dependencies. To update the CocoaPods specs, run pod repo update".
+      # Делаем repo-update раз перед flutter build (он сам потом дёрнет
+      # `pod install`, который попадёт уже в актуальный кеш).
+      - name: Update CocoaPods specs
+        working-directory: mobile/app/macos
+        run: pod repo update --silent
+
       - name: Build macOS app
+        env:
+          LANG: en_US.UTF-8
         run: flutter build macos --release
 
       - name: Create DMG
