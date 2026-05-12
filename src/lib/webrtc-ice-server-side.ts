@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger';
+
 const DEFAULT_STUN_SERVERS = ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'];
 const FETCH_TIMEOUT_MS = 5000;
 
@@ -171,10 +173,10 @@ export async function buildServerIcePayload(): Promise<ServerIcePayload> {
     const upstream = await fetchMeteredCredentials(domain, apiKey, controller.signal);
     if (!upstream.ok) {
       if (upstream.status === 401) {
-        console.warn('[webrtc/ice] Metered unauthorized. Check METERED_DOMAIN/METERED_API_KEY pairing.');
+        logger.warn('webrtc-ice', 'Metered unauthorized. Check METERED_DOMAIN/METERED_API_KEY pairing.');
         return fallbackPayload('metered_unauthorized');
       }
-      console.warn('[webrtc/ice] Metered response not ok:', upstream.status);
+      logger.warn('webrtc-ice', 'Metered response not ok', upstream.status);
       return fallbackPayload(`metered_status_${upstream.status}`);
     }
 
@@ -182,13 +184,13 @@ export async function buildServerIcePayload(): Promise<ServerIcePayload> {
     const iceServers = parseIceServers(json);
 
     if (iceServers.length === 0) {
-      console.warn('[webrtc/ice] Metered returned empty credentials payload');
+      logger.warn('webrtc-ice', 'Metered returned empty credentials payload');
       return fallbackPayload('metered_empty_payload');
     }
 
     const transport = analyzeIceServers(iceServers);
     if (!transport.hasTurn && !transport.hasTurns) {
-      console.warn('[webrtc/ice] Metered payload has no TURN transports — симметричный NAT не переборет.');
+      logger.warn('webrtc-ice', 'Metered payload has no TURN transports — симметричный NAT не переборет.');
     }
 
     return {
@@ -196,7 +198,7 @@ export async function buildServerIcePayload(): Promise<ServerIcePayload> {
       source: 'metered',
     };
   } catch (err) {
-    console.warn('[webrtc/ice] Metered fetch failed:', err);
+    logger.warn('webrtc-ice', 'Metered fetch failed', err);
     return fallbackPayload('metered_fetch_failed');
   } finally {
     clearTimeout(timeout);

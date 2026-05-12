@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import type { Conversation } from '@/lib/types';
 import { scheduleFirestoreListen } from '@/firebase/schedule-firestore-listen';
+import { logger } from '@/lib/logger';
 
 export type ConversationWithId = Conversation & { id: string };
 
@@ -120,17 +121,9 @@ export function useConversationsByDocumentIds(
               },
               (err: FirestoreError) => {
                 if (err.code === 'permission-denied') {
-                  if (process.env.NODE_ENV === 'development') {
-                    console.debug(
-                      '[useConversationsByDocumentIds] per-doc fallback: dropping inaccessible',
-                      id
-                    );
-                  }
+                  logger.debug('conv-by-ids', 'per-doc fallback: dropping inaccessible', id);
                 } else {
-                  console.error(
-                    '[useConversationsByDocumentIds] per-doc fallback error',
-                    err
-                  );
+                  logger.error('conv-by-ids', 'per-doc fallback error', err);
                 }
                 byId.delete(id);
                 mergeAndPublish();
@@ -169,12 +162,11 @@ export function useConversationsByDocumentIds(
             // Любой пер-batch error пытаемся локализовать через per-doc
             // fallback: один stale chatId не должен лишать пользователя
             // ВСЕХ чатов в этом batch'е.
-            if (process.env.NODE_ENV === 'development') {
-              console.debug(
-                '[useConversationsByDocumentIds] batch-query failed, fallback to per-doc',
-                { batchIndex, code: err.code, ids: batchIds }
-              );
-            }
+            logger.debug('conv-by-ids', 'batch-query failed, fallback to per-doc', {
+              batchIndex,
+              code: err.code,
+              ids: batchIds,
+            });
             startPerDocFallback();
           }
         );
@@ -186,7 +178,7 @@ export function useConversationsByDocumentIds(
               try {
                 u();
               } catch (e) {
-                console.warn('[useConversationsByDocumentIds] per-doc unsubscribe', e);
+                logger.warn('conv-by-ids', 'per-doc unsubscribe', e);
               }
             });
           }
@@ -198,7 +190,7 @@ export function useConversationsByDocumentIds(
           try {
             u();
           } catch (e) {
-            console.warn('[useConversationsByDocumentIds] unsubscribe', e);
+            logger.warn('conv-by-ids', 'unsubscribe', e);
           }
         });
       };

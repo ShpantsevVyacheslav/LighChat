@@ -33,6 +33,7 @@ import { formatStorageBytes, bytesToGiB } from '@/lib/format-storage';
 import { ruEnSubstringMatch } from '@/lib/ru-latin-search-normalize';
 import { BarChart3, Loader2, RefreshCw } from 'lucide-react';
 import { useI18n } from '@/hooks/use-i18n';
+import { logger } from '@/lib/logger';
 
 const MAIN_DOC = 'main';
 
@@ -121,13 +122,13 @@ export function AdminStorageStatsPanel() {
         const res = await listAdminConversationsAction({ idToken: token });
         if (cancelled) return;
         if (!res.ok) {
-          console.warn('[LighChat admin] listAdminConversationsAction:', res.error);
+          logger.warn('admin-storage', 'listAdminConversationsAction', res.error);
           toast({ variant: 'destructive', title: res.error });
           return;
         }
         setConversations(res.conversations);
       } catch (e) {
-        console.error(e);
+        logger.error('admin-storage', 'list conversations failed', e);
         toast({ variant: 'destructive', title: t('adminPage.storageStats.chatListError') });
       } finally {
         if (!cancelled) setLoadingConvos(false);
@@ -211,11 +212,11 @@ export function AdminStorageStatsPanel() {
       });
       setStats(res);
       if (!res.ok) {
-        console.warn('[LighChat admin] fetchChatStorageStatsAction:', res.error);
+        logger.warn('admin-storage', 'fetchChatStorageStatsAction', res.error);
         toast({ variant: 'destructive', title: res.error });
       }
     } catch (e) {
-      console.error(e);
+      logger.error('admin-storage', 'fetch stats failed', e);
       toast({ variant: 'destructive', title: t('adminPage.storageStats.statsError') });
     } finally {
       setLoadingStats(false);
@@ -243,7 +244,7 @@ export function AdminStorageStatsPanel() {
       await setDoc(ref, { storage }, { merge: true });
       toast({ title: t('adminPage.storageStats.rateSaved') });
     } catch (e) {
-      console.error(e);
+      logger.error('admin-storage', 'save price failed', e);
       toast({ variant: 'destructive', title: t('adminPage.storageStats.rateSaveError') });
     }
   }, [firestore, user, priceUsd, toast]);

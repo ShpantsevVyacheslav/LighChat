@@ -13,6 +13,7 @@ import {
   Image as ImageIcon, Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 import {
   clientDeltaToVideoDelta,
   elementPointToVideoIntrinsics,
@@ -268,7 +269,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
             }
             setThumbnails(thumbs);
         } catch (err: any) {
-            console.error("[VideoEditor] Thumbnails error:", err.message);
+            logger.error('video-editor', 'Thumbnails error', err.message);
         } finally {
             setIsThumbnailsLoading(false);
         }
@@ -464,7 +465,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
     try {
       await v.play();
     } catch (playErr) {
-      console.error('[VideoEditor] play before encode failed:', playErr);
+      logger.error('video-editor', 'play before encode failed', playErr);
       v.muted = prevMuted;
       v.volume = prevVolume;
       setIsProcessing(false);
@@ -486,7 +487,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
           hasAudioTrack = true;
         }
       } catch (audioErr) {
-        console.warn('[VideoEditor] captureStream audio:', audioErr);
+        logger.warn('video-editor', 'captureStream audio', audioErr);
       }
     }
 
@@ -498,7 +499,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
           ? new MediaRecorder(stream, { mimeType })
           : new MediaRecorder(stream);
     } catch (e) {
-      console.error('[VideoEditor] MediaRecorder constructor failed:', e);
+      logger.error('video-editor', 'MediaRecorder constructor failed', e);
       v.pause();
       v.muted = prevMuted;
       v.volume = prevVolume;
@@ -525,7 +526,7 @@ export function VideoEditorModal({ file, onSave, onClose }: VideoEditorModalProp
     try {
       recorder.start();
     } catch (recErr) {
-      console.error('[VideoEditor] MediaRecorder.start failed:', recErr);
+      logger.error('video-editor', 'MediaRecorder.start failed', recErr);
       v.pause();
       v.muted = prevMuted;
       v.volume = prevVolume;

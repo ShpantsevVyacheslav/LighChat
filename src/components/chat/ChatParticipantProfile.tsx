@@ -1,5 +1,6 @@
 'use client';
 import { useI18n } from '@/hooks/use-i18n';
+import { logger } from '@/lib/logger';
 
 import type { User, Conversation, ChatMessage, UserRole, UserContactsIndex } from '@/lib/types';
 import { ROLES } from '@/lib/constants';
@@ -392,7 +393,7 @@ export function ChatParticipantProfile({
       toast({ title: t('chat.profile.blocked') });
       setBlockDialogOpen(false);
     } catch (e) {
-      console.error('[ChatParticipantProfile] block user', e);
+      logger.error('participant-profile', 'block user', e);
       toast({ variant: 'destructive', title: t('chat.profile.blockFailed') });
     } finally {
       setBlockBusy(false);
@@ -409,7 +410,7 @@ export function ChatParticipantProfile({
       toast({ title: t('chat.profile.unblocked') });
       setUnblockDialogOpen(false);
     } catch (e) {
-      console.error('[ChatParticipantProfile] unblock user', e);
+      logger.error('participant-profile', 'unblock user', e);
       toast({ variant: 'destructive', title: t('chat.profile.unblockFailed') });
     } finally {
       setBlockBusy(false);
@@ -425,7 +426,7 @@ export function ChatParticipantProfile({
       onSelectConversation(direct.id);
       handleSheetOpenChange(false);
     } catch (e) {
-      console.error('[ChatParticipantProfile] openDirectChatFromProfile failed', e);
+      logger.error('participant-profile', 'openDirectChatFromProfile failed', e);
       toast({ title: t('chat.profile.openChatFailed'), variant: 'destructive' });
     } finally {
       setQuickActionBusy(null);
@@ -449,7 +450,7 @@ export function ChatParticipantProfile({
       initiateCall(firestore, effectiveCurrentUser, direct.target, video, toast);
       handleSheetOpenChange(false);
     } catch (e) {
-      console.error('[ChatParticipantProfile] startDirectCallFromProfile failed', e);
+      logger.error('participant-profile', 'startDirectCallFromProfile failed', e);
       toast({ title: t('chat.profile.startCallFailed'), variant: 'destructive' });
     } finally {
       setQuickActionBusy(null);
@@ -497,7 +498,7 @@ export function ChatParticipantProfile({
         });
       }
     } catch (e) {
-      console.error('[ChatParticipantProfile] toggleDirectNotificationsFromProfile failed', e);
+      logger.error('participant-profile', 'toggleDirectNotificationsFromProfile failed', e);
       toast({ title: t('chat.profile.notificationsChangeFailed'), variant: 'destructive' });
     } finally {
       setQuickActionBusy(null);
