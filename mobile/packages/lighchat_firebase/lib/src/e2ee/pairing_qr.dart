@@ -229,41 +229,58 @@ Future<ConsumeDonorResult> consumeDonorPayloadMobile({
   required EcdhP256KeyPair initiatorEphemeral,
   required Map<String, Object?> donorDocument,
 }) async {
+  debugPrint('[QR-PAIR/consume] step=1 parse donorPayload');
   final donor = donorDocument['donorPayload'];
   if (donor is! Map) {
+    debugPrint('[QR-PAIR/consume] FAIL donorPayload is not Map: ${donor.runtimeType}');
     throw StateError('E2EE_PAIRING_DONOR_PAYLOAD_MISSING');
   }
   final donorMap = Map<String, Object?>.from(donor);
-  final donorEphSpki = Uint8List.fromList(
-    base64.decode(donorMap['donorEphPubSpkiB64'] as String),
-  );
-  final donorEph = await importSpkiP256(spki: donorEphSpki);
-  final shared = await ecdhP256DeriveBits32(
-    privateKey: initiatorEphemeral.privateKey,
-    remotePublic: donorEph,
-  );
-  final iv = Uint8List.fromList(base64.decode(donorMap['ivB64'] as String));
-  final ct = Uint8List.fromList(base64.decode(donorMap['ciphertextB64'] as String));
-  final aad = _pairingAad(userId, sessionId);
-  Uint8List pt;
+  debugPrint('[QR-PAIR/consume] step=2 ECDH derive shared key');
+  late final Uint8List pt;
   try {
-    pt = await aesGcmDecryptV2(
-      key: shared,
-      iv: iv,
-      ciphertextPlusTag: ct,
-      aad: aad,
+    final donorEphSpki = Uint8List.fromList(
+      base64.decode(donorMap['donorEphPubSpkiB64'] as String),
     );
-  } catch (_) {
-    throw StateError('E2EE_PAIRING_DECRYPT_FAILED');
+    final donorEph = await importSpkiP256(spki: donorEphSpki);
+    final shared = await ecdhP256DeriveBits32(
+      privateKey: initiatorEphemeral.privateKey,
+      remotePublic: donorEph,
+    );
+    final iv = Uint8List.fromList(base64.decode(donorMap['ivB64'] as String));
+    final ct = Uint8List.fromList(base64.decode(donorMap['ciphertextB64'] as String));
+    final aad = _pairingAad(userId, sessionId);
+    debugPrint('[QR-PAIR/consume] step=3 AES-GCM decrypt ct.len=${ct.length} iv.len=${iv.length}');
+    try {
+      pt = await aesGcmDecryptV2(
+        key: shared,
+        iv: iv,
+        ciphertextPlusTag: ct,
+        aad: aad,
+      );
+    } catch (e, st) {
+      debugPrint('[QR-PAIR/consume] FAIL aesGcmDecryptV2: $e\n$st');
+      throw StateError('E2EE_PAIRING_DECRYPT_FAILED');
+    }
+    final code = await _shortPairingCode(shared);
+    debugPrint('[QR-PAIR/consume] step=4 firestore.set state=completed sessionId=$sessionId');
+    try {
+      await firestore
+          .collection('users')
+          .doc(userId)
+          .collection('e2eePairingSessions')
+          .doc(sessionId)
+          .set(<String, Object?>{'state': 'completed'}, SetOptions(merge: true));
+    } catch (e, st) {
+      debugPrint('[QR-PAIR/consume] FAIL firestore.set completed: $e\n$st');
+      rethrow;
+    }
+    debugPrint('[QR-PAIR/consume] OK pairingCode=$code pt.len=${pt.length}');
+    return ConsumeDonorResult(privateKeyPkcs8: pt, pairingCode: code);
+  } catch (e, st) {
+    debugPrint('[QR-PAIR/consume] outer FAIL: $e\n$st');
+    rethrow;
   }
-  final code = await _shortPairingCode(shared);
-  await firestore
-      .collection('users')
-      .doc(userId)
-      .collection('e2eePairingSessions')
-      .doc(sessionId)
-      .set(<String, Object?>{'state': 'completed'}, SetOptions(merge: true));
-  return ConsumeDonorResult(privateKeyPkcs8: pt, pairingCode: code);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -304,7 +321,9 @@ Future<String> donorRespondToPairingMobile({
   required Uint8List privateKeyPkcs8,
   required MobileDeviceDraft deviceDraft,
 }) async {
+  debugPrint('[QR-PAIR/donor] step=1 generate ECDH P-256 keypair');
   final donorEph = await generateEcdhP256KeyPair();
+  debugPrint('[QR-PAIR/donor] step=2 export SPKI public + derive shared');
   final donorPubSpki = await donorEph.exportSpkiPublic();
   final initiatorSpki = Uint8List.fromList(
     base64.decode(initiatorEphPubSpkiB64),
@@ -316,26 +335,35 @@ Future<String> donorRespondToPairingMobile({
   );
   final iv = randomBytes(12);
   final aad = _pairingAad(userId, sessionId);
+  debugPrint('[QR-PAIR/donor] step=3 AES-GCM encrypt pkcs8.len=${privateKeyPkcs8.length}');
   final ct = await aesGcmEncryptV2(
     key: shared,
     iv: iv,
     plaintext: privateKeyPkcs8,
     aad: aad,
   );
-  await firestore
-      .collection('users')
-      .doc(userId)
-      .collection('e2eePairingSessions')
-      .doc(sessionId)
-      .set(<String, Object?>{
-    'state': 'awaiting_accept',
-    'donorPayload': <String, Object?>{
-      'donorEphPubSpkiB64': base64.encode(donorPubSpki),
-      'ivB64': base64.encode(iv),
-      'ciphertextB64': base64.encode(ct),
-      'deviceDraft': deviceDraft.toJson(),
-    },
-  }, SetOptions(merge: true));
+  final path = 'users/$userId/e2eePairingSessions/$sessionId';
+  debugPrint('[QR-PAIR/donor] step=4 firestore.set path=$path (awaiting_accept + donorPayload) ct.len=${ct.length}');
+  try {
+    await firestore
+        .collection('users')
+        .doc(userId)
+        .collection('e2eePairingSessions')
+        .doc(sessionId)
+        .set(<String, Object?>{
+      'state': 'awaiting_accept',
+      'donorPayload': <String, Object?>{
+        'donorEphPubSpkiB64': base64.encode(donorPubSpki),
+        'ivB64': base64.encode(iv),
+        'ciphertextB64': base64.encode(ct),
+        'deviceDraft': deviceDraft.toJson(),
+      },
+    }, SetOptions(merge: true));
+  } catch (e, st) {
+    debugPrint('[QR-PAIR/donor] FAIL firestore.set awaiting_accept path=$path: $e\n$st');
+    rethrow;
+  }
+  debugPrint('[QR-PAIR/donor] OK firestore.set done');
   return _shortPairingCode(shared);
 }
 

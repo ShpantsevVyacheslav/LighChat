@@ -256,8 +256,10 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
       return;
     }
     final state = data['state'];
+    debugPrint('[QR-PAIR] _onInitiatorUpdate state=$state hasDonorPayload=${data['donorPayload'] != null}');
     if (state == 'awaiting_accept' && data['donorPayload'] != null) {
       try {
+        debugPrint('[QR-PAIR] calling consumeDonorPayloadMobile');
         final res = await consumeDonorPayloadMobile(
           firestore: FirebaseFirestore.instance,
           userId: uid,
@@ -265,6 +267,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
           initiatorEphemeral: session.ephemeralKeyPair,
           donorDocument: data,
         );
+        debugPrint('[QR-PAIR] consumeDonorPayloadMobile ok pairingCode=${res.pairingCode}');
         final draft = data['donorPayload'] is Map
             ? ((data['donorPayload'] as Map)['deviceDraft'] as Map?)
             : null;
@@ -277,11 +280,12 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
           _pendingBackupId = backupId;
           _initStage = _InitiatorStage.awaitingAccept;
         });
-      } catch (e) {
+      } catch (e, st) {
+        debugPrint('[QR-PAIR] consumeDonorPayloadMobile FAIL: $e\n$st\n${_authDiagSnapshot()}');
         if (!mounted) return;
         setState(() {
           _initStage = _InitiatorStage.error;
-          _initError = e.toString();
+          _initError = '${_formatErrorDetail('consumeDonorPayloadMobile', e, st)}\n${_authDiagSnapshot()}';
         });
       }
     }
@@ -298,9 +302,11 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
       return;
     }
     setState(() => _initBusy = true);
+    debugPrint('[QR-PAIR] _confirmInitiator begin backupId=$backupId pkcs8.len=${pkcs8.length}');
     try {
       final uid = await _currentUid();
       if (uid == null) throw StateError('NO_UID');
+      debugPrint('[QR-PAIR] _confirmInitiator step=fetch e2eeDevices/$backupId for uid=$uid');
       // Нужен SPKI публичник этого устройства. Берём из `e2eeDevices/{backupId}`,
       // он совпадает с приватником (donor переносит identity, у которой уже
       // есть опубликованный публичник).
@@ -310,6 +316,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
           .collection('e2eeDevices')
           .doc(backupId)
           .get();
+      debugPrint('[QR-PAIR] _confirmInitiator e2eeDevices/$backupId exists=${snap.exists}');
       if (!snap.exists) {
         throw StateError('E2EE_PAIRING_DEVICE_PUBKEY_MISSING');
       }
@@ -319,11 +326,13 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
       }
       // Декодим SPKI и пишем в secure-storage.
       final spki = Uint8List.fromList(_decodeB64(publicKeySpkiB64));
+      debugPrint('[QR-PAIR] _confirmInitiator step=replaceMobileDeviceIdentityFromBackup spki.len=${spki.length}');
       await replaceMobileDeviceIdentityFromBackup(
         deviceId: backupId,
         privateKeyPkcs8: pkcs8,
         publicKeySpki: spki,
       );
+      debugPrint('[QR-PAIR] _confirmInitiator OK');
       if (!mounted) return;
       setState(() {
         _initStage = _InitiatorStage.completed;
@@ -334,11 +343,12 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
           content: Text(AppLocalizations.of(context)!.e2ee_qr_key_transferred_toast),
         ),
       );
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[QR-PAIR] _confirmInitiator FAIL: $e\n$st\n${_authDiagSnapshot()}');
       if (!mounted) return;
       setState(() {
         _initStage = _InitiatorStage.error;
-        _initError = e.toString();
+        _initError = '${_formatErrorDetail('_confirmInitiator', e, st)}\n${_authDiagSnapshot()}';
         _initBusy = false;
       });
     }
@@ -349,11 +359,13 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
   Future<void> _onQrScanned(String raw) async {
     if (_donorProcessing) return;
     _donorProcessing = true;
+    debugPrint('[QR-PAIR/scan] raw payload received len=${raw.length}');
 
     // Сначала проверяем, не login-QR ли это (Telegram-style привязка нового
     // устройства). Парсер возвращает null, если payload не совпал — тогда
     // падаем в существующий E2EE-pairing flow.
     final loginPayload = parseQrLoginPayload(raw);
+    debugPrint('[QR-PAIR/scan] isLoginPayload=${loginPayload != null}');
     if (loginPayload != null) {
       // Сразу пытаемся подтянуть метаданные нового устройства из qrLoginSessions.
       String label = '';
@@ -389,13 +401,18 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
       _donorError = null;
     });
     try {
+      debugPrint('[QR-PAIR/donor] step=parseQrPayload');
       final payload = parseQrPayload(raw);
+      debugPrint('[QR-PAIR/donor] payload.uid=${payload.uid} sessionId=${payload.sessionId}');
       final uid = await _currentUid();
+      debugPrint('[QR-PAIR/donor] currentUid=${uid ?? 'null'} ${_authDiagSnapshot()}');
       if (uid == null) throw StateError('NO_UID');
       if (payload.uid != uid) {
         throw StateError(AppLocalizations.of(context)!.e2ee_qr_wrong_account_error);
       }
+      debugPrint('[QR-PAIR/donor] step=getOrCreateMobileDeviceIdentity');
       final identity = await getOrCreateMobileDeviceIdentity();
+      debugPrint('[QR-PAIR/donor] identity.deviceId=${identity.deviceId}');
       final pkcs8 = await identity.keyPair.exportPkcs8Private();
       // Передаём новому устройству мета-инфу текущего устройства.
       // После восстановления initiator будет использовать именно этот deviceId.
@@ -405,6 +422,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
         label: await _currentLabel(),
         publicKeySpkiB64: identity.publicKeySpkiB64,
       );
+      debugPrint('[QR-PAIR/donor] step=donorRespondToPairingMobile sessionId=${payload.sessionId}');
       final code = await donorRespondToPairingMobile(
         firestore: FirebaseFirestore.instance,
         userId: uid,
@@ -413,16 +431,18 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
         privateKeyPkcs8: pkcs8,
         deviceDraft: draft,
       );
+      debugPrint('[QR-PAIR/donor] donorRespondToPairingMobile ok code=$code');
       if (!mounted) return;
       setState(() {
         _donorCode = code;
         _donorStage = _DonorStage.done;
       });
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[QR-PAIR/donor] FAIL: $e\n$st\n${_authDiagSnapshot()}');
       if (!mounted) return;
       setState(() {
         _donorStage = _DonorStage.error;
-        _donorError = e.toString();
+        _donorError = '${_formatErrorDetail('donor scan', e, st)}\n${_authDiagSnapshot()}';
       });
     } finally {
       _donorProcessing = false;
@@ -494,12 +514,15 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
     }
 
     setState(() => _loginStage = _LoginLinkStage.confirming);
+    debugPrint('[QR-PAIR/login] _confirmLoginLink begin sessionId=$sessionId allow=true');
     try {
+      debugPrint('[QR-PAIR/login] step=callConfirmQrLogin');
       final m = await _callConfirmQrLogin(
         sessionId: sessionId,
         nonce: nonce,
         allow: true,
       );
+      debugPrint('[QR-PAIR/login] confirmQrLogin response state=${m['state']} deviceId=${m['deviceId']} hasEphemeral=${(m['ephemeralPubKeySpki'] ?? '').toString().isNotEmpty}');
       if (m['state'] != 'approved') {
         throw StateError('CONFIRM_REJECTED');
       }
@@ -513,8 +536,11 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
       }
 
       final uid = await _currentUid();
+      debugPrint('[QR-PAIR/login] currentUid=${uid ?? 'null'} ${_authDiagSnapshot()}');
       if (uid == null) throw StateError('NO_UID');
+      debugPrint('[QR-PAIR/login] step=getOrCreateMobileDeviceIdentity');
       final donorIdentity = await getOrCreateMobileDeviceIdentity();
+      debugPrint('[QR-PAIR/login] donorIdentity.deviceId=${donorIdentity.deviceId}');
 
       if (!mounted) return;
       setState(() {
@@ -523,6 +549,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
         _loginHandoverTotal = 0;
       });
 
+      debugPrint('[QR-PAIR/login] step=handoverDeviceAccessMobile newDeviceId=$newDeviceId platform=$platform');
       await handoverDeviceAccessMobile(
         firestore: FirebaseFirestore.instance,
         userId: uid,
@@ -534,6 +561,7 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
           label: label.isEmpty ? '$platform-device' : label,
         ),
         onProgress: (entry, done, total) {
+          debugPrint('[QR-PAIR/login] handover progress conv=${entry.conversationId} $done/$total');
           if (!mounted) return;
           setState(() {
             _loginHandoverDone = done;
@@ -541,10 +569,12 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
           });
         },
       );
+      debugPrint('[QR-PAIR/login] handoverDeviceAccessMobile ok');
 
       if (!mounted) return;
       setState(() => _loginStage = _LoginLinkStage.done);
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('[QR-PAIR/login] FAIL: $e\n$st\n${_authDiagSnapshot()}');
       // Если сервер ответил FAILED_PRECONDITION с message «in state approved»
       // — сессия уже была одобрена (повторное нажатие или stale-doc от
       // предыдущей попытки). Это не ошибка: новое устройство уже получило
@@ -555,13 +585,14 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
           msg.contains('in state approved');
       if (!mounted) return;
       if (isAlreadyApproved) {
+        debugPrint('[QR-PAIR/login] error classified as already-approved → soft-done');
         setState(() => _loginStage = _LoginLinkStage.done);
       } else {
         // Сбрасываем guard, чтобы можно было повторить.
         _confirmingSessionId = null;
         setState(() {
           _loginStage = _LoginLinkStage.error;
-          _loginError = msg;
+          _loginError = '${_formatErrorDetail('_confirmLoginLink', e, st)}\n${_authDiagSnapshot()}';
         });
       }
     }
@@ -914,23 +945,55 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
           ),
         ];
       case _DonorStage.error:
+        final donorErrText = _donorError ?? l10n.e2ee_qr_unknown_error;
         return [
           const SizedBox(height: 12),
           const Icon(Icons.error_outline, color: Colors.redAccent, size: 44),
           const SizedBox(height: 12),
-          Text(
-            _donorError ?? l10n.e2ee_qr_unknown_error,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.redAccent),
+          Container(
+            constraints: const BoxConstraints(maxHeight: 320),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.redAccent.withOpacity(0.08),
+              border: Border.all(color: Colors.redAccent.withOpacity(0.4)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: SingleChildScrollView(
+              child: SelectableText(
+                donorErrText,
+                style: const TextStyle(
+                  color: Colors.redAccent,
+                  fontFamily: 'Menlo',
+                  fontSize: 11,
+                  height: 1.3,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           Center(
-            child: TextButton(
-              onPressed: () => setState(() {
-                _donorStage = _DonorStage.scanning;
-                _donorError = null;
-              }),
-              child: Text(l10n.common_retry),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.copy, size: 16),
+                  label: const Text('Копировать'),
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: donorErrText));
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Ошибка скопирована')),
+                    );
+                  },
+                ),
+                TextButton(
+                  onPressed: () => setState(() {
+                    _donorStage = _DonorStage.scanning;
+                    _donorError = null;
+                  }),
+                  child: Text(l10n.common_retry),
+                ),
+              ],
             ),
           ),
         ];
@@ -1107,20 +1170,52 @@ class _E2eeQrPairingScreenState extends ConsumerState<E2eeQrPairingScreen> {
           ),
         ];
       case _LoginLinkStage.error:
+        final loginErrText = _loginError ?? l10n.e2ee_qr_unknown_error;
         return [
           const SizedBox(height: 16),
           const Icon(Icons.error_outline, color: Colors.redAccent, size: 44),
           const SizedBox(height: 12),
-          Text(
-            _loginError ?? l10n.e2ee_qr_unknown_error,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.redAccent),
+          Container(
+            constraints: const BoxConstraints(maxHeight: 320),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.redAccent.withOpacity(0.08),
+              border: Border.all(color: Colors.redAccent.withOpacity(0.4)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: SingleChildScrollView(
+              child: SelectableText(
+                loginErrText,
+                style: const TextStyle(
+                  color: Colors.redAccent,
+                  fontFamily: 'Menlo',
+                  fontSize: 11,
+                  height: 1.3,
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Center(
-            child: TextButton(
-              onPressed: _resetLoginFlow,
-              child: Text(l10n.e2ee_qr_back_to_pick_label),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.copy, size: 16),
+                  label: const Text('Копировать'),
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: loginErrText));
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Ошибка скопирована')),
+                    );
+                  },
+                ),
+                TextButton(
+                  onPressed: _resetLoginFlow,
+                  child: Text(l10n.e2ee_qr_back_to_pick_label),
+                ),
+              ],
             ),
           ),
         ];
