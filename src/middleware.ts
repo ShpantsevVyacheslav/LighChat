@@ -65,6 +65,13 @@ const FRAME_SRC_EXTERNAL = [
 ];
 const FRAME_ANCESTORS = "'none'";       // matches X-Frame-Options: DENY
 
+/**
+ * [audit H-009] Endpoint для CSP violation reports. См. src/app/api/csp-report/route.ts.
+ * Браузер шлёт сюда POST с JSON-описанием каждого блокированного ресурса.
+ * После наблюдения ~1 неделю — переключаем `CSP_REPORT_ONLY = false`.
+ */
+const CSP_REPORT_URI = '/api/csp-report';
+
 function buildCsp(nonce: string): string {
   const sScript = ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'", ...SCRIPT_SRC_EXTERNAL].join(' ');
   // 'strict-dynamic' lets nonce'd scripts load further scripts without each
@@ -106,6 +113,12 @@ function buildCsp(nonce: string): string {
   // В Report-Only браузер ругается «directive is ignored ...» и шумит в console.
   // Включим обратно когда CSP_REPORT_ONLY станет false.
   if (!CSP_REPORT_ONLY) directives.push(`upgrade-insecure-requests`);
+  // [audit H-009] report-uri работает и в Report-Only, и в Enforce. Браузер
+  // POSTит JSON с описанием violation на этот endpoint при каждом блоке.
+  // report-to (новый Reporting API) пока не добавляем — Safari/Firefox ещё
+  // не support'ят consistently. report-uri покрывает Chrome / Edge / Yandex /
+  // Safari / Firefox современных версий.
+  directives.push(`report-uri ${CSP_REPORT_URI}`);
   return directives.join('; ');
 }
 
@@ -146,7 +159,11 @@ export const config = {
   // Skip static assets (Next caches them aggressively; the CSP wouldn't
   // change their behaviour anyway and per-request nonce defeats caching).
   // Also skip Next /_next assets and the public/ root files served at "/".
+  // [audit H-009] api/csp-report тоже скипаем: endpoint принимает POST от
+  // браузера с CSP violations и сам не загружает скрипты — CSP на нём
+  // бессмысленна, а попадание endpoint'а под matcher создаёт цикл
+  // self-reporting (violation от response endpoint'а → новый POST → ...).
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|firebase-messaging-sw.js|chunk-recovery.js|brand|icons|pwa).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|firebase-messaging-sw.js|chunk-recovery.js|brand|icons|pwa|api/csp-report).*)',
   ],
 };

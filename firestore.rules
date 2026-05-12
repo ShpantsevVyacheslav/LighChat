@@ -1125,5 +1125,18 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow write: if false;
     }
+
+    /**
+     * [audit H-009] CSP violation reports. Endpoint /api/csp-report пишет
+     * сюда через Admin SDK (bypassing rules), но мы всё равно ставим
+     * deny-all на клиентский access — чтобы read был только у админа,
+     * а write был невозможен с клиента (Admin SDK игнорирует rules).
+     * Зачем строгие rules: коллекция содержит UA + samples → не давать
+     * её читать обычным юзерам.
+     */
+    match /cspViolations/{hash} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
   }
 }

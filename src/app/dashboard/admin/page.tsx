@@ -12,6 +12,7 @@ import { AdminCapabilitiesRoadmapCard } from '@/components/admin/admin-capabilit
 import { AdminAuditLogPanel } from '@/components/admin/admin-audit-log-panel';
 import { AdminAnalyticsPanel } from '@/components/admin/admin-analytics-panel';
 import { AdminModerationPanel } from '@/components/admin/admin-moderation-panel';
+import { AdminCspViolationsPanel } from '@/components/admin/admin-csp-violations-panel';
 import { AdminFeatureFlagsPanel } from '@/components/admin/admin-feature-flags-panel';
 import { AdminAnnouncementsPanel } from '@/components/admin/admin-announcements-panel';
 import { AdminOverviewDashboard } from '@/components/admin/admin-overview-dashboard';
@@ -122,8 +123,11 @@ export default function AdminPage() {
           <AdminPushNotificationsPanel />
         </TabsContent>
 
-        <TabsContent value="audit" className="mt-0">
+        <TabsContent value="audit" className="mt-0 space-y-4">
           <AdminAuditLogPanel />
+          {/* [audit H-009] CSP violations observation — рядом с audit log,
+              т.к. это тоже security-видимость. */}
+          <AdminCspViolationsPanel />
         </TabsContent>
 
         <TabsContent value="support" className="mt-0">
