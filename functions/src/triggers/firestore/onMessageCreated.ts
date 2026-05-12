@@ -6,6 +6,8 @@ import { buildDataPayload, evaluateChatMessagePush } from "../../lib/push-notifi
 import { sendDataMulticastGrouped } from "../../lib/fcm-send-data-batches";
 import { trySetMessageExpireAtForDisappearing } from "../../lib/disappearing-chat-messages";
 import { mirrorPushToFirestore } from "../../lib/push-fallback";
+import { recordAnalyticsEvent } from "../../analytics/recordEvent";
+import { AnalyticsEvents } from "../../analytics/events";
 
 const db = admin.firestore();
 const messaging = admin.messaging();
@@ -52,6 +54,12 @@ export const onmessagecreated = onDocumentCreated(
     const senderId = messageData.senderId;
     const conversationId = event.params.conversationId;
     const messageId = event.params.messageId;
+
+    // Analytics: message_sent + (опционально) message_first_sent_in_chat.
+    // Fire-and-forget — никогда не блокируем доставку push.
+    void emitMessageAnalytics(conversationId, senderId, messageData).catch((e) => {
+      logger.warn(`analytics message_sent failed for ${messageId}`, e);
+    });
 
     // [audit H-006] System-сообщения (game lobby события и пр.) не шлются
     // push'ами и не должны тащить N+1 чтения recipient'ов. Ранний exit
@@ -255,3 +263,70 @@ export const onmessagecreated = onDocumentCreated(
     }
   },
 );
+
+/**
+ * Шлёт message_sent (canonical для бизнес-метрик) + опционально
+ * message_first_sent_in_chat, если это первое сообщение пользователя в чате.
+ *
+ * Маркер первого сообщения — sub-doc `userChatFirsts/{uid}` в
+ * `conversations/{conversationId}` (через .create(): первый коммит ОК,
+ * последующие получают ALREADY_EXISTS и пропускают событие).
+ */
+async function emitMessageAnalytics(
+  conversationId: string,
+  senderId: string,
+  messageData: Record<string, unknown>,
+): Promise<void> {
+  if (senderId === "__system__" || messageData.systemEvent != null) return;
+
+  const attachments = (messageData.attachments as { type?: string }[] | undefined) ?? [];
+  let messageKind: string = "text";
+  if (messageData.poll) messageKind = "poll";
+  else if (attachments.length > 0) {
+    const t = attachments[0].type ?? "";
+    if (t.startsWith("audio/")) messageKind = "voice";
+    else if (t.startsWith("image/") || t.startsWith("video/")) messageKind = "media";
+    else if (t.startsWith("image/svg")) messageKind = "sticker";
+    else messageKind = "file";
+  }
+
+  // chat_type определяем по родительской conversation: personal/group/secret.
+  // Один extra read — но он уже сделан в основном flow, мы здесь не дёргаем.
+  // Чтобы не дублировать чтение — берём флаг прямо из messageData.chatTypeHint
+  // если клиент его выставил, иначе фолбэк на 'unknown'.
+  const chatTypeHint =
+    typeof messageData.chatTypeHint === "string" ? messageData.chatTypeHint : "unknown";
+
+  await recordAnalyticsEvent({
+    event: AnalyticsEvents.messageSent,
+    uid: senderId,
+    params: {
+      chat_type: chatTypeHint,
+      message_kind: messageKind,
+      is_reply: Boolean(messageData.replyTo),
+      is_thread: Boolean(messageData.threadId),
+      has_attachment: attachments.length > 0,
+      e2ee: Boolean((messageData.e2ee as { ciphertext?: string } | undefined)?.ciphertext),
+    },
+    source: "firestore_trigger",
+  });
+
+  // message_first_sent_in_chat — атомарный маркер.
+  try {
+    await db
+      .doc(`conversations/${conversationId}/userChatFirsts/${senderId}`)
+      .create({
+        firstSentAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    await recordAnalyticsEvent({
+      event: AnalyticsEvents.messageFirstSentInChat,
+      uid: senderId,
+      params: { chat_type: chatTypeHint },
+      source: "firestore_trigger",
+    });
+  } catch (e) {
+    // ALREADY_EXISTS — пользователь уже писал в этот чат, не дублируем.
+    if (e instanceof Error && /already exists/i.test(e.message)) return;
+    throw e;
+  }
+}

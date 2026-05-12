@@ -2,6 +2,9 @@ import * as admin from "firebase-admin";
 import { logger } from "firebase-functions";
 import { onCall, HttpsError, type CallableRequest } from "firebase-functions/v2/https";
 
+import { recordAnalyticsEvent } from "../../analytics/recordEvent";
+import { AnalyticsEvents, daysBucket } from "../../analytics/events";
+
 type DeleteAccountResponse = {
   uid: string;
   deletedRegistrationIndexCount: number;
@@ -317,6 +320,30 @@ export const deleteAccount = onCall(
       }
       for (const meetingId of deletedMeetingIds) {
         if (await deleteStorageByPrefix(`meeting-attachments/${meetingId}/`)) cleanedStoragePrefixCount++;
+      }
+
+      // Analytics: account_deleted — пишем ДО delete'а Auth user, чтобы был
+      // валидный uid. days_since_signup_bucket вычисляем из user.createdAt
+      // если был профиль; иначе скипаем.
+      try {
+        const profileSnap = await admin.firestore().doc(`users/${uid}`).get();
+        const createdIso = profileSnap.data()?.createdAt as string | undefined;
+        let daysBkt = "unknown";
+        if (createdIso) {
+          const days = Math.max(
+            0,
+            Math.floor((Date.now() - new Date(createdIso).getTime()) / 86400000),
+          );
+          daysBkt = daysBucket(days);
+        }
+        await recordAnalyticsEvent({
+          event: AnalyticsEvents.accountDeleted,
+          uid,
+          params: { days_since_signup_bucket: daysBkt },
+          source: "callable",
+        });
+      } catch (e) {
+        logger.warn("[deleteAccount] analytics emit failed", { uid, error: String(e) });
       }
 
       // 9) Finally delete Auth user (irreversible).

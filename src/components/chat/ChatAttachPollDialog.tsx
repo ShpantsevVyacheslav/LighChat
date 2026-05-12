@@ -18,6 +18,7 @@ import { Plus, Trash2, Loader2, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/hooks/use-i18n';
 import type { ChatPollCreateInput } from '@/lib/chat-poll-create';
+import { logger } from '@/lib/logger';
 
 export type { ChatPollCreateInput } from '@/lib/chat-poll-create';
 
@@ -114,7 +115,7 @@ export function ChatAttachPollDialog({ open, onOpenChange, onCreate }: ChatAttac
       reset();
       onOpenChange(false);
     } catch (e) {
-      console.error(e);
+      logger.error('chat-poll', 'create failed', e);
       toast({ variant: 'destructive', title: t('chat.pollForm.createFailed') });
     } finally {
       setSaving(false);

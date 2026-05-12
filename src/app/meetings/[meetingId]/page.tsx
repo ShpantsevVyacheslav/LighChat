@@ -22,6 +22,7 @@ import { Card, CardTitle, CardDescription } from '@/components/ui/card';
 import { ShieldAlert, Clock, ArrowLeft, Loader2 } from 'lucide-react';
 import { signInAnonymously, updateProfile } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/lib/logger';
 import {
   guestMeetingAuthScreenBullets,
   guestMeetingAuthToastDescription,
@@ -78,7 +79,7 @@ export default function MeetingPage() {
       } catch (e: unknown) {
         if (cancelled) return;
         const err = e as { code?: string; message?: string };
-        console.error('[meetings/guest] Anonymous sign-in failed:', e);
+        logger.error('meetings-guest', 'Anonymous sign-in failed', e);
         setGuestAuthFailed(true);
         setGuestAuthErrorCode(err.code ?? null);
         toast({

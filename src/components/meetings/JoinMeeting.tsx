@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Meeting, User as AppUser } from '@/lib/types';
+import { logger } from '@/lib/logger';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -50,7 +51,7 @@ export function JoinMeeting({ meeting, currentUser, requireNameInput = false, on
           videoRef.current.muted = true;
         }
       } catch (err) {
-        console.error("Lobby preview failed:", err);
+        logger.error('join-meeting', 'Lobby preview failed', err);
         setPermissionError(true);
         setVideoOff(true);
       }

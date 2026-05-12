@@ -33,6 +33,7 @@ import { ArrowLeft, Crown, MessageCircle, MoreVertical, ShieldOff, UserX } from 
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
 import { canShowOnlineStatus } from '@/lib/presence-visibility';
+import { logger } from '@/lib/logger';
 
 function resolveGroupMemberUser(
   id: string,
@@ -188,7 +189,7 @@ export function GroupChatParticipantsManageView({
         onSelectPersonalChat(id);
         onCloseProfileSheet();
       } catch (e) {
-        console.error(e);
+        logger.error('group-participants', 'action failed', e);
         toast({ variant: 'destructive', title: t('chat.groupMembers.chatOpenError') });
       }
     })();

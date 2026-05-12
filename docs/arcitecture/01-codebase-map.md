@@ -22,6 +22,11 @@
 - `src/hooks/use-secret-chat-access-active.ts` - подписка на `conversations/{cid}/secretAccess/{uid}` и расчёт `isActive` по `expiresAtTs`/`expiresAt` для скрытия/разблокировки web-ленты секретного чата.
 - `src/lib/secret-chat/secret-chat-callables.ts`, `src/lib/secret-chat/secret-chat-create.ts` - callable-клиент secret-vault/secret-unlock/delete и создание/открытие детерминированного `sdm_*` DM с секретной конфигурацией.
 - `src/contexts` - локальные React contexts для feature-state.
+- `src/lib/analytics/*` - продуктовая аналитика: типизированный каталог событий, lazy `firebase/analytics` обёртка, server-fallback. Подробно — `docs/arcitecture/06-analytics.md`.
+- `src/components/analytics/AnalyticsProvider.tsx` - bootstrap аналитики + автоматический `page_view` через `usePathname`/`useSearchParams`.
+- `src/app/api/analytics/event/route.ts` - server-side REST ingest для двойной записи критичных конверсий и Safari/AdBlock-фолбэка.
+- `mobile/app/lib/features/analytics/*` - Flutter sink (`firebase_analytics` для iOS/Android/macOS + callable-фолбэк для Windows/Linux), consent-gate.
+- `functions/src/analytics/*` - server helper `recordAnalyticsEvent` + GA4 Measurement Protocol forward + единый whitelist событий.
 
 ## Firebase integration layer
 

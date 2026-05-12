@@ -4,6 +4,7 @@ import * as React from "react";
 import { useSearchParams } from "next/navigation";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { useFirebaseApp } from "@/firebase";
+import { logger } from "@/lib/logger";
 
 declare global {
   interface Window {
@@ -75,7 +76,7 @@ export function TelegramBridgeInner() {
           "Не удалось вернуть токен в приложение. Откройте эту страницу из приложения ещё раз."
         );
       } catch (e) {
-        console.error("[telegram-bridge] signInWithTelegram failed", e);
+        logger.error('telegram-bridge', 'signInWithTelegram failed', e);
         const msg =
           typeof e === "object" && e !== null && "message" in e
             ? String((e as { message: unknown }).message)

@@ -17,6 +17,7 @@ import {
 } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ensureSavedMessagesChat, isSavedMessagesChat } from '@/lib/saved-messages-chat';
+import { logger } from '@/lib/logger';
 import { mergeSidebarFolderOrder } from '@/lib/chat-folder-order';
 import type { User, Conversation, UserChatIndex, ChatFolder, UserContactsIndex } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -295,7 +296,7 @@ export function DashboardChatListColumn({
   useEffect(() => {
     if (!firestore || !currentUserForFirestore) return;
     ensureSavedMessagesChat(firestore, currentUserForFirestore).catch((err) =>
-      console.error('[ensureSavedMessagesChat]', err)
+      logger.error('chat-list', 'ensureSavedMessagesChat', err)
     );
   }, [firestore, currentUserForFirestore]);
 

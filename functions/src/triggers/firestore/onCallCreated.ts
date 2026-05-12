@@ -7,6 +7,8 @@ import { isApnsVoipConfigured, sendApnsVoipMulticast } from "../../lib/apns-voip
 import { apnsVoipConfigFromJsonSecret } from "../../lib/apns-voip-config-secret";
 import { mergeNotificationSettings } from "../../lib/push-notification-policy";
 import { mirrorPushToFirestore } from "../../lib/push-fallback";
+import { recordAnalyticsEvent } from "../../analytics/recordEvent";
+import { AnalyticsEvents } from "../../analytics/events";
 
 const db = admin.firestore();
 const messaging = admin.messaging();
@@ -53,6 +55,17 @@ export const oncallcreated = onDocumentCreated(
       logger.error("Call document is missing participants.", { callId });
       return;
     }
+
+    // Analytics: call_started — server canonical. fire-and-forget.
+    void recordAnalyticsEvent({
+      event: AnalyticsEvents.callStarted,
+      uid: callerId,
+      params: {
+        call_type: isVideo ? "video" : "audio",
+        is_group: false,
+      },
+      source: "firestore_trigger",
+    }).catch((e) => logger.warn(`analytics call_started failed for ${callId}`, e));
 
     // [audit M-006 / H-011] At-least-once delivery Cloud Functions v2: при
     // retry триггера второй VoIP-push на iOS = два инцидента CallKit (UX

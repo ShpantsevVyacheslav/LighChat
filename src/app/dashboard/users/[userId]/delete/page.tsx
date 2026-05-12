@@ -11,6 +11,7 @@ import { DeleteConfirmationDialog } from '@/components/delete-confirmation-dialo
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useI18n } from '@/hooks/use-i18n';
+import { logger } from '@/lib/logger';
 
 export default function DeleteUserPage() {
   const router = useRouter();
@@ -51,7 +52,7 @@ export default function DeleteUserPage() {
       });
       router.push('/dashboard/users');
     } catch (error: unknown) {
-      console.error("Failed to delete user via Cloud Function:", error);
+      logger.error('admin-user-delete', 'delete via Cloud Function failed', error);
       const message =
         typeof error === 'object' &&
         error != null &&

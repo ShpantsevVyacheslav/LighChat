@@ -177,6 +177,27 @@ export async function POST(request: NextRequest) {
       // Если Admin SDK недоступен (local dev без ADC) — лог в server console.
       logger.warn('csp-report', 'firestore write failed', { error: e, directive, blockedUri });
     }
+
+    // Analytics-bridge: дублируем уникальные CSP-violations как
+    // `csp_violation_received` событие — попадает в общий рейтинг ошибок
+    // (admin product analytics → Errors). Только blocked host (без path) —
+    // PII safety.
+    try {
+      const blockedHost = (() => {
+        try { return new URL(blockedUri).host; } catch { return blockedBase.slice(0, 100); }
+      })();
+      await adminDb.collection('analyticsEvents').add({
+        event: 'csp_violation_received',
+        params: { directive, blocked_uri_host: blockedHost, doc_path: docPath.slice(0, 80) },
+        platform: 'web',
+        uid: null,
+        ts: new Date().toISOString(),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        source: 'csp_endpoint',
+      });
+    } catch (e) {
+      logger.debug('csp-report', 'analytics bridge write failed', e);
+    }
   }
 
   return new NextResponse(null, { status: 204 });

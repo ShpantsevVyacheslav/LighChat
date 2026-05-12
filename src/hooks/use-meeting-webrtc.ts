@@ -6,6 +6,7 @@ import {
   serverTimestamp, query, where 
 } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
+import { logger } from '@/lib/logger';
 import { firebaseConfig } from '@/firebase/config';
 import { getAuth } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -309,7 +310,7 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
             // Прочие ошибки (NotSupported, AbortError, permission в policy) — логируем и
             // информируем пользователя, иначе UI молчит и выглядит как баг.
             if (e?.name !== 'NotAllowedError') {
-                console.warn('[WebRTC] getDisplayMedia failed:', e);
+                logger.warn('webrtc', 'getDisplayMedia failed', e);
                 toast({ variant: 'destructive', title: 'Не удалось запустить демонстрацию экрана' });
             }
         }

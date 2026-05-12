@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { UserCircle2, MessageCircle } from 'lucide-react';
 import { useI18n } from '@/hooks/use-i18n';
+import { logger } from '@/lib/logger';
 
 export type GroupMessageSenderMenuProps = {
   senderId: string;
@@ -54,7 +55,7 @@ export function GroupMessageSenderMenu({
           className="cursor-pointer"
           onSelect={() => {
             void Promise.resolve(onWritePrivate(senderId)).catch((err) => {
-              console.error('[GroupMessageSenderMenu] onWritePrivate failed', err);
+              logger.error('group-sender-menu', 'onWritePrivate failed', err);
             });
           }}
         >

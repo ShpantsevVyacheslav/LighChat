@@ -6,6 +6,7 @@ import { useFirestore } from '@/firebase';
 import type { User } from '@/lib/types';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
 import { autoEnableE2eeForNewDirectChat } from '@/lib/e2ee';
+import { logger } from '@/lib/logger';
 import { useSettings } from '@/hooks/use-settings';
 import { doc, getDoc } from 'firebase/firestore';
 import type { PlatformSettingsDoc } from '@/lib/types';
@@ -96,7 +97,7 @@ export function NewChatDialog({
         onSelectConversation(id);
         setIsOpen(false);
     } catch (error) {
-        console.error("Failed to start/recreate chat:", error);
+        logger.error('new-chat', 'start/recreate chat failed', error);
     } finally {
         setIsCreating(false);
     }

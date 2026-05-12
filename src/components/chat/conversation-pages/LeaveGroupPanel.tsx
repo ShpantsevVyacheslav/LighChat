@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, writeBatch, arrayRemove } from 'firebase/firestore';
 import type { Conversation, User } from '@/lib/types';
+import { logger } from '@/lib/logger';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/hooks/use-i18n';
 import { Button } from '@/components/ui/button';
@@ -75,7 +76,7 @@ export function LeaveGroupPanel({ conversationId, currentUser, onCancel }: Leave
       toast({ title: t('chat.leaveGroup.success') });
       router.push('/dashboard/chat');
     } catch (e) {
-      console.error('Failed to leave group:', e);
+      logger.error('leave-group', 'failed', e);
       toast({ variant: 'destructive', title: t('common.error'), description: t('chat.leaveGroup.failed') });
       setIsLeaving(false);
     }

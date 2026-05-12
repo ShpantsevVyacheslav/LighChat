@@ -8,6 +8,8 @@ import {
 import { isSecretConversation } from "../../lib/secret-chat-index";
 import { buildDataPayload, evaluateSimpleNotificationPush } from "../../lib/push-notification-policy";
 import { sendDataMulticastGrouped } from "../../lib/fcm-send-data-batches";
+import { recordAnalyticsEvent } from "../../analytics/recordEvent";
+import { AnalyticsEvents, countBucket } from "../../analytics/events";
 
 const db = admin.firestore();
 const messaging = admin.messaging();
@@ -46,6 +48,34 @@ export const onconversationcreated = onDocumentCreated(
     }
 
     const secret = isSecretConversation(conversationId, conversationData as Record<string, unknown>);
+
+    // Analytics: chat_created (server canonical). Тип определяется по
+    // числу участников + флагу secret. Создателя берём из поля createdBy /
+    // ownerId если есть; иначе оставляем null.
+    try {
+      const isGroup = participantIds.length > 2;
+      const chatType = secret ? "secret" : isGroup ? "group" : "personal";
+      const creator =
+        (conversationData as { createdBy?: string; ownerId?: string }).createdBy ??
+        (conversationData as { createdBy?: string; ownerId?: string }).ownerId ??
+        null;
+      const hasAvatar = Boolean(
+        (conversationData as { avatar?: unknown; photoURL?: unknown }).avatar ||
+          (conversationData as { avatar?: unknown; photoURL?: unknown }).photoURL,
+      );
+      await recordAnalyticsEvent({
+        event: AnalyticsEvents.chatCreated,
+        uid: creator,
+        params: {
+          chat_type: chatType,
+          members_count_bucket: countBucket(participantIds.length),
+          has_avatar: hasAvatar,
+        },
+        source: "firestore_trigger",
+      });
+    } catch (e) {
+      logger.warn(`analytics chat_created failed for ${conversationId}`, e);
+    }
 
     const batch = db.batch();
 

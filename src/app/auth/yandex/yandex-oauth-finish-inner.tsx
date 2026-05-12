@@ -6,6 +6,7 @@ import { signInWithCustomToken } from "firebase/auth";
 
 import { useFirebaseApp, useAuth } from "@/firebase";
 import { useI18n } from "@/hooks/use-i18n";
+import { logger } from "@/lib/logger";
 
 export function YandexOauthFinishInner() {
   const app = useFirebaseApp();
@@ -37,7 +38,7 @@ export function YandexOauthFinishInner() {
         await signInWithCustomToken(auth, token);
         router.replace("/dashboard");
       } catch (e: unknown) {
-        console.error("[yandex-oauth-finish]", e);
+        logger.error('yandex-oauth-finish', 'sign-in failed', e);
         const msg =
           typeof e === "object" && e !== null && "message" in e
             ? String((e as { message: unknown }).message)

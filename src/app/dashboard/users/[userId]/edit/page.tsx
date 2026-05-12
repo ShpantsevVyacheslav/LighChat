@@ -17,6 +17,7 @@ import {
 import { UserForm, type UserFormSavePayload } from '@/components/admin/user-form';
 import { Loader2 } from 'lucide-react';
 import { useI18n } from '@/hooks/use-i18n';
+import { logger } from '@/lib/logger';
 
 export default function EditUserPage() {
   const router = useRouter();
@@ -56,7 +57,7 @@ export default function EditUserPage() {
         });
         router.push('/dashboard/users');
     } catch (e: unknown) {
-        console.error("Failed to update user via Cloud Function:", e);
+        logger.error('admin-user-edit', 'update via Cloud Function failed', e);
         const message =
           typeof e === 'object' &&
           e != null &&

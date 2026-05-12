@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useI18n } from '@/hooks/use-i18n';
+import { logger } from '@/lib/logger';
 
 const DURATION_OPTIONS = [
   { labelKey: 'm15' as const, value: '15' },
@@ -96,7 +97,7 @@ export default function MeetingsDashboardPage() {
       toast({ title: t('meetingsPage.toastCreatedTitle'), description: t('meetingsPage.toastCreatedDesc') });
       router.push(`/meetings/${meetingId}`);
     } catch (error: unknown) {
-      console.error("Meeting creation error:", error);
+      logger.error('meetings-list', 'Meeting creation error', error);
       const message =
         typeof error === 'object' &&
         error != null &&

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/hooks/use-i18n";
+import { logger } from "@/lib/logger";
 
 export type RegisterAvatarCropVariant = "fullscreen" | "compact";
 
@@ -185,7 +186,7 @@ export function RegisterAvatarCropOverlay({
       const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
       onApply(file);
     } catch (err) {
-      console.error("[RegisterAvatarCropOverlay] экспорт обрезки", err);
+      logger.error('avatar-crop', 'экспорт обрезки', err);
     } finally {
       setBusy(false);
     }

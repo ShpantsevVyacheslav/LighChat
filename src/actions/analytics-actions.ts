@@ -9,6 +9,12 @@ export type DailyStats = {
   activeUsers: number;
   newRegistrations: number;
   messagesSent: number;
+  chatsCreated?: number;
+  callsStarted?: number;
+  meetingsHeld?: number;
+  breakdownByPlatform?: Record<string, number>;
+  breakdownByCountry?: { code: string; count: number }[];
+  breakdownBySignupMethod?: Record<string, number>;
 };
 
 export type AnalyticsSummary = {
@@ -214,6 +220,145 @@ export async function fetchAdminGeoMetricsAction(input: {
     if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
     logger.error('analytics', 'fetchAdminGeoMetricsAction', e);
     return { ok: false, error: 'Ошибка загрузки геометрик' };
+  }
+}
+
+export type EngagementMetrics = {
+  totalMessages30d: number;
+  totalChats30d: number;
+  totalCalls30d: number;
+  totalMeetings30d: number;
+  avgMessagesPerActiveUser30d: number;
+};
+
+export async function fetchEngagementMetricsAction(input: {
+  idToken: string;
+}): Promise<{ ok: true; data: EngagementMetrics } | { ok: false; error: string }> {
+  try {
+    await assertAdminByIdToken(input.idToken);
+    const statsSnap = await adminDb
+      .collection('platformStats')
+      .doc('daily')
+      .collection('entries')
+      .orderBy('date', 'desc')
+      .limit(30)
+      .get();
+
+    let totalMessages = 0;
+    let totalChats = 0;
+    let totalCalls = 0;
+    let totalMeetings = 0;
+    let totalActive = 0;
+
+    statsSnap.docs.forEach((doc) => {
+      const d = doc.data() as DailyStats;
+      totalMessages += d.messagesSent ?? 0;
+      totalChats += d.chatsCreated ?? 0;
+      totalCalls += d.callsStarted ?? 0;
+      totalMeetings += d.meetingsHeld ?? 0;
+      totalActive += d.activeUsers ?? 0;
+    });
+
+    const avg = totalActive > 0 ? +(totalMessages / totalActive).toFixed(1) : 0;
+
+    return {
+      ok: true,
+      data: {
+        totalMessages30d: totalMessages,
+        totalChats30d: totalChats,
+        totalCalls30d: totalCalls,
+        totalMeetings30d: totalMeetings,
+        avgMessagesPerActiveUser30d: avg,
+      },
+    };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
+    logger.error('analytics', 'fetchEngagementMetricsAction', e);
+    return { ok: false, error: 'Ошибка загрузки метрик engagement' };
+  }
+}
+
+export type PlatformBreakdown = {
+  platform: string;
+  count: number;
+};
+
+export async function fetchPlatformBreakdownAction(input: {
+  idToken: string;
+  days?: number;
+}): Promise<{ ok: true; data: PlatformBreakdown[] } | { ok: false; error: string }> {
+  try {
+    await assertAdminByIdToken(input.idToken);
+    const days = input.days ?? 30;
+    const statsSnap = await adminDb
+      .collection('platformStats')
+      .doc('daily')
+      .collection('entries')
+      .orderBy('date', 'desc')
+      .limit(days)
+      .get();
+
+    const totals: Record<string, number> = {};
+    statsSnap.docs.forEach((doc) => {
+      const d = doc.data() as DailyStats;
+      const b = d.breakdownByPlatform ?? {};
+      for (const [k, v] of Object.entries(b)) {
+        totals[k] = (totals[k] ?? 0) + (typeof v === 'number' ? v : 0);
+      }
+    });
+
+    const data: PlatformBreakdown[] = Object.entries(totals)
+      .map(([platform, count]) => ({ platform, count }))
+      .sort((a, b) => b.count - a.count);
+
+    return { ok: true, data };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
+    logger.error('analytics', 'fetchPlatformBreakdownAction', e);
+    return { ok: false, error: 'Ошибка загрузки платформ' };
+  }
+}
+
+export type SignupFunnel = {
+  date: string;
+  method: string;
+  count: number;
+};
+
+export async function fetchSignupFunnelAction(input: {
+  idToken: string;
+  days?: number;
+}): Promise<{ ok: true; data: SignupFunnel[] } | { ok: false; error: string }> {
+  try {
+    await assertAdminByIdToken(input.idToken);
+    const days = input.days ?? 30;
+    const statsSnap = await adminDb
+      .collection('platformStats')
+      .doc('daily')
+      .collection('entries')
+      .orderBy('date', 'desc')
+      .limit(days)
+      .get();
+
+    const out: SignupFunnel[] = [];
+    statsSnap.docs.forEach((doc) => {
+      const d = doc.data() as DailyStats;
+      const breakdown = d.breakdownBySignupMethod ?? {};
+      for (const [method, count] of Object.entries(breakdown)) {
+        if (typeof count === 'number' && count > 0) {
+          out.push({ date: d.date, method, count });
+        }
+      }
+    });
+
+    return { ok: true, data: out };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg === 'FORBIDDEN' || msg === 'UNAUTHORIZED') return { ok: false, error: 'Недостаточно прав' };
+    logger.error('analytics', 'fetchSignupFunnelAction', e);
+    return { ok: false, error: 'Ошибка загрузки воронки регистраций' };
   }
 }
 

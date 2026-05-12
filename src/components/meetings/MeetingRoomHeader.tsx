@@ -7,6 +7,7 @@ import {
   Copy, LayoutGrid, Maximize2, Clock, User, CircleDot
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '../ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -86,7 +87,7 @@ export function MeetingRoomHeader({
       onBackgroundChange({ type: 'image', url: publicUrl });
       toast({ title: t('meetingHeader.bgAdded') });
     } catch (err) {
-      console.error("Custom background upload failed", err);
+      logger.error('meeting-header', 'Custom background upload failed', err);
       toast({ variant: 'destructive', title: t('meetingHeader.bgUploadError') });
     } finally {
       setIsUploading(false);

@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useI18n } from '@/hooks/use-i18n';
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
@@ -170,7 +171,7 @@ export function ImageEditorModal({ files: initialFiles, initialIndex, onSave, on
           }
         };
         img.onerror = () => {
-            console.error("Failed to load image for editor");
+            logger.error('image-editor', 'Failed to load image for editor');
             setIsImageLoading(false);
             URL.revokeObjectURL(url);
         };

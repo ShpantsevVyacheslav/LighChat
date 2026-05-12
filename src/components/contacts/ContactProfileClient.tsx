@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 import { useAuth } from '@/hooks/use-auth';
+import { logger } from '@/lib/logger';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
 import { autoEnableE2eeForNewDirectChat } from '@/lib/e2ee';
@@ -76,7 +77,7 @@ export function ContactProfileClient({ contactUserId }: { contactUserId: string 
           })
         );
       } catch (e) {
-        console.error('[ContactProfileClient] open chat/profile failed', e);
+        logger.error('contact-profile', 'open chat/profile failed', e);
         startedRef.current = false;
         setFailed(t('contacts.profile.openFailed'));
       } finally {

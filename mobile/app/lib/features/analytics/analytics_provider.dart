@@ -9,14 +9,17 @@ import 'analytics_service.dart';
 /// Корневой провайдер для аналитики. Создаёт sink, подходящий для текущей
 /// платформы: `FirebaseAnalyticsSink` для iOS/Android/macOS,
 /// `CallableAnalyticsSink` для Windows/Linux (где firebase_analytics не работает).
+///
+/// Замечание: Dart compiler на Windows (через flutter_assemble в MSBuild)
+/// падает с `Final variable 'sink' might already be assigned` если sink
+/// создаётся через closure-with-try внутри Provider builder. Поэтому
+/// используем плоский inline-вариант с условным выражением.
 final analyticsServiceProvider = Provider<AnalyticsService>((ref) {
-  final AnalyticsSink sink;
+  AnalyticsSink sink;
   try {
-    if (platformSupportsFirebaseAnalytics()) {
-      sink = FirebaseAnalyticsSink(FirebaseAnalytics.instance, logger);
-    } else {
-      sink = CallableAnalyticsSink(FirebaseFunctions.instance, logger);
-    }
+    sink = platformSupportsFirebaseAnalytics()
+        ? FirebaseAnalyticsSink(FirebaseAnalytics.instance, logger)
+        : CallableAnalyticsSink(FirebaseFunctions.instance, logger);
   } catch (e) {
     Logger().d('analytics provider fallback to noop: $e');
     sink = NoopAnalyticsSink();

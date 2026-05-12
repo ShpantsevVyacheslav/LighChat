@@ -9,6 +9,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import type { Conversation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/hooks/use-i18n';
+import { logger } from '@/lib/logger';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,7 +66,7 @@ export default function ClearConversationPage() {
       });
       router.push('/dashboard/chat');
     } catch (error: unknown) {
-      console.error("Failed to clear history:", error);
+      logger.error('clear-history', 'failed', error);
       const message =
         typeof error === 'object' &&
         error != null &&

@@ -5,6 +5,7 @@ import { ImagePlus, Loader2 } from 'lucide-react';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useFirestore, useStorage } from '@/firebase';
+import { logger } from '@/lib/logger';
 import { useChatConversationPrefs } from '@/hooks/use-chat-conversation-prefs';
 import { useSettings } from '@/hooks/use-settings';
 import { useToast } from '@/hooks/use-toast';
@@ -78,7 +79,7 @@ export function ConversationThemePanel({
       updatePrefs({ chatWallpaper: url });
       toast({ title: t('chat.theme.toastUploaded') });
     } catch (err) {
-      console.error(err);
+      logger.error('chat-theme', 'wallpaper upload failed', err);
       toast({ variant: 'destructive', title: t('chat.theme.toastUploadError') });
     } finally {
       setUploading(false);

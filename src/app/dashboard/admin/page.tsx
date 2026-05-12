@@ -11,6 +11,7 @@ import { AdminSupportInbox } from '@/components/admin/admin-support-inbox';
 import { AdminCapabilitiesRoadmapCard } from '@/components/admin/admin-capabilities-roadmap-card';
 import { AdminAuditLogPanel } from '@/components/admin/admin-audit-log-panel';
 import { AdminAnalyticsPanel } from '@/components/admin/admin-analytics-panel';
+import { AdminProductAnalyticsPanel } from '@/components/admin/admin-product-analytics-panel';
 import { AdminModerationPanel } from '@/components/admin/admin-moderation-panel';
 import { AdminCspViolationsPanel } from '@/components/admin/admin-csp-violations-panel';
 import { AdminFeatureFlagsPanel } from '@/components/admin/admin-feature-flags-panel';
@@ -103,8 +104,9 @@ export default function AdminPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="analytics" className="mt-0">
+        <TabsContent value="analytics" className="mt-0 space-y-4">
           <AdminAnalyticsPanel />
+          <AdminProductAnalyticsPanel />
         </TabsContent>
 
         <TabsContent value="moderation" className="mt-0">

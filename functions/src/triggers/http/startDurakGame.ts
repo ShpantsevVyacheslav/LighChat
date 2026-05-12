@@ -9,6 +9,8 @@ import {
   readyDeadlineFrom,
   startDurakRoundInTransaction,
 } from "../../lib/games/durak/lobbyLifecycle";
+import { recordAnalyticsEvent } from "../../analytics/recordEvent";
+import { AnalyticsEvents } from "../../analytics/events";
 
 type RequestData = {
   gameId?: unknown;
@@ -103,6 +105,12 @@ export const startDurakGame = onCall(
     });
 
     logger.info("[startDurakGame] started", { gameId, uid });
+    void recordAnalyticsEvent({
+      event: AnalyticsEvents.gameStarted,
+      uid,
+      params: { game_id: "durak", mode: "vs_human" },
+      source: "callable",
+    });
     return { gameId, status: "lobby" };
   },
 );

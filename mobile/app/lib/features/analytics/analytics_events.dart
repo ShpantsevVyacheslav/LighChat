@@ -8,7 +8,7 @@
 ///   - snake_case, < 40 символов, GA4-совместимо;
 ///   - НИКАКОЙ PII в параметрах;
 ///   - значения параметров — enum-литералы либо bucket'ы.
-library analytics_events;
+library;
 
 class AnalyticsEvents {
   AnalyticsEvents._();
