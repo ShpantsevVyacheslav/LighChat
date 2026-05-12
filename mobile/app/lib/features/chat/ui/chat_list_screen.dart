@@ -305,8 +305,10 @@ class _ChatListBody extends ConsumerStatefulWidget {
   final List<ChatFolder> folders;
   final List<ConversationWithId> conversations;
 
-  /// Скрыть [ChatBottomNav] на desktop в master-detail layout — навигация
-  /// перенесена в левый вертикальный rail [WorkspaceNavRail].
+  /// Скрыть [ChatBottomNav] (используется редко — bottom-nav остаётся
+  /// видимым в master-pane workspace shell, чтобы tabs Чаты/Контакты/
+  /// Звонки/Видеоконф были снизу, как в web `DashboardBottomNav
+  /// variant=chatSidebar`).
   final bool hideBottomNav;
 
   @override

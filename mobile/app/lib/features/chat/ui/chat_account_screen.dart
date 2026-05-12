@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -409,6 +411,16 @@ class _AccountView extends StatelessWidget {
                       ),
                       Consumer(
                         builder: (context, ref, _) {
+                          // Админ-панель доступна только на desktop / web —
+                          // на iOS / Android её намеренно нет (мобильное
+                          // приложение для конечных пользователей).
+                          final isDesktopOrWeb = kIsWeb ||
+                              defaultTargetPlatform == TargetPlatform.macOS ||
+                              defaultTargetPlatform == TargetPlatform.windows ||
+                              defaultTargetPlatform == TargetPlatform.linux;
+                          if (!isDesktopOrWeb) {
+                            return const SizedBox.shrink();
+                          }
                           final role = ref
                                   .watch(userRoleProvider)
                                   .asData

@@ -136,6 +136,19 @@ GoRouter createRouter() {
         return '/chats';
       }
 
+      // Mobile (iOS / Android): админ-панель намеренно недоступна —
+      // мобильное приложение для конечных пользователей. Любая попытка
+      // открыть `/admin*` (даже по deep link или старому redirect'у)
+      // отправляет на `/chats`.
+      if (!kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.iOS ||
+              defaultTargetPlatform == TargetPlatform.android)) {
+        final path = uri.path;
+        if (path == '/admin' || path.startsWith('/admin/')) {
+          return '/chats';
+        }
+      }
+
       // Desktop (macOS/Windows/Linux): авто-редирект с mobile-маршрутов
       // `/chats` и `/chats/:id` на 5-pane workspace layout
       // (`/workspace/*`). Mobile + web остаются на старых путях.
