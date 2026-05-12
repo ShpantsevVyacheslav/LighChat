@@ -44,6 +44,15 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # FlutterFire CLI нужен для run-script phase в Xcode:
+      # "flutterfire upload-crashlytics-symbols". Без него Xcode build
+      # падает на `flutterfire: command not found`.
+      - name: Install FlutterFire CLI
+        working-directory: .
+        run: |
+          dart pub global activate flutterfire_cli
+          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+
       - name: Build macOS app
         run: flutter build macos --release
 
@@ -121,11 +130,15 @@ jobs:
             -CertStoreLocation "Cert:\CurrentUser\My" `
             -KeyUsage DigitalSignature `
             -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+          Write-Host "Generated cert with thumbprint: $($cert.Thumbprint)"
           $pwd = ConvertTo-SecureString -String "lighchat-self-signed" -Force -AsPlainText
-          $pfxPath = "$PWD\lighchat-selfsigned.pfx"
-          $cerPath = "$PWD\lighchat-selfsigned.cer"
-          Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath $pfxPath -Password $pwd | Out-Null
-          Export-Certificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath $cerPath | Out-Null
+          $pfxPath = Join-Path $PWD "lighchat-selfsigned.pfx"
+          $cerPath = Join-Path $PWD "lighchat-selfsigned.cer"
+          # Передаём $cert объект напрямую (не path-string) — надёжнее
+          # на CI runner, где CurrentUser store path иногда резолвится
+          # с задержкой.
+          $cert | Export-PfxCertificate -FilePath $pfxPath -Password $pwd | Out-Null
+          $cert | Export-Certificate -FilePath $cerPath | Out-Null
           echo "CERT_PFX_PATH=$pfxPath" >> $env:GITHUB_ENV
           echo "CERT_PFX_PASSWORD=lighchat-self-signed" >> $env:GITHUB_ENV
           Write-Host "Self-signed cert exported to:"
