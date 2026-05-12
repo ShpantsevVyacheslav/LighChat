@@ -20,6 +20,10 @@ import '../../settings/data/energy_saving_preference.dart';
 
 /// Нижняя панель «Стикеры / GIF» (паритет `ChatStickerGifPanel` + `UserStickersTab`).
 ///
+/// На desktop-ширинах (≥1024dp) открывается как **правая шторка** (slide-in
+/// справа), повторяя layout web-версии. На узких экранах — стандартный
+/// modal bottom sheet, как было.
+///
 /// [directUploadConversationId] — если задан, вверху вкладки «Стикеры» показывается
 /// блок «С устройства»: выбор из галереи и сразу отправка в чат (как системные стикеры).
 Future<void> showComposerStickerGifSheet({
@@ -30,6 +34,52 @@ Future<void> showComposerStickerGifSheet({
   void Function(String emoji)? onEmojiTapped,
   String? directUploadConversationId,
 }) {
+  final width = MediaQuery.sizeOf(context).width;
+  const desktopBreakpoint = 1024.0;
+  const shutterWidth = 380.0;
+
+  if (width >= desktopBreakpoint) {
+    // Desktop: правая шторка через showGeneralDialog с slide-in справа.
+    return showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Закрыть стикеры',
+      barrierColor: Colors.black.withValues(alpha: 0.16),
+      transitionDuration: const Duration(milliseconds: 220),
+      transitionBuilder: (ctx, anim, _, child) {
+        final offset = Tween<Offset>(
+          begin: const Offset(1, 0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: anim,
+          curve: Curves.easeOutCubic,
+        ));
+        return SlideTransition(position: offset, child: child);
+      },
+      pageBuilder: (ctx, _, _) {
+        return Align(
+          alignment: Alignment.centerRight,
+          child: Material(
+            elevation: 16,
+            color: Theme.of(ctx).colorScheme.surface,
+            child: SizedBox(
+              width: shutterWidth,
+              height: double.infinity,
+              child: ComposerStickerGifPanel(
+                userId: userId,
+                repo: repo,
+                directUploadConversationId: directUploadConversationId,
+                onPickAttachment: onPickAttachment,
+                onEmojiTapped: onEmojiTapped,
+                onClose: () => Navigator.of(ctx).pop(),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,

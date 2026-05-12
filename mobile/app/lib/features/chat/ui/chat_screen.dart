@@ -1416,6 +1416,50 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
                   void openProfile() {
                     if (conv == null) return;
+                    final screenWidth = MediaQuery.sizeOf(context).width;
+                    // На desktop wide-layout открываем как правую шторку
+                    // (как в web-версии LighChat). На узких — fullscreen push.
+                    const desktopBreakpoint = 1024.0;
+                    if (screenWidth >= desktopBreakpoint) {
+                      showGeneralDialog<void>(
+                        context: context,
+                        barrierDismissible: true,
+                        barrierLabel: 'Закрыть профиль',
+                        barrierColor: Colors.black.withValues(alpha: 0.16),
+                        transitionDuration: const Duration(milliseconds: 220),
+                        transitionBuilder: (ctx, anim, _, child) {
+                          final offset = Tween<Offset>(
+                            begin: const Offset(1, 0),
+                            end: Offset.zero,
+                          ).animate(CurvedAnimation(
+                            parent: anim,
+                            curve: Curves.easeOutCubic,
+                          ));
+                          return SlideTransition(position: offset, child: child);
+                        },
+                        pageBuilder: (ctx, _, _) => Align(
+                          alignment: Alignment.centerRight,
+                          child: Material(
+                            elevation: 16,
+                            color: Theme.of(ctx).colorScheme.surface,
+                            child: SizedBox(
+                              width: 420,
+                              height: double.infinity,
+                              child: ChatPartnerProfileSheet(
+                                conversationId: conversationId,
+                                conversation: conv.data,
+                                currentUserId: user.uid,
+                                selfProfile: selfProfile,
+                                partnerProfile: profileForSheet,
+                                onJumpToMessageId: _scrollToMessageId,
+                                fullScreen: false,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                      return;
+                    }
                     Navigator.of(context).push<void>(
                       CupertinoPageRoute(
                         builder: (_) => ChatPartnerProfileSheet(
