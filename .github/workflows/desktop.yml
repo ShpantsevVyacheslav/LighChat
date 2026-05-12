@@ -99,7 +99,7 @@ jobs:
       # Portable ZIP — простейший способ запуска без установки. Распакуй
       # архив на пользовательской машине и запусти `lighchat_mobile.exe`.
       # Никаких разрешений / Developer Mode / Smart Screen exceptions
-      # не требуется. Подходит для бета-тестов.
+      # не требуется. Подходит для бета-тестов / sanity-check.
       - name: Pack portable ZIP
         shell: pwsh
         run: |
@@ -113,14 +113,42 @@ jobs:
           name: lighchat-windows-portable
           path: mobile/app/LighChat-windows-portable.zip
 
-      # MSIX-пакет временно отключён — самоподписанные сертификаты на
-      # windows-latest runner падают на Export-PfxCertificate с
-      # `path not found (0x80070003)` (известная проблема ephemeral
-      # CurrentUser keystore на ephemeral GitHub Actions VM). Для
-      # production-сборки потребуется EV Code Signing certificate
-      # ($300-700/год) — тогда подключим обратно через PFX secret.
-      # Сейчас пользователи получают portable ZIP (распаковка + запуск
-      # exe), без установки.
+      # Inno Setup installer — настоящий Windows installer (.exe), который
+      # ставит приложение в Program Files / %LOCALAPPDATA%, регистрирует
+      # в «Установка и удаление программ», создаёт shortcut'ы в Start Menu
+      # (всегда) и опционально на Desktop / в автозапуск. Без сертификата
+      # будет SmartScreen warning при первом запуске installer'а — это
+      # нормально для unsigned builds. Подпись Code Signing certificate
+      # позже подключим через WINDOWS_CERT_PFX / WINDOWS_CERT_PASSWORD
+      # секреты.
+      - name: Read app version from pubspec.yaml
+        id: read-version
+        shell: pwsh
+        run: |
+          $line = (Select-String -Path pubspec.yaml -Pattern '^version:\s*(.+)$').Matches.Groups[1].Value
+          # pubspec.yaml содержит "1.0.0+1" — Inno Setup ждёт чистую версию.
+          $semver = ($line -split '\+')[0].Trim()
+          echo "version=$semver" >> $env:GITHUB_OUTPUT
+          echo "App version: $semver"
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress --limit-output
+
+      - name: Build Inno Setup installer
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          & $iscc /DAppVersion=${{ steps.read-version.outputs.version }} windows/installer.iss
+          Get-ChildItem windows/LighChat-windows-installer.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lighchat-windows-installer
+          path: mobile/app/windows/LighChat-windows-installer.exe
+
+      # MSIX/Code Signing подключатся когда появится EV сертификат
+      # (~$300-700/год). До тех пор: portable ZIP + Inno Setup installer.
 
   build-linux:
     name: Linux AppImage
