@@ -33,19 +33,35 @@ class AuthScreen extends ConsumerStatefulWidget {
 ///  - [methods] — текущая форма email/password + OAuth-сетка.
 enum _AuthStage { entry, methods }
 
-/// `firebase_auth_macos` не реализует `signInWithProvider`. Показываем
-/// пользователю осмысленное сообщение вместо unhandled exception. Возвращает
-/// `true`, если вызов нужно прервать (платформа = macOS).
+/// Возвращает `true`, если OAuth (Google/Apple/Yandex/Telegram через
+/// webview/provider) недоступен на текущей desktop-платформе. Показывает
+/// пользователю осмысленное сообщение через SnackBar вместо unhandled
+/// exception.
+///
+/// - **macOS**: `firebase_auth_macos` не реализует `signInWithProvider`.
+/// - **Windows**: нет нативного плагина `webview_flutter` →
+///   `WebViewController()` бросает `Null check operator used on a null
+///   value`. То же касается `cloud_functions` (`Unable to establish
+///   connection on channel`).
+///
+/// На обоих desktop-платформах рекомендуем email/QR-вход.
 bool oauthBlockedOnMacOSCheck(BuildContext context) {
-  if (kIsWeb || defaultTargetPlatform != TargetPlatform.macOS) return false;
+  if (kIsWeb) return false;
+  final isMac = defaultTargetPlatform == TargetPlatform.macOS;
+  final isWindows = defaultTargetPlatform == TargetPlatform.windows;
+  final isLinux = defaultTargetPlatform == TargetPlatform.linux;
+  if (!isMac && !isWindows && !isLinux) return false;
+
+  final platformName =
+      isMac ? 'macOS' : (isWindows ? 'Windows' : 'Linux');
   ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-    const SnackBar(
+    SnackBar(
       content: Text(
-        'Вход через Google/Apple/Яндекс/Telegram на macOS-Desktop пока '
-        'недоступен (firebase_auth_macos не поддерживает signInWithProvider). '
+        'Вход через Google/Apple/Яндекс/Telegram на $platformName-Desktop '
+        'пока недоступен (нет нативного firebase_auth / webview SDK). '
         'Используйте email + пароль или QR-вход.',
       ),
-      duration: Duration(seconds: 6),
+      duration: const Duration(seconds: 6),
     ),
   );
   return true;
@@ -811,8 +827,14 @@ class _RegisterSheetBodyState extends ConsumerState<_RegisterSheetBody> {
     // Поэтому OAuth-кнопки (Google/Apple/Yandex/Telegram) на macOS Debug
     // disabled до тех пор, пока не подключим Google Sign-In SDK / Yandex
     // OAuth webview напрямую и не получим customToken через CF.
-    final isMacOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
-    final canOAuth = firebaseReady && repo != null && !_busy && !isMacOS;
+    // Desktop без нативного firebase_auth_*/webview — OAuth недоступен.
+    // Кнопки disabled; `oauthBlockedOnMacOSCheck` уже отшибает повторный
+    // тап SnackBar'ом. См. комментарий в `auth_screen.dart::oauthBlockedOnMacOSCheck`.
+    final isDesktop = !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.macOS ||
+            defaultTargetPlatform == TargetPlatform.windows ||
+            defaultTargetPlatform == TargetPlatform.linux);
+    final canOAuth = firebaseReady && repo != null && !_busy && !isDesktop;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

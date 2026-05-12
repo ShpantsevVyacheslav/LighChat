@@ -118,11 +118,17 @@ class _QrLoginScreenState extends ConsumerState<QrLoginScreen>
         'deviceId': deviceId,
       };
       // На iOS в release-сборке `cloud_functions` (gRPC + Swift Concurrency)
-      // даёт malloc-corruption / SIGABRT. На iOS используем прямой HTTPS-вызов
-      // через `callFirebaseCallableHttp` — он работает на чистом
-      // dart:io HttpClient и обходит проблемный плагин. На Android и web
-      // `FirebaseFunctions.instance` стабилен.
-      if (!kIsWeb && Platform.isIOS) {
+      // даёт malloc-corruption / SIGABRT.
+      // На Windows/Linux `cloud_functions` нативного плагина нет — пигеон-канал
+      // `dev.flutter.pigeon.cloud_functions_platform_interface.CloudFunctionsHostApi`
+      // не зарегистрирован, и `httpsCallable.call(...)` падает с
+      // `Unable to establish connection on channel`.
+      // На всех этих платформах используем прямой HTTPS-вызов через
+      // `callFirebaseCallableHttp` — pure dart:io HttpClient. Android, macOS
+      // и web используют штатный `FirebaseFunctions.instance`.
+      final useHttpFallback = !kIsWeb &&
+          (Platform.isIOS || Platform.isWindows || Platform.isLinux);
+      if (useHttpFallback) {
         final raw = await callFirebaseCallableHttp(
           name: 'requestQrLogin',
           region: 'us-central1',
