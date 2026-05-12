@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_bar_facade.dart';
 import 'chat_avatar.dart';
 
-class ChatHeader extends StatelessWidget {
+class ChatHeader extends StatefulWidget {
   const ChatHeader({
     super.key,
     required this.title,
@@ -57,9 +61,197 @@ class ChatHeader extends StatelessWidget {
   final bool disappearingMessagesEnabled;
 
   @override
+  State<ChatHeader> createState() => _ChatHeaderState();
+}
+
+class _ChatHeaderState extends State<ChatHeader> {
+  StreamSubscription<NavBarEvent>? _nativeEvents;
+  bool _firstPushDone = false;
+  bool get _native => NativeNavBarFacade.instance.isSupported;
+
+  static const _actionSearch = 'chat_search';
+  static const _actionVideo = 'chat_video';
+  static const _actionAudio = 'chat_audio';
+  static const _actionThreads = 'chat_threads';
+  static const _actionScheduled = 'chat_scheduled';
+
+  @override
+  void initState() {
+    super.initState();
+    if (_native) {
+      _nativeEvents =
+          NativeNavBarFacade.instance.events.listen(_onNativeEvent);
+      widget.searchController?.addListener(_syncSearchValue);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_native && !_firstPushDone) {
+      _firstPushDone = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _pushNativeTopBar();
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ChatHeader old) {
+    super.didUpdateWidget(old);
+    if (_native) {
+      if (old.searchController != widget.searchController) {
+        old.searchController?.removeListener(_syncSearchValue);
+        widget.searchController?.addListener(_syncSearchValue);
+      }
+      _pushNativeTopBar();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.searchController?.removeListener(_syncSearchValue);
+    _nativeEvents?.cancel();
+    super.dispose();
+  }
+
+  void _pushNativeTopBar() {
+    final l10n = AppLocalizations.of(context);
+    final actions = <NavBarAction>[
+      if (widget.threadsUnreadCount > 0 || _native)
+        NavBarAction(
+          id: _actionThreads,
+          icon: const NavBarIcon('bubble.left.and.bubble.right'),
+          badge: widget.threadsUnreadCount > 0
+              ? widget.threadsUnreadCount.toString()
+              : null,
+          title: l10n?.chat_header_tooltip_threads,
+        ),
+      NavBarAction(
+        id: _actionSearch,
+        icon: const NavBarIcon('magnifyingglass'),
+        title: l10n?.chat_header_tooltip_search,
+      ),
+      if (widget.scheduledCount > 0 && widget.onScheduledTap != null)
+        NavBarAction(
+          id: _actionScheduled,
+          icon: const NavBarIcon('clock'),
+          badge: widget.scheduledCount.toString(),
+          title: l10n?.chat_header_tooltip_scheduled,
+        ),
+      if (widget.showCalls) ...[
+        NavBarAction(
+          id: _actionVideo,
+          icon: const NavBarIcon('video.fill'),
+          title: l10n?.chat_header_tooltip_video_call,
+        ),
+        NavBarAction(
+          id: _actionAudio,
+          icon: const NavBarIcon('phone.fill'),
+          title: l10n?.chat_header_tooltip_audio_call,
+        ),
+      ],
+    ];
+
+    final initial = widget.title.isNotEmpty
+        ? widget.title.characters.first.toUpperCase()
+        : null;
+
+    final config = NavBarTopConfig(
+      title: NavBarTitle(
+        title: widget.title,
+        subtitle: widget.subtitle.isEmpty ? null : widget.subtitle,
+        avatarUrl: widget.avatarUrl,
+        avatarFallbackInitial: initial,
+      ),
+      leading: const NavBarLeading.back(id: 'chat_back'),
+      trailing: actions,
+    );
+
+    unawaited(NativeNavBarFacade.instance.setTopBar(config));
+    unawaited(
+      NativeNavBarFacade.instance.setSearchMode(
+        widget.searchActive
+            ? NavBarSearchConfig(
+                active: true,
+                placeholder: l10n?.chat_header_search_hint ?? '',
+                value: widget.searchController?.text ?? '',
+              )
+            : const NavBarSearchConfig.inactive(),
+      ),
+    );
+  }
+
+  void _syncSearchValue() {
+    if (!_native) return;
+    if (!widget.searchActive) return;
+    final l10n = AppLocalizations.of(context);
+    unawaited(
+      NativeNavBarFacade.instance.setSearchMode(
+        NavBarSearchConfig(
+          active: true,
+          placeholder: l10n?.chat_header_search_hint ?? '',
+          value: widget.searchController?.text ?? '',
+        ),
+      ),
+    );
+  }
+
+  void _onNativeEvent(NavBarEvent event) {
+    if (!mounted) return;
+    switch (event) {
+      case NavBarLeadingTap(:final id):
+        if (id == 'chat_back') widget.onBack();
+      case NavBarActionTap(:final id):
+        switch (id) {
+          case _actionSearch:
+            widget.onSearchTap();
+          case _actionVideo:
+            widget.onVideoCallTap();
+          case _actionAudio:
+            widget.onAudioCallTap();
+          case _actionThreads:
+            widget.onThreadsTap();
+          case _actionScheduled:
+            widget.onScheduledTap?.call();
+        }
+      case NavBarSearchChange(:final value):
+        final controller = widget.searchController;
+        if (controller != null && controller.text != value) {
+          controller.text = value;
+        }
+      case NavBarSearchCancel():
+        widget.onSearchClose?.call();
+      case NavBarSearchSubmit():
+      case NavBarTabChange():
+        break;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_native) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context)!;
     final fg = Colors.white.withValues(alpha: 0.96);
+
+    final searchActive = widget.searchActive;
+    final searchController = widget.searchController;
+    final searchFocusNode = widget.searchFocusNode;
+    final onSearchClose = widget.onSearchClose;
+    final onBack = widget.onBack;
+    final onProfileTap = widget.onProfileTap;
+    final title = widget.title;
+    final subtitle = widget.subtitle;
+    final avatarUrl = widget.avatarUrl;
+    final disappearingMessagesEnabled = widget.disappearingMessagesEnabled;
+    final threadsUnreadCount = widget.threadsUnreadCount;
+    final onThreadsTap = widget.onThreadsTap;
+    final onSearchTap = widget.onSearchTap;
+    final scheduledCount = widget.scheduledCount;
+    final onScheduledTap = widget.onScheduledTap;
+    final showCalls = widget.showCalls;
+    final onVideoCallTap = widget.onVideoCallTap;
+    final onAudioCallTap = widget.onAudioCallTap;
 
     if (searchActive &&
         searchController != null &&
@@ -86,9 +278,9 @@ class ChatHeader extends StatelessWidget {
             ),
             Expanded(
               child: ListenableBuilder(
-                listenable: searchController!,
+                listenable: searchController,
                 builder: (context, _) {
-                  final q = searchController!.text;
+                  final q = searchController.text;
                   return TextField(
                     controller: searchController,
                     focusNode: searchFocusNode,
@@ -116,7 +308,7 @@ class ChatHeader extends StatelessWidget {
                       suffixIcon: q.isNotEmpty
                           ? IconButton(
                               tooltip: l10n.thread_search_tooltip_clear,
-                              onPressed: () => searchController!.clear(),
+                              onPressed: searchController.clear,
                               icon: Icon(
                                 Icons.close_rounded,
                                 color: fg.withValues(alpha: 0.7),

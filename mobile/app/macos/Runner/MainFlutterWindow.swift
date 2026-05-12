@@ -35,6 +35,10 @@ class MainFlutterWindow: NSWindow {
       }
     }
 
+    NavBarBridge.shared.register(
+      messenger: flutterViewController.engine.binaryMessenger)
+    NavBarToolbarHost.shared.attach(to: self)
+
     super.awakeFromNib()
   }
 }

@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_bar_facade.dart';
 import '../data/bottom_nav_icon_settings.dart';
 import 'chat_avatar.dart';
 
@@ -69,10 +72,91 @@ class _ChatBottomNavState extends State<ChatBottomNav>
   double _dragTravel = 0;
   bool _gestureDragging = false;
 
+  StreamSubscription<NavBarEvent>? _nativeEvents;
+  bool get _native => NativeNavBarFacade.instance.isSupported;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_native) {
+      _nativeEvents =
+          NativeNavBarFacade.instance.events.listen(_onNativeEvent);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _pushNativeBottomBar();
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _nativeEvents?.cancel();
     _stopPillAnimation();
     super.dispose();
+  }
+
+  void _pushNativeBottomBar() {
+    final config = NavBarBottomConfig(
+      items: const [
+        NavBarTab(
+          id: 'chats',
+          label: 'Chats',
+          icon: NavBarIcon('bubble.left.and.bubble.right'),
+        ),
+        NavBarTab(
+          id: 'contacts',
+          label: 'Contacts',
+          icon: NavBarIcon('person.2.fill'),
+        ),
+        NavBarTab(
+          id: 'calls',
+          label: 'Calls',
+          icon: NavBarIcon('phone.fill'),
+        ),
+        NavBarTab(
+          id: 'meetings',
+          label: 'Meetings',
+          icon: NavBarIcon('video.fill'),
+        ),
+        NavBarTab(
+          id: 'profile',
+          label: 'Profile',
+          icon: NavBarIcon('person.crop.circle'),
+        ),
+      ],
+      selectedId: _tabId(widget.activeTab),
+    );
+    unawaited(NativeNavBarFacade.instance.setBottomBar(config));
+  }
+
+  void _onNativeEvent(NavBarEvent event) {
+    if (!mounted) return;
+    if (event is NavBarTabChange) {
+      switch (event.id) {
+        case 'chats':
+          widget.onChatsTap();
+        case 'contacts':
+          widget.onContactsTap();
+        case 'calls':
+          widget.onCallsTap?.call();
+        case 'meetings':
+          widget.onMeetingsTap?.call();
+        case 'profile':
+          widget.onProfileTap();
+      }
+    }
+  }
+
+  String _tabId(ChatBottomNavTab tab) {
+    switch (tab) {
+      case ChatBottomNavTab.chats:
+        return 'chats';
+      case ChatBottomNavTab.contacts:
+        return 'contacts';
+      case ChatBottomNavTab.calls:
+        return 'calls';
+      case ChatBottomNavTab.meetings:
+        return 'meetings';
+    }
   }
 
   void _stopPillAnimation() {
@@ -191,6 +275,10 @@ class _ChatBottomNavState extends State<ChatBottomNav>
   @override
   void didUpdateWidget(ChatBottomNav oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (_native) {
+      if (oldWidget.activeTab != widget.activeTab) _pushNativeBottomBar();
+      return;
+    }
     if (oldWidget.activeTab != widget.activeTab &&
         !_gestureDragging &&
         _lastBarWidth > 0) {
@@ -273,6 +361,12 @@ class _ChatBottomNavState extends State<ChatBottomNav>
 
   @override
   Widget build(BuildContext context) {
+    if (_native) {
+      // Native UITabBar / NSToolbar takes over — the Flutter widget keeps
+      // a zero-height footprint so existing parent layouts (Column/Stack)
+      // continue to compose around it.
+      return const SizedBox.shrink();
+    }
     if (widget.bottomNavAppearance == 'minimal') {
       return _ChatBottomNavClassic(
         activeTab: widget.activeTab,
