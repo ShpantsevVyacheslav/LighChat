@@ -21,10 +21,12 @@ import 'package:image_picker/image_picker.dart';
 /// пригодится для диагностики «почему именно мой стикер не распознался».
 
 // Лимиты подобраны по реальным дропам iOS Lift Subject: ретиновые PNG
-// 1024×1024 с альфой, файл 1.5–3 MiB. Угловой пробинг ниже защищает от
-// false-positive на обычных скриншотах с альфой даже с такими порогами.
+// 1024×1024 (иногда больше) с альфой, файл часто 5–8 MiB при сложных
+// субъектах. Угловой пробинг ниже защищает от false-positive на обычных
+// скриншотах с альфой даже с такими порогами — у скриншота все 4 угла
+// непрозрачны, а у вырезанного subject всегда прозрачны.
 const int kStickerMaxSidePx = 1024;
-const int kStickerMaxBytes = 4 << 20; // 4 MiB
+const int kStickerMaxBytes = 16 << 20; // 16 MiB
 const int _kCornerAlphaCutoff = 16;
 const int _kCornerProbeInset = 2;
 
