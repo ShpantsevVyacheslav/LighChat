@@ -348,10 +348,14 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
     final webrtc = _webrtc;
     if (webrtc != null) {
       webrtc.dispose();
-      ref
-          .read(meetingRepositoryProvider)
-          .leaveMeeting(widget.meetingId, widget.selfUid)
-          .catchError((_) {});
+      // ref.read в dispose может бросить (State уже deactivated) —
+      // оборачиваем, чтобы не падать в белый экран при типовом выходе.
+      try {
+        ref
+            .read(meetingRepositoryProvider)
+            .leaveMeeting(widget.meetingId, widget.selfUid)
+            .catchError((_) {});
+      } catch (_) {}
     }
     // На случай неконтролируемого dispose — снимаем mini-card.
     try {

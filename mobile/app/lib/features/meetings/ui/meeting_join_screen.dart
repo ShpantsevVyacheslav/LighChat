@@ -260,16 +260,26 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
 
   /// URL аватара, который пишем в `participants/{uid}.avatar` при джойне.
   /// Приоритет: профиль `users/{uid}` → Firebase Auth photoURL → DiceBear.
+  ///
+  /// ВАЖНО: вызывать ТОЛЬКО когда State ещё mounted. Если виджет помечен
+  /// на размонтирование (`!mounted`) — `ref.read` бросает Bad state и
+  /// крашит навигацию в белый экран. См. `_goToRoom` — там аватар
+  /// snapshot'ится до pushReplacement.
   String _avatarUrl() {
-    if (!widget.isGuest && widget.selfUid.isNotEmpty) {
-      final userDoc = ref
-              .read(userChatSettingsDocProvider(widget.selfUid))
-              .asData
-              ?.value ??
-          const <String, dynamic>{};
-      final fromDoc =
-          _asNonEmpty(userDoc['avatar']) ?? _asNonEmpty(userDoc['avatarThumb']);
-      if (fromDoc != null) return fromDoc;
+    if (!widget.isGuest && widget.selfUid.isNotEmpty && mounted) {
+      try {
+        final userDoc = ref
+                .read(userChatSettingsDocProvider(widget.selfUid))
+                .asData
+                ?.value ??
+            const <String, dynamic>{};
+        final fromDoc = _asNonEmpty(userDoc['avatar']) ??
+            _asNonEmpty(userDoc['avatarThumb']);
+        if (fromDoc != null) return fromDoc;
+      } catch (_) {
+        // ref.read может бросить, если State уже деактивирован —
+        // фолбэк ниже не зависит от Riverpod.
+      }
     }
     return widget.initialAvatar ??
         'https://api.dicebear.com/7.x/avataaars/svg?seed=${widget.selfUid}';
@@ -320,6 +330,19 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
             ? widget.initialName!.trim()
             : AppLocalizations.of(context)!.meeting_join_guest)
         : resolved;
+    // ВАЖНО: avatar резолвим ЗДЕСЬ, до pushReplacement — иначе builder
+    // материализует MeetingRoomScreen уже после того, как этот State
+    // помечен на размонтирование, и `ref.read(...)` внутри `_avatarUrl()`
+    // бросает `Bad state: Using ref when a widget is about to or has been
+    // unmounted is unsafe.` → белый экран при заходе в комнату.
+    final avatar = _avatarUrl();
+    final initialMicMuted = _initialMicMuted;
+    final initialCameraOff = _initialCameraOff;
+    final meetingId = widget.meetingId;
+    final selfUid = widget.selfUid;
+    final avatarThumb = widget.initialAvatarThumb;
+    final role = widget.role;
+
     _consumed = true;
     // Стрим лобби-превью гасим перед заходом в комнату — там WebRtc
     // запросит свежий getUserMedia с теми же камерой/микрофоном.
@@ -330,14 +353,14 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
         // могла popUntil именно до комнаты (а не до лобби/entry).
         settings: const RouteSettings(name: 'meeting-room'),
         builder: (_) => MeetingRoomScreen(
-          meetingId: widget.meetingId,
-          selfUid: widget.selfUid,
+          meetingId: meetingId,
+          selfUid: selfUid,
           selfName: name,
-          selfAvatar: _avatarUrl(),
-          selfAvatarThumb: widget.initialAvatarThumb,
-          selfRole: widget.role,
-          initialMicMuted: _initialMicMuted,
-          initialCameraOff: _initialCameraOff,
+          selfAvatar: avatar,
+          selfAvatarThumb: avatarThumb,
+          selfRole: role,
+          initialMicMuted: initialMicMuted,
+          initialCameraOff: initialCameraOff,
         ),
       ),
     );
