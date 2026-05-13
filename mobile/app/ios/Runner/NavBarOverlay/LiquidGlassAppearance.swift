@@ -15,10 +15,20 @@ enum LiquidGlassAppearance {
   @discardableResult
   static func applyNavigationBar(_ bar: UINavigationBar, tint: UIColor) -> Bool {
     bar.tintColor = tint
+    bar.isTranslucent = true
     let appearance = UINavigationBarAppearance()
     let glassApplied = enableGlassEffectIfAvailable(on: appearance)
     if !glassApplied {
       appearance.configureWithDefaultBackground()
+    }
+    // Standalone UINavigationBar (без UINavigationController) на iOS 26
+    // часто теряет автоматический translucent backing и выглядит «пустым»,
+    // из-за чего avatar + title в titleView сливаются с контентом снизу.
+    // Принудительно ставим thin material — даёт классический glass UI на
+    // всех iOS 13+.
+    if #available(iOS 13.0, *) {
+      appearance.backgroundEffect = UIBlurEffect(style: .systemThinMaterial)
+      appearance.shadowColor = UIColor.separator.withAlphaComponent(0.4)
     }
     bar.standardAppearance = appearance
     bar.scrollEdgeAppearance = appearance
@@ -32,10 +42,15 @@ enum LiquidGlassAppearance {
   @discardableResult
   static func applyTabBar(_ bar: UITabBar, tint: UIColor) -> Bool {
     bar.tintColor = tint
+    bar.isTranslucent = true
     let appearance = UITabBarAppearance()
     let glassApplied = enableGlassEffectIfAvailable(on: appearance)
     if !glassApplied {
       appearance.configureWithDefaultBackground()
+    }
+    if #available(iOS 13.0, *) {
+      appearance.backgroundEffect = UIBlurEffect(style: .systemThinMaterial)
+      appearance.shadowColor = UIColor.separator.withAlphaComponent(0.4)
     }
     bar.standardAppearance = appearance
     if #available(iOS 15.0, *) {

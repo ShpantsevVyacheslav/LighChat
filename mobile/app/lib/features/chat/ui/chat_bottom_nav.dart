@@ -3,6 +3,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
+import '../../../platform/native_nav_bar/lucide_sf_symbol_map.dart';
 import '../../../platform/native_nav_bar/nav_bar_config.dart';
 import '../../../platform/native_nav_bar/native_nav_bar_facade.dart';
 import '../../../platform/native_nav_bar/native_nav_route_observer.dart';
@@ -122,32 +124,42 @@ class _ChatBottomNavState extends State<ChatBottomNav>
   }
 
   void _pushNativeBottomBar() {
+    // Берём пользовательский выбор иконок из настроек (Firestore) — те же
+    // имена, что и для Flutter-таб-бара. Если ключа нет, fallback на default.
+    final iconNames = widget.bottomNavIconNames;
+    final l10n = AppLocalizations.of(context);
+
+    String iconFor(String tabHref, String defaultLucide) =>
+        lucideToSfSymbol(iconNames[tabHref] ?? defaultLucide);
+
     final config = NavBarBottomConfig(
-      items: const [
+      items: [
         NavBarTab(
           id: 'chats',
-          label: 'Chats',
-          icon: NavBarIcon('bubble.left.and.bubble.right'),
+          label: l10n?.bottom_nav_label_chats ?? 'Chats',
+          icon: NavBarIcon(iconFor('/dashboard/chat', 'messages-square')),
         ),
         NavBarTab(
           id: 'contacts',
-          label: 'Contacts',
-          icon: NavBarIcon('person.2.fill'),
+          label: l10n?.bottom_nav_label_contacts ?? 'Contacts',
+          icon: NavBarIcon(iconFor('/dashboard/contacts', 'contact')),
         ),
         NavBarTab(
           id: 'calls',
-          label: 'Calls',
-          icon: NavBarIcon('phone.fill'),
+          label: l10n?.bottom_nav_label_calls ?? 'Calls',
+          icon: NavBarIcon(iconFor('/dashboard/calls', 'phone-call')),
         ),
         NavBarTab(
           id: 'meetings',
-          label: 'Meetings',
-          icon: NavBarIcon('video.fill'),
+          label: l10n?.bottom_nav_label_conferences ?? 'Meetings',
+          icon: NavBarIcon(iconFor('/dashboard/meetings', 'video')),
         ),
         NavBarTab(
           id: 'profile',
+          // У l10n нет отдельной строки для profile-таба, используем generic
+          // "Profile" — локализация добавится отдельным PR-ом если нужно.
           label: 'Profile',
-          icon: NavBarIcon('person.crop.circle'),
+          icon: const NavBarIcon('person.crop.circle.fill'),
         ),
       ],
       selectedId: _tabId(widget.activeTab),

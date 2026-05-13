@@ -76,6 +76,9 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
   static const _actionAudio = 'chat_audio';
   static const _actionThreads = 'chat_threads';
   static const _actionScheduled = 'chat_scheduled';
+  // Специальный id — native сторона шлёт его при тапе на avatar / title /
+  // subtitle (custom titleView). Маппится на widget.onProfileTap.
+  static const _actionTitleTap = '_chat_title_tap';
 
   @override
   void initState() {
@@ -147,6 +150,12 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
   }
 
   void _pushNativeTopBar() {
+    // Не пушим конфиг если chat_screen не вершина: иначе при ребилде во
+    // время открытия threads/profile (новый экран сверху) bar опять
+    // покажется с avatar/title чата.
+    final route = ModalRoute.of(context);
+    if (route != null && route.isCurrent == false) return;
+
     final l10n = AppLocalizations.of(context);
     // Компактный набор трейлинг-actions: показываем только реально
     // активные (threads/scheduled — только при наличии). Иначе шапка
@@ -246,6 +255,8 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
             widget.onThreadsTap();
           case _actionScheduled:
             widget.onScheduledTap?.call();
+          case _actionTitleTap:
+            widget.onProfileTap?.call();
         }
       case NavBarSearchChange(:final value):
         final controller = widget.searchController;

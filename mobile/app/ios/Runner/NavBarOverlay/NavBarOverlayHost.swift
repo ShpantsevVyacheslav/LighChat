@@ -384,6 +384,11 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   ) -> UIView {
     let container = UIView()
     container.translatesAutoresizingMaskIntoConstraints = false
+    // Аватар + имя должны кликаться — отдают actionTap("_chat_title_tap")
+    // обратно в Flutter; ChatHeader маппит на onProfileTap.
+    container.isUserInteractionEnabled = true
+    let tap = UITapGestureRecognizer(target: self, action: #selector(onTitleTap))
+    container.addGestureRecognizer(tap)
 
     let avatar = UIImageView()
     avatar.translatesAutoresizingMaskIntoConstraints = false
@@ -534,6 +539,11 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
   @objc private func onLeadingTap() {
     onEvent?("leadingTap", ["id": leadingId])
+  }
+
+  @objc private func onTitleTap() {
+    // Тап по avatar/title/subtitle. Flutter маппит этот id в onProfileTap.
+    onEvent?("actionTap", ["id": "_chat_title_tap"])
   }
 
   @objc private func onTrailingTap(_ sender: UIBarButtonItem) {
