@@ -836,6 +836,7 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
           // auto-PiP не работал.
           DispatchQueue.main.async {
             self.preparePipIfNeeded()
+            self.enableBackgroundCameraIfPossible()
             // Если PiP уже активно — переподцепимся к новому треку.
             if self.rendererAttached {
               self.detachRendererFromTrack()
@@ -934,6 +935,54 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
       .first { $0.isKeyWindow }
   }
 
+  /// Разрешаем камере продолжать съёмку, когда приложение уходит в фон.
+  /// Без этого AVCaptureSession iOS автоматически приостанавливает
+  /// камеру → PiP-окно замерзает на последнем кадре.
+  ///
+  /// Apple ввёл `multitaskingCameraAccessEnabled` (iOS 16+) специально
+  /// под наш кейс — без необходимости `voip` background mode (которого
+  /// у нас нет на Personal Team / Free Apple ID). Доступно на любом
+  /// устройстве с iPad-multitasking-style camera ИЛИ iPhone, который
+  /// рапортует `multitaskingCameraAccessSupported = true` (с iPhone XS и
+  /// новее обычно поддерживается, особенно когда есть PiP-сессия).
+  ///
+  /// Требования Apple:
+  ///   - app содержит `audio` в UIBackgroundModes (✓ настроено);
+  ///   - AVAudioSession настроена с .playAndRecord и аудио-input
+  ///     (✓ настраиваем в `preparePipIfNeeded`);
+  ///   - вызывать на той же сессии, что у RTCCameraVideoCapturer.
+  fileprivate func enableBackgroundCameraIfPossible() {
+    guard #available(iOS 16.0, *) else {
+      NSLog("[MeetingPiP] background-camera: iOS<16, skip")
+      return
+    }
+    guard let plugin = FlutterWebRTCPlugin.sharedSingleton() else {
+      NSLog("[MeetingPiP] background-camera: no plugin singleton")
+      return
+    }
+    guard let capturer = plugin.videoCapturer else {
+      NSLog("[MeetingPiP] background-camera: capturer not ready yet")
+      return
+    }
+    let session = capturer.captureSession
+    if !session.isMultitaskingCameraAccessSupported {
+      NSLog("[MeetingPiP] background-camera: NOT supported on this device")
+      return
+    }
+    if session.isMultitaskingCameraAccessEnabled {
+      NSLog("[MeetingPiP] background-camera: already enabled")
+      return
+    }
+    // Apple требует обернуть write в beginConfiguration/commitConfiguration
+    // если сессия уже running. flutter_webrtc стартует её сразу после
+    // getUserMedia, так что на этом этапе running=true.
+    session.beginConfiguration()
+    session.isMultitaskingCameraAccessEnabled = true
+    session.commitConfiguration()
+    NSLog(
+      "[MeetingPiP] background-camera: ✅ ENABLED (supported=true, was=false)")
+  }
+
   /// Создаём PiP-controller если ещё не создан. Делаем это ЕДИНОЖДЫ на
   /// весь lifetime митинга (на `bindLocalTrack`). После этого AVKit с
   /// `canStartPictureInPictureAutomaticallyFromInline = true` сам
@@ -959,6 +1008,9 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
       NSLog("[MeetingPiP] prepare: AVAudioSession ERROR — %@",
             error.localizedDescription)
     }
+    // После аудиосессии — открываем камере фон. ВАЖНО: порядок именно
+    // такой, многозадачный camera access проверяет audio session config.
+    enableBackgroundCameraIfPossible()
     setupSourceAndController(in: window)
     NSLog("[MeetingPiP] prepare: pipController ready for auto-PiP")
   }
