@@ -38,6 +38,7 @@ import 'report_sheet.dart';
 import '../data/chat_message_search.dart';
 import '../data/user_block_providers.dart';
 import '../data/composer_clipboard_paste.dart';
+import '../data/sticker_drop_heuristic.dart';
 import '../data/group_mention_candidates.dart';
 import '../data/user_contacts_repository.dart';
 import '../data/user_profile.dart';
@@ -613,7 +614,54 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
 
   void _handleDroppedFiles(List<XFile> files) {
     if (files.isEmpty || !mounted) return;
-    setState(() => _pendingAttachments.addAll(files));
+    // Telegram-style sticker drop: PNG/WebP ≤512px с прозрачными углами
+    // распознаём как стикер и отправляем сразу одним сообщением, без
+    // прохода через pending. Остальные файлы идут привычным путём.
+    unawaited(_dispatchDroppedFiles(files));
+  }
+
+  Future<void> _dispatchDroppedFiles(List<XFile> files) async {
+    final stickers = <XFile>[];
+    final pending = <XFile>[];
+    for (final f in files) {
+      if (await isLikelyStickerXFile(f)) {
+        stickers.add(f);
+      } else {
+        pending.add(f);
+      }
+    }
+    if (!mounted) return;
+    if (pending.isNotEmpty) {
+      setState(() => _pendingAttachments.addAll(pending));
+    }
+    if (stickers.isNotEmpty) {
+      unawaited(_sendDroppedStickers(stickers));
+    }
+  }
+
+  /// Загружает каждый файл-«стикер» в Storage и отправляет тем же путём,
+  /// что стикеры из панели — это автоматически обновит Recent stickers и
+  /// корректно обработает E2EE‑envelope в зашифрованных тредах.
+  Future<void> _sendDroppedStickers(List<XFile> stickers) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    for (final s in stickers) {
+      if (!mounted) return;
+      try {
+        final att = await uploadChatAttachmentFromXFile(
+          storage: FirebaseStorage.instance,
+          conversationId: widget.conversationId,
+          file: s,
+        );
+        if (!mounted) return;
+        await _sendThreadStickerOrGifAttachment(uid, repo, att);
+      } catch (e) {
+        if (!mounted) return;
+        _toast(AppLocalizations.of(context)!.chat_send_failed(e));
+      }
+    }
   }
 
   void _handleDroppedText(String text) {

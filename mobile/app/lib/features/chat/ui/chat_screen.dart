@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:lighchat_mobile/core/app_logger.dart';
+import 'package:lighchat_mobile/platform/native_nav_bar/native_nav_bar_facade.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:image_picker/image_picker.dart';
@@ -21,6 +22,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/composer_clipboard_paste.dart';
 import '../data/share_intent_payload.dart';
+import '../data/sticker_drop_heuristic.dart';
 import '../data/e2ee_decryption_orchestrator.dart';
 import '../data/e2ee_data_type_policy.dart';
 import '../data/e2ee_plaintext_cache.dart';
@@ -3180,9 +3182,56 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       _toast(AppLocalizations.of(context)!.chat_finish_editing_first);
       return;
     }
-    setState(() => _pendingAttachments.addAll(files));
-    _scheduleChatDraftSave();
-    _recomputeComposerLimits();
+    // Telegram-style sticker drop: PNG/WebP ≤512px с прозрачными углами
+    // распознаём как стикер и отправляем сразу одним сообщением, без
+    // прохода через pending. Остальные файлы идут привычным путём.
+    unawaited(_dispatchDroppedFiles(files));
+  }
+
+  Future<void> _dispatchDroppedFiles(List<XFile> files) async {
+    final stickers = <XFile>[];
+    final pending = <XFile>[];
+    for (final f in files) {
+      if (await isLikelyStickerXFile(f)) {
+        stickers.add(f);
+      } else {
+        pending.add(f);
+      }
+    }
+    if (!mounted) return;
+    if (pending.isNotEmpty) {
+      setState(() => _pendingAttachments.addAll(pending));
+      _scheduleChatDraftSave();
+      _recomputeComposerLimits();
+    }
+    if (stickers.isNotEmpty) {
+      unawaited(_sendDroppedStickers(stickers));
+    }
+  }
+
+  /// Загружает каждый файл-«стикер» в Storage и отправляет тем же путём,
+  /// что стикеры из панели — это автоматически обновит Recent stickers и
+  /// корректно обработает E2EE‑envelope в зашифрованных чатах.
+  Future<void> _sendDroppedStickers(List<XFile> stickers) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    for (final s in stickers) {
+      if (!mounted) return;
+      try {
+        final att = await uploadChatAttachmentFromXFile(
+          storage: FirebaseStorage.instance,
+          conversationId: widget.conversationId,
+          file: s,
+        );
+        if (!mounted) return;
+        await _sendStickerOrGifAttachment(uid, repo, att);
+      } catch (e) {
+        if (!mounted) return;
+        _toast(AppLocalizations.of(context)!.chat_send_failed(e));
+      }
+    }
   }
 
   /// Пересчёт лимитов вложений для текущего черновика.
