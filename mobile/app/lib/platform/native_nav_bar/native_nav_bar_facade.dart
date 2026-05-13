@@ -61,9 +61,19 @@ class NativeNavBarFacade {
   Future<void> setScrollOffset(double offset) =>
       _invoke('setScrollOffset', {'contentOffset': offset});
 
-  Future<void> hideAll() async {
-    await setTopBar(const NavBarTopConfig.hidden());
-    await setBottomBar(const NavBarBottomConfig.hidden());
+  Future<void> hideAll() {
+    // КРИТИЧЕСКИЙ race condition был с `await` между двумя вызовами:
+    // observer (didPop + didPush на context.go) запускал hideAll() ДВА
+    // раза подряд. Каждый `await` yield'ил микротаск, и постframe-push
+    // нового экрана (`setBottomBar(visible)`) успевал протиснуться
+    // МЕЖДУ hide-top и hide-bottom continuations. В итоге канал получал:
+    //   hide_top_1, hide_top_2, visible_push, hide_bottom_1, hide_bottom_2
+    // — последний hide убивал bar. Стреляем оба invokeMethod
+    // синхронно (без yield), Future.wait ждёт обе.
+    return Future.wait([
+      setTopBar(const NavBarTopConfig.hidden()),
+      setBottomBar(const NavBarBottomConfig.hidden()),
+    ]);
   }
 
   Future<void> _invoke(String method, Map<String, Object?> args) async {

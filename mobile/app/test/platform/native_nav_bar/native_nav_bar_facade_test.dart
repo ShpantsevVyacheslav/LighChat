@@ -1,3 +1,4 @@
+import 'dart:async' show unawaited;
 import 'dart:io' show Platform;
 
 import 'package:flutter/services.dart';
@@ -156,6 +157,53 @@ void main() {
       expect((calls[0].arguments as Map)['visible'], false);
       expect((calls[1].arguments as Map)['visible'], false);
     });
+
+    test(
+      'race regression: между двумя hideAll() не может протиснуться '
+      'setBottomBar(visible) — все hide-вызовы должны быть собраны ДО',
+      () async {
+        if (!supportedHost()) return;
+        // Симулируем последовательность context.go:
+        // observer.didPop → hideAll
+        // observer.didPush → hideAll
+        // chat_contacts.initState postFrame → setBottomBar(visible)
+        final hide1 = NativeNavBarFacade.instance.hideAll();
+        final hide2 = NativeNavBarFacade.instance.hideAll();
+        // Эмулируем postFrame push, который запускается в ту же
+        // event-loop-итерацию (как только Flutter заканчивает обновлять
+        // дерево). Без fix'а — push успевал просочиться между continuation'ами
+        // hideAll'ов.
+        unawaited(NativeNavBarFacade.instance.setBottomBar(
+          const NavBarBottomConfig(
+            items: [
+              NavBarTab(
+                id: 'contacts',
+                label: 'Contacts',
+                icon: NavBarIcon('person.crop.rectangle'),
+              ),
+            ],
+            selectedId: 'contacts',
+          ),
+        ));
+        await Future.wait([hide1, hide2]);
+        // Ждём один полный цикл, чтобы postFrame push гарантированно
+        // дошёл до канала.
+        await Future<void>.delayed(Duration.zero);
+
+        // Все вызовы setBottomBar в порядке отправки. ПОСЛЕДНИЙ должен быть
+        // visible=true — иначе bar исчезнет на новом экране.
+        final bottomCalls = calls.where((c) => c.method == 'setBottomBar').toList();
+        expect(bottomCalls.length, greaterThanOrEqualTo(3));
+        final lastVisible = (bottomCalls.last.arguments as Map)['visible'];
+        expect(
+          lastVisible,
+          true,
+          reason:
+              'Последний setBottomBar должен быть visible=true (фикс race); '
+              'все вызовы: ${bottomCalls.map((c) => (c.arguments as Map)['visible']).toList()}',
+        );
+      },
+    );
   });
 
   group('no-op when native unsupported', () {
