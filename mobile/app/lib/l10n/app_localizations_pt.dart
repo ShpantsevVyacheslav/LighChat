@@ -8120,6 +8120,122 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get chat_preview_forwarded => 'Mensagem encaminhada';
+
+  @override
+  String get birthday_banner_celebrates => 'está de aniversário!';
+
+  @override
+  String get birthday_banner_action => 'Parabenizar →';
+
+  @override
+  String get birthday_screen_title_today => 'Aniversário hoje';
+
+  @override
+  String birthday_screen_age(int age) {
+    return 'Faz $age';
+  }
+
+  @override
+  String get birthday_section_actions => 'PARABENIZAR';
+
+  @override
+  String get birthday_action_template => 'Mensagem rápida';
+
+  @override
+  String get birthday_action_cake => 'Apagar a vela';
+
+  @override
+  String get birthday_action_confetti => 'Confete';
+
+  @override
+  String get birthday_action_serpentine => 'Serpentinas';
+
+  @override
+  String get birthday_action_voice => 'Gravar saudação de voz';
+
+  @override
+  String get birthday_action_remind_next_year => 'Lembrar no próximo ano';
+
+  @override
+  String get birthday_action_open_chat => 'Escrever sua mensagem';
+
+  @override
+  String get birthday_cake_prompt => 'Toque na vela para apagar';
+
+  @override
+  String birthday_cake_wish_placeholder(Object name) {
+    return 'O que deseja para $name?';
+  }
+
+  @override
+  String get birthday_cake_wish_hint =>
+      'Por exemplo: que todos os sonhos se realizem…';
+
+  @override
+  String get birthday_cake_send => 'Enviar';
+
+  @override
+  String birthday_cake_message(Object name, Object wish) {
+    return '🎂 Feliz aniversário, $name! Meu desejo: «$wish»';
+  }
+
+  @override
+  String birthday_confetti_message(Object name) {
+    return '🎉 Feliz aniversário, $name! 🎉';
+  }
+
+  @override
+  String birthday_template_1(Object name) {
+    return 'Feliz aniversário, $name! Que este seja o melhor ano!';
+  }
+
+  @override
+  String birthday_template_2(Object name) {
+    return '$name, parabéns! Desejo alegria, carinho e sonhos realizados 🎉';
+  }
+
+  @override
+  String birthday_template_3(Object name) {
+    return 'Parabéns, $name! Saúde, sorte e muitos momentos felizes 🎂';
+  }
+
+  @override
+  String birthday_template_4(Object name) {
+    return '$name, parabéns! Que tudo o que planeja se realize com facilidade ✨';
+  }
+
+  @override
+  String birthday_template_5(Object name) {
+    return 'Parabéns, $name! Obrigado por existir. Feliz aniversário! 🎁';
+  }
+
+  @override
+  String get birthday_toast_sent => 'Mensagem enviada';
+
+  @override
+  String birthday_reminder_set(Object name) {
+    return 'Vamos lembrar um dia antes do aniversário de $name';
+  }
+
+  @override
+  String get birthday_reminder_notif_title => 'Aniversário amanhã 🎂';
+
+  @override
+  String birthday_reminder_notif_body(Object name) {
+    return 'Não esqueça de parabenizar $name amanhã';
+  }
+
+  @override
+  String get birthday_empty => 'Nenhum aniversário entre seus contatos hoje';
+
+  @override
+  String get birthday_error_self => 'Não foi possível carregar seu perfil';
+
+  @override
+  String get birthday_error_send => 'Não foi possível enviar. Tente novamente.';
+
+  @override
+  String get birthday_error_reminder => 'Não foi possível definir o lembrete';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -16181,4 +16297,120 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get chat_preview_forwarded => 'Mensagem encaminhada';
+
+  @override
+  String get birthday_banner_celebrates => 'está de aniversário!';
+
+  @override
+  String get birthday_banner_action => 'Parabenizar →';
+
+  @override
+  String get birthday_screen_title_today => 'Aniversário hoje';
+
+  @override
+  String birthday_screen_age(int age) {
+    return 'Faz $age';
+  }
+
+  @override
+  String get birthday_section_actions => 'PARABENIZAR';
+
+  @override
+  String get birthday_action_template => 'Mensagem rápida';
+
+  @override
+  String get birthday_action_cake => 'Apagar a vela';
+
+  @override
+  String get birthday_action_confetti => 'Confete';
+
+  @override
+  String get birthday_action_serpentine => 'Serpentinas';
+
+  @override
+  String get birthday_action_voice => 'Gravar saudação de voz';
+
+  @override
+  String get birthday_action_remind_next_year => 'Lembrar no próximo ano';
+
+  @override
+  String get birthday_action_open_chat => 'Escrever sua mensagem';
+
+  @override
+  String get birthday_cake_prompt => 'Toque na vela para apagar';
+
+  @override
+  String birthday_cake_wish_placeholder(Object name) {
+    return 'O que deseja para $name?';
+  }
+
+  @override
+  String get birthday_cake_wish_hint =>
+      'Por exemplo: que todos os sonhos se realizem…';
+
+  @override
+  String get birthday_cake_send => 'Enviar';
+
+  @override
+  String birthday_cake_message(Object name, Object wish) {
+    return '🎂 Feliz aniversário, $name! Meu desejo: «$wish»';
+  }
+
+  @override
+  String birthday_confetti_message(Object name) {
+    return '🎉 Feliz aniversário, $name! 🎉';
+  }
+
+  @override
+  String birthday_template_1(Object name) {
+    return 'Feliz aniversário, $name! Que este seja o melhor ano!';
+  }
+
+  @override
+  String birthday_template_2(Object name) {
+    return '$name, parabéns! Desejo alegria, carinho e sonhos realizados 🎉';
+  }
+
+  @override
+  String birthday_template_3(Object name) {
+    return 'Parabéns, $name! Saúde, sorte e muitos momentos felizes 🎂';
+  }
+
+  @override
+  String birthday_template_4(Object name) {
+    return '$name, parabéns! Que tudo o que planeja se realize com facilidade ✨';
+  }
+
+  @override
+  String birthday_template_5(Object name) {
+    return 'Parabéns, $name! Obrigado por existir. Feliz aniversário! 🎁';
+  }
+
+  @override
+  String get birthday_toast_sent => 'Mensagem enviada';
+
+  @override
+  String birthday_reminder_set(Object name) {
+    return 'Vamos lembrar um dia antes do aniversário de $name';
+  }
+
+  @override
+  String get birthday_reminder_notif_title => 'Aniversário amanhã 🎂';
+
+  @override
+  String birthday_reminder_notif_body(Object name) {
+    return 'Não esqueça de parabenizar $name amanhã';
+  }
+
+  @override
+  String get birthday_empty => 'Nenhum aniversário entre seus contatos hoje';
+
+  @override
+  String get birthday_error_self => 'Não foi possível carregar seu perfil';
+
+  @override
+  String get birthday_error_send => 'Não foi possível enviar. Tente novamente.';
+
+  @override
+  String get birthday_error_reminder => 'Não foi possível definir o lembrete';
 }

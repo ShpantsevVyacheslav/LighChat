@@ -4221,5 +4221,94 @@
   "call_bubble_voice_call": "Голосовой звонок",
   "call_bubble_video_call": "Видеозвонок",
   "chat_preview_poll": "Опрос",
-  "chat_preview_forwarded": "Пересланное сообщение"
+  "chat_preview_forwarded": "Пересланное сообщение",
+  "birthday_banner_celebrates": "празднует день рождения!",
+  "birthday_banner_action": "Поздравить →",
+  "birthday_screen_title_today": "День рождения сегодня",
+  "birthday_screen_age": "{age} лет",
+  "@birthday_screen_age": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "birthday_section_actions": "ПОЗДРАВИТЬ",
+  "birthday_action_template": "Готовое поздравление",
+  "birthday_action_cake": "Задуть свечу",
+  "birthday_action_confetti": "Конфетти",
+  "birthday_action_serpentine": "Серпантин",
+  "birthday_action_voice": "Записать аудио-поздравление",
+  "birthday_action_remind_next_year": "Напомнить заранее в следующем году",
+  "birthday_action_open_chat": "Написать своё поздравление",
+  "birthday_cake_prompt": "Тапни по свече, чтобы её задуть",
+  "birthday_cake_wish_placeholder": "Какое желание загадать для {name}?",
+  "@birthday_cake_wish_placeholder": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_cake_wish_hint": "Например: пусть всё задуманное сбудется…",
+  "birthday_cake_send": "Отправить",
+  "birthday_cake_message": "🎂 С днём рождения, {name}! Моё пожелание для тебя: «{wish}»",
+  "@birthday_cake_message": {
+    "placeholders": {
+      "name": {},
+      "wish": {}
+    }
+  },
+  "birthday_confetti_message": "🎉 Поздравляю с днём рождения, {name}! 🎉",
+  "@birthday_confetti_message": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_template_1": "С днём рождения, {name}! Пусть этот год будет лучшим!",
+  "@birthday_template_1": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_template_2": "{name}, поздравляю! Желаю радости, тепла и исполнения желаний 🎉",
+  "@birthday_template_2": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_template_3": "С праздником, {name}! Здоровья, удачи и побольше счастливых моментов 🎂",
+  "@birthday_template_3": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_template_4": "{name}, с днём рождения! Пусть всё задуманное сбывается легко и быстро ✨",
+  "@birthday_template_4": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_template_5": "Поздравляю, {name}! Спасибо, что ты есть. С днём рождения! 🎁",
+  "@birthday_template_5": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_toast_sent": "Поздравление отправлено",
+  "birthday_reminder_set": "Напомним за день до дня рождения {name}",
+  "@birthday_reminder_set": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_reminder_notif_title": "Завтра день рождения 🎂",
+  "birthday_reminder_notif_body": "Не забудьте поздравить {name} завтра",
+  "@birthday_reminder_notif_body": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_empty": "Сегодня нет именинников среди контактов",
+  "birthday_error_self": "Не удалось загрузить ваш профиль",
+  "birthday_error_send": "Не удалось отправить поздравление. Попробуйте ещё раз.",
+  "birthday_error_reminder": "Не удалось установить напоминание"
 }

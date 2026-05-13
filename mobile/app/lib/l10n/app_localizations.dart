@@ -14205,6 +14205,192 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Пересланное сообщение'**
   String get chat_preview_forwarded;
+
+  /// No description provided for @birthday_banner_celebrates.
+  ///
+  /// In ru, this message translates to:
+  /// **'празднует день рождения!'**
+  String get birthday_banner_celebrates;
+
+  /// No description provided for @birthday_banner_action.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поздравить →'**
+  String get birthday_banner_action;
+
+  /// No description provided for @birthday_screen_title_today.
+  ///
+  /// In ru, this message translates to:
+  /// **'День рождения сегодня'**
+  String get birthday_screen_title_today;
+
+  /// No description provided for @birthday_screen_age.
+  ///
+  /// In ru, this message translates to:
+  /// **'{age} лет'**
+  String birthday_screen_age(int age);
+
+  /// No description provided for @birthday_section_actions.
+  ///
+  /// In ru, this message translates to:
+  /// **'ПОЗДРАВИТЬ'**
+  String get birthday_section_actions;
+
+  /// No description provided for @birthday_action_template.
+  ///
+  /// In ru, this message translates to:
+  /// **'Готовое поздравление'**
+  String get birthday_action_template;
+
+  /// No description provided for @birthday_action_cake.
+  ///
+  /// In ru, this message translates to:
+  /// **'Задуть свечу'**
+  String get birthday_action_cake;
+
+  /// No description provided for @birthday_action_confetti.
+  ///
+  /// In ru, this message translates to:
+  /// **'Конфетти'**
+  String get birthday_action_confetti;
+
+  /// No description provided for @birthday_action_serpentine.
+  ///
+  /// In ru, this message translates to:
+  /// **'Серпантин'**
+  String get birthday_action_serpentine;
+
+  /// No description provided for @birthday_action_voice.
+  ///
+  /// In ru, this message translates to:
+  /// **'Записать аудио-поздравление'**
+  String get birthday_action_voice;
+
+  /// No description provided for @birthday_action_remind_next_year.
+  ///
+  /// In ru, this message translates to:
+  /// **'Напомнить заранее в следующем году'**
+  String get birthday_action_remind_next_year;
+
+  /// No description provided for @birthday_action_open_chat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Написать своё поздравление'**
+  String get birthday_action_open_chat;
+
+  /// No description provided for @birthday_cake_prompt.
+  ///
+  /// In ru, this message translates to:
+  /// **'Тапни по свече, чтобы её задуть'**
+  String get birthday_cake_prompt;
+
+  /// No description provided for @birthday_cake_wish_placeholder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Какое желание загадать для {name}?'**
+  String birthday_cake_wish_placeholder(Object name);
+
+  /// No description provided for @birthday_cake_wish_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Например: пусть всё задуманное сбудется…'**
+  String get birthday_cake_wish_hint;
+
+  /// No description provided for @birthday_cake_send.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить'**
+  String get birthday_cake_send;
+
+  /// No description provided for @birthday_cake_message.
+  ///
+  /// In ru, this message translates to:
+  /// **'🎂 С днём рождения, {name}! Моё пожелание для тебя: «{wish}»'**
+  String birthday_cake_message(Object name, Object wish);
+
+  /// No description provided for @birthday_confetti_message.
+  ///
+  /// In ru, this message translates to:
+  /// **'🎉 Поздравляю с днём рождения, {name}! 🎉'**
+  String birthday_confetti_message(Object name);
+
+  /// No description provided for @birthday_template_1.
+  ///
+  /// In ru, this message translates to:
+  /// **'С днём рождения, {name}! Пусть этот год будет лучшим!'**
+  String birthday_template_1(Object name);
+
+  /// No description provided for @birthday_template_2.
+  ///
+  /// In ru, this message translates to:
+  /// **'{name}, поздравляю! Желаю радости, тепла и исполнения желаний 🎉'**
+  String birthday_template_2(Object name);
+
+  /// No description provided for @birthday_template_3.
+  ///
+  /// In ru, this message translates to:
+  /// **'С праздником, {name}! Здоровья, удачи и побольше счастливых моментов 🎂'**
+  String birthday_template_3(Object name);
+
+  /// No description provided for @birthday_template_4.
+  ///
+  /// In ru, this message translates to:
+  /// **'{name}, с днём рождения! Пусть всё задуманное сбывается легко и быстро ✨'**
+  String birthday_template_4(Object name);
+
+  /// No description provided for @birthday_template_5.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поздравляю, {name}! Спасибо, что ты есть. С днём рождения! 🎁'**
+  String birthday_template_5(Object name);
+
+  /// No description provided for @birthday_toast_sent.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поздравление отправлено'**
+  String get birthday_toast_sent;
+
+  /// No description provided for @birthday_reminder_set.
+  ///
+  /// In ru, this message translates to:
+  /// **'Напомним за день до дня рождения {name}'**
+  String birthday_reminder_set(Object name);
+
+  /// No description provided for @birthday_reminder_notif_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Завтра день рождения 🎂'**
+  String get birthday_reminder_notif_title;
+
+  /// No description provided for @birthday_reminder_notif_body.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не забудьте поздравить {name} завтра'**
+  String birthday_reminder_notif_body(Object name);
+
+  /// No description provided for @birthday_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сегодня нет именинников среди контактов'**
+  String get birthday_empty;
+
+  /// No description provided for @birthday_error_self.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось загрузить ваш профиль'**
+  String get birthday_error_self;
+
+  /// No description provided for @birthday_error_send.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось отправить поздравление. Попробуйте ещё раз.'**
+  String get birthday_error_send;
+
+  /// No description provided for @birthday_error_reminder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось установить напоминание'**
+  String get birthday_error_reminder;
 }
 
 class _AppLocalizationsDelegate

@@ -4186,5 +4186,94 @@
   "call_bubble_voice_call": "Voice call",
   "call_bubble_video_call": "Video call",
   "chat_preview_poll": "Poll",
-  "chat_preview_forwarded": "Forwarded message"
+  "chat_preview_forwarded": "Forwarded message",
+  "birthday_banner_celebrates": "is celebrating a birthday!",
+  "birthday_banner_action": "Send wishes →",
+  "birthday_screen_title_today": "Birthday today",
+  "birthday_screen_age": "Turns {age}",
+  "@birthday_screen_age": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "birthday_section_actions": "CELEBRATE",
+  "birthday_action_template": "Quick message",
+  "birthday_action_cake": "Blow out the candle",
+  "birthday_action_confetti": "Confetti",
+  "birthday_action_serpentine": "Streamers",
+  "birthday_action_voice": "Record voice greeting",
+  "birthday_action_remind_next_year": "Remind me next year",
+  "birthday_action_open_chat": "Write your own message",
+  "birthday_cake_prompt": "Tap the candle to blow it out",
+  "birthday_cake_wish_placeholder": "What do you wish for {name}?",
+  "@birthday_cake_wish_placeholder": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_cake_wish_hint": "E.g. may all your dreams come true…",
+  "birthday_cake_send": "Send",
+  "birthday_cake_message": "🎂 Happy birthday, {name}! My wish for you: «{wish}»",
+  "@birthday_cake_message": {
+    "placeholders": {
+      "name": {},
+      "wish": {}
+    }
+  },
+  "birthday_confetti_message": "🎉 Happy birthday, {name}! 🎉",
+  "@birthday_confetti_message": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_template_1": "Happy birthday, {name}! May this year be the best one yet!",
+  "@birthday_template_1": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_template_2": "{name}, congratulations! Wishing you joy, warmth and dreams come true 🎉",
+  "@birthday_template_2": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_template_3": "Cheers, {name}! Health, luck and many happy moments 🎂",
+  "@birthday_template_3": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_template_4": "{name}, happy birthday! May everything you plan come easy ✨",
+  "@birthday_template_4": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_template_5": "Congrats, {name}! Thank you for being you. Happy birthday! 🎁",
+  "@birthday_template_5": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_toast_sent": "Wishes sent",
+  "birthday_reminder_set": "We'll remind you a day before {name}'s birthday",
+  "@birthday_reminder_set": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_reminder_notif_title": "Birthday tomorrow 🎂",
+  "birthday_reminder_notif_body": "Don't forget to wish {name} tomorrow",
+  "@birthday_reminder_notif_body": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_empty": "No birthdays among your contacts today",
+  "birthday_error_self": "Couldn't load your profile",
+  "birthday_error_send": "Couldn't send the message. Please try again.",
+  "birthday_error_reminder": "Couldn't set the reminder"
 }

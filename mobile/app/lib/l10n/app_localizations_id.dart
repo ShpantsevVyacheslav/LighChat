@@ -8073,4 +8073,119 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get chat_preview_forwarded => 'Pesan diteruskan';
+
+  @override
+  String get birthday_banner_celebrates => 'sedang berulang tahun!';
+
+  @override
+  String get birthday_banner_action => 'Ucapkan →';
+
+  @override
+  String get birthday_screen_title_today => 'Ulang tahun hari ini';
+
+  @override
+  String birthday_screen_age(int age) {
+    return 'Berusia $age';
+  }
+
+  @override
+  String get birthday_section_actions => 'UCAPKAN';
+
+  @override
+  String get birthday_action_template => 'Pesan cepat';
+
+  @override
+  String get birthday_action_cake => 'Tiup lilin';
+
+  @override
+  String get birthday_action_confetti => 'Konfeti';
+
+  @override
+  String get birthday_action_serpentine => 'Serpentin';
+
+  @override
+  String get birthday_action_voice => 'Rekam ucapan suara';
+
+  @override
+  String get birthday_action_remind_next_year => 'Ingatkan saya tahun depan';
+
+  @override
+  String get birthday_action_open_chat => 'Tulis ucapanmu sendiri';
+
+  @override
+  String get birthday_cake_prompt => 'Ketuk lilin untuk meniupnya';
+
+  @override
+  String birthday_cake_wish_placeholder(Object name) {
+    return 'Apa harapanmu untuk $name?';
+  }
+
+  @override
+  String get birthday_cake_wish_hint => 'Misal: semoga semua impian tercapai…';
+
+  @override
+  String get birthday_cake_send => 'Kirim';
+
+  @override
+  String birthday_cake_message(Object name, Object wish) {
+    return '🎂 Selamat ulang tahun, $name! Harapanku: «$wish»';
+  }
+
+  @override
+  String birthday_confetti_message(Object name) {
+    return '🎉 Selamat ulang tahun, $name! 🎉';
+  }
+
+  @override
+  String birthday_template_1(Object name) {
+    return 'Selamat ulang tahun, $name! Semoga tahun ini yang terbaik!';
+  }
+
+  @override
+  String birthday_template_2(Object name) {
+    return '$name, selamat! Semoga kebahagiaan dan harapanmu terwujud 🎉';
+  }
+
+  @override
+  String birthday_template_3(Object name) {
+    return 'Selamat ulang tahun, $name! Sehat, beruntung dan banyak momen bahagia 🎂';
+  }
+
+  @override
+  String birthday_template_4(Object name) {
+    return '$name, selamat ulang tahun! Semoga semua rencanamu lancar ✨';
+  }
+
+  @override
+  String birthday_template_5(Object name) {
+    return 'Selamat, $name! Terima kasih sudah ada. Selamat ulang tahun! 🎁';
+  }
+
+  @override
+  String get birthday_toast_sent => 'Ucapan terkirim';
+
+  @override
+  String birthday_reminder_set(Object name) {
+    return 'Kami akan mengingatkan sehari sebelum ulang tahun $name';
+  }
+
+  @override
+  String get birthday_reminder_notif_title => 'Besok ulang tahun 🎂';
+
+  @override
+  String birthday_reminder_notif_body(Object name) {
+    return 'Jangan lupa beri selamat ke $name besok';
+  }
+
+  @override
+  String get birthday_empty => 'Tidak ada ulang tahun kontak hari ini';
+
+  @override
+  String get birthday_error_self => 'Tidak bisa memuat profilmu';
+
+  @override
+  String get birthday_error_send => 'Gagal mengirim ucapan. Coba lagi.';
+
+  @override
+  String get birthday_error_reminder => 'Gagal mengatur pengingat';
 }

@@ -28,6 +28,7 @@ import 'features/chat/ui/chat_call_detail_screen.dart';
 import 'features/chat/ui/chat_calls_screen.dart';
 import 'features/chat/ui/chat_incoming_call_entry_screen.dart';
 import 'features/chat/ui/chat_list_screen.dart';
+import 'features/birthdays/ui/birthday_celebration_screen.dart';
 import 'features/chat/ui/chat_meetings_screen.dart';
 import 'features/meetings/ui/meeting_entry_screen.dart';
 import 'features/chat/ui/chat_notifications_screen.dart';
@@ -273,6 +274,14 @@ GoRouter createRouter() {
         pageBuilder: (context, state) => NoTransitionPage<void>(
           key: state.pageKey,
           child: const ChatListScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/birthdays',
+        pageBuilder: (context, state) => CupertinoPage<void>(
+          key: state.pageKey,
+          name: state.name,
+          child: const BirthdayCelebrationScreen(),
         ),
       ),
       GoRoute(

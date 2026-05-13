@@ -8040,4 +8040,120 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chat_preview_forwarded => 'Forwarded message';
+
+  @override
+  String get birthday_banner_celebrates => 'is celebrating a birthday!';
+
+  @override
+  String get birthday_banner_action => 'Send wishes →';
+
+  @override
+  String get birthday_screen_title_today => 'Birthday today';
+
+  @override
+  String birthday_screen_age(int age) {
+    return 'Turns $age';
+  }
+
+  @override
+  String get birthday_section_actions => 'CELEBRATE';
+
+  @override
+  String get birthday_action_template => 'Quick message';
+
+  @override
+  String get birthday_action_cake => 'Blow out the candle';
+
+  @override
+  String get birthday_action_confetti => 'Confetti';
+
+  @override
+  String get birthday_action_serpentine => 'Streamers';
+
+  @override
+  String get birthday_action_voice => 'Record voice greeting';
+
+  @override
+  String get birthday_action_remind_next_year => 'Remind me next year';
+
+  @override
+  String get birthday_action_open_chat => 'Write your own message';
+
+  @override
+  String get birthday_cake_prompt => 'Tap the candle to blow it out';
+
+  @override
+  String birthday_cake_wish_placeholder(Object name) {
+    return 'What do you wish for $name?';
+  }
+
+  @override
+  String get birthday_cake_wish_hint => 'E.g. may all your dreams come true…';
+
+  @override
+  String get birthday_cake_send => 'Send';
+
+  @override
+  String birthday_cake_message(Object name, Object wish) {
+    return '🎂 Happy birthday, $name! My wish for you: «$wish»';
+  }
+
+  @override
+  String birthday_confetti_message(Object name) {
+    return '🎉 Happy birthday, $name! 🎉';
+  }
+
+  @override
+  String birthday_template_1(Object name) {
+    return 'Happy birthday, $name! May this year be the best one yet!';
+  }
+
+  @override
+  String birthday_template_2(Object name) {
+    return '$name, congratulations! Wishing you joy, warmth and dreams come true 🎉';
+  }
+
+  @override
+  String birthday_template_3(Object name) {
+    return 'Cheers, $name! Health, luck and many happy moments 🎂';
+  }
+
+  @override
+  String birthday_template_4(Object name) {
+    return '$name, happy birthday! May everything you plan come easy ✨';
+  }
+
+  @override
+  String birthday_template_5(Object name) {
+    return 'Congrats, $name! Thank you for being you. Happy birthday! 🎁';
+  }
+
+  @override
+  String get birthday_toast_sent => 'Wishes sent';
+
+  @override
+  String birthday_reminder_set(Object name) {
+    return 'We\'ll remind you a day before $name\'s birthday';
+  }
+
+  @override
+  String get birthday_reminder_notif_title => 'Birthday tomorrow 🎂';
+
+  @override
+  String birthday_reminder_notif_body(Object name) {
+    return 'Don\'t forget to wish $name tomorrow';
+  }
+
+  @override
+  String get birthday_empty => 'No birthdays among your contacts today';
+
+  @override
+  String get birthday_error_self => 'Couldn\'t load your profile';
+
+  @override
+  String get birthday_error_send =>
+      'Couldn\'t send the message. Please try again.';
+
+  @override
+  String get birthday_error_reminder => 'Couldn\'t set the reminder';
 }

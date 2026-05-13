@@ -8078,4 +8078,122 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chat_preview_forwarded => 'Пересланное сообщение';
+
+  @override
+  String get birthday_banner_celebrates => 'празднует день рождения!';
+
+  @override
+  String get birthday_banner_action => 'Поздравить →';
+
+  @override
+  String get birthday_screen_title_today => 'День рождения сегодня';
+
+  @override
+  String birthday_screen_age(int age) {
+    return '$age лет';
+  }
+
+  @override
+  String get birthday_section_actions => 'ПОЗДРАВИТЬ';
+
+  @override
+  String get birthday_action_template => 'Готовое поздравление';
+
+  @override
+  String get birthday_action_cake => 'Задуть свечу';
+
+  @override
+  String get birthday_action_confetti => 'Конфетти';
+
+  @override
+  String get birthday_action_serpentine => 'Серпантин';
+
+  @override
+  String get birthday_action_voice => 'Записать аудио-поздравление';
+
+  @override
+  String get birthday_action_remind_next_year =>
+      'Напомнить заранее в следующем году';
+
+  @override
+  String get birthday_action_open_chat => 'Написать своё поздравление';
+
+  @override
+  String get birthday_cake_prompt => 'Тапни по свече, чтобы её задуть';
+
+  @override
+  String birthday_cake_wish_placeholder(Object name) {
+    return 'Какое желание загадать для $name?';
+  }
+
+  @override
+  String get birthday_cake_wish_hint =>
+      'Например: пусть всё задуманное сбудется…';
+
+  @override
+  String get birthday_cake_send => 'Отправить';
+
+  @override
+  String birthday_cake_message(Object name, Object wish) {
+    return '🎂 С днём рождения, $name! Моё пожелание для тебя: «$wish»';
+  }
+
+  @override
+  String birthday_confetti_message(Object name) {
+    return '🎉 Поздравляю с днём рождения, $name! 🎉';
+  }
+
+  @override
+  String birthday_template_1(Object name) {
+    return 'С днём рождения, $name! Пусть этот год будет лучшим!';
+  }
+
+  @override
+  String birthday_template_2(Object name) {
+    return '$name, поздравляю! Желаю радости, тепла и исполнения желаний 🎉';
+  }
+
+  @override
+  String birthday_template_3(Object name) {
+    return 'С праздником, $name! Здоровья, удачи и побольше счастливых моментов 🎂';
+  }
+
+  @override
+  String birthday_template_4(Object name) {
+    return '$name, с днём рождения! Пусть всё задуманное сбывается легко и быстро ✨';
+  }
+
+  @override
+  String birthday_template_5(Object name) {
+    return 'Поздравляю, $name! Спасибо, что ты есть. С днём рождения! 🎁';
+  }
+
+  @override
+  String get birthday_toast_sent => 'Поздравление отправлено';
+
+  @override
+  String birthday_reminder_set(Object name) {
+    return 'Напомним за день до дня рождения $name';
+  }
+
+  @override
+  String get birthday_reminder_notif_title => 'Завтра день рождения 🎂';
+
+  @override
+  String birthday_reminder_notif_body(Object name) {
+    return 'Не забудьте поздравить $name завтра';
+  }
+
+  @override
+  String get birthday_empty => 'Сегодня нет именинников среди контактов';
+
+  @override
+  String get birthday_error_self => 'Не удалось загрузить ваш профиль';
+
+  @override
+  String get birthday_error_send =>
+      'Не удалось отправить поздравление. Попробуйте ещё раз.';
+
+  @override
+  String get birthday_error_reminder => 'Не удалось установить напоминание';
 }

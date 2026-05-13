@@ -8072,4 +8072,119 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get chat_preview_forwarded => 'İletilen mesaj';
+
+  @override
+  String get birthday_banner_celebrates => 'doğum gününü kutluyor!';
+
+  @override
+  String get birthday_banner_action => 'Kutla →';
+
+  @override
+  String get birthday_screen_title_today => 'Bugün doğum günü';
+
+  @override
+  String birthday_screen_age(int age) {
+    return '$age yaşında';
+  }
+
+  @override
+  String get birthday_section_actions => 'KUTLA';
+
+  @override
+  String get birthday_action_template => 'Hazır mesaj';
+
+  @override
+  String get birthday_action_cake => 'Mumu üfle';
+
+  @override
+  String get birthday_action_confetti => 'Konfeti';
+
+  @override
+  String get birthday_action_serpentine => 'Şerit';
+
+  @override
+  String get birthday_action_voice => 'Sesli kutlama kaydet';
+
+  @override
+  String get birthday_action_remind_next_year => 'Gelecek yıl hatırlat';
+
+  @override
+  String get birthday_action_open_chat => 'Kendi mesajını yaz';
+
+  @override
+  String get birthday_cake_prompt => 'Söndürmek için muma dokun';
+
+  @override
+  String birthday_cake_wish_placeholder(Object name) {
+    return '$name için ne diliyorsun?';
+  }
+
+  @override
+  String get birthday_cake_wish_hint => 'Örneğin: tüm dilekleri gerçek olsun…';
+
+  @override
+  String get birthday_cake_send => 'Gönder';
+
+  @override
+  String birthday_cake_message(Object name, Object wish) {
+    return '🎂 Doğum günün kutlu olsun, $name! Dileğim: «$wish»';
+  }
+
+  @override
+  String birthday_confetti_message(Object name) {
+    return '🎉 Doğum günün kutlu olsun, $name! 🎉';
+  }
+
+  @override
+  String birthday_template_1(Object name) {
+    return 'Doğum günün kutlu olsun, $name! Bu yıl en güzeli olsun!';
+  }
+
+  @override
+  String birthday_template_2(Object name) {
+    return '$name, tebrikler! Mutluluk, sıcaklık ve dileklerin gerçekleşmesi 🎉';
+  }
+
+  @override
+  String birthday_template_3(Object name) {
+    return 'Mutlu yıllar, $name! Sağlık, şans ve nice mutlu anlar 🎂';
+  }
+
+  @override
+  String birthday_template_4(Object name) {
+    return '$name, doğum günün kutlu olsun! Tüm planların kolay gerçekleşsin ✨';
+  }
+
+  @override
+  String birthday_template_5(Object name) {
+    return 'Tebrikler, $name! Var olduğun için teşekkürler. Doğum günün kutlu olsun! 🎁';
+  }
+
+  @override
+  String get birthday_toast_sent => 'Kutlama gönderildi';
+
+  @override
+  String birthday_reminder_set(Object name) {
+    return '$name\'nin doğum gününden bir gün önce hatırlatacağız';
+  }
+
+  @override
+  String get birthday_reminder_notif_title => 'Yarın doğum günü 🎂';
+
+  @override
+  String birthday_reminder_notif_body(Object name) {
+    return 'Yarın $name\'yi kutlamayı unutma';
+  }
+
+  @override
+  String get birthday_empty => 'Bugün kişilerinde doğum günü yok';
+
+  @override
+  String get birthday_error_self => 'Profilin yüklenemedi';
+
+  @override
+  String get birthday_error_send => 'Mesaj gönderilemedi. Lütfen tekrar dene.';
+
+  @override
+  String get birthday_error_reminder => 'Hatırlatma ayarlanamadı';
 }

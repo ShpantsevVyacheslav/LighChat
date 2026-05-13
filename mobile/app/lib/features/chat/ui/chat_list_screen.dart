@@ -28,6 +28,7 @@ import 'chat_bottom_nav.dart';
 import 'chat_shell_backdrop.dart';
 import '../../features_tour/data/features_welcome_pending.dart';
 import '../../features_tour/ui/features_welcome_sheet.dart';
+import '../../birthdays/ui/birthday_banner.dart';
 
 /// Полный экран списка чатов: `Scaffold` + [ChatListPane] внутри.
 ///
@@ -52,7 +53,16 @@ class ChatListScreen extends StatelessWidget {
             top: 0,
             left: 0,
             right: 0,
-            child: SafeArea(bottom: false, child: _MeetingResumePill()),
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _MeetingResumePill(),
+                  BirthdayBanner(),
+                ],
+              ),
+            ),
           ),
         ],
       ),

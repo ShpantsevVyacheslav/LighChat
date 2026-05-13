@@ -8133,6 +8133,123 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get chat_preview_forwarded => 'Mensaje reenviado';
+
+  @override
+  String get birthday_banner_celebrates => 'está de cumpleaños!';
+
+  @override
+  String get birthday_banner_action => 'Felicitar →';
+
+  @override
+  String get birthday_screen_title_today => 'Cumpleaños hoy';
+
+  @override
+  String birthday_screen_age(int age) {
+    return 'Cumple $age';
+  }
+
+  @override
+  String get birthday_section_actions => 'FELICITAR';
+
+  @override
+  String get birthday_action_template => 'Mensaje rápido';
+
+  @override
+  String get birthday_action_cake => 'Soplar la vela';
+
+  @override
+  String get birthday_action_confetti => 'Confeti';
+
+  @override
+  String get birthday_action_serpentine => 'Serpentinas';
+
+  @override
+  String get birthday_action_voice => 'Grabar saludo de voz';
+
+  @override
+  String get birthday_action_remind_next_year => 'Recordarme el año que viene';
+
+  @override
+  String get birthday_action_open_chat => 'Escribir tu propio mensaje';
+
+  @override
+  String get birthday_cake_prompt => 'Toca la vela para apagarla';
+
+  @override
+  String birthday_cake_wish_placeholder(Object name) {
+    return '¿Qué deseas para $name?';
+  }
+
+  @override
+  String get birthday_cake_wish_hint =>
+      'Por ejemplo: que se cumplan todos tus sueños…';
+
+  @override
+  String get birthday_cake_send => 'Enviar';
+
+  @override
+  String birthday_cake_message(Object name, Object wish) {
+    return '🎂 ¡Feliz cumpleaños, $name! Mi deseo para ti: «$wish»';
+  }
+
+  @override
+  String birthday_confetti_message(Object name) {
+    return '🎉 ¡Feliz cumpleaños, $name! 🎉';
+  }
+
+  @override
+  String birthday_template_1(Object name) {
+    return '¡Feliz cumpleaños, $name! ¡Que este año sea el mejor!';
+  }
+
+  @override
+  String birthday_template_2(Object name) {
+    return '$name, ¡felicidades! Te deseo alegría, cariño y que se cumplan tus sueños 🎉';
+  }
+
+  @override
+  String birthday_template_3(Object name) {
+    return '¡Feliz día, $name! Salud, suerte y muchos momentos felices 🎂';
+  }
+
+  @override
+  String birthday_template_4(Object name) {
+    return '$name, ¡feliz cumple! Que todos tus planes se cumplan fácilmente ✨';
+  }
+
+  @override
+  String birthday_template_5(Object name) {
+    return '¡Felicidades, $name! Gracias por existir. ¡Feliz cumpleaños! 🎁';
+  }
+
+  @override
+  String get birthday_toast_sent => 'Felicitación enviada';
+
+  @override
+  String birthday_reminder_set(Object name) {
+    return 'Te recordaremos un día antes del cumpleaños de $name';
+  }
+
+  @override
+  String get birthday_reminder_notif_title => 'Mañana es cumpleaños 🎂';
+
+  @override
+  String birthday_reminder_notif_body(Object name) {
+    return 'No olvides felicitar a $name mañana';
+  }
+
+  @override
+  String get birthday_empty => 'Hoy no hay cumpleaños entre tus contactos';
+
+  @override
+  String get birthday_error_self => 'No se pudo cargar tu perfil';
+
+  @override
+  String get birthday_error_send =>
+      'No se pudo enviar el mensaje. Inténtalo de nuevo.';
+
+  @override
+  String get birthday_error_reminder => 'No se pudo configurar el recordatorio';
 }
 
 /// The translations for Spanish Castilian, as used in Mexico (`es_MX`).

@@ -4142,5 +4142,94 @@
   "call_bubble_voice_call": "Chamada de voz",
   "call_bubble_video_call": "Videochamada",
   "chat_preview_poll": "Enquete",
-  "chat_preview_forwarded": "Mensagem encaminhada"
+  "chat_preview_forwarded": "Mensagem encaminhada",
+  "birthday_banner_celebrates": "está de aniversário!",
+  "birthday_banner_action": "Parabenizar →",
+  "birthday_screen_title_today": "Aniversário hoje",
+  "birthday_screen_age": "Faz {age}",
+  "@birthday_screen_age": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "birthday_section_actions": "PARABENIZAR",
+  "birthday_action_template": "Mensagem rápida",
+  "birthday_action_cake": "Apagar a vela",
+  "birthday_action_confetti": "Confete",
+  "birthday_action_serpentine": "Serpentinas",
+  "birthday_action_voice": "Gravar saudação de voz",
+  "birthday_action_remind_next_year": "Lembrar no próximo ano",
+  "birthday_action_open_chat": "Escrever sua mensagem",
+  "birthday_cake_prompt": "Toque na vela para apagar",
+  "birthday_cake_wish_placeholder": "O que deseja para {name}?",
+  "@birthday_cake_wish_placeholder": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_cake_wish_hint": "Por exemplo: que todos os sonhos se realizem…",
+  "birthday_cake_send": "Enviar",
+  "birthday_cake_message": "🎂 Feliz aniversário, {name}! Meu desejo: «{wish}»",
+  "@birthday_cake_message": {
+    "placeholders": {
+      "name": {},
+      "wish": {}
+    }
+  },
+  "birthday_confetti_message": "🎉 Feliz aniversário, {name}! 🎉",
+  "@birthday_confetti_message": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_template_1": "Feliz aniversário, {name}! Que este seja o melhor ano!",
+  "@birthday_template_1": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_template_2": "{name}, parabéns! Desejo alegria, carinho e sonhos realizados 🎉",
+  "@birthday_template_2": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_template_3": "Parabéns, {name}! Saúde, sorte e muitos momentos felizes 🎂",
+  "@birthday_template_3": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_template_4": "{name}, parabéns! Que tudo o que planeja se realize com facilidade ✨",
+  "@birthday_template_4": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_template_5": "Parabéns, {name}! Obrigado por existir. Feliz aniversário! 🎁",
+  "@birthday_template_5": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_toast_sent": "Mensagem enviada",
+  "birthday_reminder_set": "Vamos lembrar um dia antes do aniversário de {name}",
+  "@birthday_reminder_set": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_reminder_notif_title": "Aniversário amanhã 🎂",
+  "birthday_reminder_notif_body": "Não esqueça de parabenizar {name} amanhã",
+  "@birthday_reminder_notif_body": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "birthday_empty": "Nenhum aniversário entre seus contatos hoje",
+  "birthday_error_self": "Não foi possível carregar seu perfil",
+  "birthday_error_send": "Não foi possível enviar. Tente novamente.",
+  "birthday_error_reminder": "Não foi possível definir o lembrete"
 }

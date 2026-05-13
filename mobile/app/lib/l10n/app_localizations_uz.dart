@@ -8113,4 +8113,119 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get chat_preview_forwarded => 'Yuborilgan xabar';
+
+  @override
+  String get birthday_banner_celebrates => 'tug\'ilgan kunini nishonlamoqda!';
+
+  @override
+  String get birthday_banner_action => 'Tabriklash →';
+
+  @override
+  String get birthday_screen_title_today => 'Bugun tug\'ilgan kun';
+
+  @override
+  String birthday_screen_age(int age) {
+    return '$age yosh';
+  }
+
+  @override
+  String get birthday_section_actions => 'TABRIKLASH';
+
+  @override
+  String get birthday_action_template => 'Tayyor tabrik';
+
+  @override
+  String get birthday_action_cake => 'Shamni puflab o\'chir';
+
+  @override
+  String get birthday_action_confetti => 'Konfetti';
+
+  @override
+  String get birthday_action_serpentine => 'Serpantin';
+
+  @override
+  String get birthday_action_voice => 'Audio tabrik yozish';
+
+  @override
+  String get birthday_action_remind_next_year => 'Keyingi yili oldindan eslat';
+
+  @override
+  String get birthday_action_open_chat => 'O\'z tabrigingni yoz';
+
+  @override
+  String get birthday_cake_prompt => 'Shamni o\'chirish uchun tegining';
+
+  @override
+  String birthday_cake_wish_placeholder(Object name) {
+    return '$name uchun qanday tilak tilaysiz?';
+  }
+
+  @override
+  String get birthday_cake_wish_hint => 'Masalan: barcha orzular ushalsin…';
+
+  @override
+  String get birthday_cake_send => 'Yuborish';
+
+  @override
+  String birthday_cake_message(Object name, Object wish) {
+    return '🎂 Tug\'ilgan kuning bilan, $name! Mening tilagim: «$wish»';
+  }
+
+  @override
+  String birthday_confetti_message(Object name) {
+    return '🎉 Tug\'ilgan kuning bilan, $name! 🎉';
+  }
+
+  @override
+  String birthday_template_1(Object name) {
+    return 'Tug\'ilgan kuning bilan, $name! Bu yil eng yaxshisi bo\'lsin!';
+  }
+
+  @override
+  String birthday_template_2(Object name) {
+    return '$name, tabriklayman! Quvonch, iliqlik va orzular ro\'yobi tilayman 🎉';
+  }
+
+  @override
+  String birthday_template_3(Object name) {
+    return 'Bayraming bilan, $name! Sog\'liq, omad va ko\'p baxtli daqiqalar 🎂';
+  }
+
+  @override
+  String birthday_template_4(Object name) {
+    return '$name, tug\'ilgan kuning bilan! Rejalaring oson amalga oshsin ✨';
+  }
+
+  @override
+  String birthday_template_5(Object name) {
+    return 'Tabriklayman, $name! Borligingdan minnatdorman. Tug\'ilgan kuning bilan! 🎁';
+  }
+
+  @override
+  String get birthday_toast_sent => 'Tabrik yuborildi';
+
+  @override
+  String birthday_reminder_set(Object name) {
+    return '$name tug\'ilgan kunidan bir kun oldin eslataman';
+  }
+
+  @override
+  String get birthday_reminder_notif_title => 'Ertaga tug\'ilgan kun 🎂';
+
+  @override
+  String birthday_reminder_notif_body(Object name) {
+    return 'Ertaga $name ni tabriklashni unutmang';
+  }
+
+  @override
+  String get birthday_empty => 'Bugun kontaktlaringizda tug\'ilgan kun yo\'q';
+
+  @override
+  String get birthday_error_self => 'Profilingiz yuklanmadi';
+
+  @override
+  String get birthday_error_send => 'Xabar yuborilmadi. Yana urinib ko\'ring.';
+
+  @override
+  String get birthday_error_reminder => 'Eslatma o\'rnatilmadi';
 }
