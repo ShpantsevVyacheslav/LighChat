@@ -538,20 +538,12 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     avatar.layer.cornerRadius = 14
     avatar.layer.masksToBounds = true
     avatar.contentMode = .scaleAspectFill
-    avatar.backgroundColor = .clear
-    // Fallback-градиент идентичен Flutter ChatAvatar (dark mode):
-    //   0xFF18357C → 0xFF29133F. Виден когда нет аватара. Прячется когда
-    //   image загружен (layer cornerRadius клипит).
-    let gradient = CAGradientLayer()
-    gradient.colors = [
-      UIColor(red: 0x18 / 255.0, green: 0x35 / 255.0, blue: 0x7C / 255.0, alpha: 1).cgColor,
-      UIColor(red: 0x29 / 255.0, green: 0x13 / 255.0, blue: 0x3F / 255.0, alpha: 1).cgColor,
-    ]
-    gradient.startPoint = CGPoint(x: 0, y: 0)
-    gradient.endPoint = CGPoint(x: 1, y: 1)
-    gradient.frame = CGRect(x: 0, y: 0, width: 28, height: 28)
-    gradient.cornerRadius = 14
-    avatar.layer.insertSublayer(gradient, at: 0)
+    // Fallback fill: solid 0xFF18357C (тот же start-цвет Flutter
+    // ChatAvatar gradient dark mode). Solid вместо CAGradientLayer —
+    // gradient.frame не успевал под auto-layout и рисовался не на месте
+    // (выглядел как светло-голубой круг вместо тёмно-синего).
+    avatar.backgroundColor = UIColor(
+      red: 0x18 / 255.0, green: 0x35 / 255.0, blue: 0x7C / 255.0, alpha: 1)
 
     // Reuse cached image immediately, чтобы избежать «мигания» при пересоздании
     // custom title view (Flutter пушит config на каждое изменение subtitle).
@@ -633,18 +625,26 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       ])
     }
 
-    if let raw = avatarUrl, let url = URL(string: raw) {
-      // Уже загружали этот URL → отдаём из кэша, без сетевого запроса.
-      if lastAvatarUrl == url, let cached = cachedAvatarImage {
-        avatar.image = cached
+    if let raw = avatarUrl, !raw.isEmpty {
+      if let url = URL(string: raw) {
+        Self.log("makeTitleView avatarUrl='\(raw)' → URL parsed OK")
+        // Уже загружали этот URL → отдаём из кэша, без сетевого запроса.
+        if lastAvatarUrl == url, let cached = cachedAvatarImage {
+          avatar.image = cached
+        } else {
+          lastAvatarUrl = url
+          cachedAvatarImage = nil
+          loadAvatar(url: url, into: avatar)
+        }
       } else {
-        lastAvatarUrl = url
+        Self.log("makeTitleView avatarUrl='\(raw)' → URL parse FAILED")
+        lastAvatarUrl = nil
         cachedAvatarImage = nil
-        loadAvatar(url: url, into: avatar)
       }
     } else {
       // URL не задан → сбрасываем кэш, чтобы при возврате аватара его
       // перезагрузили.
+      Self.log("makeTitleView avatarUrl is nil/empty → using fallback gradient + initial")
       lastAvatarUrl = nil
       cachedAvatarImage = nil
     }
@@ -653,15 +653,27 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   }
 
   private func loadAvatar(url: URL, into imageView: UIImageView) {
-    if avatarTasks[url] != nil { return }
-    let task = URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+    if avatarTasks[url] != nil {
+      Self.log("loadAvatar already in flight: \(url.absoluteString)")
+      return
+    }
+    Self.log("loadAvatar START \(url.absoluteString)")
+    let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
       guard let self = self else { return }
+      let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+      let bytes = data?.count ?? 0
+      let errDescr = error.map { String(describing: $0) } ?? "nil"
       DispatchQueue.main.async {
         self.avatarTasks[url] = nil
-        guard self.lastAvatarUrl == url,
-          let data = data,
-          let image = UIImage(data: data)
-        else { return }
+        guard self.lastAvatarUrl == url else {
+          Self.log("loadAvatar FINISH url stale (current=\(self.lastAvatarUrl?.absoluteString ?? "nil")), drop")
+          return
+        }
+        guard let data = data, let image = UIImage(data: data) else {
+          Self.log("loadAvatar FINISH FAILED status=\(status) bytes=\(bytes) err=\(errDescr)")
+          return
+        }
+        Self.log("loadAvatar FINISH OK status=\(status) bytes=\(bytes)")
         self.cachedAvatarImage = image
         imageView.image = image
         // Скрываем initial-букву под фото.

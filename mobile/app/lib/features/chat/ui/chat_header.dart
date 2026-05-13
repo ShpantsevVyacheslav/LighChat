@@ -173,7 +173,9 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
       }
     }
     appLogger.d(
-      '[chat-header] push title="${widget.title}" searchActive=${widget.searchActive} force=$force',
+      '[chat-header] push title="${widget.title}" '
+      'avatarUrl=${widget.avatarUrl == null ? "<null>" : "<set,len=${widget.avatarUrl!.length}>"} '
+      'searchActive=${widget.searchActive} force=$force',
     );
 
     final l10n = AppLocalizations.of(context);

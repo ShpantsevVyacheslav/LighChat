@@ -27,8 +27,13 @@ enum LiquidGlassAppearance {
     // Принудительно ставим thin material — даёт классический glass UI на
     // всех iOS 13+.
     if #available(iOS 13.0, *) {
-      appearance.backgroundEffect = UIBlurEffect(style: .systemThinMaterial)
-      appearance.shadowColor = UIColor.separator.withAlphaComponent(0.4)
+      // По design-feedback'у: «воздух» между Dynamic Island и avatar'ом
+      // воспринимался как «толстая чёрная плашка» — это был visible
+      // backgroundEffect под full bar height. Делаем фон ULTRA-thin
+      // (почти прозрачный) и убираем shadowColor — bar визуально сливается
+      // с контентом, видна только статус-bar + items.
+      appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
+      appearance.shadowColor = .clear
     }
     bar.standardAppearance = appearance
     bar.scrollEdgeAppearance = appearance
@@ -49,8 +54,10 @@ enum LiquidGlassAppearance {
       appearance.configureWithDefaultBackground()
     }
     if #available(iOS 13.0, *) {
-      appearance.backgroundEffect = UIBlurEffect(style: .systemThinMaterial)
-      appearance.shadowColor = UIColor.separator.withAlphaComponent(0.4)
+      // Минимальный «pill» вокруг tab bar — лёгкий ultra-thin material.
+      // Не «жирный» chrome-style.
+      appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
+      appearance.shadowColor = .clear
     }
     bar.standardAppearance = appearance
     if #available(iOS 15.0, *) {
