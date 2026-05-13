@@ -883,6 +883,22 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
       return
     }
 
+    // Если PiP уже создан (повторный клик) — не пересоздаём, просто
+    // пробуем стартануть на существующем контроллере.
+    if let existing = self.pipController {
+      NSLog(
+        "[MeetingPiP] enterPip: pipController already exists "
+          + "(active=%@, possible=%@) — reusing",
+        existing.isPictureInPictureActive ? "true" : "false",
+        existing.isPictureInPicturePossible ? "true" : "false")
+      if existing.isPictureInPictureActive {
+        result(true)
+        return
+      }
+      attemptStart(pip: existing, attemptsLeft: 30, result: result)
+      return
+    }
+
     // VoIP-сессия — чтобы аудио митинга не отключилось при сворачивании.
     do {
       try AVAudioSession.sharedInstance().setCategory(
@@ -895,24 +911,46 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
             error.localizedDescription)
     }
 
-    // 1. Source view — обязан быть в видимой иерархии. Делаем 1×1 px,
-    // прозрачный, без интеракций. Apple использует его положение как
-    // «откуда улетает» PiP-окно при старте.
-    let src = UIView(frame: CGRect(x: 0, y: 0, width: 1, height: 1))
+    // 1. Source view — обязан быть в видимой иерархии. AVKit капризно
+    // реагирует на `alpha=0` (видит «не отображается» и
+    // startPictureInPicture no-op'ит без ошибки) и на нулевой размер.
+    // Поэтому даём 80×80 + alpha 0.01 — глазу не видно, но AVKit
+    // считает «view active».
+    let src = UIView(frame: CGRect(x: 0, y: 0, width: 80, height: 80))
     src.backgroundColor = .clear
     src.isUserInteractionEnabled = false
-    src.alpha = 0
+    src.alpha = 0.01
     window.addSubview(src)
+    src.setNeedsLayout()
+    src.layoutIfNeeded()
     self.sourceView = src
-    NSLog("[MeetingPiP] enterPip: sourceView added to window (size %@)",
-          NSCoder.string(for: window.bounds.size))
+    NSLog(
+      "[MeetingPiP] enterPip: sourceView added (windowSize=%@, srcFrame=%@, "
+        + "srcAlpha=%.2f, srcInWindow=%@)",
+      NSCoder.string(for: window.bounds.size),
+      NSCoder.string(for: src.frame),
+      Double(src.alpha),
+      src.window != nil ? "yes" : "no")
 
     // 2. Content view controller — то, что увидит юзер в PiP-окне.
+    // ВАЖНО: `loadViewIfNeeded()` форсит запуск `viewDidLoad`. Без
+    // этого AVKit видит «view не загружен» и тоже молча no-op'ит
+    // startPictureInPicture. Явный `view.frame` + `layoutIfNeeded` —
+    // чтобы displayLayer получил ненулевой frame.
     let vc = LighChatMeetingPipCallVC()
-    // Aspect соотношения определяют размер мини-окна. 9:16 — типичный
-    // портрет фронтальной камеры на iPhone.
-    vc.preferredContentSize = CGSize(width: 9, height: 16)
+    // Камера 640×480 + rotation 90° → отображается 480×640 (портрет).
+    vc.preferredContentSize = CGSize(width: 480, height: 640)
+    vc.loadViewIfNeeded()
+    vc.view.frame = CGRect(x: 0, y: 0, width: 480, height: 640)
+    vc.view.setNeedsLayout()
+    vc.view.layoutIfNeeded()
     self.callVC = vc
+    NSLog(
+      "[MeetingPiP] enterPip: callVC ready (viewLoaded=%@, view.bounds=%@, "
+        + "displayLayer.frame=%@)",
+      vc.isViewLoaded ? "yes" : "no",
+      NSCoder.string(for: vc.view.bounds),
+      NSCoder.string(for: vc.displayLayer.frame))
 
     // 3. PiP controller через ContentSource VideoCall-API.
     let source = AVPictureInPictureController.ContentSource(
