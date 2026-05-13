@@ -20,6 +20,7 @@ void main() {
 
   setUp(() {
     calls = <MethodCall>[];
+    NativeNavBarFacade.instance.resetDedupeCacheForTests();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
@@ -191,9 +192,11 @@ void main() {
         await Future<void>.delayed(Duration.zero);
 
         // Все вызовы setBottomBar в порядке отправки. ПОСЛЕДНИЙ должен быть
-        // visible=true — иначе bar исчезнет на новом экране.
+        // visible=true — иначе bar исчезнет на новом экране. С учётом dedupe
+        // повторный hide не отправляется второй раз: ожидаем hide_bot
+        // (1 раз) + visible_bot — итого минимум 2 вызова.
         final bottomCalls = calls.where((c) => c.method == 'setBottomBar').toList();
-        expect(bottomCalls.length, greaterThanOrEqualTo(3));
+        expect(bottomCalls.length, greaterThanOrEqualTo(2));
         final lastVisible = (bottomCalls.last.arguments as Map)['visible'];
         expect(
           lastVisible,
@@ -217,6 +220,62 @@ void main() {
         expect(calls, isEmpty);
       },
       // Запускается только на не-iOS/macOS hosts; иначе test self-skips.
+    );
+  });
+
+  group('dedupe', () {
+    test(
+      'идентичный setSearchMode подряд не шлётся повторно',
+      () async {
+        if (!supportedHost()) return;
+        await NativeNavBarFacade.instance.setSearchMode(
+          const NavBarSearchConfig(
+            active: true,
+            placeholder: 'Search',
+            value: '',
+          ),
+        );
+        await NativeNavBarFacade.instance.setSearchMode(
+          const NavBarSearchConfig(
+            active: true,
+            placeholder: 'Search',
+            value: '',
+          ),
+        );
+        await NativeNavBarFacade.instance.setSearchMode(
+          const NavBarSearchConfig(
+            active: true,
+            placeholder: 'Search',
+            value: '',
+          ),
+        );
+        final searchCalls =
+            calls.where((c) => c.method == 'setSearchMode').toList();
+        expect(searchCalls.length, 1,
+            reason:
+                'Должен пройти ровно 1 setSearchMode (остальные 2 — дубли)');
+      },
+    );
+
+    test(
+      'отличающийся config проходит сквозь дедуп',
+      () async {
+        if (!supportedHost()) return;
+        await NativeNavBarFacade.instance.setSearchMode(
+          const NavBarSearchConfig(active: true, value: 'a'),
+        );
+        await NativeNavBarFacade.instance.setSearchMode(
+          const NavBarSearchConfig(active: true, value: 'b'),
+        );
+        await NativeNavBarFacade.instance.setSearchMode(
+          const NavBarSearchConfig(active: true, value: 'c'),
+        );
+        final searchCalls =
+            calls.where((c) => c.method == 'setSearchMode').toList();
+        expect(searchCalls.length, 3,
+            reason:
+                'Разные value → каждый push должен дойти до native');
+      },
     );
   });
 

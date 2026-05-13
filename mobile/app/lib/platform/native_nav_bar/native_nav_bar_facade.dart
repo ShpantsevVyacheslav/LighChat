@@ -1,7 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:flutter/services.dart';
 
 import 'package:lighchat_mobile/core/app_logger.dart';
@@ -39,7 +40,19 @@ class NativeNavBarFacade {
   final StreamController<NavBarEvent> _events =
       StreamController<NavBarEvent>.broadcast();
 
+  /// Дедуп: храним последний отправленный (по method) jsonEncoded args,
+  /// чтобы не спамить native одинаковыми пушами при ребилдах Flutter
+  /// widget'ов (типичная серия: каждый rebuild ChatHeader → 5 одинаковых
+  /// setSearchMode'ов подряд).
+  final Map<String, String> _lastSent = <String, String>{};
+
   Stream<NavBarEvent> get events => _events.stream;
+
+  /// Сбросить дедуп-кэш — используется в тестах между сценариями.
+  @visibleForTesting
+  void resetDedupeCacheForTests() {
+    _lastSent.clear();
+  }
 
   bool get isSupported {
     if (kIsWeb) return false;
@@ -78,6 +91,13 @@ class NativeNavBarFacade {
 
   Future<void> _invoke(String method, Map<String, Object?> args) async {
     if (!isSupported) return;
+    // Dedupe: одинаковый config второй раз подряд не шлём в native.
+    // jsonEncode стабилен для наших скалярных-only моделей.
+    final encoded = jsonEncode(args);
+    if (_lastSent[method] == encoded) {
+      return;
+    }
+    _lastSent[method] = encoded;
     try {
       appLogger.d('[native-nav] -> $method ${_summarize(args)}');
       await _methodChannel.invokeMethod<void>(method, args);

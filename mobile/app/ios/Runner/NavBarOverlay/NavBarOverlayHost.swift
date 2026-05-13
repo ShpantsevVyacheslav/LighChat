@@ -39,7 +39,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   private var avatarTasks: [URL: URLSessionDataTask] = [:]
   private var lastAvatarUrl: URL?
   private var avatarImageView: UIImageView?
+  private var avatarInitialLabel: UILabel?
   private var cachedAvatarImage: UIImage?
+
+  /// Идемпотентность bottom bar: одинаковый набор items (по id+label) не
+  /// перестраивается заново — только обновляется `selectedItem`. Это
+  /// убирает «прыгающий пузырь» selected-state на iOS 26 при tab-switch'е,
+  /// когда observer hide/show циклит между табами-экранами.
+  private var lastBottomBarItemsSignature: String = ""
 
   // MARK: - Eventing
 
@@ -60,9 +67,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// Top bar поднят до 56pt чтобы avatar 36×36 + title + subtitle помещались
   /// без обрезки (iOS 26 Liquid Glass).
   private static let tabBarContentHeight: CGFloat = 49
-  /// Минимальная высота nav bar по design-feedback'у — 44pt (по-Apple,
-  /// без раздутия). Содержит avatar 32 + title/subtitle.
-  private static let navBarContentHeight: CGFloat = 44
+  /// Минимальная высота nav bar по design-feedback'у. 40pt — самое
+  /// маленькое значение, при котором avatar 28 + title + subtitle ещё
+  /// помещаются. Меньше — обрезает.
+  private static let navBarContentHeight: CGFloat = 40
   /// Gap между status bar и nav bar. 0 = шапка вплотную под Dynamic Island.
   private static let navBarTopGap: CGFloat = 0
   /// Структурное логирование для отладки overlay'я. Включается через
@@ -271,20 +279,51 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     }
     let visible = config["visible"] as? Bool ?? true
     bottomVisible = visible
-    let itemsConfig = config["items"] as? [[String: Any]] ?? []
-    Self.log("applyBottomBar visible=\(visible) itemsCount=\(itemsConfig.count) selectedId=\(config["selectedId"] ?? "nil")")
+    let configs = config["items"] as? [[String: Any]] ?? []
+    let selectedId = config["selectedId"] as? String ?? ""
+
+    // Сигнатура items: id+label+icon. Если совпадает с прошлой —
+    // переключаем только `selectedItem` (Apple анимирует pill smoothly),
+    // НЕ пересоздаём UITabBarItem'ы. Решает «прыгающий пузырь» при
+    // переходе между табами /chats↔/contacts↔/calls↔/meetings, где
+    // items идентичны.
+    let signature = configs.map { cfg -> String in
+      let id = cfg["id"] as? String ?? ""
+      let label = cfg["label"] as? String ?? ""
+      let symbol = (cfg["icon"] as? [String: Any])?["symbol"] as? String ?? ""
+      return "\(id)/\(label)/\(symbol)"
+    }.joined(separator: "|")
+
+    Self.log("applyBottomBar visible=\(visible) itemsCount=\(configs.count) selectedId=\(selectedId) signatureEq=\(signature == lastBottomBarItemsSignature)")
+
     if !visible {
+      // ВАЖНО: НЕ очищаем bar.items при hide — это рвало бы pill-анимацию,
+      // когда сразу следом приходит show с тем же набором (наш typical
+      // tab-switch flow: observer hide → новый экран show).
       bar.isHidden = true
-      bar.items = []
       updateSafeAreaInsets()
       return
     }
+
     bar.isHidden = false
 
+    if signature == lastBottomBarItemsSignature,
+      let existingItems = bar.items, !existingItems.isEmpty {
+      // Same set — только переключаем selectedItem с animation.
+      let newSelected = existingItems.first(where: { item in
+        tabItemsById[ObjectIdentifier(item)] == selectedId
+      })
+      if let sel = newSelected, bar.selectedItem !== sel {
+        bar.selectedItem = sel
+      }
+      updateSafeAreaInsets()
+      return
+    }
+
+    lastBottomBarItemsSignature = signature
     tabItemsById.removeAll(keepingCapacity: true)
+
     var items: [UITabBarItem] = []
-    let configs = config["items"] as? [[String: Any]] ?? []
-    let selectedId = config["selectedId"] as? String ?? ""
     var selected: UITabBarItem?
 
     for cfg in configs {
@@ -354,22 +393,32 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     if bar.text != value { bar.text = value }
     bar.translatesAutoresizingMaskIntoConstraints = false
 
-    // Cancel-X с увеличенным point-size — чтобы визуально матчился с
-    // built-in cancel UISearchBar (тот, что был раньше). 28pt — близко к
-    // iOS 26 Liquid Glass standard.
+    // Cancel-X. UIBarButtonItem на iOS 26 рисуется внутри Liquid Glass pill
+    // (серая мини-плашка) — пользователю не нравится «рамка в рамке».
+    // Делаем customView UIButton без любого background, только image.
     let cancelImage: UIImage? = {
       if #available(iOS 13.0, *) {
-        let cfg = UIImage.SymbolConfiguration(pointSize: 26, weight: .regular)
+        let cfg = UIImage.SymbolConfiguration(pointSize: 24, weight: .regular)
         return UIImage(systemName: "xmark.circle.fill", withConfiguration: cfg)
       }
       return SymbolMapper.image(named: "xmark.circle.fill")
     }()
-    let cancelBtn = UIBarButtonItem(
-      image: cancelImage,
-      style: .plain,
-      target: self,
-      action: #selector(onExplicitSearchCancel))
-    cancelBtn.tintColor = .secondaryLabel
+    let cancelView = UIButton(type: .system)
+    cancelView.setImage(cancelImage, for: .normal)
+    cancelView.tintColor = .secondaryLabel
+    cancelView.backgroundColor = .clear
+    if #available(iOS 15.0, *) {
+      // Apple UIButton.Configuration.plain — без background pill.
+      cancelView.configuration = .plain()
+      cancelView.configuration?.contentInsets = NSDirectionalEdgeInsets(
+        top: 0, leading: 0, bottom: 0, trailing: 0)
+    }
+    cancelView.addTarget(
+      self,
+      action: #selector(onExplicitSearchCancel),
+      for: .touchUpInside)
+    cancelView.frame = CGRect(x: 0, y: 0, width: 28, height: 28)
+    let cancelBtn = UIBarButtonItem(customView: cancelView)
 
     topItem?.titleView = bar
     topItem?.title = nil
@@ -486,12 +535,13 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
     let avatar = UIImageView()
     avatar.translatesAutoresizingMaskIntoConstraints = false
-    avatar.layer.cornerRadius = 16
+    avatar.layer.cornerRadius = 14
     avatar.layer.masksToBounds = true
     avatar.contentMode = .scaleAspectFill
     avatar.backgroundColor = .clear
     // Fallback-градиент идентичен Flutter ChatAvatar (dark mode):
-    //   0xFF18357C → 0xFF29133F. Скрывается когда грузится реальное фото.
+    //   0xFF18357C → 0xFF29133F. Виден когда нет аватара. Прячется когда
+    //   image загружен (layer cornerRadius клипит).
     let gradient = CAGradientLayer()
     gradient.colors = [
       UIColor(red: 0x18 / 255.0, green: 0x35 / 255.0, blue: 0x7C / 255.0, alpha: 1).cgColor,
@@ -499,8 +549,8 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     ]
     gradient.startPoint = CGPoint(x: 0, y: 0)
     gradient.endPoint = CGPoint(x: 1, y: 1)
-    gradient.frame = CGRect(x: 0, y: 0, width: 32, height: 32)
-    gradient.cornerRadius = 16
+    gradient.frame = CGRect(x: 0, y: 0, width: 28, height: 28)
+    gradient.cornerRadius = 14
     avatar.layer.insertSublayer(gradient, at: 0)
 
     // Reuse cached image immediately, чтобы избежать «мигания» при пересоздании
@@ -516,10 +566,15 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     let initialLabel = UILabel()
     initialLabel.translatesAutoresizingMaskIntoConstraints = false
     initialLabel.text = fallbackInitial?.uppercased()
-    initialLabel.font = .systemFont(ofSize: 14, weight: .heavy)
+    initialLabel.font = .systemFont(ofSize: 13, weight: .heavy)
     initialLabel.textAlignment = .center
     initialLabel.textColor = .white
+    // КЛЮЧЕВО: initialLabel прячется, если уже есть image (cached или
+    // только что переданный). Иначе он рисуется ПОВЕРХ avatar.image и
+    // буква перекрывает фото.
+    initialLabel.isHidden = avatar.image != nil
     avatar.addSubview(initialLabel)
+    avatarInitialLabel = initialLabel
 
     let titleLabel = UILabel()
     titleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -546,8 +601,8 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     container.addSubview(textStack)
 
     NSLayoutConstraint.activate([
-      avatar.widthAnchor.constraint(equalToConstant: 32),
-      avatar.heightAnchor.constraint(equalToConstant: 32),
+      avatar.widthAnchor.constraint(equalToConstant: 28),
+      avatar.heightAnchor.constraint(equalToConstant: 28),
       avatar.leadingAnchor.constraint(equalTo: container.leadingAnchor),
       avatar.centerYAnchor.constraint(equalTo: container.centerYAnchor),
 
@@ -559,7 +614,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       textStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
       textStack.trailingAnchor.constraint(
         lessThanOrEqualTo: container.trailingAnchor),
-      container.heightAnchor.constraint(equalToConstant: 36),
+      container.heightAnchor.constraint(equalToConstant: 32),
     ])
 
     if let statusDotHex = statusDotHex, let color = UIColor.fromHex(statusDotHex) {
@@ -609,6 +664,8 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
         else { return }
         self.cachedAvatarImage = image
         imageView.image = image
+        // Скрываем initial-букву под фото.
+        self.avatarInitialLabel?.isHidden = true
         // Если customTitleView пересоздался за время сетевого запроса —
         // обновляем актуальный imageView, тот, что сейчас в нашем кэше.
         if let live = self.avatarImageView, live !== imageView {

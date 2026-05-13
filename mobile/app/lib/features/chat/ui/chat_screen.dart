@@ -2351,7 +2351,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                             ),
                                     ),
                                   ),
-                                  if (_selectedMessageIds.isEmpty) ...[
+                                  // Композер скрываем когда активен поиск
+                                  // по сообщениям — клавиатуре нужна вся
+                                  // высота под список + native search bar.
+                                  if (_selectedMessageIds.isEmpty &&
+                                      !_inChatSearch) ...[
                                     const LiveLocationStopBanner(),
                                     Builder(builder: (innerCtx) {
                                       // Синхронизируем `_lastConvIsE2ee` с актуальным состоянием

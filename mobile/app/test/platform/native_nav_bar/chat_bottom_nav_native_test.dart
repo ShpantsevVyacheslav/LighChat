@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lighchat_mobile/features/chat/ui/chat_bottom_nav.dart';
+import 'package:lighchat_mobile/platform/native_nav_bar/native_nav_bar_facade.dart';
 import 'package:lighchat_mobile/platform/native_nav_bar/native_nav_route_observer.dart';
 import 'package:lighchat_mobile/l10n/app_localizations.dart';
 
@@ -26,6 +27,9 @@ void main() {
 
   setUp(() {
     calls = <MethodCall>[];
+    // Дедуп-кэш живёт у singleton'а — сбрасываем чтобы повторные тесты
+    // видели полный поток вызовов.
+    NativeNavBarFacade.instance.resetDedupeCacheForTests();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
@@ -122,6 +126,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       calls.clear();
+      NativeNavBarFacade.instance.resetDedupeCacheForTests();
 
       // push нового экрана сверху.
       navKey.currentState!.push(
@@ -131,19 +136,26 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Observer.didPush должен вызвать hideAll (setTopBar+setBottomBar hidden).
-      final hideCalls = calls.where(
+      // Observer.didPush должен вызвать hideAll (setTopBar+setBottomBar
+      // hidden). С учётом dedupe duplicated hide'ы не дублируются — хватает
+      // по 1 hide на каждый bar.
+      final hideTop = calls.where(
         (c) =>
-            (c.method == 'setTopBar' || c.method == 'setBottomBar') &&
+            c.method == 'setTopBar' &&
             (c.arguments as Map)['visible'] == false,
       );
-      expect(
-        hideCalls.length,
-        greaterThanOrEqualTo(2),
-        reason: 'observer должен скрыть оба бара на push',
+      final hideBottom = calls.where(
+        (c) =>
+            c.method == 'setBottomBar' &&
+            (c.arguments as Map)['visible'] == false,
       );
+      expect(hideTop.length, greaterThanOrEqualTo(1),
+          reason: 'observer должен скрыть top bar');
+      expect(hideBottom.length, greaterThanOrEqualTo(1),
+          reason: 'observer должен скрыть bottom bar');
 
       calls.clear();
+      NativeNavBarFacade.instance.resetDedupeCacheForTests();
 
       // pop назад.
       navKey.currentState!.pop();
