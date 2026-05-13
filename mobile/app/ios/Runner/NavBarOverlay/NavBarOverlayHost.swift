@@ -20,13 +20,6 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   private var bottomBar: UITabBar?
   private var searchBar: UISearchBar?
 
-  /// Очень лёгкий safe-area blur в status-bar и home-indicator зонах
-  /// (Photos pattern). Visible-эффект ослаблен через `alpha < 1` — на
-  /// solid backgrounds почти незаметно, а на пёстром контенте (фото
-  /// в чате) даёт soft-defocus как в Photos.
-  private var topSafeAreaBlur: UIVisualEffectView?
-  private var bottomSafeAreaBlur: UIVisualEffectView?
-
   private var topItem: UINavigationItem?
   private var topVisible: Bool = false
   private var bottomVisible: Bool = false
@@ -138,43 +131,8 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     bottom.isHidden = true
     LiquidGlassAppearance.applyTabBar(bottom, tint: .systemBlue)
 
-    // Safe-area blur strips. Photos pattern, но СИЛЬНО ослабленный
-    // через `alpha = 0.45` — на solid-фонах почти не заметен, на пёстром
-    // контенте даёт soft defocus, не «белая полоса». Кладём под bars,
-    // чтобы pill'ы оставались чёткими.
-    let topBlur = UIVisualEffectView(
-      effect: UIBlurEffect(style: .systemUltraThinMaterial))
-    topBlur.translatesAutoresizingMaskIntoConstraints = false
-    topBlur.isUserInteractionEnabled = false
-    topBlur.alpha = 0.45
-
-    let bottomBlur = UIVisualEffectView(
-      effect: UIBlurEffect(style: .systemUltraThinMaterial))
-    bottomBlur.translatesAutoresizingMaskIntoConstraints = false
-    bottomBlur.isUserInteractionEnabled = false
-    bottomBlur.alpha = 0.45
-
-    vc.view.addSubview(topBlur)
-    vc.view.addSubview(bottomBlur)
     vc.view.addSubview(top)
     vc.view.addSubview(bottom)
-
-    NSLayoutConstraint.activate([
-      topBlur.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
-      topBlur.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
-      topBlur.topAnchor.constraint(equalTo: vc.view.topAnchor),
-      topBlur.bottomAnchor.constraint(
-        equalTo: vc.view.safeAreaLayoutGuide.topAnchor),
-
-      bottomBlur.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
-      bottomBlur.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
-      bottomBlur.topAnchor.constraint(
-        equalTo: vc.view.safeAreaLayoutGuide.bottomAnchor),
-      bottomBlur.bottomAnchor.constraint(equalTo: vc.view.bottomAnchor),
-    ])
-
-    self.topSafeAreaBlur = topBlur
-    self.bottomSafeAreaBlur = bottomBlur
 
     // Top constraint храним по ref'у — будем обновлять constant в
     // updateSafeAreaInsets() для компенсации circular feedback с
