@@ -1798,9 +1798,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                   // перекрывается status-bar'ом. Telegram-
                                   // style: рендерим pill как Positioned ниже
                                   // (см. nativeBarBottom).
+                                  // Pinned strip скрываем в режиме поиска
+                                  // на всех платформах: search-результаты
+                                  // и так перекрывают всё активной
+                                  // карточкой, а pinned под scrim'ом
+                                  // только засоряет UX.
                                   if (topPin != null &&
                                       conv != null &&
-                                      !usesNativeBar)
+                                      !usesNativeBar &&
+                                      !_inChatSearch)
                                     ChatPinnedStrip(
                                       pin: topPin,
                                       totalPins: sortedPins.length,
@@ -1887,7 +1893,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                                         b.id,
                                                                       );
                                                                 });
+                                                          // Date capsule
+                                                          // прячется под
+                                                          // native nav
+                                                          // bar'ом и под
+                                                          // pinned pill'ём.
+                                                          // На iOS пушим
+                                                          // её ниже
+                                                          // pinned pill'a
+                                                          // (примерно
+                                                          // высота
+                                                          // pill ~46pt) +
+                                                          // 8pt gap.
+                                                          final dateOffset =
+                                                              usesNativeBar
+                                                                  ? nativeBarBottom +
+                                                                      (topPin != null
+                                                                          ? 52
+                                                                          : 6)
+                                                                  : 4.0;
                                                           return ChatMessageList(
+                                                            topOverlayOffset:
+                                                                dateOffset,
                                                             messagesDesc:
                                                                 buildDescWithOutboxMessages(
                                                                   hydratedDesc:
@@ -2319,6 +2346,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                               >{},
                                                           decryptedTextByMessageId:
                                                               decryptedMap,
+                                                          // На iOS body
+                                                          // рисуется под
+                                                          // native nav
+                                                          // bar'ом — без
+                                                          // topInset
+                                                          // карточка
+                                                          // результатов
+                                                          // уезжала в
+                                                          // status bar.
+                                                          topInset:
+                                                              nativeBarBottom,
                                                           onSelectMessageId: (id) {
                                                             _exitChatSearch();
                                                             _scrollToMessageId(
@@ -2793,9 +2831,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                             // как floating overlay чтобы он сидел ровно под
                             // native nav bar'ом и messages могли свободно
                             // скроллиться под ним.
+                            // В режиме поиска скрываем pinned pill —
+                            // ChatMessageSearchOverlay перекрывает экран,
+                            // pinned под scrim'ом только мешает.
                             if (usesNativeBar &&
                                 topPin != null &&
-                                conv != null)
+                                conv != null &&
+                                !_inChatSearch)
                               Positioned(
                                 top: nativeBarBottom + 6,
                                 left: 8,

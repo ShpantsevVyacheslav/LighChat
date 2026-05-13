@@ -98,9 +98,9 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// ~15-20pt от низа экрана). UITabBar по-стандарту сидит над safe
   /// area (gap 34pt — большой). Положительный overlap двигает
   /// bar.frame ниже screen edge.
-  /// 18pt overlap → gap items-bottom до screen-bottom ≈ 16pt
-  /// (поднимаем bar чуть выше home indicator, чтобы был воздух снизу).
-  private static let tabBarBottomOverlap: CGFloat = 18
+  /// 12pt overlap → gap items-bottom до screen-bottom ≈ 22pt
+  /// (ещё чуть выше — больше воздуха над home indicator).
+  private static let tabBarBottomOverlap: CGFloat = 12
   /// Отступ bar.top от safeArea.top. ОТРИЦАТЕЛЬНЫЙ — поднимаем bar в
   /// system-reserved area под Dynamic Island. Apple оставляет ~22pt
   /// clearance под DI; -8pt пробивает половину этого «воздуха», items
@@ -237,21 +237,37 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     }
 
     // Title view (avatar + title + subtitle when present, otherwise plain title)
-    if let title = config["title"] as? [String: Any] {
-      let plain = title["title"] as? String ?? ""
-      let subtitle = title["subtitle"] as? String
-      let avatarUrl = title["avatarUrl"] as? String
-      let fallbackInitial = title["avatarFallbackInitial"] as? String
-      let statusDot = title["statusDotColorHex"] as? String
+    // Считываем title-конфиг — для chat'а (есть subtitle/avatar) мы
+    // встраиваем trailing icons ВНУТРЬ title pill'а (одна пилюля
+    // вместо двух). Для secondary-экранов без subtitle/avatar
+    // (settings и т.п.) шапка остаётся стандартной: plain title +
+    // отдельный rightBarButtonItems pill.
+    let titleCfg = config["title"] as? [String: Any]
+    let titlePlain = titleCfg?["title"] as? String ?? ""
+    let titleSubtitle = titleCfg?["subtitle"] as? String
+    let titleAvatarUrl = titleCfg?["avatarUrl"] as? String
+    let titleFallback = titleCfg?["avatarFallbackInitial"] as? String
+    let titleStatusDot = titleCfg?["statusDotColorHex"] as? String
+    let isChatStyleTitle =
+      (titleSubtitle != nil) || (titleAvatarUrl != nil)
+    let trailingRaw = config["trailing"] as? [[String: Any]] ?? []
 
-      lastPlainTitle = plain
-      if subtitle != nil || avatarUrl != nil {
+    trailingActionsById.removeAll(keepingCapacity: true)
+    var items: [UIBarButtonItem] = []
+
+    if titleCfg != nil {
+      lastPlainTitle = titlePlain
+      if isChatStyleTitle {
+        // Combined pill: avatar + name + spacer + icons. Внутри одной
+        // Liquid Glass пилюли. iOS 26 не разделит её на под-пилюли,
+        // потому что titleView — это custom UIView, не barButtonItem.
         customTitleView = makeTitleView(
-          title: plain,
-          subtitle: subtitle,
-          avatarUrl: avatarUrl,
-          fallbackInitial: fallbackInitial,
-          statusDotHex: statusDot
+          title: titlePlain,
+          subtitle: titleSubtitle,
+          avatarUrl: titleAvatarUrl,
+          fallbackInitial: titleFallback,
+          statusDotHex: titleStatusDot,
+          embeddedActions: trailingRaw
         )
       } else {
         customTitleView = nil
@@ -261,26 +277,19 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       // плоский title тоже не показываем (он перекрывает search bar).
       if !searchActive {
         item.titleView = customTitleView
-        item.title = customTitleView == nil ? plain : nil
+        item.title = customTitleView == nil ? titlePlain : nil
       } else {
         item.titleView = searchBar
         item.title = nil
       }
     }
 
-    // Trailing actions: вместо набора независимых UIBarButtonItem'ов (iOS 26
-    // вокруг каждого рендерит свою Liquid Glass-пилюлю с системным зазором
-    // ~12pt) собираем ОДНУ группу — UIStackView внутри одного
-    // UIBarButtonItem(customView:). Получаем единую пилюлю с tight spacing
-    // между иконками; за счёт этого pill становится уже, и UINavigationBar
-    // даёт titleView (имя юзера) больше места.
-    trailingActionsById.removeAll(keepingCapacity: true)
-    var items: [UIBarButtonItem] = []
-    if let trailing = config["trailing"] as? [[String: Any]] {
+    // Trailing actions для НЕ-chat шапок (без avatar/subtitle): обычный
+    // grouped pill справа. Для chat-style title icons уже встроены в
+    // titleView выше — здесь ничего не добавляем (items пустой).
+    if !isChatStyleTitle {
       var buttons: [UIButton] = []
-      // Native order = left-to-right, без reversed: stack сам уложит
-      // их в визуальном порядке (left = search, right = phone).
-      for action in trailing {
+      for action in trailingRaw {
         let id = action["id"] as? String ?? ""
         let symbol = (action["icon"] as? [String: Any])?["symbol"] as? String
           ?? "ellipsis"
@@ -298,8 +307,6 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
         btn.addTarget(
           self, action: #selector(onTrailingButtonTap(_:)),
           for: .touchUpInside)
-        // 36×36 — компактный hit-target, ≥44 не нужен (Apple recommends
-        // minimum только для standalone elements, не для grouped icons).
         btn.translatesAutoresizingMaskIntoConstraints = false
         btn.widthAnchor.constraint(equalToConstant: 36).isActive = true
         btn.heightAnchor.constraint(equalToConstant: 36).isActive = true
@@ -309,20 +316,16 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
         let stack = UIStackView(arrangedSubviews: buttons)
         stack.axis = .horizontal
         stack.alignment = .center
-        // spacing 2pt → 3 иконки ≈ 112pt total (vs ~150pt при independent
-        // pill'ах с системными зазорами).
         stack.spacing = 2
         stack.translatesAutoresizingMaskIntoConstraints = false
         let group = UIBarButtonItem(customView: stack)
-        // Negative fixedSpace СЛЕВА от группы → подтягиваем pill ближе к
-        // title. В UINavigationBar `rightBarButtonItems[0]` — самый
-        // правый, дальше ВЛЕВО. Поэтому negSpace ставим ПОСЛЕ group.
         let negSpace = UIBarButtonItem(
           barButtonSystemItem: .fixedSpace, target: nil, action: nil)
         negSpace.width = -8
         items = [group, negSpace]
       }
     }
+
     storedRightItems = items
     // В режиме поиска прячем actions, чтобы UISearchBar получил всё место.
     item.rightBarButtonItems = searchActive ? [] : items
@@ -637,7 +640,8 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     subtitle: String?,
     avatarUrl: String?,
     fallbackInitial: String?,
-    statusDotHex: String?
+    statusDotHex: String?,
+    embeddedActions: [[String: Any]] = []
   ) -> UIView {
     // Telegram-style: avatar+title+subtitle ВНУТРИ Liquid Glass пилюли,
     // которая визуально такая же, как pill'ы у back/search/video items'ов
@@ -749,6 +753,8 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     container.addSubview(avatar)
     container.addSubview(textStack)
 
+    // Базовые constraints без trailing-anchor для textStack — он зависит
+    // от того, есть ли embedded icons (см. ниже).
     NSLayoutConstraint.activate([
       // Avatar 34×34, pill 44 — точно совпадает с Apple's iOS 26
       // barButtonItem pills (back / search-video-phone group).
@@ -763,14 +769,64 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       textStack.leadingAnchor.constraint(
         equalTo: avatar.trailingAnchor, constant: 6),
       textStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-      // textStack.trailingAnchor `equalTo` (а не lessThanOrEqualTo)
-      // container.trailingAnchor → title pill claim'ит всю доступную
-      // ширину вместо схлопывания по intrinsic content size, и длинные
-      // имена не truncate'аются с эллипсисом раньше времени.
-      textStack.trailingAnchor.constraint(
-        equalTo: container.trailingAnchor),
       container.heightAnchor.constraint(equalToConstant: 44),
     ])
+
+    // Embedded icons (search/video/phone/threads) — внутри ОДНОЙ пилюли с
+    // avatar+name, чтобы не было разделения title-pill ↔ trailing-pill
+    // на iOS 26 Liquid Glass. Каждая иконка — UIButton с tag = id mapping
+    // в trailingActionsById; tap → onTrailingButtonTap → actionTap event.
+    if !embeddedActions.isEmpty {
+      var iconButtons: [UIButton] = []
+      for action in embeddedActions {
+        let id = action["id"] as? String ?? ""
+        let symbol = (action["icon"] as? [String: Any])?["symbol"] as? String
+          ?? "ellipsis"
+        let enabled = action["enabled"] as? Bool ?? true
+        let btn = UIButton(type: .system)
+        btn.setImage(SymbolMapper.image(named: symbol), for: .normal)
+        btn.isEnabled = enabled
+        if let tintHex = action["tintHex"] as? String,
+          let color = UIColor.fromHex(tintHex) {
+          btn.tintColor = color
+        }
+        let key = btn.hash
+        trailingActionsById[key] = id
+        btn.tag = key
+        btn.addTarget(
+          self, action: #selector(onTrailingButtonTap(_:)),
+          for: .touchUpInside)
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        btn.widthAnchor.constraint(equalToConstant: 32).isActive = true
+        btn.heightAnchor.constraint(equalToConstant: 32).isActive = true
+        iconButtons.append(btn)
+      }
+      let iconStack = UIStackView(arrangedSubviews: iconButtons)
+      iconStack.axis = .horizontal
+      iconStack.alignment = .center
+      // 0pt spacing для embedded icons: 4 иконки × 32pt = 128pt — впритык,
+      // оставляем максимум места под avatar + имя.
+      iconStack.spacing = 0
+      iconStack.translatesAutoresizingMaskIntoConstraints = false
+      container.addSubview(iconStack)
+      NSLayoutConstraint.activate([
+        iconStack.trailingAnchor.constraint(
+          equalTo: container.trailingAnchor),
+        iconStack.centerYAnchor.constraint(
+          equalTo: container.centerYAnchor),
+        // textStack может занимать оставшееся место, но не лезет на иконки.
+        textStack.trailingAnchor.constraint(
+          lessThanOrEqualTo: iconStack.leadingAnchor, constant: -6),
+      ])
+    } else {
+      NSLayoutConstraint.activate([
+        // textStack.trailingAnchor `equalTo` (а не lessThanOrEqualTo)
+        // container.trailingAnchor → title pill claim'ит всю доступную
+        // ширину вместо схлопывания по intrinsic content size.
+        textStack.trailingAnchor.constraint(
+          equalTo: container.trailingAnchor),
+      ])
+    }
 
     if let statusDotHex = statusDotHex, let color = UIColor.fromHex(statusDotHex) {
       let dot = UIView()

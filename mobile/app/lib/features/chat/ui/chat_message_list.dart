@@ -85,7 +85,14 @@ class ChatMessageList extends ConsumerStatefulWidget {
     this.onOutboxRetry,
     this.onOutboxDismiss,
     this.pendingRetryAt = const <String, DateTime>{},
+    this.topOverlayOffset = 4,
   });
+
+  /// Y-сдвиг для floating date capsule. На iOS native bar — overlay поверх
+  /// сообщений, и капсула с топ=4 пряталась под bar'ом. Передаём сюда
+  /// `nativeBarBottom + pinnedPillHeight(if any) + small gap`, чтобы
+  /// дата всегда висела сразу под видимой шапкой.
+  final double topOverlayOffset;
 
   final List<ChatMessage> messagesDesc;
   final String currentUserId;
@@ -732,7 +739,7 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
           ),
           if (stickyDisplay != null)
             Positioned(
-              top: 4,
+              top: widget.topOverlayOffset,
               left: 0,
               right: 0,
               child: IgnorePointer(

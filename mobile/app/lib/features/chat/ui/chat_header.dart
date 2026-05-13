@@ -200,13 +200,17 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
           icon: const NavBarIcon('phone.fill'),
           title: l10n?.chat_header_tooltip_audio_call,
         ),
-      if (widget.threadsUnreadCount > 0)
-        NavBarAction(
-          id: _actionThreads,
-          icon: const NavBarIcon('bubble.left.and.bubble.right'),
-          badge: widget.threadsUnreadCount.toString(),
-          title: l10n?.chat_header_tooltip_threads,
-        ),
+      // Threads icon — всегда показываем (default-action), badge только
+      // когда есть непрочитанные. Раньше скрывали при unread=0, но
+      // пользователю нужен прямой доступ к обсуждениям без захода в меню.
+      NavBarAction(
+        id: _actionThreads,
+        icon: const NavBarIcon('bubble.left.and.bubble.right'),
+        badge: widget.threadsUnreadCount > 0
+            ? widget.threadsUnreadCount.toString()
+            : null,
+        title: l10n?.chat_header_tooltip_threads,
+      ),
       if (widget.scheduledCount > 0 && widget.onScheduledTap != null)
         NavBarAction(
           id: _actionScheduled,

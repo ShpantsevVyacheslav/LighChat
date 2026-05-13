@@ -18,6 +18,7 @@ class ChatMessageSearchOverlay extends StatelessWidget {
     required this.onSelectMessageId,
     required this.onTapScrim,
     this.decryptedTextByMessageId,
+    this.topInset = 0,
   });
 
   final List<ChatMessage> results;
@@ -25,6 +26,13 @@ class ChatMessageSearchOverlay extends StatelessWidget {
   final Map<String, UserProfile> profileMap;
   final void Function(String messageId) onSelectMessageId;
   final VoidCallback onTapScrim;
+
+  /// На iOS native nav bar — overlay, и тело чата рисуется под ним
+  /// (`belowHeaderGap=0`). Передаём bottom edge native bar'а сюда,
+  /// чтобы карточка результатов появлялась НИЖЕ шапки, а не вылезала
+  /// в статус-bar. На Android/Windows/Linux 0 — Material AppBar
+  /// занимает свою высоту в layout'е.
+  final double topInset;
 
   /// Расшифрованный plaintext для E2EE-сообщений (`messageId → text`).
   /// Без этого мапа сниппет результата у E2EE-сообщений всегда деградировал
@@ -82,7 +90,7 @@ class ChatMessageSearchOverlay extends StatelessWidget {
           Align(
             alignment: Alignment.topCenter,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              padding: EdgeInsets.fromLTRB(12, topInset + 8, 12, 12),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 672),
                 child: ClipRRect(
