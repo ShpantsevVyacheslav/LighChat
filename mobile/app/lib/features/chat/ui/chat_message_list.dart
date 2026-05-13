@@ -613,7 +613,27 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
     for (final g in groups) {
       if (g.isEmpty) continue;
       final dayKey = ChatMessageList.dayKey(g.first.createdAt);
-      final anchorMessageIndex = widget.reversed ? g.length - 1 : 0;
+
+      // Лёгкий маркер-якорь дня (1pt SizedBox с GlobalKey) ВНЕ
+      // SliverList'а — он всегда лежит в layout'е (как самостоятельный
+      // sliver, не как child SliverChildBuilderDelegate'а), и его
+      // currentContext доступен пока он попадает в cacheExtent.
+      //
+      // В НЕ-reversed режиме (groups oldest→newest, axis down) ставим
+      // маркер ПЕРЕД sliver'ом → визуально на верху дня. В reversed
+      // (axis up) — ПОСЛЕ, потому что axis-end в reverse = верх
+      // viewport'а. См. _computeVisibleDayLabel для деталей логики
+      // выбора видимого дня по этим маркерам.
+      if (!widget.reversed) {
+        slivers.add(
+          SliverToBoxAdapter(
+            child: SizedBox(
+              key: _dayStartKeys.putIfAbsent(dayKey, GlobalKey.new),
+              height: 1,
+            ),
+          ),
+        );
+      }
       final separatorMessageIndex = unreadSeparatorId == null
           ? -1
           : g.indexWhere((m) => m.id == unreadSeparatorId);
@@ -732,12 +752,11 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
                 child: padded,
               );
             }
-            Widget row = messageIndex == anchorMessageIndex
-                ? KeyedSubtree(
-                    key: _dayStartKeys.putIfAbsent(dayKey, GlobalKey.new),
-                    child: padded,
-                  )
-                : padded;
+            // Якорь дня переехал на отдельный SliverToBoxAdapter (см.
+            // ниже, перед/после SliverList'а каждой группы) — теперь
+            // currentContext дня доступен даже если messages
+            // конкретной даты не сбилдились (cache extent).
+            Widget row = padded;
             if (rowKey != null) {
               row = KeyedSubtree(key: rowKey, child: row);
             }
@@ -761,6 +780,20 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
           }, childCount: childCount),
         ),
       );
+
+      // В reversed-режиме маркер дня ставим ПОСЛЕ SliverList'а группы
+      // (axis-end = верх viewport'а), визуально получится «над»
+      // сообщениями этого дня.
+      if (widget.reversed) {
+        slivers.add(
+          SliverToBoxAdapter(
+            child: SizedBox(
+              key: _dayStartKeys.putIfAbsent(dayKey, GlobalKey.new),
+              height: 1,
+            ),
+          ),
+        );
+      }
     }
 
     if (widget.outgoingMediaFooter != null && !widget.reversed) {
