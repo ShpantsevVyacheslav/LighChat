@@ -777,7 +777,9 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
     // raw — это id<LocalTrack>; для видео это LocalVideoTrack.
     guard let videoTrack = raw as? LocalVideoTrack else { return }
     pipRenderer.displayLayer = sampleBufferDisplayLayer
-    videoTrack.addRenderer(pipRenderer)
+    // ObjC селектор `addRenderer:` Swift-interop переименовал в
+    // `add(_:)` (так же `removeRenderer:` → `remove(_:)`).
+    videoTrack.add(pipRenderer)
     rendererAttached = true
   }
 
@@ -793,7 +795,7 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
       pipRenderer.displayLayer = nil
       return
     }
-    videoTrack.removeRenderer(pipRenderer)
+    videoTrack.remove(pipRenderer)
     pipRenderer.displayLayer = nil
     rendererAttached = false
   }
