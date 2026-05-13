@@ -174,15 +174,17 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     topBarTopConstraint = topC
 
     NSLayoutConstraint.activate([
-      // Gradient blur от верха view до bottom edge nav bar pill'a
-      // (≈ safe-area.top + bar height + bit beyond). Mask делает
-      // переход невидимым на нижней границе.
+      // Gradient blur от верха view до НИЖНЕГО края title pill'а
+      // (= safe-area.top + navBarContentHeight + navBarTopGap = ≈42pt
+      // ниже safe-area.top). Mask делает переход alpha 1→0 (top→bottom),
+      // т.е. blur плавно усиливается снизу вверх и полностью невидим
+      // на нижней границе (= bottom of pills).
       topBlur.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
       topBlur.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
       topBlur.topAnchor.constraint(equalTo: vc.view.topAnchor),
       topBlur.bottomAnchor.constraint(
         equalTo: vc.view.safeAreaLayoutGuide.topAnchor,
-        constant: 4),
+        constant: Self.navBarContentHeight + Self.navBarTopGap),
 
       top.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
       top.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
@@ -242,10 +244,19 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
         || ((earlyTitleCfg?["avatarUrl"] as? String) != nil)
 
     func makeLeadingItems(_ btn: UIBarButtonItem) -> [UIBarButtonItem] {
+      // negEdge — отрицательная фикс-полоска ПЕРЕД back'ом, чтобы
+      // back-pill ушёл максимально близко к левому краю экрана.
+      // iOS 26 удерживает ~12pt system-margin от screen edge даже
+      // когда `directionalLayoutMargins.leading = 1`; negEdge -12pt
+      // компенсирует это и подтягивает pill вплотную к границе.
+      let negEdge = UIBarButtonItem(
+        barButtonSystemItem: .fixedSpace, target: nil, action: nil)
+      negEdge.width = -12
       let negSpace = UIBarButtonItem(
         barButtonSystemItem: .fixedSpace, target: nil, action: nil)
       negSpace.width = -8
-      return [btn, negSpace]
+      // leftBarButtonItems[0] — самый левый. Порядок: negEdge → back → negSpace.
+      return [negEdge, btn, negSpace]
     }
 
     /// 44×44 «пилюля» БЕЗ собственного UIVisualEffectView фона.
@@ -395,10 +406,16 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
         stack.spacing = 2
         stack.translatesAutoresizingMaskIntoConstraints = false
         let group = UIBarButtonItem(customView: stack)
+        // rightBarButtonItems[0] — самый правый. Перед группой ставим
+        // отрицательный negEdge (-12pt), чтобы pill подтянулся к
+        // правому краю экрана сквозь системный auto-margin iOS 26.
+        let negEdge = UIBarButtonItem(
+          barButtonSystemItem: .fixedSpace, target: nil, action: nil)
+        negEdge.width = -12
         let negSpace = UIBarButtonItem(
           barButtonSystemItem: .fixedSpace, target: nil, action: nil)
         negSpace.width = -8
-        items = [group, negSpace]
+        items = [negEdge, group, negSpace]
       }
     }
 
