@@ -14181,6 +14181,30 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Пожаловаться на пользователя'**
   String get partner_profile_menu_report;
+
+  /// No description provided for @call_bubble_voice_call.
+  ///
+  /// In ru, this message translates to:
+  /// **'Голосовой звонок'**
+  String get call_bubble_voice_call;
+
+  /// No description provided for @call_bubble_video_call.
+  ///
+  /// In ru, this message translates to:
+  /// **'Видеозвонок'**
+  String get call_bubble_video_call;
+
+  /// No description provided for @chat_preview_poll.
+  ///
+  /// In ru, this message translates to:
+  /// **'Опрос'**
+  String get chat_preview_poll;
+
+  /// No description provided for @chat_preview_forwarded.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пересланное сообщение'**
+  String get chat_preview_forwarded;
 }
 
 class _AppLocalizationsDelegate

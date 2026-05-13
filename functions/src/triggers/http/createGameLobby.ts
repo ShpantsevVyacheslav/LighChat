@@ -108,7 +108,7 @@ export const createGameLobby = onCall(
         id: msgRef.id,
         senderId: "__system__",
         createdAt: nowIso,
-        text: "🎮 Создано лобби «Дурак». Откройте «Игры», чтобы присоединиться.",
+        text: "{{gameLobbyCreated}}",
         systemEvent: {
           type: "gameLobbyCreated",
           data: { gameId, gameType: "durak" },

@@ -8121,6 +8121,18 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get partner_profile_menu_report => 'Denunciar usuario';
+
+  @override
+  String get call_bubble_voice_call => 'Llamada de voz';
+
+  @override
+  String get call_bubble_video_call => 'Videollamada';
+
+  @override
+  String get chat_preview_poll => 'Encuesta';
+
+  @override
+  String get chat_preview_forwarded => 'Mensaje reenviado';
 }
 
 /// The translations for Spanish Castilian, as used in Mexico (`es_MX`).
@@ -16183,4 +16195,16 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get partner_profile_menu_report => 'Denunciar usuario';
+
+  @override
+  String get call_bubble_voice_call => 'Llamada de voz';
+
+  @override
+  String get call_bubble_video_call => 'Videollamada';
+
+  @override
+  String get chat_preview_poll => 'Encuesta';
+
+  @override
+  String get chat_preview_forwarded => 'Mensaje reenviado';
 }

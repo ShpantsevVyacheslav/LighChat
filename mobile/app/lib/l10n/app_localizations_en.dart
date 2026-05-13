@@ -8028,4 +8028,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get partner_profile_menu_report => 'Report user';
+
+  @override
+  String get call_bubble_voice_call => 'Voice call';
+
+  @override
+  String get call_bubble_video_call => 'Video call';
+
+  @override
+  String get chat_preview_poll => 'Poll';
+
+  @override
+  String get chat_preview_forwarded => 'Forwarded message';
 }

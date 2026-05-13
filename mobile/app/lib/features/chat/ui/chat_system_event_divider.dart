@@ -14,11 +14,14 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:lighchat_models/lighchat_models.dart';
+import '../data/chat_call_status.dart';
 
 /// WhatsApp-style bubble для call-событий в timeline чата.
 /// Выравнивается вправо/влево в зависимости от того, кто звонил.
+/// При тапе открывает карточку звонка через /calls/{callId}.
 class ChatCallBubble extends StatelessWidget {
   const ChatCallBubble({
     super.key,
@@ -41,25 +44,39 @@ class ChatCallBubble extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     final callerId = event.data?['callerId'] as String?;
-    final isMine = callerId == currentUserId;
+    final receiverId = event.data?['receiverId'] as String?;
+    final endedBy = event.data?['endedBy'] as String?;
+    final rawStatus = event.data?['rawStatus'] as String? ??
+        (event.type == ChatSystemEventType.callMissed ? 'missed' : 'cancelled');
+    final callId = event.data?['callId'] as String?;
     final isVideo = event.data?['isVideo'] == true;
-    final isMissed = event.type == ChatSystemEventType.callMissed;
 
-    final label = isMissed
-        ? l10n.system_event_call_missed
-        : l10n.system_event_call_cancelled;
+    final isMine = callerId == currentUserId;
+
+    final viewerIsReceiver = receiverId == currentUserId;
+    final resolvedStatus = resolveCallTerminalStatusForViewer(
+      rawStatus: rawStatus,
+      viewerIsReceiver: viewerIsReceiver,
+      callerId: callerId,
+      receiverId: receiverId,
+      endedBy: endedBy,
+    );
+
+    final typeLabel =
+        isVideo ? l10n.call_bubble_video_call : l10n.call_bubble_voice_call;
+    final statusLabel = callStatusLabel(resolvedStatus, l10n);
 
     final bubbleColor = isMine
         ? (outgoingBubbleColor ?? theme.colorScheme.primaryContainer)
-        : (theme.colorScheme.surfaceContainerHighest);
+        : theme.colorScheme.surfaceContainerHighest;
 
     final onBubble = isMine
         ? theme.colorScheme.onPrimaryContainer
         : theme.colorScheme.onSurface;
 
-    final iconColor = isMissed
+    final iconColor = resolvedStatus == 'missed'
         ? Colors.red.shade400
-        : onBubble.withValues(alpha: 0.55);
+        : onBubble.withValues(alpha: 0.6);
 
     final local = createdAt.toLocal();
     final time =
@@ -69,40 +86,59 @@ class ChatCallBubble extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
       child: Align(
         alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
-        child: Container(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.65,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: bubbleColor,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isVideo ? Icons.videocam_outlined : Icons.phone_outlined,
-                size: 24,
-                color: iconColor,
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  label,
-                  style: theme.textTheme.bodyMedium?.copyWith(color: onBubble),
-                  overflow: TextOverflow.ellipsis,
+        child: GestureDetector(
+          onTap: callId != null
+              ? () => context.push('/calls/$callId')
+              : null,
+          child: Container(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.65,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: bubbleColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isVideo ? Icons.videocam_outlined : Icons.phone_outlined,
+                  size: 26,
+                  color: iconColor,
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                time,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: onBubble.withValues(alpha: 0.55),
-                  fontSize: 10,
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        typeLabel,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: onBubble,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        statusLabel,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: onBubble.withValues(alpha: 0.65),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Text(
+                  time,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: onBubble.withValues(alpha: 0.55),
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

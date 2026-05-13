@@ -4138,5 +4138,9 @@
   "partner_profile_menu_report": "Kullanıcıyı şikayet et",
   "@partner_profile_menu_report": {
     "description": "partner profile menu report"
-  }
+  },
+  "call_bubble_voice_call": "Sesli arama",
+  "call_bubble_video_call": "Görüntülü arama",
+  "chat_preview_poll": "Anket",
+  "chat_preview_forwarded": "İletilen mesaj"
 }

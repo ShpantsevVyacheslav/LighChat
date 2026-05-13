@@ -3648,16 +3648,22 @@
   "meeting_chat_editing": "Редактирование",
   "meeting_chat_reply_to": "Ответ {name}",
   "@meeting_chat_reply_to": {
-    "placeholders": { "name": {} }
+    "placeholders": {
+      "name": {}
+    }
   },
   "meeting_chat_attachment_placeholder": "Вложение",
   "meeting_timer_remaining": "Осталось {time}",
   "@meeting_timer_remaining": {
-    "placeholders": { "time": {} }
+    "placeholders": {
+      "time": {}
+    }
   },
   "meeting_timer_elapsed": "{time}",
   "@meeting_timer_elapsed": {
-    "placeholders": { "time": {} }
+    "placeholders": {
+      "time": {}
+    }
   },
   "meeting_back_to_chats": "К чатам",
   "meeting_open_chats": "Открыть чаты",
@@ -4211,5 +4217,9 @@
   "partner_profile_menu_report": "Пожаловаться на пользователя",
   "@partner_profile_menu_report": {
     "description": "partner profile menu report"
-  }
+  },
+  "call_bubble_voice_call": "Голосовой звонок",
+  "call_bubble_video_call": "Видеозвонок",
+  "chat_preview_poll": "Опрос",
+  "chat_preview_forwarded": "Пересланное сообщение"
 }

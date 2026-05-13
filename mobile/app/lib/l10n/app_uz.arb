@@ -4138,5 +4138,9 @@
   "partner_profile_menu_report": "Foydalanuvchi haqida shikoyat",
   "@partner_profile_menu_report": {
     "description": "partner profile menu report"
-  }
+  },
+  "call_bubble_voice_call": "Ovozli qo'ng'iroq",
+  "call_bubble_video_call": "Video qo'ng'iroq",
+  "chat_preview_poll": "So'rovnoma",
+  "chat_preview_forwarded": "Yuborilgan xabar"
 }

@@ -4138,5 +4138,9 @@
   "partner_profile_menu_report": "Пайдаланушыға шағым",
   "@partner_profile_menu_report": {
     "description": "partner profile menu report"
-  }
+  },
+  "call_bubble_voice_call": "Дауысты қоңырау",
+  "call_bubble_video_call": "Бейнеқоңырау",
+  "chat_preview_poll": "Сауалнама",
+  "chat_preview_forwarded": "Жіберілген хабарлама"
 }

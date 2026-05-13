@@ -8080,4 +8080,16 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get partner_profile_menu_report => 'Пайдаланушыға шағым';
+
+  @override
+  String get call_bubble_voice_call => 'Дауысты қоңырау';
+
+  @override
+  String get call_bubble_video_call => 'Бейнеқоңырау';
+
+  @override
+  String get chat_preview_poll => 'Сауалнама';
+
+  @override
+  String get chat_preview_forwarded => 'Жіберілген хабарлама';
 }

@@ -8066,4 +8066,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get partner_profile_menu_report => 'Пожаловаться на пользователя';
+
+  @override
+  String get call_bubble_voice_call => 'Голосовой звонок';
+
+  @override
+  String get call_bubble_video_call => 'Видеозвонок';
+
+  @override
+  String get chat_preview_poll => 'Опрос';
+
+  @override
+  String get chat_preview_forwarded => 'Пересланное сообщение';
 }

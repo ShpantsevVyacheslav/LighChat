@@ -8101,4 +8101,16 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get partner_profile_menu_report => 'Foydalanuvchi haqida shikoyat';
+
+  @override
+  String get call_bubble_voice_call => 'Ovozli qo\'ng\'iroq';
+
+  @override
+  String get call_bubble_video_call => 'Video qo\'ng\'iroq';
+
+  @override
+  String get chat_preview_poll => 'So\'rovnoma';
+
+  @override
+  String get chat_preview_forwarded => 'Yuborilgan xabar';
 }

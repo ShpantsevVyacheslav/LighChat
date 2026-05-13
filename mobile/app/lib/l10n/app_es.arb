@@ -4138,5 +4138,9 @@
   "partner_profile_menu_report": "Denunciar usuario",
   "@partner_profile_menu_report": {
     "description": "partner profile menu report"
-  }
+  },
+  "call_bubble_voice_call": "Llamada de voz",
+  "call_bubble_video_call": "Videollamada",
+  "chat_preview_poll": "Encuesta",
+  "chat_preview_forwarded": "Mensaje reenviado"
 }

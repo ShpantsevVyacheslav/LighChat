@@ -1993,6 +1993,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                               } else if (rawLast == '{{encrypted}}') {
                                 rawLast = l10nList.chat_e2ee_encrypted_message_placeholder;
                               }
+                              // Also translate new game lobby marker.
+                              else if (rawLast == '{{gameLobbyCreated}}') {
+                                rawLast = l10nList.system_event_game_lobby_created;
+                              }
                               // Also translate legacy hardcoded Russian markers.
                               else if (rawLast == 'Стикер') {
                                 rawLast = l10nList.chat_preview_sticker;
@@ -2002,6 +2006,20 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                 rawLast = l10nList.chat_preview_message;
                               } else if (rawLast == 'Зашифрованное сообщение') {
                                 rawLast = l10nList.chat_e2ee_encrypted_message_placeholder;
+                              } else if (rawLast.startsWith('📍')) {
+                                rawLast = l10nList.location_preview_title;
+                              } else if (rawLast.startsWith('📊')) {
+                                rawLast = l10nList.chat_preview_poll;
+                              } else if (rawLast.startsWith('🎮')) {
+                                rawLast = l10nList.system_event_game_lobby_created;
+                              } else if (rawLast == 'Чат создан') {
+                                rawLast = l10nList.chat_list_item_chat_created;
+                              } else if (rawLast == 'История очищена') {
+                                rawLast = l10nList.chat_list_item_history_cleared;
+                              } else if (rawLast.startsWith('Переслано') ||
+                                  rawLast == 'Пересланное сообщение' ||
+                                  rawLast == 'Пересланное вложение') {
+                                rawLast = l10nList.chat_preview_forwarded;
                               }
                               // Build rich subtitle with sender name + thread indicator.
                               String enrichedRawLast = rawLast;

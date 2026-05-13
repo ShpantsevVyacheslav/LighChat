@@ -81,6 +81,9 @@ export const oncallupdated = onDocumentUpdated(
         data: {
           callId: callId,
           callerId: callerId,
+          receiverId: receiverId,
+          endedBy: (afterData.endedBy as string | undefined) ?? "",
+          rawStatus: afterStatus,
           isVideo: isVideo,
         },
       };

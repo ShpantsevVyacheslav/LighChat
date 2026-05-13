@@ -8061,4 +8061,16 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get partner_profile_menu_report => 'Laporkan pengguna';
+
+  @override
+  String get call_bubble_voice_call => 'Panggilan suara';
+
+  @override
+  String get call_bubble_video_call => 'Panggilan video';
+
+  @override
+  String get chat_preview_poll => 'Jajak pendapat';
+
+  @override
+  String get chat_preview_forwarded => 'Pesan diteruskan';
 }

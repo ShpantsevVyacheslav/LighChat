@@ -3333,16 +3333,22 @@
   "meeting_chat_editing": "Editing",
   "meeting_chat_reply_to": "Reply to {name}",
   "@meeting_chat_reply_to": {
-    "placeholders": { "name": {} }
+    "placeholders": {
+      "name": {}
+    }
   },
   "meeting_chat_attachment_placeholder": "Attachment",
   "meeting_timer_remaining": "Left {time}",
   "@meeting_timer_remaining": {
-    "placeholders": { "time": {} }
+    "placeholders": {
+      "time": {}
+    }
   },
   "meeting_timer_elapsed": "{time}",
   "@meeting_timer_elapsed": {
-    "placeholders": { "time": {} }
+    "placeholders": {
+      "time": {}
+    }
   },
   "meeting_back_to_chats": "Back to chats",
   "meeting_open_chats": "Open chats",
@@ -4176,5 +4182,9 @@
   "partner_profile_menu_report": "Report user",
   "@partner_profile_menu_report": {
     "description": "partner profile menu report"
-  }
+  },
+  "call_bubble_voice_call": "Voice call",
+  "call_bubble_video_call": "Video call",
+  "chat_preview_poll": "Poll",
+  "chat_preview_forwarded": "Forwarded message"
 }
