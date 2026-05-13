@@ -3,6 +3,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import 'package:lighchat_mobile/core/app_logger.dart';
+
 import '../../../l10n/app_localizations.dart';
 import '../../../platform/native_nav_bar/lucide_sf_symbol_map.dart';
 import '../../../platform/native_nav_bar/nav_bar_config.dart';
@@ -134,8 +136,16 @@ class _ChatBottomNavState extends State<ChatBottomNav>
     // иначе при ребилде chat_list (под открытым чатом) таб-бар вспыхнет.
     if (!force) {
       final route = ModalRoute.of(context);
-      if (route?.isCurrent != true) return;
+      if (route?.isCurrent != true) {
+        appLogger.d(
+          '[chat-bottom-nav] skip push: route.isCurrent=${route?.isCurrent}',
+        );
+        return;
+      }
     }
+    appLogger.d(
+      '[chat-bottom-nav] push tab=${widget.activeTab.name} force=$force',
+    );
 
     // Берём пользовательский выбор иконок из настроек (Firestore) — те же
     // имена, что и для Flutter-таб-бара. Если ключа нет, fallback на default.
@@ -183,6 +193,7 @@ class _ChatBottomNavState extends State<ChatBottomNav>
   void _onNativeEvent(NavBarEvent event) {
     if (!mounted) return;
     if (event is NavBarTabChange) {
+      appLogger.d('[chat-bottom-nav] tabChange id=${event.id}');
       switch (event.id) {
         case 'chats':
           widget.onChatsTap();

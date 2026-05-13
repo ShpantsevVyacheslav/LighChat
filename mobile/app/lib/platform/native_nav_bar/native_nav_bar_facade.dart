@@ -69,14 +69,37 @@ class NativeNavBarFacade {
   Future<void> _invoke(String method, Map<String, Object?> args) async {
     if (!isSupported) return;
     try {
+      appLogger.d('[native-nav] -> $method ${_summarize(args)}');
       await _methodChannel.invokeMethod<void>(method, args);
     } catch (e) {
       appLogger.w('[native-nav] $method failed', error: e);
     }
   }
 
+  /// Лог-friendly короткое представление аргументов (без длинных URL'ов).
+  String _summarize(Map<String, Object?> args) {
+    final visible = args['visible'];
+    final selected = args['selectedId'];
+    final active = args['active'];
+    final count = args['count'];
+    final items = args['items'];
+    final tail = <String>[
+      if (visible != null) 'visible=$visible',
+      if (selected != null) "selected=$selected",
+      if (active != null) "active=$active",
+      if (count != null) "count=$count",
+      if (items is List) 'items=${items.length}',
+    ].join(' ');
+    return tail.isEmpty ? '{}' : '{$tail}';
+  }
+
   void _onEvent(dynamic raw) {
     final event = NavBarEvent.fromMap(raw);
-    if (event != null) _events.add(event);
+    if (event != null) {
+      appLogger.d('[native-nav] <- ${event.runtimeType}');
+      _events.add(event);
+    } else {
+      appLogger.w('[native-nav] <- unparsable event payload: $raw');
+    }
   }
 }

@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'package:lighchat_mobile/core/app_logger.dart';
+
 import '../../../l10n/app_localizations.dart';
 import '../../../platform/native_nav_bar/nav_bar_config.dart';
 import '../../../platform/native_nav_bar/native_nav_bar_facade.dart';
@@ -163,8 +165,16 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
     // минуя guard (route.isCurrent может ещё быть false во время transition).
     if (!force) {
       final route = ModalRoute.of(context);
-      if (route?.isCurrent != true) return;
+      if (route?.isCurrent != true) {
+        appLogger.d(
+          '[chat-header] skip push: route.isCurrent=${route?.isCurrent}',
+        );
+        return;
+      }
     }
+    appLogger.d(
+      '[chat-header] push title="${widget.title}" searchActive=${widget.searchActive} force=$force',
+    );
 
     final l10n = AppLocalizations.of(context);
     // Компактный набор трейлинг-actions: показываем только реально

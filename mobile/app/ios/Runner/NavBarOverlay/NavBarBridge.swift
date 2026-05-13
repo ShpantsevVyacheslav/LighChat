@@ -27,6 +27,7 @@ final class NavBarBridge: NSObject, FlutterStreamHandler {
 
   private func handle(call: FlutterMethodCall, result: @escaping FlutterResult) {
     let args = call.arguments as? [String: Any] ?? [:]
+    NavBarOverlayHost.log("MethodChannel<- \(call.method)")
     DispatchQueue.main.async {
       switch call.method {
       case "setTopBar":
@@ -46,13 +47,18 @@ final class NavBarBridge: NSObject, FlutterStreamHandler {
         NavBarOverlayHost.shared.applyScrollOffset(CGFloat(offset))
         result(nil)
       default:
+        NavBarOverlayHost.log("MethodChannel<- неизвестный метод \(call.method)")
         result(FlutterMethodNotImplemented)
       }
     }
   }
 
   private func send(type: String, payload: [String: Any]) {
+    NavBarOverlayHost.log("EventChannel-> \(type) payload=\(payload)")
     DispatchQueue.main.async {
+      if self.eventSink == nil {
+        NavBarOverlayHost.log("EventChannel-> eventSink==nil, событие потеряно: \(type)")
+      }
       self.eventSink?(["type": type, "payload": payload])
     }
   }

@@ -45,6 +45,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
   var onEvent: ((String, [String: Any]) -> Void)?
 
+  /// NSLog wrapper с префиксом для удобной фильтрации в Console.app:
+  ///   `[NavBarOverlay] ...`
+  /// Включается флагом `debugLog`. В production можно выключить.
+  static func log(_ message: String) {
+    guard debugLog else { return }
+    NSLog("[NavBarOverlay] %@", message)
+  }
+
   // MARK: - Setup
 
   /// Стандартная высота контента UITabBar / UINavigationBar. Apple использует
@@ -52,10 +60,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// Top bar поднят до 56pt чтобы avatar 36×36 + title + subtitle помещались
   /// без обрезки (iOS 26 Liquid Glass).
   private static let tabBarContentHeight: CGFloat = 49
-  private static let navBarContentHeight: CGFloat = 50
-  /// Gap между status bar и nav bar. По дизайн-feedback'у — 0,
-  /// шапка вплотную под Dynamic Island.
+  /// Минимальная высота nav bar по design-feedback'у — 44pt (по-Apple,
+  /// без раздутия). Содержит avatar 32 + title/subtitle.
+  private static let navBarContentHeight: CGFloat = 44
+  /// Gap между status bar и nav bar. 0 = шапка вплотную под Dynamic Island.
   private static let navBarTopGap: CGFloat = 0
+  /// Структурное логирование для отладки overlay'я. Включается через
+  /// `defaults write … NavBarOverlayDebug 1` или хардкодом ниже.
+  private static let debugLog: Bool = true
 
   func attach(to vc: UIViewController) {
     flutterVC = vc
@@ -94,12 +106,18 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
       bottom.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
       bottom.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
-      // Тонкий tab-bar только в safe-area: bottom = home-indicator (а не
-      // view.bottom), height = 49pt. Без раздувания фонa на home-indicator
-      // зону — минимальный отступ от низа экрана.
-      bottom.bottomAnchor.constraint(equalTo: vc.view.safeAreaLayoutGuide.bottomAnchor),
-      bottom.heightAnchor.constraint(equalToConstant: Self.tabBarContentHeight),
+      // Фон тянется до низа экрана (стандарт Apple UITabBarController),
+      // контент-зона (49pt) сидит над home-indicator — иконки/лейблы не
+      // сплющены.
+      bottom.bottomAnchor.constraint(equalTo: vc.view.bottomAnchor),
+      bottom.topAnchor.constraint(
+        equalTo: vc.view.safeAreaLayoutGuide.bottomAnchor,
+        constant: -Self.tabBarContentHeight),
     ])
+
+    Self.log(
+      "attach: topBar/bottomBar добавлены к flutterVC.view, height: top=\(Self.navBarContentHeight) bottom=\(Self.tabBarContentHeight)"
+    )
 
     self.topBar = top
     self.bottomBar = bottom
@@ -108,9 +126,13 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   // MARK: - Public API (called by NavBarBridge)
 
   func applyTopBar(_ config: [String: Any]) {
-    guard let bar = topBar else { return }
+    guard let bar = topBar else {
+      Self.log("applyTopBar: topBar==nil (attach не вызван?)")
+      return
+    }
     let visible = config["visible"] as? Bool ?? true
     topVisible = visible
+    Self.log("applyTopBar visible=\(visible) searchActive=\(searchActive)")
     if !visible {
       bar.isHidden = true
       topBar?.items = []
@@ -243,9 +265,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   }
 
   func applyBottomBar(_ config: [String: Any]) {
-    guard let bar = bottomBar else { return }
+    guard let bar = bottomBar else {
+      Self.log("applyBottomBar: bottomBar==nil")
+      return
+    }
     let visible = config["visible"] as? Bool ?? true
     bottomVisible = visible
+    let itemsConfig = config["items"] as? [[String: Any]] ?? []
+    Self.log("applyBottomBar visible=\(visible) itemsCount=\(itemsConfig.count) selectedId=\(config["selectedId"] ?? "nil")")
     if !visible {
       bar.isHidden = true
       bar.items = []
@@ -297,6 +324,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     let value = config["value"] as? String ?? ""
     let wasActive = searchActive
     searchActive = active
+    Self.log("applySearch active=\(active) wasActive=\(wasActive) value.len=\(value.count) topItem!=nil:\(topItem != nil)")
 
     if !active {
       // Деактивация: убираем search bar, восстанавливаем custom title (avatar +
@@ -326,11 +354,22 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     if bar.text != value { bar.text = value }
     bar.translatesAutoresizingMaskIntoConstraints = false
 
+    // Cancel-X с увеличенным point-size — чтобы визуально матчился с
+    // built-in cancel UISearchBar (тот, что был раньше). 28pt — близко к
+    // iOS 26 Liquid Glass standard.
+    let cancelImage: UIImage? = {
+      if #available(iOS 13.0, *) {
+        let cfg = UIImage.SymbolConfiguration(pointSize: 26, weight: .regular)
+        return UIImage(systemName: "xmark.circle.fill", withConfiguration: cfg)
+      }
+      return SymbolMapper.image(named: "xmark.circle.fill")
+    }()
     let cancelBtn = UIBarButtonItem(
-      image: SymbolMapper.image(named: "xmark.circle.fill"),
+      image: cancelImage,
       style: .plain,
       target: self,
       action: #selector(onExplicitSearchCancel))
+    cancelBtn.tintColor = .secondaryLabel
 
     topItem?.titleView = bar
     topItem?.title = nil
@@ -338,26 +377,54 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     searchBar = bar
 
     // Принудительная layout-pass до becomeFirstResponder: без неё UIKit
-    // иногда не успевает положить searchBar в window-hierarchy, и
-    // клавиатура не открывается (становится first responder ничто).
+    // иногда не успевает положить searchBar в window-hierarchy.
     topBar?.setNeedsLayout()
     topBar?.layoutIfNeeded()
 
     if !wasActive {
-      // becomeFirstResponder на internal text field — надёжнее, чем на
-      // UISearchBar (iOS 26 routing). Используется на iOS 13+.
-      DispatchQueue.main.async { [weak bar] in
-        guard let bar = bar else { return }
-        if #available(iOS 13.0, *) {
-          bar.searchTextField.becomeFirstResponder()
-        } else {
-          bar.becomeFirstResponder()
-        }
+      // Несколько попыток сделать searchBar first responder. На iOS 26
+      // одной попытки часто недостаточно — UISearchBar внутри
+      // UINavigationItem.titleView долго инициализирует backing window.
+      attemptFocusSearch(retries: 8)
+    }
+  }
+
+  private func attemptFocusSearch(retries: Int) {
+    guard retries > 0 else {
+      Self.log("attemptFocusSearch: исчерпан лимит попыток, клавиатура не открылась")
+      return
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+      guard let self = self, let bar = self.searchBar else { return }
+      if !self.searchActive {
+        Self.log("attemptFocusSearch: searchActive=false, пропускаем")
+        return
       }
+      let inWindow = bar.window != nil
+      let canFocus: Bool = {
+        if #available(iOS 13.0, *) {
+          return bar.searchTextField.canBecomeFirstResponder
+        }
+        return bar.canBecomeFirstResponder
+      }()
+      Self.log("attemptFocusSearch try=\(8 - retries + 1) inWindow=\(inWindow) canFocus=\(canFocus)")
+      guard inWindow, canFocus else {
+        self.attemptFocusSearch(retries: retries - 1)
+        return
+      }
+      let became: Bool
+      if #available(iOS 13.0, *) {
+        became = bar.searchTextField.becomeFirstResponder()
+      } else {
+        became = bar.becomeFirstResponder()
+      }
+      Self.log("attemptFocusSearch became=\(became)")
+      if !became { self.attemptFocusSearch(retries: retries - 1) }
     }
   }
 
   @objc private func onExplicitSearchCancel() {
+    Self.log("onExplicitSearchCancel: X tapped")
     onEvent?("searchCancel", [:])
   }
 
@@ -419,12 +486,23 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
     let avatar = UIImageView()
     avatar.translatesAutoresizingMaskIntoConstraints = false
-    avatar.layer.cornerRadius = 18
+    avatar.layer.cornerRadius = 16
     avatar.layer.masksToBounds = true
     avatar.contentMode = .scaleAspectFill
-    // Fallback-аватар = синий круг + белая буква (как Flutter ChatAvatar
-    // на списке диалогов). При загрузке image — backgroundColor скрыт.
-    avatar.backgroundColor = .systemBlue
+    avatar.backgroundColor = .clear
+    // Fallback-градиент идентичен Flutter ChatAvatar (dark mode):
+    //   0xFF18357C → 0xFF29133F. Скрывается когда грузится реальное фото.
+    let gradient = CAGradientLayer()
+    gradient.colors = [
+      UIColor(red: 0x18 / 255.0, green: 0x35 / 255.0, blue: 0x7C / 255.0, alpha: 1).cgColor,
+      UIColor(red: 0x29 / 255.0, green: 0x13 / 255.0, blue: 0x3F / 255.0, alpha: 1).cgColor,
+    ]
+    gradient.startPoint = CGPoint(x: 0, y: 0)
+    gradient.endPoint = CGPoint(x: 1, y: 1)
+    gradient.frame = CGRect(x: 0, y: 0, width: 32, height: 32)
+    gradient.cornerRadius = 16
+    avatar.layer.insertSublayer(gradient, at: 0)
+
     // Reuse cached image immediately, чтобы избежать «мигания» при пересоздании
     // custom title view (Flutter пушит config на каждое изменение subtitle).
     if let cached = cachedAvatarImage,
@@ -438,7 +516,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     let initialLabel = UILabel()
     initialLabel.translatesAutoresizingMaskIntoConstraints = false
     initialLabel.text = fallbackInitial?.uppercased()
-    initialLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+    initialLabel.font = .systemFont(ofSize: 14, weight: .heavy)
     initialLabel.textAlignment = .center
     initialLabel.textColor = .white
     avatar.addSubview(initialLabel)
@@ -468,8 +546,8 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     container.addSubview(textStack)
 
     NSLayoutConstraint.activate([
-      avatar.widthAnchor.constraint(equalToConstant: 36),
-      avatar.heightAnchor.constraint(equalToConstant: 36),
+      avatar.widthAnchor.constraint(equalToConstant: 32),
+      avatar.heightAnchor.constraint(equalToConstant: 32),
       avatar.leadingAnchor.constraint(equalTo: container.leadingAnchor),
       avatar.centerYAnchor.constraint(equalTo: container.centerYAnchor),
 
@@ -477,11 +555,11 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       initialLabel.centerYAnchor.constraint(equalTo: avatar.centerYAnchor),
 
       textStack.leadingAnchor.constraint(
-        equalTo: avatar.trailingAnchor, constant: 10),
+        equalTo: avatar.trailingAnchor, constant: 8),
       textStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
       textStack.trailingAnchor.constraint(
         lessThanOrEqualTo: container.trailingAnchor),
-      container.heightAnchor.constraint(equalToConstant: 44),
+      container.heightAnchor.constraint(equalToConstant: 36),
     ])
 
     if let statusDotHex = statusDotHex, let color = UIColor.fromHex(statusDotHex) {
