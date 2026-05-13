@@ -787,31 +787,76 @@ class _RegisterSheetBodyState extends ConsumerState<_RegisterSheetBody> {
   /// успешный signIn создаёт users/{uid} через CF onUserCreated, дальше
   /// дозаполняется при необходимости.
   Future<void> _runOAuth(Future<void> Function() signIn) async {
-    if (oauthBlockedOnMacOSCheck(context)) return;
+    debugPrint('[UI-AUTH] OAuth flow: Starting...');
+
+    if (oauthBlockedOnMacOSCheck(context)) {
+      debugPrint('[UI-AUTH] OAuth flow: Blocked on macOS/Desktop');
+      return;
+    }
+
     setState(() {
       _busy = true;
       _oauthError = null;
     });
+    debugPrint('[UI-AUTH] OAuth flow: UI state set to busy');
+
     try {
+      debugPrint('[UI-AUTH] OAuth flow: Calling signIn function...');
       await signIn();
-      if (!mounted) return;
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
+      debugPrint('[UI-AUTH] OAuth flow: signIn completed successfully');
+
+      if (!mounted) {
+        debugPrint('[UI-AUTH] OAuth flow: Widget unmounted, returning');
         return;
       }
+
+      debugPrint('[UI-AUTH] OAuth flow: Checking current user...');
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        debugPrint('[UI-AUTH] OAuth flow: ERROR - No current user after sign-in!');
+        return;
+      }
+      debugPrint('[UI-AUTH] OAuth flow: Current user: ${user.uid}');
+
+      debugPrint('[UI-AUTH] OAuth flow: Getting registration profile status...');
       final status =
           await getFirestoreRegistrationProfileStatusWithDeadline(user);
-      if (!mounted) return;
+      debugPrint('[UI-AUTH] OAuth flow: Profile status: $status');
+
+      if (!mounted) {
+        debugPrint('[UI-AUTH] OAuth flow: Widget unmounted before routing');
+        return;
+      }
+
       final next = googleRouteFromProfileStatus(status);
+      debugPrint('[UI-AUTH] OAuth flow: Next route: $next');
+
       // Закрываем register-страницу, чтобы не остаться над dashboard'ом.
       Navigator.of(context).pop();
-      if (!mounted) return;
+      if (!mounted) {
+        debugPrint('[UI-AUTH] OAuth flow: Widget unmounted before navigation');
+        return;
+      }
+
+      debugPrint('[UI-AUTH] OAuth flow: SUCCESS - Navigating to ${next ?? '/chats'}');
       context.go(next ?? '/chats');
     } catch (e) {
-      if (!mounted) return;
+      debugPrint('[UI-AUTH] OAuth flow: ERROR - $e');
+      debugPrint('[UI-AUTH] Error type: ${e.runtimeType}');
+      debugPrint('[UI-AUTH] Error details: ${e.toString()}');
+
+      if (!mounted) {
+        debugPrint('[UI-AUTH] OAuth flow: Widget unmounted, error not shown');
+        return;
+      }
+
       setState(() => _oauthError = friendlyAuthError(e));
+      debugPrint('[UI-AUTH] OAuth flow: Error message shown to user');
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+        debugPrint('[UI-AUTH] OAuth flow: UI state reset to not busy');
+      }
     }
   }
 

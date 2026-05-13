@@ -125,18 +125,39 @@ class AuthRepository {
     // which currently conflicts with Firebase iOS SDK's GTMSessionFetcher version.
     //
     // On iOS/macOS this uses native OAuth flow via FirebaseAuth.
+    debugPrint('[AUTH] Google Sign-In: Starting...');
+
     final provider = GoogleAuthProvider();
     const maxAttempts = 3;
     for (var attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
+        debugPrint('[AUTH] Google Sign-In: Attempt $attempt/$maxAttempts - calling signInWithProvider');
         await _auth.signInWithProvider(provider);
+        debugPrint('[AUTH] Google Sign-In: SUCCESS - User signed in');
         return;
       } on FirebaseAuthException catch (e) {
         final raw = e.code;
         final code = raw.startsWith('auth/') ? raw : 'auth/$raw';
         final isNetwork = code == 'auth/network-request-failed';
-        if (!isNetwork || attempt == maxAttempts) rethrow;
-        await Future<void>.delayed(Duration(milliseconds: 250 * attempt));
+
+        debugPrint('[AUTH] Google Sign-In: ERROR (attempt $attempt/$maxAttempts)');
+        debugPrint('[AUTH]   Code: $code');
+        debugPrint('[AUTH]   Message: ${e.message}');
+        debugPrint('[AUTH]   PluginCode: ${e.plugin}');
+        debugPrint('[AUTH]   IsNetworkError: $isNetwork');
+
+        if (!isNetwork || attempt == maxAttempts) {
+          debugPrint('[AUTH] Google Sign-In: Throwing error (not retryable or max attempts reached)');
+          rethrow;
+        }
+
+        final delay = Duration(milliseconds: 250 * attempt);
+        debugPrint('[AUTH] Google Sign-In: Retrying after ${delay.inMilliseconds}ms');
+        await Future<void>.delayed(delay);
+      } catch (e) {
+        debugPrint('[AUTH] Google Sign-In: UNEXPECTED ERROR: $e');
+        debugPrint('[AUTH]   Type: ${e.runtimeType}');
+        rethrow;
       }
     }
   }
@@ -147,7 +168,25 @@ class AuthRepository {
 
   /// После callable `signInWithTelegram` (WebView-мост или другой клиент).
   Future<void> signInWithCustomToken(String customToken) async {
-    await _auth.signInWithCustomToken(customToken.trim());
+    try {
+      debugPrint('[AUTH] Custom Token Sign-In: Starting...');
+      debugPrint('[AUTH]   Token length: ${customToken.length}');
+
+      await _auth.signInWithCustomToken(customToken.trim());
+
+      debugPrint('[AUTH] Custom Token Sign-In: SUCCESS');
+    } on FirebaseAuthException catch (e) {
+      debugPrint('[AUTH] Custom Token Sign-In: FIREBASE ERROR');
+      debugPrint('[AUTH]   Code: ${e.code}');
+      debugPrint('[AUTH]   Message: ${e.message}');
+      debugPrint('[AUTH]   Plugin: ${e.plugin}');
+      rethrow;
+    } catch (e) {
+      debugPrint('[AUTH] Custom Token Sign-In: UNEXPECTED ERROR');
+      debugPrint('[AUTH]   Error: $e');
+      debugPrint('[AUTH]   Type: ${e.runtimeType}');
+      rethrow;
+    }
   }
 }
 
