@@ -50,6 +50,13 @@ final class NavBarBridge: NSObject, FlutterStreamHandler {
         let enabled = args["enabled"] as? Bool ?? false
         NavBarOverlayHost.shared.applyTopBlur(enabled: enabled)
         result(nil)
+      case "log":
+        // Pass-through Dart-логов в NSLog с префиксом `[NavBarOverlay]`,
+        // чтобы они появлялись рядом с native-логами в Xcode Console
+        // (Flutter debugPrint иногда теряется в фильтрах).
+        let msg = args["message"] as? String ?? ""
+        NavBarOverlayHost.log(msg)
+        result(nil)
       default:
         NavBarOverlayHost.log("MethodChannel<- неизвестный метод \(call.method)")
         result(FlutterMethodNotImplemented)

@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_mobile/core/app_logger.dart';
+import 'package:lighchat_mobile/platform/native_nav_bar/native_nav_bar_facade.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -351,10 +352,12 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
       final scrollPx = widget.scrollController.hasClients
           ? widget.scrollController.offset.toStringAsFixed(1)
           : '<none>';
-      appLogger.d(
-        '[sticky-day] LABEL CHANGE "$_stickyDayLabel" → "$next" '
-        'scroll=$scrollPx topOverlayOffset=${widget.topOverlayOffset}',
-      );
+      final msg =
+          '[sticky-day] LABEL CHANGE "$_stickyDayLabel" → "$next" scroll=$scrollPx topOverlayOffset=${widget.topOverlayOffset}';
+      appLogger.d(msg);
+      // Дополнительно — в native NSLog, чтобы лог гарантированно
+      // оказался в Xcode Console рядом с [NavBarOverlay] логами.
+      NativeNavBarFacade.instance.nativeLog(msg);
       setState(() => _stickyDayLabel = next);
     }
   }
@@ -448,7 +451,9 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
       ' → picked=${picked ?? "null"}@${pickedY == -double.infinity ? "none" : pickedY.toStringAsFixed(0)}'
       ' pickedDate=${pickedDate?.toLocal().toIso8601String() ?? "null"}',
     );
-    appLogger.d(logBuf.toString());
+    final logMsg = logBuf.toString();
+    appLogger.d(logMsg);
+    NativeNavBarFacade.instance.nativeLog(logMsg);
 
     // Fallback: ни один header не прошёл линию ⇒ мы выше topmost'а,
     // т.е. показываем САМЫЙ СТАРЫЙ день (top of conversation в

@@ -266,12 +266,11 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       return [negEdge, btn, negSpace]
     }
 
-    /// 44×44 «пилюля» БЕЗ собственного UIVisualEffectView фона.
-    /// iOS 26 автоматически оборачивает customView в Liquid Glass pill
-    /// → раньше получался DOUBLE fill (мой UIVisualEffectView ВНУТРИ
-    /// системного Liquid Glass). Теперь полагаемся на system-рендер:
-    /// просто прозрачный 44×44 container с иконкой, а iOS сам добавит
-    /// glass-обертку (matched к title pill 1:1).
+    /// 44×36 container БЕЗ собственного фона. iOS 26 оборачивает
+    /// customView в `NavigationButtonBar.ItemWrapperView` с фиксированной
+    /// height=36 (ломала наш height=44 → log spam про Unable to satisfy
+    /// constraints). Поэтому height = 36 явно. Liquid Glass pill вокруг
+    /// рендерится системой.
     func makeBackPillItem(symbol: String) -> UIBarButtonItem {
       let container = UIView()
       container.translatesAutoresizingMaskIntoConstraints = false
@@ -292,7 +291,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
         icon.widthAnchor.constraint(equalToConstant: 20),
         icon.heightAnchor.constraint(equalToConstant: 20),
         container.widthAnchor.constraint(equalToConstant: 44),
-        container.heightAnchor.constraint(equalToConstant: 44),
+        container.heightAnchor.constraint(equalToConstant: 36),
       ])
       return UIBarButtonItem(customView: container)
     }

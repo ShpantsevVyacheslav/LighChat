@@ -100,6 +100,21 @@ class NativeNavBarFacade {
   Future<void> setTopBlur({required bool enabled}) =>
       _invoke('setTopBlur', {'enabled': enabled});
 
+  /// Pass-through сообщения в native NSLog (`[NavBarOverlay] ...`),
+  /// чтобы Dart-логи появлялись в Xcode Console рядом с native-логами.
+  /// Полезно для debug-инструментирования экранов чата (sticky-day,
+  /// scroll metrics) — Flutter `debugPrint` иногда теряется в фильтрах
+  /// Xcode Console.
+  void nativeLog(String message) {
+    if (!isSupported) return;
+    // Намеренно НЕ дедупим — debug-канал.
+    _methodChannel.invokeMethod<void>('log', {'message': message}).catchError(
+      (Object _) {
+        // silent — лог не должен валить продакшен путь
+      },
+    );
+  }
+
   Future<void> hideAll() {
     // КРИТИЧЕСКИЙ race condition был с `await` между двумя вызовами:
     // observer (didPop + didPush на context.go) запускал hideAll() ДВА
