@@ -144,6 +144,7 @@ export const signInWithTelegram = onCall(
   {
     region: "us-central1",
     secrets: [telegramBotToken],
+    enforceAppCheck: false,
     cors: true,
   },
   async (request) => {
