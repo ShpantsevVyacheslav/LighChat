@@ -90,12 +90,12 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// iOS 26 рендерятся ~44pt — title pill подгоняем под этот размер.
   private static let navBarContentHeight: CGFloat = 48
   /// Насколько сместить ВЕСЬ tab bar вниз относительно view.bottom.
-  /// Apple Photos и другие iOS-26 apps кладут items впритык над home
-  /// indicator stripe — gap всего ~5-10pt. UITabBar по-стандарту
-  /// сидит над safe area (gap 34pt). Положительный overlap двигает
-  /// bar.frame ниже screen edge (часть bar'а уезжает за пределы
-  /// видимой области, items спускаются в safe-area zone).
-  private static let tabBarBottomOverlap: CGFloat = 28
+  /// Apple Photos / iOS 26 apps кладут items в safe-area zone (gap
+  /// ~15-20pt от низа экрана). UITabBar по-стандарту сидит над safe
+  /// area (gap 34pt — большой). Положительный overlap двигает
+  /// bar.frame ниже screen edge.
+  /// 16pt overlap → gap items-bottom до screen-bottom = 18pt.
+  private static let tabBarBottomOverlap: CGFloat = 16
   /// Отступ bar.top от safeArea.top. ОТРИЦАТЕЛЬНЫЙ — поднимаем bar в
   /// system-reserved area под Dynamic Island. Apple оставляет ~22pt
   /// clearance под DI; -8pt пробивает половину этого «воздуха», items
