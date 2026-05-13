@@ -140,13 +140,30 @@ class _NativeNavScaffoldState extends State<NativeNavScaffold> {
   @override
   Widget build(BuildContext context) {
     if (_native) {
+      // Native nav bar — overlay поверх FlutterView'а; host VC оставляет
+      // `additionalSafeAreaInsets.top = 0`, чтобы chat мог рисовать
+      // messages ПОД bar'ом с Liquid Glass blur. Поэтому для обычных
+      // экранов (settings, features tour, auth, ...) Scaffold body
+      // уехал бы в зону под bar'ом. Накидываем `topBarOverlayPadding`
+      // как Padding над body, если не задано `extendBodyBehindBars`.
+      final Widget body = widget.extendBodyBehindBars
+          ? widget.body
+          : Padding(
+              padding: EdgeInsets.only(
+                top: widget.top.visible
+                    ? NativeNavBarFacade.instance.topBarOverlayPadding
+                    : 0,
+                bottom: (widget.bottom?.visible ?? false)
+                    ? NativeNavBarFacade.instance.bottomBarOverlayPadding
+                    : 0,
+              ),
+              child: widget.body,
+            );
       return Scaffold(
         backgroundColor: widget.backgroundColor,
-        body: widget.body,
+        body: body,
         floatingActionButton: widget.floatingActionButton,
         floatingActionButtonLocation: widget.floatingActionButtonLocation,
-        // Native bars are rendered by UIKit/AppKit and `additionalSafeAreaInsets`
-        // is set on the host VC so MediaQuery.padding already accounts for them.
       );
     }
     return _materialFallback(context);

@@ -68,6 +68,15 @@ class NativeNavBarFacade {
   /// место в Scaffold.bottomNavigationBar.
   double get bottomBarOverlayPadding => isSupported ? 65.0 : 0.0;
 
+  /// Top-padding, который non-chat экраны (settings, features tour,
+  /// auth, etc.) должны добавить к телу, чтобы контент не уезжал ПОД
+  /// native nav bar. Соответствует `navBarContentHeight (48) +
+  /// navBarTopGap (-8) = 40pt` в Swift. Чат и другие экраны, которые
+  /// хотят Telegram-эффект «messages scroll под bar'ом», передают в
+  /// NativeNavScaffold `extendBodyBehindBars: true` — тогда padding
+  /// не накидывается.
+  double get topBarOverlayPadding => isSupported ? 40.0 : 0.0;
+
   Future<void> setTopBar(NavBarTopConfig config) =>
       _invoke('setTopBar', config.toMap());
 
