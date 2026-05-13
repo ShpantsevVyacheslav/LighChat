@@ -170,6 +170,7 @@ class NavBarTab {
     this.selectedIcon,
     this.badge,
     this.tintHex,
+    this.avatarUrl,
   });
 
   final String id;
@@ -184,6 +185,12 @@ class NavBarTab {
   /// глобальный `bar.tintColor`.
   final String? tintHex;
 
+  /// Remote avatar URL. Когда указан, native side подгружает изображение,
+  /// круглит его до `UITabBarItem` image (вместо SF-symbol'а в [icon]).
+  /// Используется на табе "Profile", чтобы в нижнем меню был аватар
+  /// текущего пользователя как в Telegram / WhatsApp.
+  final String? avatarUrl;
+
   Map<String, Object?> toMap() => {
         'id': id,
         'label': label,
@@ -191,6 +198,7 @@ class NavBarTab {
         if (selectedIcon != null) 'selectedIcon': selectedIcon!.toMap(),
         if (badge != null) 'badge': badge,
         if (tintHex != null) 'tintHex': tintHex,
+        if (avatarUrl != null) 'avatarUrl': avatarUrl,
       };
 }
 

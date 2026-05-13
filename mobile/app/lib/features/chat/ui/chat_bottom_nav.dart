@@ -221,8 +221,13 @@ class _ChatBottomNavState extends State<ChatBottomNav>
           // У l10n нет отдельной строки для profile-таба, используем generic
           // "Profile" — локализация добавится отдельным PR-ом если нужно.
           label: 'Profile',
+          // Когда есть аватар, native side загрузит его и круглит для
+          // UITabBarItem image вместо SF symbol. Fallback SF symbol всё
+          // равно передаём — пока картинка грузится / на ошибке native
+          // покажет его.
           icon: const NavBarIcon('person.crop.circle'),
           selectedIcon: const NavBarIcon('person.crop.circle.fill'),
+          avatarUrl: widget.avatarUrl,
         ),
       ],
       selectedId: _tabId(widget.activeTab),
@@ -383,6 +388,7 @@ class _ChatBottomNavState extends State<ChatBottomNav>
       // (chatsUnreadCount), или user-customизации иконок/стилей.
       final changed = oldWidget.activeTab != widget.activeTab ||
           oldWidget.chatsUnreadCount != widget.chatsUnreadCount ||
+          oldWidget.avatarUrl != widget.avatarUrl ||
           oldWidget.bottomNavIconNames != widget.bottomNavIconNames ||
           oldWidget.bottomNavIconGlobalStyle !=
               widget.bottomNavIconGlobalStyle ||

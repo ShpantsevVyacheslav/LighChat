@@ -42,6 +42,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// Avatar download tasks keyed by URL so the same URL is not fetched twice
   /// while the bar is updated repeatedly.
   private var avatarTasks: [URL: URLSessionDataTask] = [:]
+  /// Кеш круглых аватаров для UITabBarItem.image (профайл-таб).
+  /// Ключ — `urlString`, значение — уже cropped + scaled UIImage, готовый
+  /// к рендерингу в bar (`.alwaysOriginal`). Размер ~26pt × @scale.
+  private var tabAvatarImageCache: [String: UIImage] = [:]
   private var lastAvatarUrl: URL?
   private var avatarImageView: UIImageView?
   private var avatarInitialLabel: UILabel?
@@ -326,7 +330,8 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       let label = cfg["label"] as? String ?? ""
       let symbol = (cfg["icon"] as? [String: Any])?["symbol"] as? String ?? ""
       let tint = cfg["tintHex"] as? String ?? ""
-      return "\(id)/\(label)/\(symbol)/\(tint)"
+      let avatar = cfg["avatarUrl"] as? String ?? ""
+      return "\(id)/\(label)/\(symbol)/\(tint)/\(avatar)"
     }.joined(separator: "|")
 
     Self.log("applyBottomBar visible=\(visible) itemsCount=\(configs.count) selectedId=\(selectedId) signatureEq=\(signature == lastBottomBarItemsSignature)")
@@ -384,6 +389,20 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
         if #available(iOS 13.0, *) {
           normalImage = normalImage?.withTintColor(color, renderingMode: .alwaysOriginal)
           selectedImage = selectedImage?.withTintColor(color, renderingMode: .alwaysOriginal)
+        }
+      }
+
+      // Avatar override (profile tab): если есть URL — рендерим круглую
+      // аватарку вместо SF-symbol'а. Cached image берём сразу, иначе
+      // запускаем сетевой запрос, и item.image обновится в callback'е.
+      // Fallback SF-symbol остаётся placeholder'ом, пока картинка не
+      // подгружена / при ошибке сети.
+      if let avatarUrlStr = cfg["avatarUrl"] as? String, !avatarUrlStr.isEmpty {
+        if let cached = tabAvatarImageCache[avatarUrlStr] {
+          normalImage = cached
+          selectedImage = cached
+        } else {
+          loadTabAvatar(urlStr: avatarUrlStr, tabId: id)
         }
       }
 
@@ -785,6 +804,73 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     }
     avatarTasks[url] = task
     task.resume()
+  }
+
+  // MARK: - Tab bar avatar
+
+  /// Загружает avatar URL для конкретного таба, круглит и обновляет
+  /// `UITabBarItem.image` / `.selectedImage` по идентификатору таба.
+  /// Идемпотентно: если уже грузится — выходим. Кеш переиспользуется при
+  /// последующих `applyBottomBar` с тем же URL.
+  private func loadTabAvatar(urlStr: String, tabId: String) {
+    guard let url = URL(string: urlStr) else {
+      Self.log("loadTabAvatar invalid URL '\(urlStr)'")
+      return
+    }
+    if avatarTasks[url] != nil { return }
+    Self.log("loadTabAvatar START tab=\(tabId) url=\(urlStr)")
+    let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+      guard let self = self else { return }
+      let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+      let errDescr = error.map { String(describing: $0) } ?? "nil"
+      DispatchQueue.main.async {
+        self.avatarTasks[url] = nil
+        guard let data = data, let raw = UIImage(data: data) else {
+          Self.log("loadTabAvatar FAILED tab=\(tabId) status=\(status) err=\(errDescr)")
+          return
+        }
+        let cropped = self.makeCircularTabImage(raw, size: 26)
+        self.tabAvatarImageCache[urlStr] = cropped
+        Self.log("loadTabAvatar OK tab=\(tabId) status=\(status) bytes=\(data.count)")
+        // Найти текущий UITabBarItem и обновить картинку. Cropped уже
+        // в .alwaysOriginal → UITabBar не перекрасит её, как и хотим
+        // для аватарки (фотография, не SF-symbol).
+        guard let bar = self.bottomBar, let items = bar.items else { return }
+        for item in items
+        where self.tabItemsById[ObjectIdentifier(item)] == tabId {
+          item.image = cropped
+          item.selectedImage = cropped
+        }
+      }
+    }
+    avatarTasks[url] = task
+    task.resume()
+  }
+
+  /// Круглый аватар для tab-bar item'а. Рисуем raw image в круглый
+  /// clip-path размера `size`×`size` (scale = main screen) и
+  /// возвращаем результат с `.alwaysOriginal`, чтобы UITabBar
+  /// не пересветил его tint'ом.
+  private func makeCircularTabImage(_ src: UIImage, size: CGFloat) -> UIImage {
+    let rect = CGRect(x: 0, y: 0, width: size, height: size)
+    let format = UIGraphicsImageRendererFormat.default()
+    format.opaque = false
+    let renderer = UIGraphicsImageRenderer(size: rect.size, format: format)
+    let cropped = renderer.image { _ in
+      UIBezierPath(ovalIn: rect).addClip()
+      // `aspect-fill` поведение: вписываем src в круг, обрезая лишнее.
+      let srcSize = src.size
+      let scale = max(rect.width / srcSize.width, rect.height / srcSize.height)
+      let drawW = srcSize.width * scale
+      let drawH = srcSize.height * scale
+      let drawX = (rect.width - drawW) / 2
+      let drawY = (rect.height - drawH) / 2
+      src.draw(in: CGRect(x: drawX, y: drawY, width: drawW, height: drawH))
+    }
+    if #available(iOS 13.0, *) {
+      return cropped.withRenderingMode(.alwaysOriginal)
+    }
+    return cropped
   }
 
   // MARK: - Safe area sync
