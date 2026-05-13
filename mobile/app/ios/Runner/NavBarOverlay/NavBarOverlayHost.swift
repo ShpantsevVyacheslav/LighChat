@@ -1,14 +1,10 @@
 import Flutter
 import UIKit
 
-/// UITabBar, который НЕ резервирует internal safe-area для home indicator.
-/// Apple's стандартный UITabBar читает parent's `safeAreaInsets.bottom`
-/// (у нас 34 + additional 49 = 83pt) и пушит items вверх внутри своего
-/// frame. Items в 49pt bar схлопываются. Subclass с safeAreaInsets =
-/// .zero отключает эту логику — items рендерятся в полную высоту bar'а.
-private final class CompactTabBar: UITabBar {
-  override var safeAreaInsets: UIEdgeInsets { .zero }
-}
+// CompactTabBar убран: override `safeAreaInsets` не работает —
+// UITabBar читает inset из superview.safeAreaInsets, а не из self.
+// Вернулись к Apple-стандартной геометрии (bar.height = 49 + safeArea,
+// items в верхних 49pt над home indicator).
 
 /// Hosts native `UINavigationBar` + `UITabBar` overlays on top of the root
 /// `FlutterViewController.view`. Owns no layout itself — `additionalSafeAreaInsets`
@@ -117,7 +113,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     top.preservesSuperviewLayoutMargins = false
     LiquidGlassAppearance.applyNavigationBar(top, tint: .systemBlue)
 
-    let bottom = CompactTabBar(frame: .zero)
+    let bottom = UITabBar(frame: .zero)
     bottom.translatesAutoresizingMaskIntoConstraints = false
     bottom.delegate = self
     bottom.isHidden = true
@@ -142,12 +138,15 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
       bottom.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
       bottom.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
-      // Bar 49pt sit'нут прямо на view.bottomAnchor (Telegram-style):
-      // items впритык над home indicator gesture-zone'ой. Apple-стандарт
-      // — 49+safe area (83pt), но это даёт большой gap; users привыкли
-      // к компактным tab-bar'ам.
+      // Apple-стандартный UITabBarController layout: bar тянется ОТ
+      // (safeArea.bottom - 49pt) ДО view.bottom. Items рендерятся в
+      // верхних 49pt бар'а — над home indicator. Внутренняя логика
+      // UITabBar требует именно такой геометрии (она читает
+      // superview.safeAreaInsets и пушит items в верх своего frame).
       bottom.bottomAnchor.constraint(equalTo: vc.view.bottomAnchor),
-      bottom.heightAnchor.constraint(equalToConstant: Self.tabBarContentHeight),
+      bottom.topAnchor.constraint(
+        equalTo: vc.view.safeAreaLayoutGuide.bottomAnchor,
+        constant: -Self.tabBarContentHeight),
     ])
 
     Self.log(
