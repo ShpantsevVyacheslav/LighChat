@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../platform/native_nav_bar/native_nav_bar_facade.dart';
 import '../data/device_contact_lookup_keys.dart';
 import '../data/bottom_nav_icon_settings.dart';
 import '../data/user_chat_policy.dart';
@@ -617,10 +618,16 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                                       children: [
                                         ListView.builder(
                                           controller: _listController,
-                                          padding: const EdgeInsets.only(
+                                          padding: EdgeInsets.only(
                                             left: 0,
                                             right: 34,
-                                            bottom: 8,
+                                            // 8pt базовый + место под native
+                                            // tab-bar overlay (≈77pt на iOS),
+                                            // чтобы последний контакт мог
+                                            // проскроллиться ВЫШЕ bar'а.
+                                            bottom: 8 +
+                                                NativeNavBarFacade.instance
+                                                    .bottomBarOverlayPadding,
                                           ),
                                           itemCount: entries.length,
                                           itemBuilder: (context, index) {

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
+import '../../../platform/native_nav_bar/native_nav_bar_facade.dart';
 import '../data/contact_display_name.dart';
 import '../data/user_profile.dart';
 import '../data/user_contacts_repository.dart';
@@ -1844,7 +1845,19 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                         : ListView.separated(
                             controller: _listScrollController,
                             physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.fromLTRB(0, 0, 0, 88),
+                            padding: EdgeInsets.fromLTRB(
+                              0,
+                              0,
+                              0,
+                              // 88pt базовый (под Flutter ChatBottomNav на
+                              // Android) + место под native tab-bar overlay
+                              // (≈77pt на iOS, 0pt на Android). На Android
+                              // тоталят к ~88pt, на iOS к ~165pt чтобы
+                              // последний чат проскролливался ВЫШЕ нативного
+                              // bar'а.
+                              88 + NativeNavBarFacade.instance
+                                  .bottomBarOverlayPadding,
+                            ),
                             itemCount: convs.length,
                             separatorBuilder: (_, _) => Divider(
                               height: 1,

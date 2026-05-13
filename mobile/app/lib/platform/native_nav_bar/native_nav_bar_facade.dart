@@ -59,6 +59,15 @@ class NativeNavBarFacade {
     return Platform.isIOS || Platform.isMacOS;
   }
 
+  /// Дополнительный bottom-padding, который Flutter-список (chat_list,
+  /// chat_calls, chat_meetings, chat_screen messages) должен добавить,
+  /// чтобы последний item можно было проскроллить ВЫШЕ нативного
+  /// tab-bar'а. Соответствует `tabBarContentHeight (49) +
+  /// tabBarBottomOverlap (28)` в Swift. На Android / Web / Win / Linux
+  /// возвращает 0 — Flutter-side ChatBottomNav сам занимает место в
+  /// Scaffold.bottomNavigationBar.
+  double get bottomBarOverlayPadding => isSupported ? 77.0 : 0.0;
+
   Future<void> setTopBar(NavBarTopConfig config) =>
       _invoke('setTopBar', config.toMap());
 

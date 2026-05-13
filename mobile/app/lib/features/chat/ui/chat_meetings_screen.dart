@@ -9,6 +9,7 @@ import 'package:lighchat_mobile/features/meetings/data/meeting_models.dart';
 import 'package:lighchat_mobile/features/meetings/data/meeting_providers.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../platform/native_nav_bar/native_nav_bar_facade.dart';
 import '../data/bottom_nav_icon_settings.dart';
 import 'chat_bottom_nav.dart';
 import 'chat_shell_backdrop.dart';
@@ -172,7 +173,15 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
       bottom: false,
       child: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          8,
+          16,
+          // 16pt базовый + место под native tab-bar overlay (≈77pt
+          // на iOS), чтобы последняя секция проскролливалась ВЫШЕ
+          // bar'а.
+          16 + NativeNavBarFacade.instance.bottomBarOverlayPadding,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

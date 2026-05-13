@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../platform/native_nav_bar/native_nav_bar_facade.dart';
 import '../data/bottom_nav_icon_settings.dart';
 import '../data/chat_call_formatting.dart';
 import '../data/chat_call_status.dart';
@@ -299,11 +300,16 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
                                     ),
                                   )
                                 : ListView.separated(
-                                    padding: const EdgeInsets.fromLTRB(
+                                    padding: EdgeInsets.fromLTRB(
                                       8,
                                       4,
                                       8,
-                                      12,
+                                      // 12pt базовый + место под native
+                                      // tab-bar overlay (≈77pt на iOS),
+                                      // чтобы последний звонок можно было
+                                      // проскроллить ВЫШЕ bar'а.
+                                      12 + NativeNavBarFacade.instance
+                                          .bottomBarOverlayPadding,
                                     ),
                                     itemCount: filtered.length,
                                     separatorBuilder: (context, index) =>
