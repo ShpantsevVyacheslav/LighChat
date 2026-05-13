@@ -393,31 +393,34 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     if bar.text != value { bar.text = value }
     bar.translatesAutoresizingMaskIntoConstraints = false
 
-    // Cancel-X. UIBarButtonItem на iOS 26 рисуется внутри Liquid Glass pill
-    // (серая мини-плашка) — пользователю не нравится «рамка в рамке».
-    // Делаем customView UIButton без любого background, только image.
+    // Cancel-X. По user-feedback'у: убираем заливку circle ('xmark.circle.fill'
+    // выглядел «белым кругом») — берём чистый `xmark` cross без круга,
+    // белый, с увеличенным point-size для тачабельности.
     let cancelImage: UIImage? = {
       if #available(iOS 13.0, *) {
-        let cfg = UIImage.SymbolConfiguration(pointSize: 24, weight: .regular)
-        return UIImage(systemName: "xmark.circle.fill", withConfiguration: cfg)
+        let cfg = UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold)
+        return UIImage(systemName: "xmark", withConfiguration: cfg)
       }
-      return SymbolMapper.image(named: "xmark.circle.fill")
+      return SymbolMapper.image(named: "xmark")
     }()
     let cancelView = UIButton(type: .system)
     cancelView.setImage(cancelImage, for: .normal)
-    cancelView.tintColor = .secondaryLabel
+    cancelView.tintColor = .white
     cancelView.backgroundColor = .clear
     if #available(iOS 15.0, *) {
-      // Apple UIButton.Configuration.plain — без background pill.
+      // UIButton.Configuration.plain — без background pill / Liquid Glass.
       cancelView.configuration = .plain()
       cancelView.configuration?.contentInsets = NSDirectionalEdgeInsets(
         top: 0, leading: 0, bottom: 0, trailing: 0)
+      // baseForegroundColor нужен начиная с iOS 15 — без него .plain()
+      // может перекрыть tintColor.
+      cancelView.configuration?.baseForegroundColor = .white
     }
     cancelView.addTarget(
       self,
       action: #selector(onExplicitSearchCancel),
       for: .touchUpInside)
-    cancelView.frame = CGRect(x: 0, y: 0, width: 28, height: 28)
+    cancelView.frame = CGRect(x: 0, y: 0, width: 32, height: 32)
     let cancelBtn = UIBarButtonItem(customView: cancelView)
 
     topItem?.titleView = bar
