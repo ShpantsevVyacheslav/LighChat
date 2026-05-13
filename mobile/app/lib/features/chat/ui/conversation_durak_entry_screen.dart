@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 import '../data/games_callables.dart';
 import 'conversation_durak_create_lobby_sheet.dart';
 import 'conversation_durak_lobby_screen.dart';
@@ -117,8 +119,11 @@ class ConversationDurakEntryScreen extends StatelessWidget {
         .orderBy('createdAt', descending: true)
         .limit(10);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.conversation_games_durak)),
+    return NativeNavScaffold(
+      top: NavBarTopConfig(
+        title: NavBarTitle(title: l10n.conversation_games_durak),
+      ),
+      onBack: () => Navigator.of(context).pop(),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: lobbiesQuery.snapshots(),
         builder: (context, lobbySnap) {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 import '../data/features_data.dart';
 import 'feature_mocks.dart';
 
@@ -16,10 +18,9 @@ class FeaturesTopicScreen extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final related = kFeatureTopics.where((m) => m.id != topicId).take(3).toList();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(t.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-      ),
+    return NativeNavScaffold(
+      top: NavBarTopConfig(title: NavBarTitle(title: t.title)),
+      onBack: () => Navigator.of(context).pop(),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [

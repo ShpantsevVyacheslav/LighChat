@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 import '../data/user_role_provider.dart';
 import 'admin_overview_screen.dart';
 import 'admin_users_screen.dart';
@@ -52,15 +54,12 @@ class _AdminShellScreenState extends ConsumerState<AdminShellScreen> {
 
     final selectedIndex = visibleSections.indexOf(_current).clamp(0, visibleSections.length - 1);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Админ • ${_current.label}'),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          tooltip: 'Закрыть админку',
-          onPressed: () => context.go('/'),
-        ),
+    return NativeNavScaffold(
+      top: NavBarTopConfig(
+        title: NavBarTitle(title: 'Админ • ${_current.label}'),
+        leading: const NavBarLeading.close(),
       ),
+      onBack: () => context.go('/'),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final wide = constraints.maxWidth >= 840;

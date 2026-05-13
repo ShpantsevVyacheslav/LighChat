@@ -8,6 +8,8 @@ import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 import '../../settings/data/energy_saving_preference.dart';
 import '../data/chat_media_layout_tokens.dart';
 import '../data/media_load_scheduler.dart';
@@ -807,13 +809,14 @@ class _ChatAvPlayerVideoScreenState extends State<_ChatAvPlayerVideoScreen> {
   @override
   Widget build(BuildContext context) {
     final c = _controller;
-    return Scaffold(
+    return NativeNavScaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: Text(AppLocalizations.of(context)!.video_attachment_title),
+      top: NavBarTopConfig(
+        title: NavBarTitle(
+          title: AppLocalizations.of(context)!.video_attachment_title,
+        ),
       ),
+      onBack: () => Navigator.of(context).maybePop(),
       body: Center(
         child: _failed
             ? Padding(

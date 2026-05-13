@@ -4,6 +4,8 @@ import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 import 'schedule_message_sheet.dart';
 
 /// Экран управления отложенными сообщениями текущего пользователя в чате.
@@ -29,10 +31,11 @@ class ScheduledMessagesScreen extends StatelessWidget {
     final localeTag = Localizations.localeOf(context).toLanguageTag();
     final dateFmt = DateFormat('d MMMM yyyy, HH:mm', localeTag);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.scheduled_messages_screen_title),
+    return NativeNavScaffold(
+      top: NavBarTopConfig(
+        title: NavBarTitle(title: l10n.scheduled_messages_screen_title),
       ),
+      onBack: () => Navigator.of(context).pop(),
       body: StreamBuilder<List<ScheduledChatMessage>>(
         stream: repository.watchScheduledMessages(
           conversationId: conversationId,

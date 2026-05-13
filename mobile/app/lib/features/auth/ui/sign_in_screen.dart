@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 
 class SignInScreen extends ConsumerWidget {
   const SignInScreen({super.key});
@@ -14,8 +16,9 @@ class SignInScreen extends ConsumerWidget {
     final firebaseReady = ref.watch(firebaseReadyProvider);
     final userAsync = ref.watch(authUserProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.sign_in_title)),
+    return NativeNavScaffold(
+      top: NavBarTopConfig(title: NavBarTitle(title: l10n.sign_in_title)),
+      onBack: () => Navigator.of(context).maybePop(),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),

@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../data/chat_link_normalization.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
+import '../data/chat_link_normalization.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class LinkWebViewScreen extends StatefulWidget {
@@ -116,107 +118,89 @@ class _LinkWebViewScreenState extends State<LinkWebViewScreen> {
     final host = _displayHost(_currentUrl);
     final title = _pageTitle.isNotEmpty ? _pageTitle : host;
 
-    return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-            ),
-            Text(
-              host,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: scheme.onSurface.withValues(alpha: 0.55),
-              ),
-            ),
-          ],
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        actions: [
-          IconButton(
-            tooltip: l10n.link_webview_copy_tooltip,
-            icon: const Icon(Icons.copy, size: 20),
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: _currentUrl));
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(l10n.link_webview_copied_snackbar),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            },
+    return NativeNavScaffold(
+      top: NavBarTopConfig(
+        title: NavBarTitle(title: title, subtitle: host),
+        leading: const NavBarLeading.close(),
+        trailing: [
+          const NavBarAction(
+            id: 'copy_url',
+            icon: NavBarIcon('doc.on.doc'),
           ),
-          IconButton(
-            tooltip: l10n.link_webview_open_browser_tooltip,
-            icon: const Icon(Icons.open_in_browser, size: 20),
-            onPressed: () => unawaited(_launchExternal(_currentUrl)),
+          const NavBarAction(
+            id: 'open_browser',
+            icon: NavBarIcon('safari'),
           ),
         ],
-        bottom: _progress > 0 && _progress < 1
-            ? PreferredSize(
-                preferredSize: const Size.fromHeight(2),
-                child: LinearProgressIndicator(
-                  value: _progress,
-                  minHeight: 2,
-                  backgroundColor: Colors.transparent,
-                  valueColor: AlwaysStoppedAnimation(scheme.primary),
-                ),
-              )
-            : null,
       ),
-      body: WebViewWidget(controller: _controller),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: dark
-              ? scheme.surface.withValues(alpha: 0.95)
-              : scheme.surfaceContainerHigh,
-          border: Border(
-            top: BorderSide(color: scheme.onSurface.withValues(alpha: 0.1)),
-          ),
-        ),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 44,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_ios, size: 18),
-                  onPressed: _canGoBack
-                      ? () => unawaited(_controller.goBack())
-                      : null,
+      onBack: () => Navigator.of(context).pop(),
+      onAction: (id) {
+        if (id == 'copy_url') {
+          Clipboard.setData(ClipboardData(text: _currentUrl));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.link_webview_copied_snackbar),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        } else if (id == 'open_browser') {
+          unawaited(_launchExternal(_currentUrl));
+        }
+      },
+      body: Column(
+        children: [
+          if (_progress > 0 && _progress < 1)
+            LinearProgressIndicator(
+              value: _progress,
+              minHeight: 2,
+              backgroundColor: Colors.transparent,
+              valueColor: AlwaysStoppedAnimation(scheme.primary),
+            ),
+          Expanded(child: WebViewWidget(controller: _controller)),
+          Container(
+            decoration: BoxDecoration(
+              color: dark
+                  ? scheme.surface.withValues(alpha: 0.95)
+                  : scheme.surfaceContainerHigh,
+              border: Border(
+                top: BorderSide(
+                  color: scheme.onSurface.withValues(alpha: 0.1),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.arrow_forward_ios, size: 18),
-                  onPressed: _canGoForward
-                      ? () => unawaited(_controller.goForward())
-                      : null,
+              ),
+            ),
+            child: SafeArea(
+              top: false,
+              child: SizedBox(
+                height: 44,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios, size: 18),
+                      onPressed: _canGoBack
+                          ? () => unawaited(_controller.goBack())
+                          : null,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.arrow_forward_ios, size: 18),
+                      onPressed: _canGoForward
+                          ? () => unawaited(_controller.goForward())
+                          : null,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.refresh, size: 20),
+                      onPressed: () => unawaited(_controller.reload()),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.share_outlined, size: 20),
+                      onPressed: () => unawaited(_launchExternal(_currentUrl)),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.refresh, size: 20),
-                  onPressed: () => unawaited(_controller.reload()),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.share_outlined, size: 20),
-                  onPressed: () => unawaited(_launchExternal(_currentUrl)),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

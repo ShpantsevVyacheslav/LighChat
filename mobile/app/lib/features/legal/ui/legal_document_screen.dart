@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 import '../data/legal_documents.dart';
 import 'markdown_view.dart';
 
@@ -16,8 +18,9 @@ class LegalDocumentScreen extends StatelessWidget {
     final lang = locale == 'ru' ? 'ru' : 'en';
     final title = legalTitleFor(l10n, slug);
 
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
+    return NativeNavScaffold(
+      top: NavBarTopConfig(title: NavBarTitle(title: title)),
+      onBack: () => Navigator.of(context).pop(),
       body: SafeArea(
         child: FutureBuilder<String?>(
           future: loadLegalMarkdown(slug: slug, locale: lang),
@@ -43,8 +46,9 @@ class LegalIndexScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.legal_index_title)),
+    return NativeNavScaffold(
+      top: NavBarTopConfig(title: NavBarTitle(title: l10n.legal_index_title)),
+      onBack: () => Navigator.of(context).pop(),
       body: SafeArea(
         child: ListView.separated(
           itemCount: legalSlugs.length,

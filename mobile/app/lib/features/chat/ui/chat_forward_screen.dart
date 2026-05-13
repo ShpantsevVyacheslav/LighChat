@@ -9,12 +9,14 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../l10n/app_localizations.dart';
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 import '../data/e2ee_auto_enable_helper.dart';
 import '../data/forward_recipients.dart';
 import '../data/new_chat_user_search.dart' show ruEnSubstringMatch;
 import '../data/user_profile.dart';
 import 'chat_avatar.dart';
-import '../../../l10n/app_localizations.dart';
 
 /// Экран пересылки: только контакты + группы, без «Избранного».
 class ChatForwardScreen extends ConsumerStatefulWidget {
@@ -43,8 +45,9 @@ class _ChatForwardScreenState extends ConsumerState<ChatForwardScreen> {
     final userAsync = ref.watch(authUserProvider);
 
     if (widget.messages.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.forward_title)),
+      return NativeNavScaffold(
+        top: NavBarTopConfig(title: NavBarTitle(title: l10n.forward_title)),
+        onBack: () => Navigator.of(context).pop(),
         body: Center(
           child: Text(
             l10n.forward_empty_no_messages,

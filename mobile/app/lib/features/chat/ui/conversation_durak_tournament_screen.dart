@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 import '../data/games_callables.dart';
 import 'conversation_durak_create_lobby_sheet.dart';
 import 'conversation_durak_lobby_screen.dart';
@@ -75,17 +77,20 @@ class ConversationDurakTournamentScreen extends StatelessWidget {
     final tRef = FirebaseFirestore.instance.collection('tournaments').doc(tournamentId);
     final gamesQuery = tRef.collection('games').orderBy('createdAt', descending: true).limit(20);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.tournament_title),
-        actions: [
-          IconButton(
-            tooltip: l10n.tournament_new_game,
-            icon: const Icon(Icons.add_rounded),
-            onPressed: () => unawaited(_newGame(context)),
+    return NativeNavScaffold(
+      top: NavBarTopConfig(
+        title: NavBarTitle(title: l10n.tournament_title),
+        trailing: [
+          NavBarAction(
+            id: 'new_game',
+            icon: const NavBarIcon('plus'),
           ),
         ],
       ),
+      onBack: () => Navigator.of(context).pop(),
+      onAction: (id) {
+        if (id == 'new_game') unawaited(_newGame(context));
+      },
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => unawaited(_newGame(context)),
         icon: const Icon(Icons.add_rounded),

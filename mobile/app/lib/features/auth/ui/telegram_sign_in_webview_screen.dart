@@ -11,6 +11,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 import '../registration_profile_gate.dart';
 import '../telegram_bridge_url.dart';
 
@@ -265,29 +267,34 @@ class _TelegramSignInWebViewScreenState
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.telegram_sign_in_title),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
+    return NativeNavScaffold(
+      top: NavBarTopConfig(
+        title: NavBarTitle(
+          title: AppLocalizations.of(context)!.telegram_sign_in_title,
         ),
-        actions: [
-          IconButton(
-            tooltip: AppLocalizations.of(context)!.telegram_sign_in_open_in_browser,
-            icon: const Icon(Icons.open_in_browser),
-            onPressed: () async {
-              final url = _currentUrl.trim().isNotEmpty
-                  ? _currentUrl.trim()
-                  : telegramAuthBridgePageUrl();
-              final ok = await _launchExternal(url);
-              if (!ok && mounted) {
-                setState(() => _error = AppLocalizations.of(context)!.telegram_sign_in_browser_failed);
-              }
-            },
+        leading: const NavBarLeading.close(),
+        trailing: const [
+          NavBarAction(
+            id: 'open_browser',
+            icon: NavBarIcon('safari'),
           ),
         ],
       ),
+      onBack: () => Navigator.of(context).pop(),
+      onAction: (id) async {
+        if (id != 'open_browser') return;
+        final url = _currentUrl.trim().isNotEmpty
+            ? _currentUrl.trim()
+            : telegramAuthBridgePageUrl();
+        final ok = await _launchExternal(url);
+        if (!ok && mounted) {
+          setState(
+            () => _error = AppLocalizations.of(
+              context,
+            )!.telegram_sign_in_browser_failed,
+          );
+        }
+      },
       body: Stack(
         fit: StackFit.expand,
         children: [

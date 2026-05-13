@@ -5,11 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
+import '../../../l10n/app_localizations.dart';
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 import '../data/forward_recipients.dart';
 import '../data/share_intent_payload.dart';
 import '../data/user_profile.dart';
 import 'chat_avatar.dart';
-import '../../../l10n/app_localizations.dart';
 
 /// Экран выбора чата при системном «Поделиться в LighChat».
 ///
@@ -51,32 +53,21 @@ class _ShareTargetPickerScreenState
     final userAsync = ref.watch(authUserProvider);
 
     if (widget.payload.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(title: Text(l10n.share_picker_title)),
+      return NativeNavScaffold(
+        top: NavBarTopConfig(title: NavBarTitle(title: l10n.share_picker_title)),
+        onBack: () => Navigator.of(context).pop(),
         body: Center(child: Text(l10n.share_picker_empty_payload)),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.share_picker_title),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(28),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                _payloadSummary(l10n),
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ),
+    return NativeNavScaffold(
+      top: NavBarTopConfig(
+        title: NavBarTitle(
+          title: l10n.share_picker_title,
+          subtitle: _payloadSummary(l10n),
         ),
       ),
+      onBack: () => Navigator.of(context).pop(),
       body: userAsync.when(
         data: (user) {
           if (user == null) {

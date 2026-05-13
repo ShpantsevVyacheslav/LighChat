@@ -10,6 +10,8 @@ import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 
 import '../registration_profile_gate.dart'
     show
@@ -21,7 +23,6 @@ import 'auth_brand_header.dart';
 import 'avatar_picker_cropper.dart';
 import 'auth_styles.dart';
 import 'phone_ru_format.dart';
-import '../../shared/ui/app_back_button.dart';
 
 class GoogleCompleteProfileScreen extends ConsumerStatefulWidget {
   const GoogleCompleteProfileScreen({super.key});
@@ -196,11 +197,17 @@ class _GoogleCompleteProfileScreenState
       future: _bootstrap,
       builder: (context, snapshot) {
         final l10n = AppLocalizations.of(context)!;
-        return Scaffold(
-          appBar: AppBar(
-            leading: const AppBackButton(fallbackLocation: '/chats'),
-            title: Text(l10n.google_complete_title),
+        return NativeNavScaffold(
+          top: NavBarTopConfig(
+            title: NavBarTitle(title: l10n.google_complete_title),
           ),
+          onBack: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/chats');
+            }
+          },
           body: SafeArea(
             child: snapshot.connectionState != ConnectionState.done
                 ? const Center(child: CircularProgressIndicator())

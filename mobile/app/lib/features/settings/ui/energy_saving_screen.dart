@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/energy_saving_preference.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 
 class EnergySavingScreen extends ConsumerWidget {
   const EnergySavingScreen({super.key});
@@ -19,8 +21,11 @@ class EnergySavingScreen extends ConsumerWidget {
     final dark = scheme.brightness == Brightness.dark;
     final fg = dark ? Colors.white : scheme.onSurface;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.energy_saving_title)),
+    return NativeNavScaffold(
+      top: NavBarTopConfig(
+        title: NavBarTitle(title: l10n.energy_saving_title),
+      ),
+      onBack: () => Navigator.of(context).pop(),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),

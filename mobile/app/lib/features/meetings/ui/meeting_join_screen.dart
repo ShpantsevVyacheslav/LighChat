@@ -10,6 +10,8 @@ import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app_providers.dart';
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 import '../../chat/ui/chat_avatar.dart';
 import '../data/meeting_models.dart';
 import '../data/meeting_providers.dart';
@@ -386,20 +388,15 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
       });
     }
 
-    return Scaffold(
+    return NativeNavScaffold(
       backgroundColor: const Color(0xFF0B1020),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: Colors.white),
-          onPressed: () => Navigator.of(context).maybePop(),
+      top: NavBarTopConfig(
+        title: NavBarTitle(
+          title: AppLocalizations.of(context)!.meeting_join_button,
         ),
-        title: Text(
-          AppLocalizations.of(context)!.meeting_join_button,
-          style: const TextStyle(color: Colors.white),
-        ),
+        leading: const NavBarLeading.close(),
       ),
+      onBack: () => Navigator.of(context).maybePop(),
       body: meetingAsync.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: Colors.white),

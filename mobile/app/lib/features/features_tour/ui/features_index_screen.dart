@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 import '../data/features_data.dart';
 import 'feature_mocks.dart';
 
@@ -14,20 +16,15 @@ class FeaturesIndexScreen extends StatelessWidget {
     final highlights = kFeatureTopics.where((m) => m.highlight).toList();
     final others = kFeatureTopics.where((m) => !m.highlight).toList();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(content.pageTitle),
-        leading: IconButton(
-          icon: const Icon(Icons.chevron_left_rounded, size: 28),
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/chats');
-            }
-          },
-        ),
-      ),
+    return NativeNavScaffold(
+      top: NavBarTopConfig(title: NavBarTitle(title: content.pageTitle)),
+      onBack: () {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/chats');
+        }
+      },
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [

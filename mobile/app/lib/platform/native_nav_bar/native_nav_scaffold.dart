@@ -29,6 +29,8 @@ class NativeNavScaffold extends StatefulWidget {
     this.onSearchSubmitted,
     this.onSearchCancelled,
     this.materialBottomBarBuilder,
+    this.floatingActionButton,
+    this.floatingActionButtonLocation,
   });
 
   final NavBarTopConfig top;
@@ -59,6 +61,11 @@ class NativeNavScaffold extends StatefulWidget {
     NavBarBottomConfig config,
     void Function(String tabId) onTap,
   )? materialBottomBarBuilder;
+
+  /// Optional floating-action-button rendered by the underlying Material
+  /// `Scaffold` on both native and fallback paths.
+  final Widget? floatingActionButton;
+  final FloatingActionButtonLocation? floatingActionButtonLocation;
 
   @override
   State<NativeNavScaffold> createState() => _NativeNavScaffoldState();
@@ -136,6 +143,8 @@ class _NativeNavScaffoldState extends State<NativeNavScaffold> {
       return Scaffold(
         backgroundColor: widget.backgroundColor,
         body: widget.body,
+        floatingActionButton: widget.floatingActionButton,
+        floatingActionButtonLocation: widget.floatingActionButtonLocation,
         // Native bars are rendered by UIKit/AppKit and `additionalSafeAreaInsets`
         // is set on the host VC so MediaQuery.padding already accounts for them.
       );
@@ -183,6 +192,8 @@ class _NativeNavScaffoldState extends State<NativeNavScaffold> {
       appBar: appBar,
       body: widget.body,
       bottomNavigationBar: bottomBar,
+      floatingActionButton: widget.floatingActionButton,
+      floatingActionButtonLocation: widget.floatingActionButtonLocation,
     );
   }
 
@@ -281,6 +292,12 @@ IconData _materialIconFromSymbol(String symbol) {
       return Icons.video_call_outlined;
     case 'person.crop.circle':
       return Icons.account_circle_outlined;
+    case 'plus':
+      return Icons.add;
+    case 'doc.on.doc':
+      return Icons.copy;
+    case 'safari':
+      return Icons.open_in_browser;
     default:
       return Icons.circle_outlined;
   }

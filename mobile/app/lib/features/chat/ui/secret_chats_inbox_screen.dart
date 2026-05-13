@@ -10,6 +10,8 @@ import 'package:local_auth/local_auth.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
 import 'package:lighchat_mobile/core/app_logger.dart';
+import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 import '../data/dm_display_title.dart';
 import '../data/secret_chat_callables.dart';
 import '../data/secret_chat_pin_device_storage.dart';
@@ -222,12 +224,12 @@ class _SecretChatsInboxScreenState
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: Text(l10n.secret_chats_title),
-        backgroundColor: Colors.transparent,
+    return NativeNavScaffold(
+      top: NavBarTopConfig(
+        title: NavBarTitle(title: l10n.secret_chats_title),
       ),
+      onBack: () => Navigator.of(context).pop(),
+      extendBodyBehindBars: true,
       body: Stack(
         fit: StackFit.expand,
         children: [
