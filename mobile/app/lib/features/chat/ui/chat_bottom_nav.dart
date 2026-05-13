@@ -85,7 +85,9 @@ class _ChatBottomNavState extends State<ChatBottomNav>
       _nativeEvents =
           NativeNavBarFacade.instance.events.listen(_onNativeEvent);
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _pushNativeBottomBar();
+        // initState: экран только что mount'нулся, мы точно владельцы —
+        // принудительно пушим, минуя isCurrent-guard.
+        if (mounted) _pushNativeBottomBar(force: true);
       });
     }
   }
@@ -120,15 +122,20 @@ class _ChatBottomNavState extends State<ChatBottomNav>
 
   @override
   void didPopNext() {
-    if (_native) _pushNativeBottomBar();
+    // didPopNext фирится в момент когда выше нас pop'нули — мы точно
+    // вершина. Пушим без isCurrent-guard'а: на момент колбэка
+    // route.isCurrent может ещё быть `false` (transition не завершён),
+    // но мы знаем, что станем вершиной.
+    if (_native) _pushNativeBottomBar(force: true);
   }
 
-  void _pushNativeBottomBar() {
-    // Пушим только когда экран-владелец реально вершина стека: иначе при
-    // ребилде chat_list/contacts (под открытым чатом) таб-бар вспыхнет.
-    // RouteObserver.didPopNext перепушит config когда мы вернёмся.
-    final route = ModalRoute.of(context);
-    if (route?.isCurrent != true) return;
+  void _pushNativeBottomBar({bool force = false}) {
+    // Без force пушим только когда экран-владелец реально вершина стека:
+    // иначе при ребилде chat_list (под открытым чатом) таб-бар вспыхнет.
+    if (!force) {
+      final route = ModalRoute.of(context);
+      if (route?.isCurrent != true) return;
+    }
 
     // Берём пользовательский выбор иконок из настроек (Firestore) — те же
     // имена, что и для Flutter-таб-бара. Если ключа нет, fallback на default.
@@ -165,7 +172,7 @@ class _ChatBottomNavState extends State<ChatBottomNav>
           // У l10n нет отдельной строки для profile-таба, используем generic
           // "Profile" — локализация добавится отдельным PR-ом если нужно.
           label: 'Profile',
-          icon: const NavBarIcon('person.crop.circle.fill'),
+          icon: const NavBarIcon('person.crop.circle'),
         ),
       ],
       selectedId: _tabId(widget.activeTab),

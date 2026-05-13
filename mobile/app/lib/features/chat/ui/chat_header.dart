@@ -96,7 +96,8 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
     if (_native && !_firstPushDone) {
       _firstPushDone = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _pushNativeTopBar();
+        // Первый push: chat_screen только что mount'нулся — точно вершина.
+        if (mounted) _pushNativeTopBar(force: true);
       });
     }
     if (_native && !_routeSubscribed) {
@@ -146,19 +147,24 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
 
   @override
   void didPopNext() {
-    if (_native) _pushNativeTopBar();
+    // didPopNext означает, что верхний экран pop'нулся — мы точно
+    // владельцы. Pump-им конфиг без isCurrent-guard'а (он бы отсёк push
+    // во время незавершённой transition-анимации).
+    if (_native) _pushNativeTopBar(force: true);
   }
 
-  void _pushNativeTopBar() {
-    // Пушим только когда chat_screen реально вершина стека.
+  void _pushNativeTopBar({bool force = false}) {
+    // Без force пушим только когда chat_screen реально вершина стека.
     //   * route == null  — экран уже popped, ещё не успел дисповнуться
     //     (back-транзишен ~300ms); если push'нуть здесь, шапка чата
     //     вспыхнет на списке диалогов.
     //   * isCurrent == false — поверх открыт threads / profile / settings.
-    // В обоих случаях skip — observer уже сделал hideAll() при transition,
-    // didPopNext перепушит конфиг когда мы реально вернёмся на вершину.
-    final route = ModalRoute.of(context);
-    if (route?.isCurrent != true) return;
+    // initState / didPopNext знают, что владеют шапкой → force=true,
+    // минуя guard (route.isCurrent может ещё быть false во время transition).
+    if (!force) {
+      final route = ModalRoute.of(context);
+      if (route?.isCurrent != true) return;
+    }
 
     final l10n = AppLocalizations.of(context);
     // Компактный набор трейлинг-actions: показываем только реально

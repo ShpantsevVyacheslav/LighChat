@@ -11,98 +11,101 @@ String lucideToSfSymbol(String lucideName, {String fallback = 'circle'}) {
   return _lucideToSf[lucideName] ?? fallback;
 }
 
+// Lucide-иконки в settings-picker'е отрисованы в outline-стиле. Чтобы
+// native UITabBar визуально совпадал с выбором, используем outline-вариант
+// SF Symbol (без `.fill`) везде, где возможно.
 const Map<String, String> _lucideToSf = {
   // Сообщения / чаты
-  'message-circle': 'message.fill',
-  'message-square': 'bubble.left.fill',
-  'messages-square': 'bubble.left.and.bubble.right.fill',
-  'mail': 'envelope.fill',
-  'inbox': 'tray.fill',
+  'message-circle': 'message',
+  'message-square': 'bubble.left',
+  'messages-square': 'bubble.left.and.bubble.right',
+  'mail': 'envelope',
+  'inbox': 'tray',
 
   // Телефония / звонки
-  'phone': 'phone.fill',
-  'phone-call': 'phone.fill',
+  'phone': 'phone',
+  'phone-call': 'phone',
   'smartphone': 'iphone',
 
   // Люди / контакты
-  'contact': 'person.crop.rectangle.fill',
-  'user': 'person.fill',
-  'users': 'person.2.fill',
-  'user-plus': 'person.fill.badge.plus',
-  'user-circle': 'person.crop.circle.fill',
+  'contact': 'person.crop.rectangle',
+  'user': 'person',
+  'users': 'person.2',
+  'user-plus': 'person.badge.plus',
+  'user-circle': 'person.crop.circle',
 
   // Видео / медиа
-  'video': 'video.fill',
-  'camera': 'camera.fill',
-  'mic': 'mic.fill',
-  'film': 'film.fill',
+  'video': 'video',
+  'camera': 'camera',
+  'mic': 'mic',
+  'film': 'film',
 
   // Календарь / время
   'calendar': 'calendar',
-  'clock': 'clock.fill',
-  'alarm-clock': 'alarm.fill',
+  'clock': 'clock',
+  'alarm-clock': 'alarm',
 
   // Уведомления
-  'bell': 'bell.fill',
-  'bell-off': 'bell.slash.fill',
+  'bell': 'bell',
+  'bell-off': 'bell.slash',
 
   // Навигация / общее
-  'home': 'house.fill',
-  'settings': 'gearshape.fill',
-  'shield': 'shield.fill',
-  'shield-check': 'checkmark.shield.fill',
-  'lock': 'lock.fill',
-  'unlock': 'lock.open.fill',
-  'key': 'key.fill',
+  'home': 'house',
+  'settings': 'gearshape',
+  'shield': 'shield',
+  'shield-check': 'checkmark.shield',
+  'lock': 'lock',
+  'unlock': 'lock.open',
+  'key': 'key',
 
   // Действия / контент
-  'star': 'star.fill',
-  'heart': 'heart.fill',
-  'bookmark': 'bookmark.fill',
-  'folder': 'folder.fill',
-  'image': 'photo.fill',
-  'images': 'photo.stack.fill',
+  'star': 'star',
+  'heart': 'heart',
+  'bookmark': 'bookmark',
+  'folder': 'folder',
+  'image': 'photo',
+  'images': 'photo.stack',
   'music': 'music.note',
-  'play': 'play.fill',
-  'pause': 'pause.fill',
+  'play': 'play',
+  'pause': 'pause',
 
   // Места / гео
-  'map-pin': 'mappin.circle.fill',
-  'map': 'map.fill',
+  'map-pin': 'mappin.circle',
+  'map': 'map',
   'globe': 'globe',
-  'compass': 'safari.fill',
+  'compass': 'safari',
 
   // Сетка / layout
-  'layout-grid': 'square.grid.2x2.fill',
-  'grid': 'square.grid.3x3.fill',
+  'layout-grid': 'square.grid.2x2',
+  'grid': 'square.grid.3x3',
   'list': 'list.bullet',
 
   // Бизнес / работа
-  'briefcase': 'briefcase.fill',
-  'building': 'building.2.fill',
-  'graduation-cap': 'graduationcap.fill',
-  'school': 'graduationcap.fill',
+  'briefcase': 'briefcase',
+  'building': 'building.2',
+  'graduation-cap': 'graduationcap',
+  'school': 'graduationcap',
 
   // Текст / поиск
   'search': 'magnifyingglass',
   'hash': 'number',
   'at-sign': 'at',
   'paperclip': 'paperclip',
-  'send': 'paperplane.fill',
-  'smile': 'face.smiling.fill',
-  'emoji': 'face.smiling.fill',
+  'send': 'paperplane',
+  'smile': 'face.smiling',
+  'emoji': 'face.smiling',
 
   // Тех / разное
   'wifi': 'wifi',
-  'coffee': 'cup.and.saucer.fill',
-  'gift': 'gift.fill',
-  'trophy': 'trophy.fill',
-  'flag': 'flag.fill',
-  'rocket': 'paperplane.fill',
+  'coffee': 'cup.and.saucer',
+  'gift': 'gift',
+  'trophy': 'trophy',
+  'flag': 'flag',
+  'rocket': 'paperplane',
   'link': 'link',
   'sparkles': 'sparkles',
-  'zap': 'bolt.fill',
-  'crown': 'crown.fill',
+  'zap': 'bolt',
+  'crown': 'crown',
 
   // Часто встречающиеся defaults
   'plus': 'plus',

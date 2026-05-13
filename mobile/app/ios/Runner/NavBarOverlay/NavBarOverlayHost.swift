@@ -52,10 +52,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// Top bar поднят до 56pt чтобы avatar 36×36 + title + subtitle помещались
   /// без обрезки (iOS 26 Liquid Glass).
   private static let tabBarContentHeight: CGFloat = 49
-  private static let navBarContentHeight: CGFloat = 56
-  /// Небольшой gap между status bar и nav bar — чтобы шапка не «прилипала»
-  /// к Dynamic Island / индикаторам.
-  private static let navBarTopGap: CGFloat = 6
+  private static let navBarContentHeight: CGFloat = 50
+  /// Gap между status bar и nav bar. По дизайн-feedback'у — 0,
+  /// шапка вплотную под Dynamic Island.
+  private static let navBarTopGap: CGFloat = 0
 
   func attach(to vc: UIViewController) {
     flutterVC = vc
@@ -64,6 +64,11 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     top.translatesAutoresizingMaskIntoConstraints = false
     top.delegate = self
     top.isHidden = true
+    // Уменьшенные боковые отступы: back-кнопка слева и call/video справа
+    // ближе к краям, чем дефолтные 16pt UINavigationBar.
+    top.directionalLayoutMargins = NSDirectionalEdgeInsets(
+      top: 0, leading: 8, bottom: 0, trailing: 8)
+    top.preservesSuperviewLayoutMargins = false
     LiquidGlassAppearance.applyNavigationBar(top, tint: .systemBlue)
 
     let bottom = UITabBar(frame: .zero)
@@ -89,13 +94,11 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
       bottom.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
       bottom.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
-      // Фон таб-бара тянется до низа экрана, чтобы покрыть home-indicator,
-      // но контент-зона (иконки + лейблы) остаётся над home indicator
-      // ровно в 49pt — как у Apple UITabBarController.
-      bottom.bottomAnchor.constraint(equalTo: vc.view.bottomAnchor),
-      bottom.topAnchor.constraint(
-        equalTo: vc.view.safeAreaLayoutGuide.bottomAnchor,
-        constant: -Self.tabBarContentHeight),
+      // Тонкий tab-bar только в safe-area: bottom = home-indicator (а не
+      // view.bottom), height = 49pt. Без раздувания фонa на home-indicator
+      // зону — минимальный отступ от низа экрана.
+      bottom.bottomAnchor.constraint(equalTo: vc.view.safeAreaLayoutGuide.bottomAnchor),
+      bottom.heightAnchor.constraint(equalToConstant: Self.tabBarContentHeight),
     ])
 
     self.topBar = top
@@ -311,27 +314,51 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       return
     }
 
-    // Активация / обновление: выставляем UISearchBar в titleView, прячем
-    // все trailing actions, чтобы место хватало под текст + cancel.
+    // Активация / обновление: выставляем UISearchBar в titleView. Built-in
+    // Cancel button на iOS 26 рендерится неконсистентно и иногда не
+    // приходит в делегат — вместо него ставим явный UIBarButtonItem
+    // справа с X-иконкой, и шлём searchCancel оттуда.
     let bar = searchBar ?? UISearchBar()
     bar.placeholder = placeholder
     bar.searchBarStyle = .minimal
-    bar.showsCancelButton = true
+    bar.showsCancelButton = false
     bar.delegate = self
     if bar.text != value { bar.text = value }
     bar.translatesAutoresizingMaskIntoConstraints = false
 
+    let cancelBtn = UIBarButtonItem(
+      image: SymbolMapper.image(named: "xmark.circle.fill"),
+      style: .plain,
+      target: self,
+      action: #selector(onExplicitSearchCancel))
+
     topItem?.titleView = bar
     topItem?.title = nil
-    topItem?.rightBarButtonItems = []
+    topItem?.rightBarButtonItems = [cancelBtn]
     searchBar = bar
 
-    // ОЧЕНЬ ВАЖНО: вызываем becomeFirstResponder только при первом включении.
-    // На последующих updates (каждый ребилд Flutter widget'а тригерит push)
-    // повторный becomeFirstResponder ловит resign/become и клавиатура «прыгает».
+    // Принудительная layout-pass до becomeFirstResponder: без неё UIKit
+    // иногда не успевает положить searchBar в window-hierarchy, и
+    // клавиатура не открывается (становится first responder ничто).
+    topBar?.setNeedsLayout()
+    topBar?.layoutIfNeeded()
+
     if !wasActive {
-      DispatchQueue.main.async { [weak bar] in bar?.becomeFirstResponder() }
+      // becomeFirstResponder на internal text field — надёжнее, чем на
+      // UISearchBar (iOS 26 routing). Используется на iOS 13+.
+      DispatchQueue.main.async { [weak bar] in
+        guard let bar = bar else { return }
+        if #available(iOS 13.0, *) {
+          bar.searchTextField.becomeFirstResponder()
+        } else {
+          bar.becomeFirstResponder()
+        }
+      }
     }
+  }
+
+  @objc private func onExplicitSearchCancel() {
+    onEvent?("searchCancel", [:])
   }
 
   func applySelection(_ config: [String: Any]) {
@@ -395,7 +422,9 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     avatar.layer.cornerRadius = 18
     avatar.layer.masksToBounds = true
     avatar.contentMode = .scaleAspectFill
-    avatar.backgroundColor = .tertiarySystemFill
+    // Fallback-аватар = синий круг + белая буква (как Flutter ChatAvatar
+    // на списке диалогов). При загрузке image — backgroundColor скрыт.
+    avatar.backgroundColor = .systemBlue
     // Reuse cached image immediately, чтобы избежать «мигания» при пересоздании
     // custom title view (Flutter пушит config на каждое изменение subtitle).
     if let cached = cachedAvatarImage,
@@ -409,9 +438,9 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     let initialLabel = UILabel()
     initialLabel.translatesAutoresizingMaskIntoConstraints = false
     initialLabel.text = fallbackInitial?.uppercased()
-    initialLabel.font = .systemFont(ofSize: 14, weight: .semibold)
+    initialLabel.font = .systemFont(ofSize: 15, weight: .semibold)
     initialLabel.textAlignment = .center
-    initialLabel.textColor = .label
+    initialLabel.textColor = .white
     avatar.addSubview(initialLabel)
 
     let titleLabel = UILabel()
