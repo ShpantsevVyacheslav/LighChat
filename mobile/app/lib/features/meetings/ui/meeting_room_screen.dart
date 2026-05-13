@@ -838,16 +838,15 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
                 unread: _inCallChatUnread(),
                 onPressed: _openInCallChat,
               ),
-              // PiP-кнопка в шапке (раньше была в нижнем баре).
+              // PiP-кнопка в шапке. Делает то же, что и стрелка «Назад»:
+              // запускает нативный PiP и уводит на /chats. Иначе PiP-окно
+              // появлялось бы поверх той же комнаты — бессмысленно.
               if (_pipSupported)
                 IconButton(
                   tooltip: l10n.meeting_pip_button,
                   icon: const Icon(Icons.picture_in_picture_alt_rounded,
                       color: Colors.white),
-                  onPressed: () {
-                    _pipLifecycle.suppressAutoOnce();
-                    _pipController.enterPip();
-                  },
+                  onPressed: _openChatList,
                 ),
               IconButton(
                 tooltip: l10n.meeting_copy_link_tooltip,

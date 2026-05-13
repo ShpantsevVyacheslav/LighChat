@@ -781,9 +781,17 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
           self.boundTrackId = id
           NSLog("[MeetingPiP] bindLocalTrack id=%@ (rendererAttached=%@)",
                 id, self.rendererAttached ? "true" : "false")
-          // Если PiP уже активно — переподцепимся к новому треку.
-          if self.rendererAttached {
-            self.detachRendererFromTrack()
+          // Eager prepare: создаём PiP-controller СРАЗУ, не ждём
+          // явного `enter`. AVKit с `canStartPictureInPictureAuto-
+          // maticallyFromInline = true` сам триггерит PiP при сворачивании
+          // приложения, но только если controller уже жив. Без этого
+          // auto-PiP не работал.
+          DispatchQueue.main.async {
+            self.preparePipIfNeeded()
+            // Если PiP уже активно — переподцепимся к новому треку.
+            if self.rendererAttached {
+              self.detachRendererFromTrack()
+            }
             self.attachRendererToTrack()
           }
           result(true)
@@ -793,8 +801,11 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
         }
       case "unbindLocalTrack":
         NSLog("[MeetingPiP] unbindLocalTrack id=%@", self.boundTrackId ?? "nil")
-        self.detachRendererFromTrack()
-        self.boundTrackId = nil
+        DispatchQueue.main.async {
+          self.detachRendererFromTrack()
+          self.boundTrackId = nil
+          self.teardown()
+        }
         result(true)
       default:
         result(FlutterMethodNotImplemented)
@@ -872,6 +883,35 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
       .first { $0.isKeyWindow }
   }
 
+  /// Создаём PiP-controller если ещё не создан. Делаем это ЕДИНОЖДЫ на
+  /// весь lifetime митинга (на `bindLocalTrack`). После этого AVKit с
+  /// `canStartPictureInPictureAutomaticallyFromInline = true` сам
+  /// триггерит PiP при `applicationWillResignActive` — авто-PiP при
+  /// сворачивании приложения.
+  fileprivate func preparePipIfNeeded() {
+    if self.pipController != nil { return }
+    guard AVPictureInPictureController.isPictureInPictureSupported(),
+      let window = Self.keyWindow()
+    else {
+      NSLog("[MeetingPiP] prepare: bail — no support or keyWindow")
+      return
+    }
+
+    // VoIP-сессия — чтобы аудио митинга не отключилось при сворачивании.
+    do {
+      try AVAudioSession.sharedInstance().setCategory(
+        .playAndRecord, mode: .videoChat,
+        options: [.allowBluetooth, .defaultToSpeaker])
+      try AVAudioSession.sharedInstance().setActive(true)
+      NSLog("[MeetingPiP] prepare: AVAudioSession configured")
+    } catch {
+      NSLog("[MeetingPiP] prepare: AVAudioSession ERROR — %@",
+            error.localizedDescription)
+    }
+    setupSourceAndController(in: window)
+    NSLog("[MeetingPiP] prepare: pipController ready for auto-PiP")
+  }
+
   private func enterPip(result: @escaping FlutterResult) {
     let supported = AVPictureInPictureController.isPictureInPictureSupported()
     NSLog("[MeetingPiP] enterPip: supported=%@", supported ? "true" : "false")
@@ -883,8 +923,8 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
       return
     }
 
-    // Если PiP уже создан (повторный клик) — не пересоздаём, просто
-    // пробуем стартануть на существующем контроллере.
+    // Если PiP уже создан (повторный клик или auto-prepare) — не
+    // пересоздаём, просто пробуем стартануть на существующем контроллере.
     if let existing = self.pipController {
       NSLog(
         "[MeetingPiP] enterPip: pipController already exists "
@@ -899,7 +939,8 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
       return
     }
 
-    // VoIP-сессия — чтобы аудио митинга не отключилось при сворачивании.
+    // Если eager-prepare ещё не успел (редкий случай) — конфигурируем
+    // сессию и controller тут.
     do {
       try AVAudioSession.sharedInstance().setCategory(
         .playAndRecord, mode: .videoChat,
@@ -911,6 +952,18 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
             error.localizedDescription)
     }
 
+    setupSourceAndController(in: window)
+    attachRendererToTrack()
+    guard let pip = self.pipController else {
+      result(false)
+      return
+    }
+    self.attemptStart(pip: pip, attemptsLeft: 30, result: result)
+  }
+
+  /// Создаём source-view + content-VC + PiP-controller. Используется и
+  /// для eager prepare (на bindLocalTrack), и для on-demand enterPip.
+  private func setupSourceAndController(in window: UIWindow) {
     // 1. Source view — обязан быть в видимой иерархии. AVKit капризно
     // реагирует на `alpha=0` (видит «не отображается» и
     // startPictureInPicture no-op'ит без ошибки) и на нулевой размер.
@@ -925,7 +978,7 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
     src.layoutIfNeeded()
     self.sourceView = src
     NSLog(
-      "[MeetingPiP] enterPip: sourceView added (windowSize=%@, srcFrame=%@, "
+      "[MeetingPiP] setup: sourceView added (windowSize=%@, srcFrame=%@, "
         + "srcAlpha=%.2f, srcInWindow=%@)",
       NSCoder.string(for: window.bounds.size),
       NSCoder.string(for: src.frame),
@@ -933,12 +986,9 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
       src.window != nil ? "yes" : "no")
 
     // 2. Content view controller — то, что увидит юзер в PiP-окне.
-    // ВАЖНО: `loadViewIfNeeded()` форсит запуск `viewDidLoad`. Без
-    // этого AVKit видит «view не загружен» и тоже молча no-op'ит
-    // startPictureInPicture. Явный `view.frame` + `layoutIfNeeded` —
-    // чтобы displayLayer получил ненулевой frame.
+    // `loadViewIfNeeded()` форсит viewDidLoad — иначе AVKit видит
+    // «view не загружен» и молча no-op'ит startPictureInPicture.
     let vc = LighChatMeetingPipCallVC()
-    // Камера 640×480 + rotation 90° → отображается 480×640 (портрет).
     vc.preferredContentSize = CGSize(width: 480, height: 640)
     vc.loadViewIfNeeded()
     vc.view.frame = CGRect(x: 0, y: 0, width: 480, height: 640)
@@ -946,7 +996,7 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
     vc.view.layoutIfNeeded()
     self.callVC = vc
     NSLog(
-      "[MeetingPiP] enterPip: callVC ready (viewLoaded=%@, view.bounds=%@, "
+      "[MeetingPiP] setup: callVC ready (viewLoaded=%@, view.bounds=%@, "
         + "displayLayer.frame=%@)",
       vc.isViewLoaded ? "yes" : "no",
       NSCoder.string(for: vc.view.bounds),
@@ -958,19 +1008,13 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
       contentViewController: vc
     )
     let pip = AVPictureInPictureController(contentSource: source)
+    // КЛЮЧЕВОЕ для auto-PiP: iOS сам стартует PiP при
+    // `applicationWillResignActive` если этот флаг true И controller жив.
     pip.canStartPictureInPictureAutomaticallyFromInline = true
     pip.delegate = self
     self.pipController = pip
-
-    NSLog("[MeetingPiP] enterPip: PiP controller created (canStart=auto)")
-
-    // 4. Подцепляем renderer — если уже знаем trackId, реальные кадры
-    // полетят в displayLayer контент-VC.
-    attachRendererToTrack()
-
-    // 5. Стартуем. isPictureInPicturePossible становится true после того,
-    // как контент-VC появится в иерархии (через короткий cycle layout'а).
-    self.attemptStart(pip: pip, attemptsLeft: 30, result: result)
+    NSLog("[MeetingPiP] setup: PiP controller created "
+        + "(canStartAutomaticallyFromInline=true)")
   }
 
   private func attemptStart(
