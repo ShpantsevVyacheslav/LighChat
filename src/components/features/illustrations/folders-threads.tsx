@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { CornerDownRight, Folder, FolderOpen, Pin, Star } from 'lucide-react';
+import { Folder, FolderOpen, MessageSquare, Pin, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
 import { getFeaturesContent } from '../features-content';
@@ -23,10 +23,14 @@ export function MockFoldersThreads({
     { name: t.folderStudy, count: 12, active: false, icon: Folder },
     { name: t.folderStarred, count: 3, active: false, icon: Star },
   ];
+  // В реальном `ConversationItem` тред-маркер встроен в строку чата
+  // (маленький `<MessageSquare>` бейдж с подписью «Discussion · N»).
+  // Здесь второй чат выводит этот бейдж под названием — это и есть
+  // визуализация треда в обычном списке чатов, без отдельной плашки.
   const chats = [
-    { name: t.chat1Name, last: t.chat1Last, unread: 3, pinned: true },
-    { name: t.chat2Name, last: t.chat2Last, unread: 0, pinned: false },
-    { name: t.chat3Name, last: t.chat3Last, unread: 1, pinned: false },
+    { name: t.chat1Name, last: t.chat1Last, unread: 3, pinned: true, threadCount: 0 },
+    { name: t.chat2Name, last: t.chat2Last, unread: 0, pinned: false, threadCount: 4 },
+    { name: t.chat3Name, last: t.chat3Last, unread: 1, pinned: false, threadCount: 0 },
   ];
   return (
     <div className={cn('relative flex h-full w-full overflow-hidden', className)}>
@@ -67,7 +71,15 @@ export function MockFoldersThreads({
                 {c.pinned ? <Pin className="h-3 w-3 text-muted-foreground" aria-hidden /> : null}
                 <p className="truncate text-xs font-semibold text-foreground">{c.name}</p>
               </div>
-              <p className="truncate text-[11px] text-muted-foreground">{c.last}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="truncate text-[11px] text-muted-foreground">{c.last}</p>
+                {c.threadCount > 0 ? (
+                  <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-violet-400/15 px-1.5 py-px text-[9px] font-bold text-violet-500 dark:text-violet-300">
+                    <MessageSquare className="h-2.5 w-2.5" aria-hidden />
+                    {c.threadCount}
+                  </span>
+                ) : null}
+              </div>
             </div>
             {c.unread ? (
               <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
@@ -76,25 +88,9 @@ export function MockFoldersThreads({
             ) : null}
           </div>
         ))}
-        {!compact ? (
-          <div
-            className="mt-2 rounded-2xl border border-violet-400/25 bg-violet-400/5 p-2 animate-feat-bubble-in"
-            style={{ animationDelay: '700ms' }}
-          >
-            <div className="flex items-center gap-1.5 text-[10px] font-semibold text-violet-500 dark:text-violet-300">
-              <CornerDownRight className="h-3 w-3" aria-hidden />
-              {t.threadTitle}
-            </div>
-            <div className="mt-1.5 flex flex-col gap-1">
-              <div className="self-start rounded-xl rounded-tl-none bg-muted px-2 py-1 text-[11px] text-foreground">
-                {t.threadReply1}
-              </div>
-              <div className="self-end rounded-xl rounded-tr-none bg-primary px-2 py-1 text-[11px] text-primary-foreground">
-                {t.threadReply2}
-              </div>
-            </div>
-          </div>
-        ) : null}
+        {/* Реальный UI не показывает treads как отдельный «блок» под списком
+            чатов — тред-индикатор уже встроен в строку конкретного чата как
+            крошечный бейдж `<MessageSquare> N`. */}
       </div>
     </div>
   );

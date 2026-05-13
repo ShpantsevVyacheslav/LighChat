@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { MapPin, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
 import { getFeaturesContent } from '../features-content';
@@ -49,14 +50,17 @@ export function MockLiveLocation({
           >
             <MapPin className="h-4 w-4 shrink-0 animate-pulse text-emerald-300" aria-hidden />
             <span className="min-w-0 flex-1 font-medium">{t.liveLocationBanner}</span>
-            <button
+            {/* Реальный `LiveLocationStopBanner` использует shadcn Button. */}
+            <Button
               type="button"
-              className="flex h-7 items-center gap-1 rounded-xl bg-white/15 px-2 text-[11px] font-semibold text-white"
+              size="sm"
+              variant="secondary"
+              className="h-8 gap-1 bg-white/15 px-2 text-[11px] font-semibold text-white hover:bg-white/25"
               aria-label="stop"
             >
               <X className="h-3 w-3" aria-hidden />
               {t.liveLocationStop}
-            </button>
+            </Button>
           </div>
         ) : null}
       </div>

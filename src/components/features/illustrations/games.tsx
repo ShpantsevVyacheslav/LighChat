@@ -121,12 +121,13 @@ export function MockGames({ className, compact }: { className?: string; compact?
 
   return (
     <div className={cn('relative h-full w-full overflow-hidden', className)}>
-      {/* Реальный фон стола: радиальный сине-серый + виньетка */}
+      {/* Реальная палитра `DurakWebGameDialog` (web) и `DurakFeltBackground`
+          (mobile) — один в один: радиальный сине-серый с финальным `#0e1620`. */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            'radial-gradient(ellipse at 20% 10%, #5F86A1 0%, #253F52 55%, #0B121B 100%)',
+            'radial-gradient(circle at 30% 25%, #5F86A1 0%, #253F52 55%, #0E1620 100%)',
         }}
       />
       {/* Лёгкий шум-сетка */}
@@ -249,13 +250,14 @@ export function MockGames({ className, compact }: { className?: string; compact?
           ))}
         </div>
 
-        {/* Действия Beat/Take — лента под рукой (только на полной версии) */}
+        {/* Действия Beat/Take — повторяет реальные кнопки `DurakWebGameDialog`:
+            активная — `bg-lime-400 text-[#173217]`, пассивная — `bg-[#8fb2c8]`. */}
         {!compact ? (
           <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-            <div className="flex h-6 items-center justify-center rounded-md bg-emerald-500/85 text-[10px] font-bold text-white shadow-sm">
+            <div className="flex h-6 items-center justify-center rounded-md bg-lime-400 text-[10px] font-bold text-[#173217] shadow-sm">
               {t.gamesActionBeat}
             </div>
-            <div className="flex h-6 items-center justify-center rounded-md border border-white/15 bg-black/30 text-[10px] font-bold text-white/85">
+            <div className="flex h-6 items-center justify-center rounded-md bg-[#8fb2c8]/85 text-[10px] font-bold text-white">
               {t.gamesActionTake}
             </div>
           </div>

@@ -1,10 +1,39 @@
 'use client';
 
 import * as React from 'react';
-import { Lock, ShieldCheck } from 'lucide-react';
+import { Fingerprint, Lock, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
 import { getFeaturesContent } from '../features-content';
+
+/** Точная копия `E2eeFingerprintBadge`: Fingerprint-иконка + двух-строчный
+ *  блок (hint + monospace-код), но в компактном виде. */
+function FingerprintBadge({
+  label,
+  align = 'start',
+}: {
+  label: string;
+  align?: 'start' | 'end';
+}) {
+  return (
+    <div
+      className={cn(
+        'flex items-start gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-2 py-1',
+        align === 'end' && 'flex-row-reverse text-right',
+      )}
+    >
+      <Fingerprint className="h-3 w-3 shrink-0 text-emerald-600 dark:text-emerald-300 mt-0.5" aria-hidden />
+      <div className="min-w-0">
+        <div className="text-[8px] uppercase tracking-wide text-muted-foreground">
+          E2EE · {label}
+        </div>
+        <code className="block text-[9.5px] font-mono tracking-tight text-emerald-700 dark:text-emerald-200">
+          5f2a · 8b91
+        </code>
+      </div>
+    </div>
+  );
+}
 
 const HEX_BLOCKS = [
   '9F2A', '8B71', '4CC8', '3DEA', '5F02', 'A1B4', '0E77', 'C9D5',
@@ -95,12 +124,15 @@ export function MockEncryption({ className }: { className?: string; compact?: bo
         </div>
       </div>
 
-      <div className="mt-2 flex items-center justify-between gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/5 px-2.5 py-1.5">
-        <span className="font-mono text-[9.5px] text-emerald-600 dark:text-emerald-300">5f2a · 8b91</span>
+      {/* Реальный `E2eeFingerprintBadge`: `Fingerprint` иконка слева, hint
+          сверху, `<code>`-блок с моноширинным отпечатком. Здесь — пара badge'ей
+          для обеих сторон + бейдж «совпало». */}
+      <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+        <FingerprintBadge label={t.peerAlice} />
         <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-200">
           {t.fingerprintMatch}
         </span>
-        <span className="font-mono text-[9.5px] text-emerald-600 dark:text-emerald-300">5f2a · 8b91</span>
+        <FingerprintBadge label={t.peerBob} align="end" />
       </div>
     </div>
   );

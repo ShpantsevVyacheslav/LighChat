@@ -1,31 +1,38 @@
 import * as React from 'react';
-import { ChevronLeft, MessageCircle, Phone, Search, Video } from 'lucide-react';
+import { ChevronLeft, MessageCircle, Phone, Video } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
- * iOS-стиль шапки чата LighChat (см. реальный `ChatWindow` на мобилке):
- *  - стрелка-back в круглой полупрозрачной пилюле;
- *  - аватар с маленькой online-точкой;
- *  - имя + статус под ним (как «Last seen yesterday»);
- *  - 4 круглые иконки-чипа: треды, поиск, видео, телефон.
+ * Шапка чата как в реальном `ChatWindow.tsx` LighChat: `chatHeaderIconGlass`
+ * стеклянный chip + цвета SF Symbols-style. Никаких круглых `bg-black/30`-чипов.
+ *
+ * Source-of-truth: `chatHeaderIconGlass` =
+ *   "rounded-xl bg-background/28 dark:bg-background/20 backdrop-blur-md shadow-sm"
+ * CHAT_HEADER_IOS = {
+ *   threads:   text-[#007AFF] dark:text-[#64B5FF]
+ *   callVideo: text-[#34C759] dark:text-[#48E074]
+ *   callAudio: text-[#34C759] dark:text-[#48E074]
+ * }
  */
+const CHIP_GLASS =
+  'rounded-xl bg-background/28 dark:bg-background/20 backdrop-blur-md shadow-sm';
+
 function HeaderChip({
   icon: Icon,
   className,
+  iconClassName,
 }: {
   icon: LucideIcon;
   className?: string;
+  iconClassName?: string;
 }) {
   return (
-    <span
-      className={cn(
-        'flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black/30 text-white',
-        className,
-      )}
-    >
-      <Icon className="h-4 w-4" aria-hidden />
-    </span>
+    <div className={cn('p-0.5', CHIP_GLASS, className)}>
+      <div className="flex h-7 w-7 items-center justify-center">
+        <Icon className={cn('h-[18px] w-[18px]', iconClassName)} strokeWidth={2} aria-hidden />
+      </div>
+    </div>
   );
 }
 
@@ -33,10 +40,13 @@ export function MockChatHeader({
   name,
   status,
   className,
+  /** Для DM-чатов реальный UI показывает иконку тредов; групповые без неё. */
+  withThreads = true,
 }: {
   name: string;
   status: string;
   className?: string;
+  withThreads?: boolean;
 }) {
   const initial = name.charAt(0).toUpperCase();
   return (
@@ -48,7 +58,7 @@ export function MockChatHeader({
         className,
       )}
     >
-      <HeaderChip icon={ChevronLeft} />
+      <HeaderChip icon={ChevronLeft} iconClassName="text-foreground/85" />
       <div className="relative h-10 w-10 shrink-0">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-sm font-bold text-primary-foreground shadow-sm">
           {initial}
@@ -59,10 +69,20 @@ export function MockChatHeader({
         <span className="block truncate text-[14px] font-semibold text-foreground">{name}</span>
         <span className="block truncate text-[11px] text-muted-foreground">{status}</span>
       </div>
-      <HeaderChip icon={MessageCircle} />
-      <HeaderChip icon={Search} />
-      <HeaderChip icon={Video} />
-      <HeaderChip icon={Phone} />
+      {withThreads ? (
+        <HeaderChip
+          icon={MessageCircle}
+          iconClassName="text-[#007AFF] dark:text-[#64B5FF]"
+        />
+      ) : null}
+      <HeaderChip
+        icon={Video}
+        iconClassName="text-[#34C759] dark:text-[#48E074]"
+      />
+      <HeaderChip
+        icon={Phone}
+        iconClassName="text-[#34C759] dark:text-[#48E074]"
+      />
     </div>
   );
 }

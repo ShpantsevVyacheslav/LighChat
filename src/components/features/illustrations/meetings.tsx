@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Hand, Mic, MicOff, MoreHorizontal, PhoneOff, ScreenShare, Users, Video } from 'lucide-react';
+import { BarChart2, Hand, MessageSquare, Mic, MicOff, MonitorUp, PhoneOff, Smile, Users, Video as VideoIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
 import { getFeaturesContent } from '../features-content';
@@ -36,7 +36,9 @@ export function MockMeetings({ className, compact }: { className?: string; compa
             key={i}
             className={cn(
               'relative aspect-video overflow-hidden rounded-2xl border border-white/10 shadow-inner animate-feat-bubble-in',
-              tile.speaking && 'animate-feat-speaker-pulse'
+              // Реально активного спикера обводит ring-primary (синий), а не emerald,
+              // плюс лёгкая пульсация. Текстовых лейблов «Speaking» в реале нет.
+              tile.speaking && 'ring-2 ring-primary animate-feat-speaker-pulse'
             )}
             style={{ animationDelay: `${i * 100}ms` }}
           >
@@ -51,31 +53,44 @@ export function MockMeetings({ className, compact }: { className?: string; compa
               <span className="inline-flex items-center gap-1 truncate rounded-md bg-black/45 px-1.5 py-0.5 backdrop-blur-md">
                 {tile.muted ? <MicOff className="h-3 w-3" aria-hidden /> : <Mic className="h-3 w-3" aria-hidden />}
               </span>
-              {tile.speaking ? (
-                <span className="rounded-md bg-emerald-500/90 px-1 py-0.5 text-[9px]">{t.meetingSpeaking}</span>
-              ) : null}
             </div>
           </div>
         ))}
       </div>
       {!compact ? (
-        <div className="flex items-center justify-center gap-2 rounded-full border border-black/5 dark:border-white/10 bg-background/80 px-3 py-2 backdrop-blur-md">
-          <button type="button" className="rounded-full bg-foreground/10 p-2 text-foreground/80" aria-label="mic">
+        // Реальный `MeetingControls` группирует кнопки и разделяет их
+        // вертикальными separator-ами (`bg-white/10`).
+        // Порядок: [Cam, Mic] | [Hand, Smile (reactions)] | [Users, Polls,
+        // Chat, ScreenShare] | Leave.
+        <div className="flex items-center justify-center gap-1.5 rounded-full border border-white/10 bg-black/40 px-2 py-1.5 backdrop-blur-2xl shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
+          <button type="button" className="rounded-full bg-white/10 p-1.5 text-white hover:bg-white/20" aria-label="cam">
+            <VideoIcon className="h-3.5 w-3.5" aria-hidden />
+          </button>
+          <button type="button" className="rounded-full bg-white/10 p-1.5 text-white hover:bg-white/20" aria-label="mic">
             <Mic className="h-3.5 w-3.5" aria-hidden />
           </button>
-          <button type="button" className="rounded-full bg-foreground/10 p-2 text-foreground/80" aria-label="cam">
-            <Video className="h-3.5 w-3.5" aria-hidden />
-          </button>
-          <button type="button" className="rounded-full bg-foreground/10 p-2 text-foreground/80" aria-label="share">
-            <ScreenShare className="h-3.5 w-3.5" aria-hidden />
-          </button>
-          <button type="button" className="rounded-full bg-foreground/10 p-2 text-foreground/80" aria-label="hand">
+          <span aria-hidden className="h-5 w-px shrink-0 bg-white/10" />
+          <button type="button" className="rounded-full bg-white/10 p-1.5 text-white hover:bg-white/20" aria-label="hand">
             <Hand className="h-3.5 w-3.5" aria-hidden />
           </button>
-          <button type="button" className="rounded-full bg-foreground/10 p-2 text-foreground/80" aria-label="more">
-            <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
+          <button type="button" className="rounded-full bg-white/10 p-1.5 text-white hover:bg-white/20" aria-label="reactions">
+            <Smile className="h-3.5 w-3.5" aria-hidden />
           </button>
-          <button type="button" className="rounded-full bg-rose-500 p-2 text-white shadow" aria-label="leave">
+          <span aria-hidden className="h-5 w-px shrink-0 bg-white/10" />
+          <button type="button" className="rounded-full bg-white/10 p-1.5 text-white hover:bg-white/20" aria-label="participants">
+            <Users className="h-3.5 w-3.5" aria-hidden />
+          </button>
+          <button type="button" className="rounded-full bg-white/10 p-1.5 text-white hover:bg-white/20" aria-label="polls">
+            <BarChart2 className="h-3.5 w-3.5" aria-hidden />
+          </button>
+          <button type="button" className="rounded-full bg-white/10 p-1.5 text-white hover:bg-white/20" aria-label="chat">
+            <MessageSquare className="h-3.5 w-3.5" aria-hidden />
+          </button>
+          <button type="button" className="rounded-full bg-white/10 p-1.5 text-white hover:bg-white/20" aria-label="share">
+            <MonitorUp className="h-3.5 w-3.5" aria-hidden />
+          </button>
+          <span aria-hidden className="h-5 w-px shrink-0 bg-white/10" />
+          <button type="button" className="rounded-full bg-rose-500 p-1.5 text-white shadow-[0_0_16px_rgba(239,68,68,0.5)]" aria-label="leave">
             <PhoneOff className="h-3.5 w-3.5" aria-hidden />
           </button>
         </div>

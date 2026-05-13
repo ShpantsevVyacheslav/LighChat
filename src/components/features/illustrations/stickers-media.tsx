@@ -6,6 +6,9 @@ import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
 import { getFeaturesContent } from '../features-content';
 
+// Реальный sticker-picker `ChatStickerGifPanel` использует сетку 3-col,
+// не 4-col. Опрос и фоторедактор — это совершенно другие UI (отдельные
+// диалоги), поэтому мы выделяем их отдельным блоком ниже с явными подписями.
 const FACES = [
   { glyph: '😀', accent: 'from-amber-300 to-amber-500' },
   { glyph: '😎', accent: 'from-violet-400 to-violet-600' },
@@ -13,8 +16,6 @@ const FACES = [
   { glyph: '😴', accent: 'from-sky-400 to-sky-600' },
   { glyph: '😡', accent: 'from-red-500 to-rose-700' },
   { glyph: '🤔', accent: 'from-emerald-400 to-emerald-600' },
-  { glyph: '🥳', accent: 'from-pink-400 to-pink-600' },
-  { glyph: '😇', accent: 'from-amber-400 to-orange-600' },
 ];
 
 /** Стикер-пикер + плитка опроса + превью медиа-редактора. */
@@ -37,7 +38,7 @@ export function MockStickersMedia({
         </span>
         <Sticker className="h-4 w-4 text-amber-500 dark:text-amber-400" aria-hidden />
       </div>
-      <div className="mt-3 grid grid-cols-4 gap-2">
+      <div className="mt-3 grid grid-cols-3 gap-2">
         {FACES.map((f, i) => (
           <div
             key={f.glyph}
@@ -53,13 +54,15 @@ export function MockStickersMedia({
         ))}
       </div>
       {!compact ? (
+        // Подпись «Polls / Photo editor — separate dialogs» делает явным,
+        // что это разные UI, а не часть sticker-popover.
         <div className="mt-3 grid grid-cols-2 gap-2">
           <div
             className="rounded-2xl border border-black/5 dark:border-white/10 bg-background/60 p-2.5 animate-feat-bubble-in"
             style={{ animationDelay: '600ms' }}
           >
             <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <BarChart3 className="h-3 w-3" aria-hidden /> Poll
+              <BarChart3 className="h-3 w-3" aria-hidden /> {t.pollLabel}
             </div>
             <p className="mt-1 text-[11px] font-semibold text-foreground">{t.pollTitle}</p>
             <div className="mt-1.5 space-y-1">
@@ -89,10 +92,10 @@ export function MockStickersMedia({
               <span className="absolute right-2 top-2 rounded-full bg-black/45 p-1 backdrop-blur-md">
                 <Heart className="h-3 w-3 text-rose-300" aria-hidden />
               </span>
+              <div className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-md bg-black/45 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white backdrop-blur-md">
+                <ImagePlus className="h-2.5 w-2.5" aria-hidden /> {t.editorLabel}
+              </div>
               <div className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between rounded-md bg-black/45 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-md">
-                <span className="inline-flex items-center gap-1">
-                  <ImagePlus className="h-3 w-3" aria-hidden /> {t.editorLabel}
-                </span>
                 <span className="opacity-85">{t.editorHint}</span>
               </div>
             </div>

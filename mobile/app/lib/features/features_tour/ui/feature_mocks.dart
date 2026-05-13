@@ -98,58 +98,8 @@ class _BreathingState extends State<_Breathing>
   }
 }
 
-/// Эквалайзер — N полос, синусоидально меняют высоту.
-class _Equalizer extends StatefulWidget {
-  const _Equalizer({this.barCount = 7, this.color = Colors.white});
-  final int barCount;
-  final Color color;
-
-  @override
-  State<_Equalizer> createState() => _EqualizerState();
-}
-
-class _EqualizerState extends State<_Equalizer>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c;
-
-  @override
-  void initState() {
-    super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
-      ..repeat();
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _c,
-      builder: (context, _) {
-        final t = _c.value;
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(widget.barCount, (i) {
-            final phase = (t + i / widget.barCount) % 1.0;
-            final h = 4 + math.sin(phase * 2 * math.pi) * 6 + 6;
-            return Container(
-              margin: const EdgeInsets.only(left: 1),
-              width: 2,
-              height: h,
-              color: widget.color,
-            );
-          }),
-        );
-      },
-    );
-  }
-}
+// `_Equalizer` удалён: реальный `AudioCallOverlay` не имеет визуального
+// эквалайзера, он был моей выдумкой.
 
 /// Появление снизу + fade-in.
 class _FadeInUp extends StatefulWidget {
@@ -433,28 +383,40 @@ class FeatureMockFrame extends StatelessWidget {
 //  Шапка чата + бабл — без выдуманных индикаторов
 // =====================================================================
 
-/// Шапка чата в iOS-стиле LighChat (см. реальный `ChatWindow` на мобилке):
-///  - стрелка-back в круглой полупрозрачной пилюле,
-///  - аватар (~36px) с маленькой online-точкой,
-///  - имя (`Last seen ...` под ним),
-///  - 4 круглые иконки-чипа справа: треды, поиск, видео-камера, телефон.
-/// Иконки белые на полупрозрачно-сером фоне — как в реальной мобилке.
+/// Шапка чата в стиле реального `ChatWindow` LighChat:
+///  - стрелка-back в стеклянном `rounded-xl` chip (НЕ круглом),
+///  - аватар ~36px с online-точкой,
+///  - имя + статус под ним,
+///  - rounded-xl glass-chip иконки: треды (синий), видео (зелёный), телефон (зелёный).
+///  Никаких круглых `bg-black/30` чипов — реальный header использует
+///  `chatHeaderIconGlass = rounded-xl bg-background/28 backdrop-blur shadow-sm`
+///  и палитру SF Symbols-style.
 class _MockChatHeader extends StatelessWidget {
   const _MockChatHeader({required this.name, required this.status});
   final String name;
   final String status;
 
-  static Widget _chip(IconData icon, {Color? iconColor}) {
+  static const Color _iosThreads = Color(0xFF007AFF);
+  static const Color _iosCall = Color(0xFF34C759);
+
+  static Widget _chip(BuildContext context, IconData icon, {Color? iconColor}) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
-      width: 30,
-      height: 30,
+      width: 32,
+      height: 32,
       margin: const EdgeInsets.only(left: 5),
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.black.withValues(alpha: 0.30),
+        borderRadius: BorderRadius.circular(10),
+        color: scheme.surface.withValues(alpha: 0.28),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 6,
+              offset: const Offset(0, 2)),
+        ],
       ),
       alignment: Alignment.center,
-      child: Icon(icon, size: 15, color: iconColor ?? Colors.white),
+      child: Icon(icon, size: 17, color: iconColor ?? scheme.onSurface.withValues(alpha: 0.85)),
     );
   }
 
@@ -470,16 +432,20 @@ class _MockChatHeader extends StatelessWidget {
         color: scheme.surface.withValues(alpha: 0.5),
       ),
       child: Row(children: [
-        // Back chip
+        // Back — тот же rounded-xl glass chip, не круглый
         Container(
-          width: 30,
-          height: 30,
+          width: 32,
+          height: 32,
           decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.black.withValues(alpha: 0.30),
+            borderRadius: BorderRadius.circular(10),
+            color: scheme.surface.withValues(alpha: 0.28),
           ),
           alignment: Alignment.center,
-          child: const Icon(Icons.chevron_left_rounded, size: 18, color: Colors.white),
+          child: Icon(
+            Icons.chevron_left_rounded,
+            size: 20,
+            color: scheme.onSurface.withValues(alpha: 0.85),
+          ),
         ),
         const SizedBox(width: 8),
         // Avatar
@@ -537,10 +503,9 @@ class _MockChatHeader extends StatelessWidget {
             ],
           ),
         ),
-        _chip(Icons.chat_bubble_outline_rounded),
-        _chip(Icons.search_rounded),
-        _chip(Icons.videocam_outlined),
-        _chip(Icons.phone_outlined),
+        _chip(context, Icons.chat_bubble_outline_rounded, iconColor: _iosThreads),
+        _chip(context, Icons.videocam_outlined, iconColor: _iosCall),
+        _chip(context, Icons.phone_outlined, iconColor: _iosCall),
       ]),
     );
   }
@@ -886,50 +851,89 @@ class MockEncryption extends StatelessWidget {
             ),
           ]),
         ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-          decoration: BoxDecoration(
-            color: featureAccentEmerald.withValues(alpha: 0.08),
-            border: Border.all(color: featureAccentEmerald.withValues(alpha: 0.25)),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(children: [
-            Text('5f2a · 8b91',
-                style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 10,
-                    color: featureAccentEmerald,
-                    fontWeight: FontWeight.w700)),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-              decoration: BoxDecoration(
-                color: featureAccentEmerald.withValues(alpha: 0.20),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(t.fingerprintMatch.toUpperCase(),
-                  style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w800,
-                      color: featureAccentEmerald)),
+        const SizedBox(height: 6),
+        // Реальный `E2eeFingerprintBadge`: Fingerprint-иконка + двухстрочный
+        // блок (hint сверху, monospace ниже). Здесь — пара для обеих сторон
+        // и пилюля «совпали» между ними.
+        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          Expanded(child: _FingerprintBadge(label: t.peerAlice)),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: featureAccentEmerald.withValues(alpha: 0.20),
+              borderRadius: BorderRadius.circular(999),
             ),
-            const Spacer(),
-            Text('5f2a · 8b91',
+            child: Text(t.fingerprintMatch.toUpperCase(),
                 style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 10,
-                    color: featureAccentEmerald,
-                    fontWeight: FontWeight.w700)),
-          ]),
-        ),
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color: featureAccentEmerald)),
+          ),
+          const SizedBox(width: 6),
+          Expanded(child: _FingerprintBadge(label: t.peerBob, alignRight: true)),
+        ]),
       ]),
+    );
+  }
+}
+
+/// Точная мини-копия `E2eeFingerprintBadge` (web): иконка `Fingerprint` +
+/// uppercase-hint сверху + monospace-код снизу.
+class _FingerprintBadge extends StatelessWidget {
+  const _FingerprintBadge({required this.label, this.alignRight = false});
+  final String label;
+  final bool alignRight;
+
+  @override
+  Widget build(BuildContext context) {
+    final body = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment:
+          alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        Text('E2EE · $label',
+            style: TextStyle(
+                fontSize: 7,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.4,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55))),
+        Text('5f2a · 8b91',
+            style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 9.5,
+                fontWeight: FontWeight.w700,
+                color: featureAccentEmerald)),
+      ],
+    );
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: featureAccentEmerald.withValues(alpha: 0.05),
+        border: Border.all(color: featureAccentEmerald.withValues(alpha: 0.25)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+          mainAxisSize: MainAxisSize.min,
+          textDirection: alignRight ? TextDirection.rtl : TextDirection.ltr,
+          children: [
+            Icon(Icons.fingerprint_rounded,
+                size: 11, color: featureAccentEmerald),
+            const SizedBox(width: 4),
+            // Принудительно вернуть LTR внутри текста, чтобы цифры не
+            // зеркалились.
+            Directionality(textDirection: TextDirection.ltr, child: body),
+          ]),
     );
   }
 }
 
 // --- 2. Secret chats: чат + 3 плашки-«правила» снизу ---
 
+/// Реалистичный мокап секретного чата: обычный чат + миниатюра
+/// `SecretChatSettingsDialog` (три switch-row) вместо «трёх таблеток».
+/// В реальном чате никаких иконок-плашек правил снизу нет — настройки
+/// живут в отдельном диалоге, который и показан здесь.
 class MockSecretChats extends StatelessWidget {
   const MockSecretChats({super.key});
   @override
@@ -941,35 +945,102 @@ class MockSecretChats extends StatelessWidget {
         _MockBubble(text: t.secretMsg1, outgoing: false, time: '14:02'),
         _MockBubble(text: t.secretMsg2, outgoing: true, time: '14:03'),
       ],
-      footer: Row(children: [
-        _RuleChip(icon: Icons.timer_outlined, color: featureAccentViolet),
-        const SizedBox(width: 6),
-        _RuleChip(icon: Icons.visibility_off_outlined, color: featureAccentCoral),
-        const SizedBox(width: 6),
-        _RuleChip(icon: Icons.lock_outline_rounded, color: featureAccentAmber),
-      ]),
+      footer: Container(
+        decoration: BoxDecoration(
+          color: featureAccentViolet.withValues(alpha: 0.05),
+          border: Border.all(color: featureAccentViolet.withValues(alpha: 0.25)),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        padding: const EdgeInsets.all(6),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 4, top: 2, bottom: 4),
+            child: Text(t.secretSettingsTitle,
+                style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                    color: featureAccentViolet)),
+          ),
+          _SecretSettingRow(
+              icon: Icons.timer_outlined,
+              label: t.secretSettingTtl,
+              value: t.secretSettingTtlValue,
+              on: true),
+          _SecretSettingRow(
+              icon: Icons.visibility_off_outlined,
+              label: t.secretSettingNoForward,
+              on: true),
+          _SecretSettingRow(
+              icon: Icons.lock_outline_rounded,
+              label: t.secretSettingLock,
+              on: false),
+        ]),
+      ),
     );
   }
 }
 
-class _RuleChip extends StatelessWidget {
-  const _RuleChip({required this.icon, required this.color});
+class _SecretSettingRow extends StatelessWidget {
+  const _SecretSettingRow({
+    required this.icon,
+    required this.label,
+    this.value,
+    required this.on,
+  });
   final IconData icon;
-  final Color color;
+  final String label;
+  final String? value;
+  final bool on;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.10),
-          border: Border.all(color: color.withValues(alpha: 0.30)),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        alignment: Alignment.center,
-        child: Icon(icon, size: 16, color: color),
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(top: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(10),
       ),
+      child: Row(children: [
+        Icon(icon, size: 13, color: featureAccentViolet),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+              if (value != null)
+                Text(value!,
+                    style: TextStyle(
+                        fontSize: 9,
+                        color: scheme.onSurface.withValues(alpha: 0.55))),
+            ],
+          ),
+        ),
+        // Статичный switch (визуал).
+        Container(
+          width: 22,
+          height: 12,
+          decoration: BoxDecoration(
+            color: on ? featureAccentPrimary : scheme.onSurface.withValues(alpha: 0.30),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          alignment: on ? Alignment.centerRight : Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 1.5),
+          child: Container(
+            width: 9,
+            height: 9,
+            decoration: const BoxDecoration(
+                color: Colors.white, shape: BoxShape.circle),
+          ),
+        ),
+      ]),
     );
   }
 }
@@ -1013,64 +1084,133 @@ class MockDisappearing extends StatelessWidget {
 
 // --- 4. Scheduled: чат + панель «Запланированные» ---
 
+/// Чат + наезжающий снизу `ScheduledMessagesSheet` (Bottom Sheet с
+/// drag-handle сверху). Точка входа в реальном UI — иконка
+/// `CalendarClock` с бейджем-счётчиком в шапке чата; повторяем оба.
 class MockScheduled extends StatelessWidget {
   const MockScheduled({super.key});
   @override
   Widget build(BuildContext context) {
     final t = _mockText(context);
-    return _ChatLikeMock(
-      header: _MockChatHeader(name: t.peerMikhail, status: t.mikhailStatus),
-      bubbles: [
-        _MockBubble(text: t.scheduledMsg1, outgoing: false, time: '20:11'),
-        _MockBubble(text: t.scheduledMsg2, outgoing: true, time: '20:12'),
-      ],
-      footer: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: featureAccentPrimary.withValues(alpha: 0.10),
-          border: Border.all(color: featureAccentPrimary.withValues(alpha: 0.25)),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: featureAccentPrimary.withValues(alpha: 0.18),
-            ),
-            child: Icon(Icons.schedule_rounded, size: 16, color: featureAccentPrimary),
+    return Column(children: [
+      _MockChatHeader(name: t.peerMikhail, status: t.mikhailStatus),
+      Expanded(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _FadeInUp(
+                child: _MockBubble(
+                    text: t.scheduledMsg1, outgoing: false, time: '20:11'),
+              ),
+              _FadeInUp(
+                delay: const Duration(milliseconds: 250),
+                child: _MockBubble(
+                    text: t.scheduledMsg2, outgoing: true, time: '20:12'),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(t.scheduledQueueTitle,
+        ),
+      ),
+      // Bottom Sheet — наезжает снизу с drag-handle.
+      _FadeInUp(
+        delay: const Duration(milliseconds: 500),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.96),
+            border: Border(
+              top: BorderSide(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08)),
+            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 14,
+                  offset: const Offset(0, -6),
+                  spreadRadius: -4),
+            ],
+          ),
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Center(
+              child: Container(
+                width: 38,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(children: [
+              Text(t.scheduledQueueTitle,
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: featureAccentPrimary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text('1',
                     style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 9,
                         fontWeight: FontWeight.w800,
                         color: featureAccentPrimary)),
-                Text(t.scheduledMsg3,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
-                Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.calendar_today_outlined,
-                      size: 9, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55)),
-                  const SizedBox(width: 3),
-                  Text(t.scheduledQueueDate,
-                      style: TextStyle(
-                          fontSize: 9,
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55))),
-                ]),
-              ],
+              ),
+            ]),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                border: Border.all(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08)),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: featureAccentPrimary.withValues(alpha: 0.15),
+                  ),
+                  child: Icon(Icons.schedule_rounded,
+                      size: 14, color: featureAccentPrimary),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(t.scheduledMsg3,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 11, fontWeight: FontWeight.w600)),
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.event_outlined,
+                            size: 9,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55)),
+                        const SizedBox(width: 3),
+                        Text(t.scheduledQueueDate,
+                            style: TextStyle(
+                                fontSize: 9,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55))),
+                      ]),
+                    ],
+                  ),
+                ),
+              ]),
             ),
-          ),
-        ]),
+          ]),
+        ),
       ),
-    );
+    ]);
   }
 }
 
@@ -1734,9 +1874,11 @@ class MockMeetings extends StatelessWidget {
                         end: Alignment.bottomRight,
                         colors: [tiles[i].$2.withValues(alpha: 0.85), tiles[i].$2.withValues(alpha: 0.55)],
                       ),
+                      // Активный спикер — синий ring (`ring-primary` на web),
+                      // как в реальном `MeetingRoom`. Никаких emerald.
                       border: Border.all(
                           color: tiles[i].$4
-                              ? featureAccentEmerald.withValues(alpha: 0.85)
+                              ? featureAccentPrimary.withValues(alpha: 0.95)
                               : Colors.white.withValues(alpha: 0.10),
                           width: tiles[i].$4 ? 2 : 1),
                     ),
@@ -1788,27 +1930,286 @@ class MockMeetings extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (tiles[i].$4)
-                        Positioned(
-                          bottom: 4,
-                          right: 4,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: featureAccentEmerald,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(t.meetingSpeaking,
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.w800)),
-                          ),
-                        ),
+                      // Текстовых label-ов «Speaking» нет в реальном UI —
+                      // активный спикер обозначается только border-ом
+                      // тайла (см. ниже).
                     ]),
                   ),
                 ),
             ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        // Реальный `MeetingControls`: pill с группами по 2-3 кнопки,
+        // разделёнными `bg-white/10` separator'ами. Leave-кнопка красная,
+        // отделена от остальных.
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.40),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            _meetCtrl(Icons.videocam_outlined),
+            _meetCtrl(Icons.mic),
+            _meetSep(),
+            _meetCtrl(Icons.back_hand_outlined),
+            _meetCtrl(Icons.emoji_emotions_outlined),
+            _meetSep(),
+            _meetCtrl(Icons.people_alt_outlined),
+            _meetCtrl(Icons.bar_chart_rounded),
+            _meetCtrl(Icons.chat_bubble_outline_rounded),
+            _meetCtrl(Icons.screen_share_outlined),
+            _meetSep(),
+            _meetCtrl(Icons.call_end_rounded,
+                bg: const Color(0xFFEF4444), iconColor: Colors.white),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+/// Одиночная круглая кнопка контрол-бара встречи. По умолчанию —
+/// полупрозрачный белый фон с белой иконкой.
+Widget _meetCtrl(IconData icon, {Color? bg, Color? iconColor}) {
+  return Container(
+    width: 22,
+    height: 22,
+    margin: const EdgeInsets.symmetric(horizontal: 1.5),
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: bg ?? Colors.white.withValues(alpha: 0.10),
+      boxShadow: bg == const Color(0xFFEF4444)
+          ? [
+              BoxShadow(
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.5),
+                  blurRadius: 6),
+            ]
+          : null,
+    ),
+    alignment: Alignment.center,
+    child: Icon(icon, size: 11, color: iconColor ?? Colors.white),
+  );
+}
+
+Widget _meetSep() {
+  return Container(
+    width: 1,
+    height: 12,
+    margin: const EdgeInsets.symmetric(horizontal: 3),
+    color: Colors.white.withValues(alpha: 0.10),
+  );
+}
+
+// --- 7. Calls: pill аудио-звонка + видео-кружок ---
+
+/// Реалистичный мокап звонков: fullscreen-overlay стиль `AudioCallOverlay`
+/// (тёмный фон, большой аватар по центру, кнопки mic/end) + видео-кружок
+/// в стиле `VideoCirclePlayer` с SVG progress-кольцом вокруг.
+/// Никакого эквалайзера — в реальном `AudioCallOverlay` его нет.
+class MockCalls extends StatelessWidget {
+  const MockCalls({super.key});
+  @override
+  Widget build(BuildContext context) {
+    final t = _mockText(context);
+    return Stack(fit: StackFit.expand, children: [
+      // Fullscreen `bg-slate-950` как у реального overlay.
+      Container(color: const Color(0xFF02060F)),
+      Container(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 1.2,
+            colors: [
+              featureAccentPrimary.withValues(alpha: 0.18),
+              Colors.transparent,
+            ],
+          ),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          // Большой аватар + свечение
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  featureAccentEmerald,
+                  featureAccentEmerald.withValues(alpha: 0.7),
+                ],
+              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.10), width: 3),
+              boxShadow: [
+                BoxShadow(
+                    color: featureAccentEmerald.withValues(alpha: 0.45),
+                    blurRadius: 24,
+                    spreadRadius: 2),
+              ],
+            ),
+            alignment: Alignment.center,
+            child: Text(t.peerAlice.characters.first,
+                style: const TextStyle(
+                    color: Color(0xFF0F2D24), fontSize: 22, fontWeight: FontWeight.w800)),
+          ),
+          const SizedBox(height: 6),
+          Text(t.peerAlice,
+              style: const TextStyle(
+                  color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+          Text(t.callsAudioMeta,
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 10)),
+          const SizedBox(height: 8),
+          // Круглые кнопки mic / end / cam
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            _callBtn(Icons.mic_rounded),
+            const SizedBox(width: 12),
+            _callBtn(Icons.call_end_rounded,
+                bg: const Color(0xFFEF4444),
+                glow: const Color(0xFFEF4444).withValues(alpha: 0.5)),
+            const SizedBox(width: 12),
+            _callBtn(Icons.videocam_outlined),
+          ]),
+          const SizedBox(height: 12),
+          // Видео-кружок с SVG progress (как реальный VideoCirclePlayer)
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              _VideoCircleWithProgress(
+                initial: t.peerMikhail.characters.first,
+                progress: 0.42,
+                duration: '0:25 / 1:00',
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(t.callsCircleTitle,
+                      style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white)),
+                  Text(t.callsCircleMeta,
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white.withValues(alpha: 0.65))),
+                ],
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    ]);
+  }
+}
+
+Widget _callBtn(IconData icon, {Color? bg, Color? glow}) {
+  return Container(
+    width: 28,
+    height: 28,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: bg ?? Colors.white.withValues(alpha: 0.10),
+      boxShadow: glow == null
+          ? null
+          : [BoxShadow(color: glow, blurRadius: 10, spreadRadius: 1)],
+    ),
+    alignment: Alignment.center,
+    child: Icon(icon, size: 14, color: Colors.white),
+  );
+}
+
+/// SVG-кольцо progress вокруг видео-кружка. 0..1 = прогресс воспроизведения.
+class _VideoCircleWithProgress extends StatelessWidget {
+  const _VideoCircleWithProgress({
+    required this.initial,
+    required this.progress,
+    required this.duration,
+  });
+  final String initial;
+  final double progress;
+  final String duration;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 60,
+      height: 60,
+      child: Stack(children: [
+        // Progress ring через CustomPaint (Flutter эквивалент SVG-arc).
+        Positioned.fill(
+          child: CustomPaint(
+            painter: _ProgressRingPainter(
+              progress: progress,
+              trackColor: Colors.white.withValues(alpha: 0.15),
+              progressColor: featureAccentPrimary,
+            ),
+          ),
+        ),
+        // Сам кружок
+        Positioned.fill(
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [featureAccentViolet, featureAccentPrimary],
+                ),
+                border: Border.all(color: const Color(0xFF02060F), width: 2),
+              ),
+              alignment: Alignment.center,
+              child: Text(initial,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800)),
+            ),
+          ),
+        ),
+        // Play overlay по центру
+        Center(
+          child: Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.black.withValues(alpha: 0.5),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(Icons.play_arrow_rounded,
+                size: 12, color: Colors.white),
+          ),
+        ),
+        // Длительность в правом-верхнем углу
+        Positioned(
+          right: 0,
+          top: 0,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.55),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(duration,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 7,
+                    fontWeight: FontWeight.w800)),
           ),
         ),
       ]),
@@ -1816,79 +2217,44 @@ class MockMeetings extends StatelessWidget {
   }
 }
 
-// --- 7. Calls: pill аудио-звонка + видео-кружок ---
+class _ProgressRingPainter extends CustomPainter {
+  _ProgressRingPainter({
+    required this.progress,
+    required this.trackColor,
+    required this.progressColor,
+  });
+  final double progress;
+  final Color trackColor;
+  final Color progressColor;
 
-class MockCalls extends StatelessWidget {
-  const MockCalls({super.key});
   @override
-  Widget build(BuildContext context) {
-    final t = _mockText(context);
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: featureAccentEmerald.withValues(alpha: 0.10),
-            border: Border.all(color: featureAccentEmerald.withValues(alpha: 0.25)),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(children: [
-            CircleAvatar(
-                radius: 16,
-                backgroundColor: featureAccentEmerald,
-                child: Text(t.peerAlice.characters.first,
-                    style: const TextStyle(color: Colors.white))),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('${t.peerAlice} · ${t.callsAudioTitle}',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-                  Text(t.callsAudioMeta,
-                      style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                ],
-              ),
-            ),
-            _Equalizer(barCount: 7, color: featureAccentEmerald),
-          ]),
-        ),
-        const SizedBox(height: 12),
-        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [featureAccentViolet, featureAccentPrimary],
-              ),
-              border: Border.all(color: Theme.of(context).colorScheme.surface, width: 4),
-            ),
-            alignment: Alignment.center,
-            child: Text(t.peerMikhail.characters.first,
-                style: const TextStyle(
-                    fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white)),
-          ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(t.callsCircleTitle,
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-              Text(t.callsCircleMeta,
-                  style: const TextStyle(fontSize: 10, color: Colors.grey)),
-            ],
-          ),
-        ]),
-      ]),
-    );
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.shortestSide - 4) / 2;
+    final track = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = trackColor;
+    canvas.drawCircle(center, radius, track);
+    if (progress > 0) {
+      final p = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round
+        ..color = progressColor;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -math.pi / 2,
+        2 * math.pi * progress.clamp(0, 1),
+        false,
+        p,
+      );
+    }
   }
+
+  @override
+  bool shouldRepaint(covariant _ProgressRingPainter old) =>
+      old.progress != progress;
 }
 
 // --- 8. Folders & Threads ---
@@ -1905,9 +2271,13 @@ class MockFoldersThreads extends StatelessWidget {
       (t.folderFamily, 4, false),
       (t.folderStudy, 12, false),
     ];
+    // В реальном `ConversationItem` тред-маркер встроен в строку чата
+    // как маленький `<MessageSquare> N` бейдж — это и есть «треды».
+    // Никаких отдельных блоков «Тред · …» под списком в реальном UI нет.
     final chats = [
-      (t.chat1Name, t.chat1Last, 3),
-      (t.chat2Name, t.chat2Last, 0),
+      (t.chat1Name, t.chat1Last, 3, 0),
+      (t.chat2Name, t.chat2Last, 0, 4),
+      (t.chat3Name, t.chat3Last, 1, 0),
     ];
     return Row(children: [
       Container(
@@ -1984,12 +2354,38 @@ class MockFoldersThreads extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-                          Text(c.$2,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  color: scheme.onSurface.withValues(alpha: 0.55))),
+                          Row(mainAxisSize: MainAxisSize.min, children: [
+                            Flexible(
+                              child: Text(c.$2,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: scheme.onSurface.withValues(alpha: 0.55))),
+                            ),
+                            // Inline тред-бейдж — реальный `ConversationItem`.
+                            if (c.$4 > 0) ...[
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 4, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: featureAccentViolet.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                  Icon(Icons.chat_bubble_outline_rounded,
+                                      size: 8, color: featureAccentViolet),
+                                  const SizedBox(width: 2),
+                                  Text('${c.$4}',
+                                      style: TextStyle(
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.w800,
+                                          color: featureAccentViolet)),
+                                ]),
+                              ),
+                            ],
+                          ]),
                         ],
                       ),
                     ),
@@ -2007,29 +2403,6 @@ class MockFoldersThreads extends StatelessWidget {
                       ),
                   ]),
                 ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: featureAccentViolet.withValues(alpha: 0.08),
-                  border: Border.all(color: featureAccentViolet.withValues(alpha: 0.25)),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(children: [
-                  Icon(Icons.subdirectory_arrow_right_rounded,
-                      size: 12, color: featureAccentViolet),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(t.threadTitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: featureAccentViolet)),
-                  ),
-                ]),
-              ),
             ],
           ),
         ),
@@ -2536,7 +2909,9 @@ class MockStickersMedia extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = _mockText(context);
-    final faces = ['😀', '😎', '🤩', '😴', '😡', '🤔', '🥳', '😇'];
+    // Реальный sticker-picker — `grid-cols-3`. Опрос и фото-редактор —
+    // отдельные UI; ниже мы выделяем их меченым блоком, чтобы было понятно.
+    final faces = ['😀', '😎', '🤩', '😴', '😡', '🤔'];
     return Padding(
       padding: const EdgeInsets.all(10),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -2561,10 +2936,10 @@ class MockStickersMedia extends StatelessWidget {
             Icon(Icons.emoji_emotions_outlined, size: 14, color: featureAccentAmber),
           ]),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Expanded(
           child: GridView.count(
-            crossAxisCount: 4,
+            crossAxisCount: 3,
             crossAxisSpacing: 6,
             mainAxisSpacing: 6,
             physics: const NeverScrollableScrollPhysics(),
@@ -2582,11 +2957,61 @@ class MockStickersMedia extends StatelessWidget {
                     ),
                   ),
                   alignment: Alignment.center,
-                  child: Text(faces[i], style: const TextStyle(fontSize: 22)),
+                  child: Text(faces[i], style: const TextStyle(fontSize: 24)),
                 ),
             ],
           ),
         ),
+        const SizedBox(height: 6),
+        // Подпись «Polls / Photo editor — separate dialogs» — отдельные
+        // UI, а не часть emoji-popover.
+        Row(children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.55),
+                border: Border.all(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08)),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(children: [
+                Icon(Icons.bar_chart_rounded, size: 11, color: featureAccentAmber),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(t.pollLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 9, fontWeight: FontWeight.w800)),
+                ),
+              ]),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.55),
+                border: Border.all(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08)),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(children: [
+                Icon(Icons.image_outlined, size: 11, color: featureAccentCoral),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(t.editorLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 9, fontWeight: FontWeight.w800)),
+                ),
+              ]),
+            ),
+          ),
+        ]),
       ]),
     );
   }

@@ -90,6 +90,11 @@ class FeaturesMockText {
     required this.secretStatus,
     required this.secretMsg1,
     required this.secretMsg2,
+    required this.secretSettingsTitle,
+    required this.secretSettingTtl,
+    required this.secretSettingTtlValue,
+    required this.secretSettingNoForward,
+    required this.secretSettingLock,
     required this.teamDesign,
     required this.disappearingStatus,
     required this.disappearingMsg1,
@@ -140,6 +145,7 @@ class FeaturesMockText {
     required this.multiDeviceBackup,
     required this.multiDeviceBackupSub,
     required this.stickerSearchHint,
+    required this.pollLabel,
     required this.pollTitle,
     required this.pollOption1,
     required this.pollOption2,
@@ -167,6 +173,11 @@ class FeaturesMockText {
   final String groupProject;
   final String secretStatus;
   final String secretMsg1;
+  final String secretSettingsTitle;
+  final String secretSettingTtl;
+  final String secretSettingTtlValue;
+  final String secretSettingNoForward;
+  final String secretSettingLock;
   final String secretMsg2;
   final String teamDesign;
   final String disappearingStatus;
@@ -218,6 +229,7 @@ class FeaturesMockText {
   final String multiDeviceBackup;
   final String multiDeviceBackupSub;
   final String stickerSearchHint;
+  final String pollLabel;
   final String pollTitle;
   final String pollOption1;
   final String pollOption2;
@@ -780,6 +792,11 @@ const _kRu = FeaturesContent(
     fingerprintMatch: 'совпали',
     groupProject: 'Группа · Проект',
     secretStatus: '6 участников',
+    secretSettingsTitle: 'Правила секретного чата',
+    secretSettingTtl: 'Таймер',
+    secretSettingTtlValue: 'через 1 час',
+    secretSettingNoForward: 'Запретить пересылку',
+    secretSettingLock: 'Замок на чат',
     secretMsg1: 'Файл с ценой — пришлю одним просмотром.',
     secretMsg2: 'Принял. Запрет копий включён.',
     teamDesign: 'Команда · Дизайн',
@@ -832,6 +849,7 @@ const _kRu = FeaturesContent(
     multiDeviceBackup: 'Резервная копия ключей',
     multiDeviceBackupSub: 'защищена паролем',
     stickerSearchHint: 'поиск стикеров и GIF',
+    pollLabel: 'Опрос',
     pollTitle: 'Куда едем в субботу?',
     pollOption1: 'В горы',
     pollOption2: 'На дачу',
@@ -1264,6 +1282,11 @@ const _kEn = FeaturesContent(
     fingerprintMatch: 'match',
     groupProject: 'Group · Project',
     secretStatus: '6 members',
+    secretSettingsTitle: 'Secret chat rules',
+    secretSettingTtl: 'Timer',
+    secretSettingTtlValue: 'in 1 hour',
+    secretSettingNoForward: 'Block forwarding',
+    secretSettingLock: 'Lock chat',
     secretMsg1: 'Sending the price file as view-once.',
     secretMsg2: 'Got it. Copy block is on.',
     teamDesign: 'Team · Design',
@@ -1316,6 +1339,7 @@ const _kEn = FeaturesContent(
     multiDeviceBackup: 'Key backup',
     multiDeviceBackupSub: 'password-protected',
     stickerSearchHint: 'search stickers and GIFs',
+    pollLabel: 'Poll',
     pollTitle: 'Where are we going on Saturday?',
     pollOption1: 'To the mountains',
     pollOption2: 'To the country',

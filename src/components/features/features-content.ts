@@ -37,6 +37,11 @@ export type FeaturesMockText = {
   secretStatus: string;
   secretMsg1: string;
   secretMsg2: string;
+  secretSettingsTitle: string;
+  secretSettingTtl: string;
+  secretSettingTtlValue: string;
+  secretSettingNoForward: string;
+  secretSettingLock: string;
   // Disappearing messages
   teamDesign: string;
   disappearingStatus: string;
@@ -96,6 +101,7 @@ export type FeaturesMockText = {
   multiDeviceBackupSub: string;
   // Stickers
   stickerSearchHint: string;
+  pollLabel: string;
   pollTitle: string;
   pollOption1: string;
   pollOption2: string;
@@ -521,6 +527,11 @@ const ru: FeaturesContent = {
     fingerprintMatch: 'совпали',
     groupProject: 'Группа · Проект',
     secretStatus: '6 участников',
+    secretSettingsTitle: 'Правила секретного чата',
+    secretSettingTtl: 'Таймер',
+    secretSettingTtlValue: 'через 1 час',
+    secretSettingNoForward: 'Запретить пересылку',
+    secretSettingLock: 'Замок на чат',
     secretMsg1: 'Файл с ценой — пришлю одним просмотром.',
     secretMsg2: 'Принял. Запрет копий включён.',
     teamDesign: 'Команда · Дизайн',
@@ -573,6 +584,7 @@ const ru: FeaturesContent = {
     multiDeviceBackup: 'Резервная копия ключей',
     multiDeviceBackupSub: 'защищена паролем',
     stickerSearchHint: 'поиск стикеров и GIF',
+    pollLabel: 'Опрос',
     pollTitle: 'Куда едем в субботу?',
     pollOption1: 'В горы',
     pollOption2: 'На дачу',
@@ -973,6 +985,11 @@ const en: FeaturesContent = {
     fingerprintMatch: 'match',
     groupProject: 'Group · Project',
     secretStatus: '6 members',
+    secretSettingsTitle: 'Secret chat rules',
+    secretSettingTtl: 'Timer',
+    secretSettingTtlValue: 'in 1 hour',
+    secretSettingNoForward: 'Block forwarding',
+    secretSettingLock: 'Lock chat',
     secretMsg1: 'Sending the price file as view-once.',
     secretMsg2: 'Got it. Copy block is on.',
     teamDesign: 'Team · Design',
@@ -1025,6 +1042,7 @@ const en: FeaturesContent = {
     multiDeviceBackup: 'Key backup',
     multiDeviceBackupSub: 'password-protected',
     stickerSearchHint: 'search stickers and GIFs',
+    pollLabel: 'Poll',
     pollTitle: 'Where are we going on Saturday?',
     pollOption1: 'To the mountains',
     pollOption2: 'To the country',
@@ -1425,6 +1443,11 @@ const ptBR: FeaturesContent = {
     fingerprintMatch: 'confere',
     groupProject: 'Grupo · Projeto',
     secretStatus: '6 membros',
+    secretSettingsTitle: 'Regras do chat secreto',
+    secretSettingTtl: 'Cronômetro',
+    secretSettingTtlValue: 'em 1 hora',
+    secretSettingNoForward: 'Proibir encaminhamento',
+    secretSettingLock: 'Bloqueio do chat',
     secretMsg1: 'Enviando o arquivo de preços como visualização única.',
     secretMsg2: 'Recebi. Bloqueio de cópia ativado.',
     teamDesign: 'Equipe · Design',
@@ -1477,6 +1500,7 @@ const ptBR: FeaturesContent = {
     multiDeviceBackup: 'Backup de chaves',
     multiDeviceBackupSub: 'protegido por senha',
     stickerSearchHint: 'buscar figurinhas e GIFs',
+    pollLabel: 'Enquete',
     pollTitle: 'Onde vamos no sábado?',
     pollOption1: 'Para a montanha',
     pollOption2: 'Para o sítio',
@@ -1877,6 +1901,11 @@ const esMX: FeaturesContent = {
     fingerprintMatch: 'coincide',
     groupProject: 'Grupo · Proyecto',
     secretStatus: '6 miembros',
+    secretSettingsTitle: 'Reglas del chat secreto',
+    secretSettingTtl: 'Temporizador',
+    secretSettingTtlValue: 'en 1 hora',
+    secretSettingNoForward: 'Bloquear reenvío',
+    secretSettingLock: 'Bloqueo del chat',
     secretMsg1: 'Enviando el archivo de precios como vista única.',
     secretMsg2: 'Listo. Bloqueo de copia activado.',
     teamDesign: 'Equipo · Diseño',
@@ -1929,6 +1958,7 @@ const esMX: FeaturesContent = {
     multiDeviceBackup: 'Respaldo de llaves',
     multiDeviceBackupSub: 'protegido con contraseña',
     stickerSearchHint: 'buscar stickers y GIFs',
+    pollLabel: 'Encuesta',
     pollTitle: '¿A dónde vamos el sábado?',
     pollOption1: 'A la montaña',
     pollOption2: 'Al campo',
