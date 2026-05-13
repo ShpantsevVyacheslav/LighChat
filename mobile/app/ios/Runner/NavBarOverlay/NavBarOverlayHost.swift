@@ -67,10 +67,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// Top bar поднят до 56pt чтобы avatar 36×36 + title + subtitle помещались
   /// без обрезки (iOS 26 Liquid Glass).
   private static let tabBarContentHeight: CGFloat = 49
-  /// Минимальная высота nav bar по design-feedback'у. 40pt — самое
-  /// маленькое значение, при котором avatar 28 + title + subtitle ещё
-  /// помещаются. Меньше — обрезает.
-  private static let navBarContentHeight: CGFloat = 40
+  /// Высота nav bar'а. Telegram-style: avatar+title в собственной
+  /// Liquid Glass пилюле, поэтому bar может быть очень компактным —
+  /// pill сам форсит свою высоту изнутри.
+  private static let navBarContentHeight: CGFloat = 44
   /// Gap между status bar и nav bar. 0 = шапка вплотную под Dynamic Island.
   private static let navBarTopGap: CGFloat = 0
   /// Структурное логирование для отладки overlay'я. Включается через
@@ -528,6 +528,27 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     fallbackInitial: String?,
     statusDotHex: String?
   ) -> UIView {
+    // Telegram-style: avatar+title+subtitle ВНУТРИ Liquid Glass пилюли,
+    // которая визуально такая же, как pill'ы у back/search/video items'ов
+    // (их iOS 26 рендерит сам). Без backing-фона текст «терялся» на
+    // полупрозрачном чате.
+    let pill: UIView
+    if #available(iOS 13.0, *) {
+      let visual = UIVisualEffectView(
+        effect: UIBlurEffect(style: .systemThinMaterial))
+      visual.translatesAutoresizingMaskIntoConstraints = false
+      visual.layer.cornerRadius = 16
+      visual.layer.masksToBounds = true
+      pill = visual
+    } else {
+      let v = UIView()
+      v.translatesAutoresizingMaskIntoConstraints = false
+      v.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.65)
+      v.layer.cornerRadius = 16
+      v.layer.masksToBounds = true
+      pill = v
+    }
+    // Container = inner content area под padding'ом pill'а.
     let container = UIView()
     container.translatesAutoresizingMaskIntoConstraints = false
     // Аватар + имя должны кликаться — отдают actionTap("_chat_title_tap")
@@ -535,6 +556,26 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     container.isUserInteractionEnabled = true
     let tap = UITapGestureRecognizer(target: self, action: #selector(onTitleTap))
     container.addGestureRecognizer(tap)
+    pill.isUserInteractionEnabled = true
+    let pillTap = UITapGestureRecognizer(
+      target: self, action: #selector(onTitleTap))
+    pill.addGestureRecognizer(pillTap)
+
+    let contentHost: UIView = {
+      if let vfx = pill as? UIVisualEffectView {
+        return vfx.contentView
+      }
+      return pill
+    }()
+    contentHost.addSubview(container)
+    NSLayoutConstraint.activate([
+      container.leadingAnchor.constraint(
+        equalTo: contentHost.leadingAnchor, constant: 4),
+      container.trailingAnchor.constraint(
+        equalTo: contentHost.trailingAnchor, constant: -10),
+      container.topAnchor.constraint(equalTo: contentHost.topAnchor),
+      container.bottomAnchor.constraint(equalTo: contentHost.bottomAnchor),
+    ])
 
     let avatar = UIImageView()
     avatar.translatesAutoresizingMaskIntoConstraints = false
@@ -574,14 +615,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     let titleLabel = UILabel()
     titleLabel.translatesAutoresizingMaskIntoConstraints = false
     titleLabel.text = title
-    titleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+    titleLabel.font = .systemFont(ofSize: 14, weight: .semibold)
     titleLabel.textColor = .label
     titleLabel.lineBreakMode = .byTruncatingTail
 
     let subtitleLabel = UILabel()
     subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
     subtitleLabel.text = subtitle
-    subtitleLabel.font = .systemFont(ofSize: 12, weight: .regular)
+    subtitleLabel.font = .systemFont(ofSize: 11, weight: .regular)
     subtitleLabel.textColor = .secondaryLabel
     subtitleLabel.lineBreakMode = .byTruncatingTail
     subtitleLabel.isHidden = (subtitle?.isEmpty ?? true)
@@ -652,7 +693,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       cachedAvatarImage = nil
     }
 
-    return container
+    return pill
   }
 
   private func loadAvatar(url: URL, into imageView: UIImageView) {
