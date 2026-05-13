@@ -17,6 +17,99 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+/// WhatsApp-style bubble для call-событий в timeline чата.
+/// Выравнивается вправо/влево в зависимости от того, кто звонил.
+class ChatCallBubble extends StatelessWidget {
+  const ChatCallBubble({
+    super.key,
+    required this.event,
+    required this.currentUserId,
+    required this.createdAt,
+    this.outgoingBubbleColor,
+    this.incomingBubbleColor,
+  });
+
+  final ChatSystemEvent event;
+  final String currentUserId;
+  final DateTime createdAt;
+  final Color? outgoingBubbleColor;
+  final Color? incomingBubbleColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    final callerId = event.data?['callerId'] as String?;
+    final isMine = callerId == currentUserId;
+    final isVideo = event.data?['isVideo'] == true;
+    final isMissed = event.type == ChatSystemEventType.callMissed;
+
+    final label = isMissed
+        ? l10n.system_event_call_missed
+        : l10n.system_event_call_cancelled;
+
+    final bubbleColor = isMine
+        ? (outgoingBubbleColor ?? theme.colorScheme.primaryContainer)
+        : (theme.colorScheme.surfaceContainerHighest);
+
+    final onBubble = isMine
+        ? theme.colorScheme.onPrimaryContainer
+        : theme.colorScheme.onSurface;
+
+    final iconColor = isMissed
+        ? Colors.red.shade400
+        : onBubble.withValues(alpha: 0.55);
+
+    final local = createdAt.toLocal();
+    final time =
+        '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
+      child: Align(
+        alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.65,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: bubbleColor,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isVideo ? Icons.videocam_outlined : Icons.phone_outlined,
+                size: 24,
+                color: iconColor,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  label,
+                  style: theme.textTheme.bodyMedium?.copyWith(color: onBubble),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                time,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: onBubble.withValues(alpha: 0.55),
+                  fontSize: 10,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class ChatSystemEventDivider extends StatelessWidget {
   const ChatSystemEventDivider({
     super.key,

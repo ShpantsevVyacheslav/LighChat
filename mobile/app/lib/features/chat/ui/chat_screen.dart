@@ -1332,10 +1332,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                               context,
                             )!.partner_profile_title_fallback_group)
                       : isSaved
-                      ? (conv.data.name ??
-                            AppLocalizations.of(
-                              context,
-                            )!.partner_profile_title_fallback_saved)
+                      ? AppLocalizations.of(
+                            context,
+                          )!.partner_profile_title_fallback_saved
                       : resolvedDmName;
                   final profileForSheet = profile == null
                       ? null

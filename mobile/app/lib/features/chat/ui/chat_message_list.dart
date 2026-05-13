@@ -563,12 +563,23 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
             // вместо bubble. Маркируются `senderId == '__system__'` и непустым
             // `systemEvent`. Не шифруются, поэтому попадают сюда напрямую.
             if (m.systemEvent != null && m.senderId == '__system__') {
+              final evt = m.systemEvent!;
+              if (evt.type == ChatSystemEventType.callMissed ||
+                  evt.type == ChatSystemEventType.callCancelled) {
+                return ChatCallBubble(
+                  key: ValueKey<String>('sys-evt-${m.id}'),
+                  event: evt,
+                  currentUserId: widget.currentUserId,
+                  createdAt: m.createdAt,
+                  outgoingBubbleColor: widget.outgoingBubbleColor,
+                  incomingBubbleColor: widget.incomingBubbleColor,
+                );
+              }
               return ChatSystemEventDivider(
                 key: ValueKey<String>('sys-evt-${m.id}'),
-                event: m.systemEvent!,
+                event: evt,
                 actorName: () {
-                  final actorId =
-                      m.systemEvent!.data?['actorUserId'] as String?;
+                  final actorId = evt.data?['actorUserId'] as String?;
                   if (actorId == null) return null;
                   final profile = widget.profileMap?[actorId];
                   return profile?.name;

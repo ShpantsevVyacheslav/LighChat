@@ -98,8 +98,9 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// ~15-20pt от низа экрана). UITabBar по-стандарту сидит над safe
   /// area (gap 34pt — большой). Положительный overlap двигает
   /// bar.frame ниже screen edge.
-  /// 24pt overlap → gap items-bottom до screen-bottom = 10pt.
-  private static let tabBarBottomOverlap: CGFloat = 24
+  /// 18pt overlap → gap items-bottom до screen-bottom ≈ 16pt
+  /// (поднимаем bar чуть выше home indicator, чтобы был воздух снизу).
+  private static let tabBarBottomOverlap: CGFloat = 18
   /// Отступ bar.top от safeArea.top. ОТРИЦАТЕЛЬНЫЙ — поднимаем bar в
   /// system-reserved area под Dynamic Island. Apple оставляет ~22pt
   /// clearance под DI; -8pt пробивает половину этого «воздуха», items
