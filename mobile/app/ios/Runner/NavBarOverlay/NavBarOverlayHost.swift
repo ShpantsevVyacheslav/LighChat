@@ -55,11 +55,11 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// Без компенсации шапка оказывается ~30pt ниже expected'а.
   private var topBarTopConstraint: NSLayoutConstraint?
 
-  /// Тот же compensation pattern для bottom bar: `additionalSafeAreaInsets.bottom`
-  /// сдвигает safeAreaLayoutGuide.bottomAnchor ВВЕРХ на insets.bottom,
-  /// и bar.top уезжает вместе с ним. Без компенсации tab bar становится
-  /// высотой 132pt вместо 83pt, иконки оказываются в середине экрана.
-  private var bottomBarTopConstraint: NSLayoutConstraint?
+  // bottom bar: НЕ привязываем к safeAreaLayoutGuide.bottomAnchor.
+  // Pin'им жёстко к view.bottomAnchor с фиксированной высотой 49pt —
+  // items сядут впритык над home indicator (Telegram/Instagram style),
+  // home indicator gesture zone частично перекрывается, но Apple это
+  // не запрещает (только discourages).
 
   // MARK: - Eventing
 
@@ -123,11 +123,6 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       constant: Self.navBarTopGap)
     topBarTopConstraint = topC
 
-    let bottomTopC = bottom.topAnchor.constraint(
-      equalTo: vc.view.safeAreaLayoutGuide.bottomAnchor,
-      constant: -Self.tabBarContentHeight)
-    bottomBarTopConstraint = bottomTopC
-
     NSLayoutConstraint.activate([
       top.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
       top.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
@@ -136,11 +131,12 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
       bottom.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
       bottom.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
-      // Фон тянется до низа экрана (стандарт Apple UITabBarController),
-      // контент-зона (49pt) сидит над home-indicator — иконки/лейблы не
-      // сплющены.
+      // Bar 49pt sit'нут прямо на view.bottomAnchor (Telegram-style):
+      // items впритык над home indicator gesture-zone'ой. Apple-стандарт
+      // — 49+safe area (83pt), но это даёт большой gap; users привыкли
+      // к компактным tab-bar'ам.
       bottom.bottomAnchor.constraint(equalTo: vc.view.bottomAnchor),
-      bottomTopC,
+      bottom.heightAnchor.constraint(equalToConstant: Self.tabBarContentHeight),
     ])
 
     Self.log(
