@@ -697,26 +697,53 @@ private final class LighChatVirtualBackgroundBridge: NSObject {
 // PiP-окно для активной видеоконференции, чтобы митинг продолжался поверх
 // других экранов приложения.
 //
-// Архитектура:
-//   1. Dart-сторона при старте `MeetingWebRtc` присылает trackId локального
-//      video-track'а → `bindLocalTrack`. Мы запоминаем id и достаём
-//      `LocalVideoTrack` из `FlutterWebRTCPlugin.sharedSingleton`.
-//   2. При `enter` создаём `AVSampleBufferDisplayLayer`, кладём его в
-//      `AVPictureInPictureController.ContentSource`, и вешаем на
-//      `LocalVideoTrack` свой `LighChatPipVideoRenderer` (реализует
-//      RTCVideoRenderer): каждый RTCVideoFrame → CMSampleBuffer → enqueue.
-//   3. При `exit`/teardown — снимаем renderer.
+// Архитектура (рекомендованный Apple путь для video-call'ов, iOS 15+):
+//   1. Контент-VC: `LighChatMeetingPipCallVC` наследует
+//      `AVPictureInPictureVideoCallViewController` — внутри
+//      `AVSampleBufferDisplayLayer`, заполняющий вью.
+//   2. PiP-controller инициализируется через
+//      `ContentSource(activeVideoCallSourceView:contentViewController:)` —
+//      source view живёт в окне (1×1 px, прозрачный), чтобы Apple
+//      могла «потянуть» PiP-окно из этой точки.
+//   3. Dart присылает trackId локальной video-track'и → находим
+//      `LocalVideoTrack` через `FlutterWebRTCPlugin.sharedSingleton`,
+//      вешаем `LighChatPipVideoRenderer` через `addRenderer:` (Swift:
+//      `add(_:)`). Каждый RTCVideoFrame → CMSampleBuffer → enqueue в
+//      displayLayer контент-VC.
+//   4. На `exit`/teardown — снимаем renderer, освобождаем VC.
+//
+// Раньше был AVSampleBufferDisplayLayer + `sampleBufferDisplayLayer:
+// playbackDelegate:` content-source с offscreen-host'ом (-4000,-4000) —
+// этот вариант капризно реагирует на `isPictureInPicturePossible` и
+// требует видимой иерархии. VideoCallViewController-API специально
+// под наш кейс и проще запускается.
+
+@available(iOS 15.0, *)
+final class LighChatMeetingPipCallVC: AVPictureInPictureVideoCallViewController {
+  let displayLayer = AVSampleBufferDisplayLayer()
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    view.backgroundColor = .black
+    displayLayer.videoGravity = .resizeAspect
+    view.layer.addSublayer(displayLayer)
+  }
+
+  override func viewDidLayoutSubviews() {
+    super.viewDidLayoutSubviews()
+    displayLayer.frame = view.bounds
+  }
+}
 
 @available(iOS 15.0, *)
 private final class LighChatMeetingPipInlineBridge: NSObject,
-  AVPictureInPictureControllerDelegate,
-  AVPictureInPictureSampleBufferPlaybackDelegate
+  AVPictureInPictureControllerDelegate
 {
   static let shared = LighChatMeetingPipInlineBridge()
 
   private var pipController: AVPictureInPictureController?
-  private var sampleBufferDisplayLayer: AVSampleBufferDisplayLayer?
-  private var hostView: UIView?
+  private var callVC: LighChatMeetingPipCallVC?
+  private var sourceView: UIView?
 
   /// trackId, полученный из Dart (см. `bindLocalTrack`). Используется для
   /// поиска LocalVideoTrack в FlutterWebRTCPlugin.sharedSingleton.
@@ -776,9 +803,8 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
     guard let raw = localTracks[trackId] else { return }
     // raw — это id<LocalTrack>; для видео это LocalVideoTrack.
     guard let videoTrack = raw as? LocalVideoTrack else { return }
-    pipRenderer.displayLayer = sampleBufferDisplayLayer
-    // ObjC селектор `addRenderer:` Swift-interop переименовал в
-    // `add(_:)` (так же `removeRenderer:` → `remove(_:)`).
+    pipRenderer.displayLayer = callVC?.displayLayer
+    // ObjC селектор `addRenderer:` Swift-interop переименовал в `add(_:)`.
     videoTrack.add(pipRenderer)
     rendererAttached = true
   }
@@ -823,31 +849,39 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
       try AVAudioSession.sharedInstance().setActive(true)
     } catch {}
 
-    let layer = AVSampleBufferDisplayLayer()
-    layer.videoGravity = .resizeAspect
-    layer.frame = CGRect(x: 0, y: 0, width: 4, height: 4)
-    self.sampleBufferDisplayLayer = layer
+    // 1. Source view — обязан быть в видимой иерархии. Делаем 1×1 px,
+    // прозрачный, без интеракций. Apple использует его положение как
+    // «откуда улетает» PiP-окно при старте.
+    let src = UIView(frame: CGRect(x: 0, y: 0, width: 1, height: 1))
+    src.backgroundColor = .clear
+    src.isUserInteractionEnabled = false
+    src.alpha = 0
+    window.addSubview(src)
+    self.sourceView = src
 
-    let host = UIView(frame: CGRect(x: -4000, y: -4000, width: 4, height: 4))
-    host.isUserInteractionEnabled = false
-    host.layer.addSublayer(layer)
-    window.addSubview(host)
-    self.hostView = host
+    // 2. Content view controller — то, что увидит юзер в PiP-окне.
+    let vc = LighChatMeetingPipCallVC()
+    // Aspect соотношения определяют размер мини-окна. 9:16 — типичный
+    // портрет фронтальной камеры на iPhone.
+    vc.preferredContentSize = CGSize(width: 9, height: 16)
+    self.callVC = vc
 
+    // 3. PiP controller через ContentSource VideoCall-API.
     let source = AVPictureInPictureController.ContentSource(
-      sampleBufferDisplayLayer: layer, playbackDelegate: self)
+      activeVideoCallSourceView: src,
+      contentViewController: vc
+    )
     let pip = AVPictureInPictureController(contentSource: source)
     pip.canStartPictureInPictureAutomaticallyFromInline = true
     pip.delegate = self
     self.pipController = pip
 
-    // Один placeholder-кадр — нужен AVSampleBufferDisplayLayer'у, чтобы
-    // выйти в ready state до прихода первого кадра WebRTC. Если bound
-    // trackId есть — сразу подцепим renderer; реальные кадры быстро
-    // перезапишут placeholder.
-    pushPlaceholderFrame(into: layer)
+    // 4. Подцепляем renderer — если уже знаем trackId, реальные кадры
+    // полетят в displayLayer контент-VC.
     attachRendererToTrack()
 
+    // 5. Стартуем. isPictureInPicturePossible становится true после того,
+    // как контент-VC появится в иерархии (через короткий cycle layout'а).
     self.attemptStart(pip: pip, attemptsLeft: 30, result: result)
   }
 
@@ -871,51 +905,13 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
     }
   }
 
-  private func pushPlaceholderFrame(into layer: AVSampleBufferDisplayLayer) {
-    var pixelBuffer: CVPixelBuffer?
-    let attrs: [String: Any] = [
-      kCVPixelBufferCGImageCompatibilityKey as String: true,
-      kCVPixelBufferCGBitmapContextCompatibilityKey as String: true,
-    ]
-    CVPixelBufferCreate(
-      kCFAllocatorDefault, 320, 240, kCVPixelFormatType_32BGRA,
-      attrs as CFDictionary, &pixelBuffer)
-    guard let buffer = pixelBuffer else { return }
-    CVPixelBufferLockBaseAddress(buffer, [])
-    if let ptr = CVPixelBufferGetBaseAddress(buffer) {
-      let rowBytes = CVPixelBufferGetBytesPerRow(buffer)
-      let height = CVPixelBufferGetHeight(buffer)
-      memset(ptr, 0x20, rowBytes * height)
-    }
-    CVPixelBufferUnlockBaseAddress(buffer, [])
-
-    var formatDesc: CMFormatDescription?
-    CMVideoFormatDescriptionCreateForImageBuffer(
-      allocator: nil, imageBuffer: buffer, formatDescriptionOut: &formatDesc)
-    guard let desc = formatDesc else { return }
-
-    var timing = CMSampleTimingInfo(
-      duration: CMTime(value: 1, timescale: 30),
-      presentationTimeStamp: CMTime(
-        seconds: CACurrentMediaTime(), preferredTimescale: 1000),
-      decodeTimeStamp: .invalid)
-    var sampleBuffer: CMSampleBuffer?
-    CMSampleBufferCreateForImageBuffer(
-      allocator: nil, imageBuffer: buffer, dataReady: true,
-      makeDataReadyCallback: nil, refcon: nil, formatDescription: desc,
-      sampleTiming: &timing, sampleBufferOut: &sampleBuffer)
-    if let sb = sampleBuffer, layer.isReadyForMoreMediaData {
-      layer.enqueue(sb)
-    }
-  }
-
   fileprivate func teardown() {
     detachRendererFromTrack()
     pipController?.delegate = nil
     pipController = nil
-    sampleBufferDisplayLayer = nil
-    hostView?.removeFromSuperview()
-    hostView = nil
+    callVC = nil
+    sourceView?.removeFromSuperview()
+    sourceView = nil
   }
 
   // MARK: AVPictureInPictureControllerDelegate
@@ -928,34 +924,6 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
     _ pictureInPictureController: AVPictureInPictureController,
     failedToStartPictureInPictureWithError error: Error
   ) { teardown() }
-
-  // MARK: AVPictureInPictureSampleBufferPlaybackDelegate
-
-  func pictureInPictureController(
-    _ pictureInPictureController: AVPictureInPictureController,
-    setPlaying playing: Bool
-  ) {}
-
-  func pictureInPictureControllerTimeRangeForPlayback(
-    _ pictureInPictureController: AVPictureInPictureController
-  ) -> CMTimeRange {
-    return CMTimeRange(start: .negativeInfinity, duration: .positiveInfinity)
-  }
-
-  func pictureInPictureControllerIsPlaybackPaused(
-    _ pictureInPictureController: AVPictureInPictureController
-  ) -> Bool { false }
-
-  func pictureInPictureController(
-    _ pictureInPictureController: AVPictureInPictureController,
-    didTransitionToRenderSize newRenderSize: CMVideoDimensions
-  ) {}
-
-  func pictureInPictureController(
-    _ pictureInPictureController: AVPictureInPictureController,
-    skipByInterval skipInterval: CMTime,
-    completion completionHandler: @escaping () -> Void
-  ) { completionHandler() }
 }
 
 // MARK: - LighChatPipVideoRenderer
