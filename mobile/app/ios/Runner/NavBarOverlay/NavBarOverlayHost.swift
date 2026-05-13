@@ -89,12 +89,13 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// Apple's barButtonItem pills (back, search-video-phone group) на
   /// iOS 26 рендерятся ~44pt — title pill подгоняем под этот размер.
   private static let navBarContentHeight: CGFloat = 48
-  /// Сдвиг content'а UITabBarItem'а ВНИЗ относительно стандартной позиции.
-  /// Apple Photos / iOS 26 native apps кладут items в safe-area zone
-  /// (над home indicator stripe). UITabBar по-стандарту центрирует items
-  /// в top 49pt frame'а (выше safe area), но imageInsets +
-  /// titlePositionAdjustment позволяют пушнуть icon+label ниже.
-  private static let tabItemVerticalOffset: CGFloat = 18
+  /// Насколько сместить ВЕСЬ tab bar вниз относительно view.bottom.
+  /// Apple Photos и другие iOS-26 apps кладут items впритык над home
+  /// indicator stripe — gap всего ~10-15pt. UITabBar по-стандарту
+  /// сидит над safe area (gap 34pt). Положительный overlap двигает
+  /// bar.frame ниже screen edge (часть bar'а уезжает за пределы
+  /// видимой области, items спускаются в safe-area zone).
+  private static let tabBarBottomOverlap: CGFloat = 22
   /// Отступ bar.top от safeArea.top. ОТРИЦАТЕЛЬНЫЙ — поднимаем bar в
   /// system-reserved area под Dynamic Island. Apple оставляет ~22pt
   /// clearance под DI; -8pt пробивает половину этого «воздуха», items
@@ -144,15 +145,16 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
       bottom.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
       bottom.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
-      // Apple-стандартный UITabBarController layout: bar тянется ОТ
-      // (safeArea.bottom - 49pt) ДО view.bottom. Items рендерятся в
-      // верхних 49pt бар'а — над home indicator. Внутренняя логика
-      // UITabBar требует именно такой геометрии (она читает
-      // superview.safeAreaInsets и пушит items в верх своего frame).
-      bottom.bottomAnchor.constraint(equalTo: vc.view.bottomAnchor),
+      // Bar смещён вниз на `tabBarBottomOverlap` — часть его frame'а
+      // уезжает ниже view.bottom (за пределы экрана). Items рендерятся
+      // в верхних 49pt frame'а, и вместе с bar'ом спускаются ближе к
+      // home indicator. Apple Photos / iOS 26 native pattern.
+      bottom.bottomAnchor.constraint(
+        equalTo: vc.view.bottomAnchor,
+        constant: Self.tabBarBottomOverlap),
       bottom.topAnchor.constraint(
         equalTo: vc.view.safeAreaLayoutGuide.bottomAnchor,
-        constant: -Self.tabBarContentHeight),
+        constant: -Self.tabBarContentHeight + Self.tabBarBottomOverlap),
     ])
 
     Self.log(
@@ -373,12 +375,6 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
       let tab = UITabBarItem(title: label, image: normalImage, selectedImage: selectedImage)
       tab.badgeValue = badge
-      // Пушим icon+label вниз внутри item-слота — Photos-style. UITabBar
-      // рендерит item'ы в top 49pt своего frame'а (выше home indicator),
-      // эти insets смещают визуальное содержимое item'а в safe area zone.
-      let off = Self.tabItemVerticalOffset
-      tab.imageInsets = UIEdgeInsets(top: off, left: 0, bottom: -off, right: 0)
-      tab.titlePositionAdjustment = UIOffset(horizontal: 0, vertical: off)
       tabItemsById[ObjectIdentifier(tab)] = id
       if id == selectedId {
         selected = tab
