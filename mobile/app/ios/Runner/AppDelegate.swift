@@ -760,10 +760,15 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
       guard let self = self else { return }
       switch call.method {
       case "isSupported":
-        result(AVPictureInPictureController.isPictureInPictureSupported())
+        let v = AVPictureInPictureController.isPictureInPictureSupported()
+        NSLog("[MeetingPiP] isSupported → %@", v ? "true" : "false")
+        result(v)
       case "enter":
+        NSLog("[MeetingPiP] enter requested (boundTrackId=%@)",
+              self.boundTrackId ?? "nil")
         DispatchQueue.main.async { self.enterPip(result: result) }
       case "exit":
+        NSLog("[MeetingPiP] exit requested")
         DispatchQueue.main.async {
           self.pipController?.stopPictureInPicture()
           self.teardown()
@@ -774,6 +779,8 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
           let id = args["trackId"] as? String, !id.isEmpty
         {
           self.boundTrackId = id
+          NSLog("[MeetingPiP] bindLocalTrack id=%@ (rendererAttached=%@)",
+                id, self.rendererAttached ? "true" : "false")
           // Если PiP уже активно — переподцепимся к новому треку.
           if self.rendererAttached {
             self.detachRendererFromTrack()
@@ -781,9 +788,11 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
           }
           result(true)
         } else {
+          NSLog("[MeetingPiP] bindLocalTrack rejected (empty id)")
           result(false)
         }
       case "unbindLocalTrack":
+        NSLog("[MeetingPiP] unbindLocalTrack id=%@", self.boundTrackId ?? "nil")
         self.detachRendererFromTrack()
         self.boundTrackId = nil
         result(true)
@@ -791,36 +800,64 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
         result(FlutterMethodNotImplemented)
       }
     }
+    NSLog("[MeetingPiP] channel registered")
   }
 
   /// Найти `LocalVideoTrack` через `FlutterWebRTCPlugin.sharedSingleton` и
   /// повесить наш renderer.
   private func attachRendererToTrack() {
-    guard let trackId = boundTrackId,
-      let plugin = FlutterWebRTCPlugin.sharedSingleton(),
-      let localTracks = plugin.localTracks
-    else { return }
-    guard let raw = localTracks[trackId] else { return }
+    guard let trackId = boundTrackId else {
+      NSLog("[MeetingPiP] attachRenderer: no trackId bound")
+      return
+    }
+    guard let plugin = FlutterWebRTCPlugin.sharedSingleton() else {
+      NSLog("[MeetingPiP] attachRenderer: sharedSingleton nil")
+      return
+    }
+    guard let localTracks = plugin.localTracks else {
+      NSLog("[MeetingPiP] attachRenderer: plugin.localTracks nil")
+      return
+    }
+    NSLog("[MeetingPiP] attachRenderer: localTracks keys=%@",
+          Array(localTracks.keys).description)
+    guard let raw = localTracks[trackId] else {
+      NSLog("[MeetingPiP] attachRenderer: trackId=%@ NOT FOUND in localTracks",
+            trackId)
+      return
+    }
     // raw — это id<LocalTrack>; для видео это LocalVideoTrack.
-    guard let videoTrack = raw as? LocalVideoTrack else { return }
+    guard let videoTrack = raw as? LocalVideoTrack else {
+      NSLog("[MeetingPiP] attachRenderer: raw is %@, not LocalVideoTrack",
+            String(describing: type(of: raw)))
+      return
+    }
     pipRenderer.displayLayer = callVC?.displayLayer
+    NSLog("[MeetingPiP] attachRenderer: adding pipRenderer to LocalVideoTrack "
+        + "(displayLayer set: %@)",
+        pipRenderer.displayLayer != nil ? "yes" : "no")
     // ObjC селектор `addRenderer:` Swift-interop переименовал в `add(_:)`.
     videoTrack.add(pipRenderer)
     rendererAttached = true
   }
 
   private func detachRendererFromTrack() {
-    guard rendererAttached,
-      let trackId = boundTrackId,
+    guard rendererAttached else {
+      pipRenderer.displayLayer = nil
+      return
+    }
+    guard let trackId = boundTrackId,
       let plugin = FlutterWebRTCPlugin.sharedSingleton(),
       let localTracks = plugin.localTracks,
       let raw = localTracks[trackId],
       let videoTrack = raw as? LocalVideoTrack
     else {
+      NSLog("[MeetingPiP] detachRenderer: track gone, clearing local flag")
       rendererAttached = false
       pipRenderer.displayLayer = nil
       return
     }
+    NSLog("[MeetingPiP] detachRenderer: removing pipRenderer from track %@",
+          trackId)
     videoTrack.remove(pipRenderer)
     pipRenderer.displayLayer = nil
     rendererAttached = false
@@ -834,9 +871,12 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
   }
 
   private func enterPip(result: @escaping FlutterResult) {
-    guard AVPictureInPictureController.isPictureInPictureSupported(),
-      let window = Self.keyWindow()
-    else {
+    let supported = AVPictureInPictureController.isPictureInPictureSupported()
+    NSLog("[MeetingPiP] enterPip: supported=%@", supported ? "true" : "false")
+    guard supported, let window = Self.keyWindow() else {
+      NSLog("[MeetingPiP] enterPip: bail — supported=%@ keyWindow=%@",
+            supported ? "true" : "false",
+            Self.keyWindow() == nil ? "nil" : "ok")
       result(false)
       return
     }
@@ -847,7 +887,11 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
         .playAndRecord, mode: .videoChat,
         options: [.allowBluetooth, .defaultToSpeaker])
       try AVAudioSession.sharedInstance().setActive(true)
-    } catch {}
+      NSLog("[MeetingPiP] enterPip: AVAudioSession configured")
+    } catch {
+      NSLog("[MeetingPiP] enterPip: AVAudioSession ERROR — %@",
+            error.localizedDescription)
+    }
 
     // 1. Source view — обязан быть в видимой иерархии. Делаем 1×1 px,
     // прозрачный, без интеракций. Apple использует его положение как
@@ -858,6 +902,8 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
     src.alpha = 0
     window.addSubview(src)
     self.sourceView = src
+    NSLog("[MeetingPiP] enterPip: sourceView added to window (size %@)",
+          NSStringFromCGSize(window.bounds.size))
 
     // 2. Content view controller — то, что увидит юзер в PiP-окне.
     let vc = LighChatMeetingPipCallVC()
@@ -876,6 +922,8 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
     pip.delegate = self
     self.pipController = pip
 
+    NSLog("[MeetingPiP] enterPip: PiP controller created (canStart=auto)")
+
     // 4. Подцепляем renderer — если уже знаем trackId, реальные кадры
     // полетят в displayLayer контент-VC.
     attachRendererToTrack()
@@ -889,12 +937,26 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
     pip: AVPictureInPictureController, attemptsLeft: Int,
     result: @escaping FlutterResult
   ) {
+    NSLog(
+      "[MeetingPiP] attemptStart: possible=%@ active=%@ suspended=%@ left=%d",
+      pip.isPictureInPicturePossible ? "true" : "false",
+      pip.isPictureInPictureActive ? "true" : "false",
+      pip.isPictureInPictureSuspended ? "true" : "false",
+      attemptsLeft)
     if pip.isPictureInPicturePossible {
+      NSLog("[MeetingPiP] attemptStart: calling startPictureInPicture()")
       pip.startPictureInPicture()
       result(true)
       return
     }
     if attemptsLeft <= 0 {
+      NSLog("[MeetingPiP] attemptStart: GAVE UP — isPictureInPicturePossible "
+          + "never became true (window size: %@, hasCallVC=%@, "
+          + "hasSourceView=%@, rendererAttached=%@)",
+          NSStringFromCGSize(callVC?.view.bounds.size ?? .zero),
+          callVC != nil ? "yes" : "no",
+          sourceView != nil ? "yes" : "no",
+          rendererAttached ? "yes" : "no")
       teardown()
       result(false)
       return
@@ -906,24 +968,53 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
   }
 
   fileprivate func teardown() {
+    NSLog("[MeetingPiP] teardown")
     detachRendererFromTrack()
     pipController?.delegate = nil
     pipController = nil
     callVC = nil
     sourceView?.removeFromSuperview()
     sourceView = nil
+    pipRenderer.frameCount = 0
   }
 
   // MARK: AVPictureInPictureControllerDelegate
 
+  func pictureInPictureControllerWillStartPictureInPicture(
+    _ pictureInPictureController: AVPictureInPictureController
+  ) {
+    NSLog("[MeetingPiP] delegate: WILL START")
+  }
+
+  func pictureInPictureControllerDidStartPictureInPicture(
+    _ pictureInPictureController: AVPictureInPictureController
+  ) {
+    NSLog("[MeetingPiP] delegate: DID START")
+  }
+
+  func pictureInPictureControllerWillStopPictureInPicture(
+    _ pictureInPictureController: AVPictureInPictureController
+  ) {
+    NSLog("[MeetingPiP] delegate: WILL STOP")
+  }
+
   func pictureInPictureControllerDidStopPictureInPicture(
     _ pictureInPictureController: AVPictureInPictureController
-  ) { teardown() }
+  ) {
+    NSLog("[MeetingPiP] delegate: DID STOP")
+    teardown()
+  }
 
   func pictureInPictureController(
     _ pictureInPictureController: AVPictureInPictureController,
     failedToStartPictureInPictureWithError error: Error
-  ) { teardown() }
+  ) {
+    NSLog("[MeetingPiP] delegate: FAILED — %@ (domain=%@ code=%ld)",
+          error.localizedDescription,
+          (error as NSError).domain,
+          (error as NSError).code)
+    teardown()
+  }
 }
 
 // MARK: - LighChatPipVideoRenderer
@@ -944,18 +1035,53 @@ final class LighChatPipVideoRenderer: NSObject, RTCVideoRenderer {
   /// layer в памяти после exit'а PiP.
   weak var displayLayer: AVSampleBufferDisplayLayer?
 
+  /// Счётчик принятых кадров — раз в N логируем, чтобы видеть, что
+  /// поток идёт. Сбрасывается в `teardown`.
+  var frameCount: Int = 0
+
   /// Не используется (RTCVideoRenderer обязан реализовать, но AVSampleBuffer
   /// сам читает размер из CVPixelBuffer).
-  func setSize(_ size: CGSize) {}
+  func setSize(_ size: CGSize) {
+    NSLog("[MeetingPiP] renderer.setSize → %@", NSStringFromCGSize(size))
+  }
 
   func renderFrame(_ frame: RTCVideoFrame?) {
-    guard let frame = frame, let layer = self.displayLayer else { return }
+    guard let frame = frame else {
+      NSLog("[MeetingPiP] renderer.renderFrame: nil frame")
+      return
+    }
+    guard let layer = self.displayLayer else {
+      // Кадры приходят, но layer не подключён — это значит attach был
+      // вызван без enterPip (или мы уже teardown'нулись).
+      if frameCount % 60 == 0 {
+        NSLog("[MeetingPiP] renderer: frame received but displayLayer=nil")
+      }
+      frameCount += 1
+      return
+    }
 
     // На iOS камера/screen-share отдают RTCCVPixelBuffer (NV12). Если
     // буфер другой — пропускаем кадр (PiP покажет последний валидный).
     // Конверсия I420→NV12 руками — отдельная задача, пока не нужна.
-    guard let cv = frame.buffer as? RTCCVPixelBuffer else { return }
+    guard let cv = frame.buffer as? RTCCVPixelBuffer else {
+      if frameCount % 60 == 0 {
+        NSLog("[MeetingPiP] renderer: non-CVPixelBuffer frame (type=%@), skip",
+              String(describing: type(of: frame.buffer)))
+      }
+      frameCount += 1
+      return
+    }
     let pb = cv.pixelBuffer
+
+    if frameCount == 0 {
+      NSLog(
+        "[MeetingPiP] renderer: FIRST FRAME (%dx%d, rotation=%ld)",
+        CVPixelBufferGetWidth(pb), CVPixelBufferGetHeight(pb),
+        frame.rotation.rawValue)
+    } else if frameCount % 120 == 0 {
+      NSLog("[MeetingPiP] renderer: %d frames pumped", frameCount)
+    }
+    frameCount += 1
 
     // Учитываем rotation: PiP сам не вращает кадр, поэтому если устройство
     // в портретной ориентации (frame.rotation = ._90), нужно прокрутить.

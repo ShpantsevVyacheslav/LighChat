@@ -41,8 +41,9 @@ class MeetingPipController {
       try {
         final v = await _channel.invokeMethod<bool>('isSupported');
         _supportedCache = v ?? false;
+        appLogger.i('[meeting-pip] isSupported(android)=$_supportedCache');
       } catch (e) {
-        appLogger.w('[pip] isSupported failed', error: e);
+        appLogger.w('[meeting-pip] isSupported(android) failed', error: e);
         _supportedCache = false;
       }
       return _supportedCache!;
@@ -53,8 +54,9 @@ class MeetingPipController {
       try {
         final v = await _channel.invokeMethod<bool>('isSupported');
         _supportedCache = v ?? false;
+        appLogger.i('[meeting-pip] isSupported(ios)=$_supportedCache');
       } catch (e) {
-        appLogger.w('[meeting-pip] isSupported failed', error: e);
+        appLogger.w('[meeting-pip] isSupported(ios) failed', error: e);
         _supportedCache = false;
       }
       return _supportedCache!;
@@ -65,12 +67,15 @@ class MeetingPipController {
 
   /// Войти в PiP-режим. Возвращает `true` при успехе.
   Future<bool> enterPip() async {
-    if (!await isSupported()) return false;
+    final supported = await isSupported();
+    appLogger.i('[meeting-pip] enterPip() requested, supported=$supported');
+    if (!supported) return false;
     try {
       final ok = await _channel.invokeMethod<bool>('enter');
+      appLogger.i('[meeting-pip] enterPip() result=$ok');
       return ok ?? false;
     } catch (e) {
-      appLogger.w('[pip] enter failed', error: e);
+      appLogger.w('[meeting-pip] enterPip() failed', error: e);
       return false;
     }
   }

@@ -608,14 +608,22 @@ class MeetingWebRtc {
   Future<void> _notifyPipBindLocalTrack() async {
     if (!Platform.isIOS) return;
     final tracks = _localStream?.getVideoTracks() ?? const [];
-    if (tracks.isEmpty) return;
+    if (tracks.isEmpty) {
+      appLogger.w('[meeting-pip] bindLocalTrack skipped: no video tracks');
+      return;
+    }
     final trackId = tracks.first.id;
-    if (trackId == null || trackId.isEmpty) return;
+    if (trackId == null || trackId.isEmpty) {
+      appLogger.w('[meeting-pip] bindLocalTrack skipped: empty track id');
+      return;
+    }
+    appLogger.i('[meeting-pip] bindLocalTrack id=$trackId');
     try {
-      await const MethodChannel('lighchat/meeting_pip')
+      final ok = await const MethodChannel('lighchat/meeting_pip')
           .invokeMethod<bool>('bindLocalTrack', <String, Object?>{
         'trackId': trackId,
       });
+      appLogger.i('[meeting-pip] bindLocalTrack result=$ok');
     } catch (e) {
       appLogger.w('[meeting-pip] bindLocalTrack failed', error: e);
     }
@@ -623,10 +631,13 @@ class MeetingWebRtc {
 
   Future<void> _notifyPipUnbindLocalTrack() async {
     if (!Platform.isIOS) return;
+    appLogger.i('[meeting-pip] unbindLocalTrack');
     try {
       await const MethodChannel('lighchat/meeting_pip')
           .invokeMethod<bool>('unbindLocalTrack');
-    } catch (_) {}
+    } catch (e) {
+      appLogger.w('[meeting-pip] unbindLocalTrack failed', error: e);
+    }
   }
 }
 
