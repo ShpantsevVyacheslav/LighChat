@@ -22,6 +22,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/composer_clipboard_paste.dart';
 import '../data/share_intent_payload.dart';
+import '../data/sticker_downscale.dart';
 import '../data/sticker_drop_heuristic.dart';
 import '../data/e2ee_decryption_orchestrator.dart';
 import '../data/e2ee_data_type_policy.dart';
@@ -3343,10 +3344,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     for (final s in stickers) {
       if (!mounted) return;
       try {
+        // iOS Lift Subject отдаёт PNG в исходном разрешении камеры
+        // (3024×3292+, 7–15 MiB). Перед upload ужимаем до 1024px по
+        // большей стороне — Telegram-style, ~200–400 KiB на выходе,
+        // мгновенный upload. Decode/encode идут в isolate (compute),
+        // UI не фризится.
+        final compact = await downscaleStickerForSend(s);
+        if (!mounted) return;
         final att = await uploadChatAttachmentFromXFile(
           storage: FirebaseStorage.instance,
           conversationId: widget.conversationId,
-          file: s,
+          file: compact,
         );
         if (!mounted) return;
         await _sendStickerOrGifAttachment(uid, repo, att);

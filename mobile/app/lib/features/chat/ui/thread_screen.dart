@@ -38,6 +38,7 @@ import 'report_sheet.dart';
 import '../data/chat_message_search.dart';
 import '../data/user_block_providers.dart';
 import '../data/composer_clipboard_paste.dart';
+import '../data/sticker_downscale.dart';
 import '../data/sticker_drop_heuristic.dart';
 import '../data/group_mention_candidates.dart';
 import '../data/user_contacts_repository.dart';
@@ -656,10 +657,14 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
     for (final s in stickers) {
       if (!mounted) return;
       try {
+        // См. ChatScreen._sendDroppedStickers — ужимаем 13 MiB Lift
+        // Subject PNG до ~300 KiB через decode+resize+encode в isolate.
+        final compact = await downscaleStickerForSend(s);
+        if (!mounted) return;
         final att = await uploadChatAttachmentFromXFile(
           storage: FirebaseStorage.instance,
           conversationId: widget.conversationId,
-          file: s,
+          file: compact,
         );
         if (!mounted) return;
         await _sendThreadStickerOrGifAttachment(uid, repo, att);
