@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ChevronLeft, Lock, MessageCircle, Phone, Video } from 'lucide-react';
+import { ChevronLeft, Lock, MessageCircle, Mic, Paperclip, Phone, Smile, Video } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,10 +27,12 @@ function HeaderChip({
   className?: string;
   iconClassName?: string;
 }) {
+  // Размеры синхронизированы с реальным `ChatWindow` (h-[22px] w-[22px]
+  // на иконке внутри chatHeaderIconGlass-чипа).
   return (
     <div className={cn('p-0.5', CHIP_GLASS, className)}>
-      <div className="flex h-7 w-7 items-center justify-center">
-        <Icon className={cn('h-[18px] w-[18px]', iconClassName)} strokeWidth={2} aria-hidden />
+      <div className="flex h-8 w-8 items-center justify-center">
+        <Icon className={cn('h-[22px] w-[22px]', iconClassName)} strokeWidth={2} aria-hidden />
       </div>
     </div>
   );
@@ -55,20 +57,23 @@ export function MockChatHeader({
   return (
     <div
       className={cn(
-        'flex items-center gap-2 px-3 py-2',
+        // Реальный header использует gap-1 между chip-иконками и gap-2
+        // у user-блока. Здесь делаем единый gap-1 для consistency.
+        'flex items-center gap-1 px-3 py-2',
         'border-b border-black/5 dark:border-white/10',
         'bg-background/70 backdrop-blur-md',
         className,
       )}
     >
       <HeaderChip icon={ChevronLeft} iconClassName="text-foreground/85" />
-      <div className="relative h-10 w-10 shrink-0">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-sm font-bold text-primary-foreground shadow-sm">
+      {/* Аватар h-11 w-11 — как в реальном `ChatWindow` (Avatar component). */}
+      <div className="relative ml-1 h-11 w-11 shrink-0">
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-sm font-bold text-primary-foreground shadow-sm">
           {initial}
         </div>
         <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500" />
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="ml-1 min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="truncate text-[14px] font-semibold text-foreground">{name}</span>
           {withLock ? (
@@ -99,8 +104,9 @@ export function MockChatHeader({
 }
 
 /**
- * Презентационная копия `ChatMessageInput`: «+», поле, мигающий курсор,
- * иконки эмодзи и микрофона.
+ * Презентационная копия `ChatMessageInput`: иконка `Paperclip` (attach)
+ * без фона, поле с placeholder и мигающим курсором, иконка эмодзи (`Smile`)
+ * справа в поле, и круглая `Mic`-кнопка primary справа.
  */
 export function MockChatInput({
   placeholder,
@@ -116,18 +122,26 @@ export function MockChatInput({
         className,
       )}
     >
-      <button type="button" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-foreground/5 text-foreground/70" aria-label="attach">
-        <span className="text-base font-semibold">+</span>
+      <button
+        type="button"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-foreground/5"
+        aria-label="attach"
+      >
+        <Paperclip className="h-4 w-4" aria-hidden />
       </button>
       <div className="flex h-9 flex-1 items-center gap-2 rounded-full border border-black/5 dark:border-white/10 bg-background/80 px-3">
         <span className="flex-1 truncate text-[12px] text-muted-foreground">
           {placeholder}
           <span className="ml-1 inline-block h-3 w-px bg-foreground/70 animate-feat-caret align-middle" />
         </span>
-        <span className="text-base text-muted-foreground">😊</span>
+        <Smile className="h-4 w-4 text-muted-foreground" aria-hidden />
       </div>
-      <button type="button" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground" aria-label="send">
-        <span className="text-sm">🎙</span>
+      <button
+        type="button"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+        aria-label="record"
+      >
+        <Mic className="h-4 w-4" aria-hidden />
       </button>
     </div>
   );

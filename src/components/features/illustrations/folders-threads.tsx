@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Folder, FolderOpen, MessageSquare, Pin, Star } from 'lucide-react';
+import { CircleUser, Folder, FolderOpen, Inbox, MessageCircle, MessageSquare, Pin, Star, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
 import { getFeaturesContent } from '../features-content';
@@ -16,11 +16,15 @@ export function MockFoldersThreads({
 }) {
   const { locale } = useI18n();
   const t = React.useMemo(() => getFeaturesContent(locale).mockText, [locale]);
+  // Реальный `ChatFolderRail` показывает 4 системные папки + custom-папки:
+  // `all` (Inbox), `unread` (MessageCircle), `personal` (CircleUser),
+  // `groups` (Users). Пользователь может добавить свои папки (FolderOpen).
   const folders = [
-    { name: t.folderAll, count: 24, active: false, icon: Folder },
-    { name: t.folderWork, count: 8, active: true, icon: FolderOpen },
-    { name: t.folderFamily, count: 4, active: false, icon: Folder },
-    { name: t.folderStudy, count: 12, active: false, icon: Folder },
+    { name: t.folderAll, count: 24, active: true, icon: Inbox },
+    { name: t.folderUnread, count: 5, active: false, icon: MessageCircle },
+    { name: t.folderPersonal, count: 8, active: false, icon: CircleUser },
+    { name: t.folderGroups, count: 12, active: false, icon: Users },
+    { name: t.folderWork, count: 4, active: false, icon: FolderOpen },
     { name: t.folderStarred, count: 3, active: false, icon: Star },
   ];
   // В реальном `ConversationItem` тред-маркер встроен в строку чата
@@ -42,8 +46,9 @@ export function MockFoldersThreads({
               key={f.name}
               className={cn(
                 'flex items-center gap-2 rounded-xl px-2 py-1.5 text-[11px] font-semibold animate-feat-bubble-in',
+                // Активная папка — `primary`-акцент (как в реальном `ChatFolderRail`).
                 f.active
-                  ? 'bg-violet-400/15 text-violet-500 dark:text-violet-300 ring-1 ring-violet-400/30'
+                  ? 'bg-primary/15 text-primary ring-1 ring-primary/30'
                   : 'text-muted-foreground'
               )}
               style={{ animationDelay: `${i * 70}ms` }}
@@ -74,7 +79,9 @@ export function MockFoldersThreads({
               <div className="flex items-center gap-1.5">
                 <p className="truncate text-[11px] text-muted-foreground">{c.last}</p>
                 {c.threadCount > 0 ? (
-                  <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-violet-400/15 px-1.5 py-px text-[9px] font-bold text-violet-500 dark:text-violet-300">
+                  // Реальный `ConversationItem` использует `primary`-цвет
+                  // для тред-бейджа (см. ConversationItem.tsx).
+                  <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-primary/20 bg-primary/10 px-1.5 py-px text-[9px] font-bold text-primary">
                     <MessageSquare className="h-2.5 w-2.5" aria-hidden />
                     {c.threadCount}
                   </span>

@@ -48,7 +48,9 @@ export function MockMessageBubble({
     >
       <div
         className={cn(
-          'relative max-w-[78%] px-3 py-2 text-[13px] leading-snug shadow-sm rounded-2xl',
+          // Реальный `ChatMessageItem` использует `text-sm` (14px) по умолчанию;
+          // финальный размер настраивается пользователем через `chatSettings.fontSize`.
+          'relative max-w-[78%] px-3 py-2 text-sm leading-snug shadow-sm rounded-2xl',
           // Реальный ChatMessageItem использует rounded-tr-none/tl-none для «хвостика».
           withTail && (incoming ? 'rounded-tl-none' : 'rounded-tr-none'),
           incoming

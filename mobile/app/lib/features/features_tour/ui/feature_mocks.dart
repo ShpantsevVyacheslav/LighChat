@@ -1407,24 +1407,24 @@ class _MockGamesState extends State<MockGames> with SingleTickerProviderStateMix
                     bottom: 0,
                     child: Center(
                       child: SizedBox(
-                        width: 56,
-                        height: 56,
+                        width: 72,
+                        height: 70,
                         child: Stack(clipBehavior: Clip.none, children: [
                           // Стопка-колода (3 рубашки, лёгкий offset)
                           const Positioned(
                             left: 4,
                             top: 8,
-                            child: _DurakCard(faceDown: true, width: 26, height: 38),
+                            child: _DurakCard(faceDown: true, width: 38, height: 54),
                           ),
                           const Positioned(
                             left: 2,
                             top: 6,
-                            child: _DurakCard(faceDown: true, width: 26, height: 38),
+                            child: _DurakCard(faceDown: true, width: 38, height: 54),
                           ),
                           const Positioned(
                             left: 0,
                             top: 4,
-                            child: _DurakCard(faceDown: true, width: 26, height: 38),
+                            child: _DurakCard(faceDown: true, width: 38, height: 54),
                           ),
                           // Козырь — лежит горизонтально НАД стопкой
                           // (визуально выше по экрану), лицом вверх.
@@ -1438,8 +1438,8 @@ class _MockGamesState extends State<MockGames> with SingleTickerProviderStateMix
                                 suit: '♥',
                                 red: true,
                                 trump: true,
-                                width: 26,
-                                height: 38,
+                                width: 38,
+                                height: 54,
                               ),
                             ),
                           ),
@@ -1498,8 +1498,8 @@ class _MockGamesState extends State<MockGames> with SingleTickerProviderStateMix
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4),
                             child: SizedBox(
-                              width: 42,
-                              height: 60,
+                              width: 56,
+                              height: 76,
                               child: Stack(clipBehavior: Clip.none, children: [
                                 // Слот-плейсхолдер «+» — виден на финальной фазе.
                                 Positioned.fill(
@@ -1549,20 +1549,21 @@ class _MockGamesState extends State<MockGames> with SingleTickerProviderStateMix
                 ]),
               ),
 
-              // Bottom: рука игрока — 8 карт ровно
+              // Bottom: рука игрока — 8 карт ровно. Размеры повторяют реальные
+              // карты `DurakCardWidget` пропорционально (default 68×96).
               SizedBox(
-                height: 50,
+                height: 64,
                 child: Stack(alignment: Alignment.center, children: [
                   for (var i = 0; i < hand.length; i++)
                     Transform.translate(
-                      offset: Offset((i - (hand.length - 1) / 2) * 22, 0),
+                      offset: Offset((i - (hand.length - 1) / 2) * 30, 0),
                       child: _DurakCard(
                         rank: hand[i].rank,
                         suit: hand[i].suit,
                         red: hand[i].red,
                         trump: hand[i].trump,
-                        width: 28,
-                        height: 42,
+                        width: 40,
+                        height: 58,
                       ),
                     ),
                 ]),
@@ -1682,13 +1683,16 @@ class _AnimatedTableCard extends StatelessWidget {
           angle: rot,
           child: Transform.scale(
             scale: scale,
+            // Реальные карты в `DurakCardWidget` имеют default width=68,
+            // height=96. Здесь — компактные ~44×62 чтобы поместиться в
+            // мокап-стол, но крупнее прежних 30×44.
             child: _DurakCard(
               rank: card.rank,
               suit: card.suit,
               red: card.red,
               trump: card.trump,
-              width: 30,
-              height: 44,
+              width: 44,
+              height: 62,
             ),
           ),
         ),
@@ -2303,11 +2307,13 @@ class MockFoldersThreads extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = _mockText(context);
     final scheme = Theme.of(context).colorScheme;
+    // Реальный `ChatFolderRail`: 4 системные папки + custom.
     final folders = [
-      (t.folderAll, 24, false),
-      (t.folderWork, 8, true),
-      (t.folderFamily, 4, false),
-      (t.folderStudy, 12, false),
+      (t.folderAll, Icons.inbox_outlined, 24, true),
+      (t.folderUnread, Icons.mark_chat_unread_outlined, 5, false),
+      (t.folderPersonal, Icons.person_outline_rounded, 8, false),
+      (t.folderGroups, Icons.group_outlined, 12, false),
+      (t.folderWork, Icons.folder_outlined, 4, false),
     ];
     // В реальном `ConversationItem` тред-маркер встроен в строку чата
     // как маленький `<MessageSquare> N` бейдж — это и есть «треды».
@@ -2333,16 +2339,17 @@ class MockFoldersThreads extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(vertical: 1),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 decoration: BoxDecoration(
-                  color: f.$3 ? featureAccentViolet.withValues(alpha: 0.15) : Colors.transparent,
+                  // Активная папка — primary-акцент.
+                  color: f.$4 ? featureAccentPrimary.withValues(alpha: 0.15) : Colors.transparent,
                   borderRadius: BorderRadius.circular(10),
-                  border: f.$3
-                      ? Border.all(color: featureAccentViolet.withValues(alpha: 0.30))
+                  border: f.$4
+                      ? Border.all(color: featureAccentPrimary.withValues(alpha: 0.30))
                       : null,
                 ),
                 child: Row(children: [
-                  Icon(f.$3 ? Icons.folder_open_rounded : Icons.folder_outlined,
+                  Icon(f.$2,
                       size: 12,
-                      color: f.$3 ? featureAccentViolet : scheme.onSurface.withValues(alpha: 0.6)),
+                      color: f.$4 ? featureAccentPrimary : scheme.onSurface.withValues(alpha: 0.6)),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(f.$1,
@@ -2351,11 +2358,11 @@ class MockFoldersThreads extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
-                            color: f.$3
-                                ? featureAccentViolet
+                            color: f.$4
+                                ? featureAccentPrimary
                                 : scheme.onSurface.withValues(alpha: 0.7))),
                   ),
-                  Text('${f.$2}',
+                  Text('${f.$3}',
                       style: TextStyle(
                           fontSize: 9,
                           color: scheme.onSurface.withValues(alpha: 0.55))),
@@ -2408,18 +2415,20 @@ class MockFoldersThreads extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 4, vertical: 1),
                                 decoration: BoxDecoration(
-                                  color: featureAccentViolet.withValues(alpha: 0.15),
+                                  color: featureAccentPrimary.withValues(alpha: 0.10),
+                                  border: Border.all(
+                                      color: featureAccentPrimary.withValues(alpha: 0.20)),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                                   Icon(Icons.chat_bubble_outline_rounded,
-                                      size: 8, color: featureAccentViolet),
+                                      size: 8, color: featureAccentPrimary),
                                   const SizedBox(width: 2),
                                   Text('${c.$4}',
                                       style: TextStyle(
                                           fontSize: 8,
                                           fontWeight: FontWeight.w800,
-                                          color: featureAccentViolet)),
+                                          color: featureAccentPrimary)),
                                 ]),
                               ),
                             ],
@@ -2958,6 +2967,30 @@ class _LaptopFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Stack(clipBehavior: Clip.none, children: [
+      // 6-digit verification code над ноутбуком — реальный шаг
+      // `E2eeQrPairingDialog` (initiator/donor сравнивают совпадение).
+      Positioned(
+        top: -14,
+        left: 0,
+        right: 0,
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: featureAccentEmerald.withValues(alpha: 0.15),
+              border: Border.all(color: featureAccentEmerald.withValues(alpha: 0.35)),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text('4F · 92 · BD',
+                style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.5,
+                    color: featureAccentEmerald)),
+          ),
+        ),
+      ),
       Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
           width: 130,

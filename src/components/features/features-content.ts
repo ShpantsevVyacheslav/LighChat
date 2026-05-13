@@ -76,6 +76,9 @@ export type FeaturesMockText = {
   callsCircleMeta: string;
   // Folders
   folderAll: string;
+  folderUnread: string;
+  folderPersonal: string;
+  folderGroups: string;
   folderWork: string;
   folderFamily: string;
   folderStudy: string;
@@ -101,6 +104,10 @@ export type FeaturesMockText = {
   multiDeviceBackupSub: string;
   // Stickers
   stickerSearchHint: string;
+  stickerTabEmoji: string;
+  stickerTabStickers: string;
+  stickerTabGif: string;
+  stickerOtherUis: string;
   pollLabel: string;
   pollTitle: string;
   pollOption1: string;
@@ -120,6 +127,16 @@ export type FeaturesMockText = {
   privacyGlobalSearchHint: string;
   privacyGroupAdd: string;
   privacyGroupAddHint: string;
+  // Privacy v2 — реальные секции и группа `groupInvitePolicy`
+  privacyInvitesTitle: string;
+  privacyInviteEveryone: string;
+  privacyInviteContacts: string;
+  privacyInviteNone: string;
+  privacySearchTitle: string;
+  privacyProfileTitle: string;
+  privacyShowEmail: string;
+  privacyShowPhone: string;
+  privacyMoreFields: string;
 };
 
 export type FeaturesContent = {
@@ -562,6 +579,9 @@ const ru: FeaturesContent = {
     callsCircleTitle: 'Видео-кружок',
     callsCircleMeta: '0:42 / 1:00',
     folderAll: 'Все',
+    folderUnread: 'Новые',
+    folderPersonal: 'Личные',
+    folderGroups: 'Группы',
     folderWork: 'Работа',
     folderFamily: 'Семья',
     folderStudy: 'Учёба',
@@ -584,6 +604,10 @@ const ru: FeaturesContent = {
     multiDeviceBackup: 'Резервная копия ключей',
     multiDeviceBackupSub: 'защищена паролем',
     stickerSearchHint: 'поиск стикеров и GIF',
+    stickerTabEmoji: 'Эмодзи',
+    stickerTabStickers: 'Стикеры',
+    stickerTabGif: 'GIF',
+    stickerOtherUis: 'Отдельные окна',
     pollLabel: 'Опрос',
     pollTitle: 'Куда едем в субботу?',
     pollOption1: 'В горы',
@@ -602,6 +626,15 @@ const ru: FeaturesContent = {
     privacyGlobalSearchHint: 'Найти вас по имени могут все',
     privacyGroupAdd: 'Добавление в группы',
     privacyGroupAddHint: 'Только из контактов',
+    privacyInvitesTitle: 'Приглашения в группы',
+    privacyInviteEveryone: 'Все пользователи',
+    privacyInviteContacts: 'Только контакты',
+    privacyInviteNone: 'Никто',
+    privacySearchTitle: 'Поиск собеседников',
+    privacyProfileTitle: 'Профиль для других',
+    privacyShowEmail: 'Email',
+    privacyShowPhone: 'Телефон',
+    privacyMoreFields: 'и ещё: дата рождения, био',
   },
 };
 
@@ -1020,6 +1053,9 @@ const en: FeaturesContent = {
     callsCircleTitle: 'Video circle',
     callsCircleMeta: '0:42 / 1:00',
     folderAll: 'All',
+    folderUnread: 'Unread',
+    folderPersonal: 'Direct',
+    folderGroups: 'Groups',
     folderWork: 'Work',
     folderFamily: 'Family',
     folderStudy: 'Study',
@@ -1042,6 +1078,10 @@ const en: FeaturesContent = {
     multiDeviceBackup: 'Key backup',
     multiDeviceBackupSub: 'password-protected',
     stickerSearchHint: 'search stickers and GIFs',
+    stickerTabEmoji: 'Emoji',
+    stickerTabStickers: 'Stickers',
+    stickerTabGif: 'GIF',
+    stickerOtherUis: 'Separate dialogs',
     pollLabel: 'Poll',
     pollTitle: 'Where are we going on Saturday?',
     pollOption1: 'To the mountains',
@@ -1060,6 +1100,15 @@ const en: FeaturesContent = {
     privacyGlobalSearchHint: 'Anyone can find you by name',
     privacyGroupAdd: 'Adding to groups',
     privacyGroupAddHint: 'Contacts only',
+    privacyInvitesTitle: 'Group invites',
+    privacyInviteEveryone: 'All users',
+    privacyInviteContacts: 'Contacts only',
+    privacyInviteNone: 'Nobody',
+    privacySearchTitle: 'Finding you',
+    privacyProfileTitle: 'Profile for others',
+    privacyShowEmail: 'Email',
+    privacyShowPhone: 'Phone',
+    privacyMoreFields: 'plus: date of birth, bio',
   },
 };
 
@@ -1478,6 +1527,9 @@ const ptBR: FeaturesContent = {
     callsCircleTitle: 'Círculo de vídeo',
     callsCircleMeta: '0:42 / 1:00',
     folderAll: 'Todas',
+    folderUnread: 'Não lidas',
+    folderPersonal: 'Diretas',
+    folderGroups: 'Grupos',
     folderWork: 'Trabalho',
     folderFamily: 'Família',
     folderStudy: 'Estudo',
@@ -1500,6 +1552,10 @@ const ptBR: FeaturesContent = {
     multiDeviceBackup: 'Backup de chaves',
     multiDeviceBackupSub: 'protegido por senha',
     stickerSearchHint: 'buscar figurinhas e GIFs',
+    stickerTabEmoji: 'Emoji',
+    stickerTabStickers: 'Figurinhas',
+    stickerTabGif: 'GIF',
+    stickerOtherUis: 'Diálogos separados',
     pollLabel: 'Enquete',
     pollTitle: 'Onde vamos no sábado?',
     pollOption1: 'Para a montanha',
@@ -1518,6 +1574,15 @@ const ptBR: FeaturesContent = {
     privacyGlobalSearchHint: 'Qualquer pessoa pode te encontrar pelo nome',
     privacyGroupAdd: 'Adição a grupos',
     privacyGroupAddHint: 'Apenas contatos',
+    privacyInvitesTitle: 'Convites para grupos',
+    privacyInviteEveryone: 'Todos os usuários',
+    privacyInviteContacts: 'Apenas contatos',
+    privacyInviteNone: 'Ninguém',
+    privacySearchTitle: 'Encontrar você',
+    privacyProfileTitle: 'Perfil para os outros',
+    privacyShowEmail: 'E-mail',
+    privacyShowPhone: 'Telefone',
+    privacyMoreFields: 'e mais: data de nascimento, bio',
   },
 };
 
@@ -1936,6 +2001,9 @@ const esMX: FeaturesContent = {
     callsCircleTitle: 'Círculo de video',
     callsCircleMeta: '0:42 / 1:00',
     folderAll: 'Todos',
+    folderUnread: 'No leídos',
+    folderPersonal: 'Directos',
+    folderGroups: 'Grupos',
     folderWork: 'Trabajo',
     folderFamily: 'Familia',
     folderStudy: 'Estudio',
@@ -1958,6 +2026,10 @@ const esMX: FeaturesContent = {
     multiDeviceBackup: 'Respaldo de llaves',
     multiDeviceBackupSub: 'protegido con contraseña',
     stickerSearchHint: 'buscar stickers y GIFs',
+    stickerTabEmoji: 'Emoji',
+    stickerTabStickers: 'Stickers',
+    stickerTabGif: 'GIF',
+    stickerOtherUis: 'Diálogos aparte',
     pollLabel: 'Encuesta',
     pollTitle: '¿A dónde vamos el sábado?',
     pollOption1: 'A la montaña',
@@ -1976,6 +2048,15 @@ const esMX: FeaturesContent = {
     privacyGlobalSearchHint: 'Cualquier persona puede encontrarlos por nombre',
     privacyGroupAdd: 'Agregar a grupos',
     privacyGroupAddHint: 'Solo contactos',
+    privacyInvitesTitle: 'Invitaciones a grupos',
+    privacyInviteEveryone: 'Todos los usuarios',
+    privacyInviteContacts: 'Solo contactos',
+    privacyInviteNone: 'Nadie',
+    privacySearchTitle: 'Encontrarte',
+    privacyProfileTitle: 'Perfil para otros',
+    privacyShowEmail: 'Correo',
+    privacyShowPhone: 'Teléfono',
+    privacyMoreFields: 'y más: fecha de nacimiento, bio',
   },
 };
 

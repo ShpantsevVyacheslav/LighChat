@@ -94,8 +94,16 @@ export function MockMultiDevice({
           </div>
         </div>
 
-        {/* Laptop */}
+        {/* Laptop с 6-digit verification code: реально это второй шаг pairing,
+            который обе стороны видят и сравнивают (см. `E2eeQrPairingDialog`). */}
         <div className="relative shrink-0">
+          {/* Bubble «verification code» над ноутбуком */}
+          <div
+            className="absolute -top-6 left-1/2 -translate-x-1/2 z-10 rounded-md border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 font-mono text-[10px] font-bold tracking-[0.3em] text-emerald-600 dark:text-emerald-300 animate-feat-bubble-in"
+            style={{ animationDelay: '500ms' }}
+          >
+            4F · 92 · BD
+          </div>
           <div className="relative h-20 w-32 rounded-md border-[3px] border-foreground/85 bg-background shadow-xl sm:h-28 sm:w-48">
             <div className="absolute inset-1.5 rounded-sm bg-gradient-to-br from-violet-500/25 via-primary/15 to-transparent p-2">
               <div className="flex items-center gap-1 text-[9px] font-semibold text-foreground">

@@ -123,6 +123,9 @@ class FeaturesMockText {
     required this.callsCircleTitle,
     required this.callsCircleMeta,
     required this.folderAll,
+    required this.folderUnread,
+    required this.folderPersonal,
+    required this.folderGroups,
     required this.folderWork,
     required this.folderFamily,
     required this.folderStudy,
@@ -145,6 +148,10 @@ class FeaturesMockText {
     required this.multiDeviceBackup,
     required this.multiDeviceBackupSub,
     required this.stickerSearchHint,
+    required this.stickerTabEmoji,
+    required this.stickerTabStickers,
+    required this.stickerTabGif,
+    required this.stickerOtherUis,
     required this.pollLabel,
     required this.pollTitle,
     required this.pollOption1,
@@ -163,6 +170,15 @@ class FeaturesMockText {
     required this.privacyGlobalSearchHint,
     required this.privacyGroupAdd,
     required this.privacyGroupAddHint,
+    required this.privacyInvitesTitle,
+    required this.privacyInviteEveryone,
+    required this.privacyInviteContacts,
+    required this.privacyInviteNone,
+    required this.privacySearchTitle,
+    required this.privacyProfileTitle,
+    required this.privacyShowEmail,
+    required this.privacyShowPhone,
+    required this.privacyMoreFields,
   });
 
   final String e2eeBadge;
@@ -207,6 +223,9 @@ class FeaturesMockText {
   final String callsCircleTitle;
   final String callsCircleMeta;
   final String folderAll;
+  final String folderUnread;
+  final String folderPersonal;
+  final String folderGroups;
   final String folderWork;
   final String folderFamily;
   final String folderStudy;
@@ -229,6 +248,10 @@ class FeaturesMockText {
   final String multiDeviceBackup;
   final String multiDeviceBackupSub;
   final String stickerSearchHint;
+  final String stickerTabEmoji;
+  final String stickerTabStickers;
+  final String stickerTabGif;
+  final String stickerOtherUis;
   final String pollLabel;
   final String pollTitle;
   final String pollOption1;
@@ -247,6 +270,15 @@ class FeaturesMockText {
   final String privacyGlobalSearchHint;
   final String privacyGroupAdd;
   final String privacyGroupAddHint;
+  final String privacyInvitesTitle;
+  final String privacyInviteEveryone;
+  final String privacyInviteContacts;
+  final String privacyInviteNone;
+  final String privacySearchTitle;
+  final String privacyProfileTitle;
+  final String privacyShowEmail;
+  final String privacyShowPhone;
+  final String privacyMoreFields;
 }
 
 class FeaturesContent {
@@ -827,6 +859,9 @@ const _kRu = FeaturesContent(
     callsCircleTitle: 'Видео-кружок',
     callsCircleMeta: '0:42 / 1:00',
     folderAll: 'Все',
+    folderUnread: 'Новые',
+    folderPersonal: 'Личные',
+    folderGroups: 'Группы',
     folderWork: 'Работа',
     folderFamily: 'Семья',
     folderStudy: 'Учёба',
@@ -849,6 +884,10 @@ const _kRu = FeaturesContent(
     multiDeviceBackup: 'Резервная копия ключей',
     multiDeviceBackupSub: 'защищена паролем',
     stickerSearchHint: 'поиск стикеров и GIF',
+    stickerTabEmoji: 'Эмодзи',
+    stickerTabStickers: 'Стикеры',
+    stickerTabGif: 'GIF',
+    stickerOtherUis: 'Отдельные окна',
     pollLabel: 'Опрос',
     pollTitle: 'Куда едем в субботу?',
     pollOption1: 'В горы',
@@ -865,6 +904,15 @@ const _kRu = FeaturesContent(
     privacyReceiptsHint: 'Двойная галочка собеседнику',
     privacyGlobalSearch: 'Глобальный поиск',
     privacyGlobalSearchHint: 'Найти вас по имени могут все',
+    privacyInvitesTitle: 'Приглашения в группы',
+    privacyInviteEveryone: 'Все пользователи',
+    privacyInviteContacts: 'Только контакты',
+    privacyInviteNone: 'Никто',
+    privacySearchTitle: 'Поиск собеседников',
+    privacyProfileTitle: 'Профиль для других',
+    privacyShowEmail: 'Email',
+    privacyShowPhone: 'Телефон',
+    privacyMoreFields: 'и ещё: дата рождения, био',
     privacyGroupAdd: 'Добавление в группы',
     privacyGroupAddHint: 'Только из контактов',
   ),
@@ -1317,6 +1365,9 @@ const _kEn = FeaturesContent(
     callsCircleTitle: 'Video circle',
     callsCircleMeta: '0:42 / 1:00',
     folderAll: 'All',
+    folderUnread: 'Unread',
+    folderPersonal: 'Direct',
+    folderGroups: 'Groups',
     folderWork: 'Work',
     folderFamily: 'Family',
     folderStudy: 'Study',
@@ -1339,6 +1390,10 @@ const _kEn = FeaturesContent(
     multiDeviceBackup: 'Key backup',
     multiDeviceBackupSub: 'password-protected',
     stickerSearchHint: 'search stickers and GIFs',
+    stickerTabEmoji: 'Emoji',
+    stickerTabStickers: 'Stickers',
+    stickerTabGif: 'GIF',
+    stickerOtherUis: 'Separate dialogs',
     pollLabel: 'Poll',
     pollTitle: 'Where are we going on Saturday?',
     pollOption1: 'To the mountains',
@@ -1355,6 +1410,15 @@ const _kEn = FeaturesContent(
     privacyReceiptsHint: 'Double check for the sender',
     privacyGlobalSearch: 'Global search',
     privacyGlobalSearchHint: 'Anyone can find you by name',
+    privacyInvitesTitle: 'Group invites',
+    privacyInviteEveryone: 'All users',
+    privacyInviteContacts: 'Contacts only',
+    privacyInviteNone: 'Nobody',
+    privacySearchTitle: 'Finding you',
+    privacyProfileTitle: 'Profile for others',
+    privacyShowEmail: 'Email',
+    privacyShowPhone: 'Phone',
+    privacyMoreFields: 'plus: date of birth, bio',
     privacyGroupAdd: 'Adding to groups',
     privacyGroupAddHint: 'Contacts only',
   ),

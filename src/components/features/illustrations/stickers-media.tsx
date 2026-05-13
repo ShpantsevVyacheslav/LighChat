@@ -38,7 +38,19 @@ export function MockStickersMedia({
         </span>
         <Sticker className="h-4 w-4 text-amber-500 dark:text-amber-400" aria-hidden />
       </div>
-      <div className="mt-3 grid grid-cols-3 gap-2">
+      {/* Реальный `ChatStickerGifPanel` — 3 эксклюзивные вкладки. */}
+      <div className="mt-2 flex items-center gap-1 rounded-full bg-background/40 p-0.5">
+        <span className="flex-1 rounded-full bg-primary px-2 py-0.5 text-center text-[10px] font-bold text-primary-foreground">
+          {t.stickerTabEmoji}
+        </span>
+        <span className="flex-1 px-2 py-0.5 text-center text-[10px] font-semibold text-muted-foreground">
+          {t.stickerTabStickers}
+        </span>
+        <span className="flex-1 px-2 py-0.5 text-center text-[10px] font-semibold text-muted-foreground">
+          {t.stickerTabGif}
+        </span>
+      </div>
+      <div className="mt-2 grid grid-cols-3 gap-2">
         {FACES.map((f, i) => (
           <div
             key={f.glyph}
@@ -54,9 +66,12 @@ export function MockStickersMedia({
         ))}
       </div>
       {!compact ? (
-        // Подпись «Polls / Photo editor — separate dialogs» делает явным,
-        // что это разные UI, а не часть sticker-popover.
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <>
+          <p className="mt-3 px-0.5 text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+            {t.stickerOtherUis}
+          </p>
+        {/* Подпись делает явным: эти блоки — отдельные UI, не часть emoji-popover */}
+        <div className="mt-1 grid grid-cols-2 gap-2">
           <div
             className="rounded-2xl border border-black/5 dark:border-white/10 bg-background/60 p-2.5 animate-feat-bubble-in"
             style={{ animationDelay: '600ms' }}
@@ -101,6 +116,7 @@ export function MockStickersMedia({
             </div>
           </div>
         </div>
+        </>
       ) : null}
     </div>
   );
