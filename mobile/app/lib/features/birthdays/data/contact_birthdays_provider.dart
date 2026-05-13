@@ -72,7 +72,12 @@ class ContactBirthdaysNotifier extends Notifier<BirthdayCacheState> {
       final trimmed = id.trim();
       if (trimmed.isEmpty) continue;
       final entry = state.entries[trimmed];
-      if (entry == null || !entry.isFresh) stale.add(trimmed);
+      // Refetch если запись либо устарела, либо записана старой схемой
+      // (без денормализованного name) — иначе у уже-установивших юзеров
+      // плашка останется без аватара до конца TTL.
+      if (entry == null || !entry.isFresh || entry.name == null) {
+        stale.add(trimmed);
+      }
     }
     if (stale.isEmpty) return;
     final repo = ref.read(userProfilesRepositoryProvider);
@@ -99,7 +104,13 @@ class ContactBirthdaysNotifier extends Notifier<BirthdayCacheState> {
                 isProfileFieldVisibleToOthers(profile, 'dateOfBirth');
             if (allowed) dob = profile.dateOfBirth;
           }
-          nextEntries[id] = BirthdayCacheEntry(dob: dob, fetchedAt: now);
+          nextEntries[id] = BirthdayCacheEntry(
+            dob: dob,
+            fetchedAt: now,
+            name: profile?.name,
+            avatar: profile?.avatar,
+            avatarThumb: profile?.avatarThumb,
+          );
         }
         state = state.copyWith(
           entries: nextEntries,
@@ -152,7 +163,8 @@ final todayBirthdaysProvider =
     if (!isBirthdayToday(dob, now)) continue;
 
     final profile = cache.profiles[id];
-    final remoteName = (profile?.name ?? '').trim();
+    final entryName = (entry.name ?? '').trim();
+    final remoteName = (profile?.name ?? entryName).trim();
     final remoteUsername = (profile?.username ?? '').trim();
     final fallbackName = remoteName.isNotEmpty
         ? remoteName
@@ -167,8 +179,8 @@ final todayBirthdaysProvider =
       userId: id,
       displayName: displayName,
       birthDate: dob,
-      avatarUrl: profile?.avatar,
-      avatarThumb: profile?.avatarThumb,
+      avatarUrl: profile?.avatar ?? entry.avatar,
+      avatarThumb: profile?.avatarThumb ?? entry.avatarThumb,
       username: profile?.username,
       profile: profile,
     ));

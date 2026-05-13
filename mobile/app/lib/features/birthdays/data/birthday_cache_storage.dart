@@ -18,7 +18,13 @@ String birthdayCacheKey(String ownerUserId) =>
     '$_kBirthdayCacheKeyPrefix$ownerUserId';
 
 class BirthdayCacheEntry {
-  const BirthdayCacheEntry({required this.dob, required this.fetchedAt});
+  const BirthdayCacheEntry({
+    required this.dob,
+    required this.fetchedAt,
+    this.name,
+    this.avatar,
+    this.avatarThumb,
+  });
 
   /// Дата рождения в формате `YYYY-MM-DD` или `null` если контакт скрыл ДР /
   /// не задал. Год может отсутствовать (формат `YYYY-MM-DD` всегда, но 1900
@@ -26,12 +32,23 @@ class BirthdayCacheEntry {
   final String? dob;
   final DateTime fetchedAt;
 
+  /// Денормализованное имя/аватары с момента последнего refetch. Нужны,
+  /// чтобы на холодном старте плашка показывала аватар именинника без
+  /// дополнительного Firestore-чтения (UserProfile в памяти теряется
+  /// между запусками). Обновляются при refresh кэша.
+  final String? name;
+  final String? avatar;
+  final String? avatarThumb;
+
   bool get isFresh =>
       DateTime.now().toUtc().difference(fetchedAt) < kBirthdayCacheTtl;
 
   Map<String, Object?> toJson() => {
         'dob': dob,
         'fetchedAt': fetchedAt.toUtc().toIso8601String(),
+        if (name != null) 'name': name,
+        if (avatar != null) 'avatar': avatar,
+        if (avatarThumb != null) 'avatarThumb': avatarThumb,
       };
 
   static BirthdayCacheEntry? fromJson(Object? raw) {
@@ -40,9 +57,18 @@ class BirthdayCacheEntry {
     final fetched = DateTime.tryParse('${m['fetchedAt'] ?? ''}');
     if (fetched == null) return null;
     final dob = m['dob'];
+    String? readString(String key) {
+      final v = m[key];
+      if (v is! String) return null;
+      final t = v.trim();
+      return t.isEmpty ? null : t;
+    }
     return BirthdayCacheEntry(
       dob: dob is String && dob.isNotEmpty ? dob : null,
       fetchedAt: fetched,
+      name: readString('name'),
+      avatar: readString('avatar'),
+      avatarThumb: readString('avatarThumb'),
     );
   }
 }

@@ -27,15 +27,21 @@ void main() {
       expect(e.isFresh, isFalse);
     });
 
-    test('round-trips through JSON', () {
+    test('round-trips through JSON including name/avatars', () {
       final original = BirthdayCacheEntry(
         dob: '1990-05-15',
         fetchedAt: DateTime.utc(2026, 1, 1, 12),
+        name: 'Карина',
+        avatar: 'https://cdn/a.jpg',
+        avatarThumb: 'https://cdn/a_thumb.jpg',
       );
       final decoded = BirthdayCacheEntry.fromJson(original.toJson());
       expect(decoded, isNotNull);
       expect(decoded!.dob, '1990-05-15');
       expect(decoded.fetchedAt, original.fetchedAt);
+      expect(decoded.name, 'Карина');
+      expect(decoded.avatar, 'https://cdn/a.jpg');
+      expect(decoded.avatarThumb, 'https://cdn/a_thumb.jpg');
     });
 
     test('null dob round-trips as null (negative cache)', () {
@@ -45,6 +51,20 @@ void main() {
       );
       final decoded = BirthdayCacheEntry.fromJson(original.toJson());
       expect(decoded?.dob, isNull);
+      expect(decoded?.name, isNull);
+      expect(decoded?.avatar, isNull);
+    });
+
+    test('legacy entries (no name) decode with null avatar fields', () {
+      // Эмулирует записи, созданные предыдущей версией клиента — без
+      // денормализованных name/avatar. Декодер не должен падать.
+      final decoded = BirthdayCacheEntry.fromJson({
+        'dob': '1990-05-15',
+        'fetchedAt': DateTime.utc(2026, 1, 1).toIso8601String(),
+      });
+      expect(decoded, isNotNull);
+      expect(decoded!.name, isNull);
+      expect(decoded.avatar, isNull);
     });
   });
 
