@@ -15,12 +15,12 @@
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */; };
-		A1A1A1A101000000000001E0 /* LiquidGlassAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A104000000000004E0 /* LiquidGlassAppearance.swift */; };
-		A1A1A1A102000000000002E0 /* NavBarOverlayHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A105000000000005E0 /* NavBarOverlayHost.swift */; };
-		A1A1A1A103000000000003E0 /* NavBarBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A106000000000006E0 /* NavBarBridge.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		A1A1A1A101000000000001E0 /* LiquidGlassAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A104000000000004E0 /* LiquidGlassAppearance.swift */; };
+		A1A1A1A102000000000002E0 /* NavBarOverlayHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A105000000000005E0 /* NavBarOverlayHost.swift */; };
+		A1A1A1A103000000000003E0 /* NavBarBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A106000000000006E0 /* NavBarBridge.swift */; };
 		AA3414DD5B5E87BE9AC06AAA /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 27BB0A443CFA3E8BE0734FAD /* Pods_RunnerTests.framework */; };
 /* End PBXBuildFile section */
 
@@ -74,9 +74,6 @@
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		A1A1A1A104000000000004E0 /* LiquidGlassAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidGlassAppearance.swift; sourceTree = "<group>"; };
-		A1A1A1A105000000000005E0 /* NavBarOverlayHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavBarOverlayHost.swift; sourceTree = "<group>"; };
-		A1A1A1A106000000000006E0 /* NavBarBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavBarBridge.swift; sourceTree = "<group>"; };
 		7AF27DEC4A9806D6973BB3B3 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		8ADD42342A451D921E1CC31C /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
@@ -89,6 +86,9 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A1A1A1A104000000000004E0 /* LiquidGlassAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidGlassAppearance.swift; sourceTree = "<group>"; };
+		A1A1A1A105000000000005E0 /* NavBarOverlayHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavBarOverlayHost.swift; sourceTree = "<group>"; };
+		A1A1A1A106000000000006E0 /* NavBarBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavBarBridge.swift; sourceTree = "<group>"; };
 		A4226D422C18325703427045 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		AD5F0EDA447FBA728F3B5568 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B02731D98C27EF00A286881F /* Pods-ShareExtension.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ShareExtension.profile.xcconfig"; path = "Target Support Files/Pods-ShareExtension/Pods-ShareExtension.profile.xcconfig"; sourceTree = "<group>"; };

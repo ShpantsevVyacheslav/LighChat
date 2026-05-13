@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../platform/native_nav_bar/nav_bar_config.dart';
 import '../../../platform/native_nav_bar/native_nav_bar_facade.dart';
+import '../../../platform/native_nav_bar/native_nav_route_observer.dart';
 import 'chat_avatar.dart';
 
 class ChatHeader extends StatefulWidget {
@@ -64,9 +65,10 @@ class ChatHeader extends StatefulWidget {
   State<ChatHeader> createState() => _ChatHeaderState();
 }
 
-class _ChatHeaderState extends State<ChatHeader> {
+class _ChatHeaderState extends State<ChatHeader> with RouteAware {
   StreamSubscription<NavBarEvent>? _nativeEvents;
   bool _firstPushDone = false;
+  bool _routeSubscribed = false;
   bool get _native => NativeNavBarFacade.instance.isSupported;
 
   static const _actionSearch = 'chat_search';
@@ -94,6 +96,13 @@ class _ChatHeaderState extends State<ChatHeader> {
         if (mounted) _pushNativeTopBar();
       });
     }
+    if (_native && !_routeSubscribed) {
+      final route = ModalRoute.of(context);
+      if (route is ModalRoute<Object?>) {
+        nativeNavRouteObserver.subscribe(this, route);
+        _routeSubscribed = true;
+      }
+    }
   }
 
   @override
@@ -112,7 +121,48 @@ class _ChatHeaderState extends State<ChatHeader> {
   void dispose() {
     widget.searchController?.removeListener(_syncSearchValue);
     _nativeEvents?.cancel();
+    if (_native) {
+      if (_routeSubscribed) {
+        nativeNavRouteObserver.unsubscribe(this);
+      }
+      // Скрываем top bar + search при размонтировании, чтобы следующий экран
+      // не увидел наш ChatHeader (avatar/title/actions).
+      unawaited(
+        NativeNavBarFacade.instance.setTopBar(
+          const NavBarTopConfig.hidden(),
+        ),
+      );
+      unawaited(
+        NativeNavBarFacade.instance.setSearchMode(
+          const NavBarSearchConfig.inactive(),
+        ),
+      );
+    }
     super.dispose();
+  }
+
+  // RouteAware: chat_screen ушёл с вершины (модалка / threads / settings) →
+  // прячем top bar; вернулся → пушим конфиг заново.
+
+  @override
+  void didPopNext() {
+    if (_native) _pushNativeTopBar();
+  }
+
+  @override
+  void didPushNext() {
+    if (_native) {
+      unawaited(
+        NativeNavBarFacade.instance.setTopBar(
+          const NavBarTopConfig.hidden(),
+        ),
+      );
+      unawaited(
+        NativeNavBarFacade.instance.setSearchMode(
+          const NavBarSearchConfig.inactive(),
+        ),
+      );
+    }
   }
 
   void _pushNativeTopBar() {

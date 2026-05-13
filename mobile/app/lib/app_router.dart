@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, Tar
 import 'package:flutter/material.dart';
 
 import 'package:lighchat_mobile/core/app_logger.dart';
+import 'package:lighchat_mobile/platform/native_nav_bar/native_nav_route_observer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
@@ -111,6 +112,7 @@ class _AuthRefreshNotifier extends ChangeNotifier {
 GoRouter createRouter() {
   return GoRouter(
     initialLocation: '/chats',
+    observers: [nativeNavRouteObserver],
     refreshListenable: _AuthRefreshNotifier(),
     redirect: (context, state) async {
       final uri = state.uri;

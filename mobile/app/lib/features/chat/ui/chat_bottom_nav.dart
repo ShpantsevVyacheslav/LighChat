@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../../platform/native_nav_bar/nav_bar_config.dart';
 import '../../../platform/native_nav_bar/native_nav_bar_facade.dart';
+import '../../../platform/native_nav_bar/native_nav_route_observer.dart';
 import '../data/bottom_nav_icon_settings.dart';
 import 'chat_avatar.dart';
 
@@ -46,7 +47,7 @@ class ChatBottomNav extends StatefulWidget {
 }
 
 class _ChatBottomNavState extends State<ChatBottomNav>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, RouteAware {
   static const int _slotCount = 5;
   static const double _barHeight = 64;
   static const double _pillYMargin = 5;
@@ -88,10 +89,54 @@ class _ChatBottomNavState extends State<ChatBottomNav>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_native) {
+      final route = ModalRoute.of(context);
+      if (route is ModalRoute<Object?>) {
+        nativeNavRouteObserver.subscribe(this, route);
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _nativeEvents?.cancel();
+    if (_native) {
+      nativeNavRouteObserver.unsubscribe(this);
+      // Скрываем bottom bar при размонтировании, чтобы overlay не «прилип»
+      // на следующем экране.
+      unawaited(
+        NativeNavBarFacade.instance.setBottomBar(
+          const NavBarBottomConfig.hidden(),
+        ),
+      );
+    }
     _stopPillAnimation();
     super.dispose();
+  }
+
+  // RouteAware: на родном маршруте — пушим конфиг, при уходе — скрываем.
+
+  @override
+  void didPopNext() {
+    if (_native) _pushNativeBottomBar();
+  }
+
+  @override
+  void didPush() {
+    if (_native) _pushNativeBottomBar();
+  }
+
+  @override
+  void didPushNext() {
+    if (_native) {
+      unawaited(
+        NativeNavBarFacade.instance.setBottomBar(
+          const NavBarBottomConfig.hidden(),
+        ),
+      );
+    }
   }
 
   void _pushNativeBottomBar() {
