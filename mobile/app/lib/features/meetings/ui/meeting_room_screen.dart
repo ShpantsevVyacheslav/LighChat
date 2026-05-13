@@ -479,7 +479,8 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
       participantsCount: participants.length,
       notificationsCount: notificationsCount,
       onOpenNotifications: () => setState(() => _sidebarOpen = true),
-      // PiP-кнопка перенесена в шапку — здесь не передаём.
+      // PiP-кнопки нигде в UI нет. Auto-PiP при сворачивании работает
+      // сам через bindLocalTrack → eager prepare + AVKit flag.
       virtualBackgroundMode: vb.isPlatformBacked ? _vbMode : null,
       onToggleVirtualBackground:
           vb.isPlatformBacked ? _cycleVirtualBackground : null,
@@ -848,16 +849,10 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
                 unread: _inCallChatUnread(),
                 onPressed: _openInCallChat,
               ),
-              // PiP-кнопка в шапке. Делает то же, что и стрелка «Назад»:
-              // запускает нативный PiP и уводит на /chats. Иначе PiP-окно
-              // появлялось бы поверх той же комнаты — бессмысленно.
-              if (_pipSupported)
-                IconButton(
-                  tooltip: l10n.meeting_pip_button,
-                  icon: const Icon(Icons.picture_in_picture_alt_rounded,
-                      color: Colors.white),
-                  onPressed: _openChatList,
-                ),
+              // PiP-кнопка полностью убрана из UI. Auto-PiP при
+              // сворачивании приложения работает сам (eager prepare на
+              // bindLocalTrack + canStartPictureInPictureAutomatically-
+              // FromInline = true в LighChatMeetingPipInlineBridge).
               IconButton(
                 tooltip: l10n.meeting_copy_link_tooltip,
                 onPressed: () async {

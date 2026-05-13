@@ -128,7 +128,9 @@ class MeetingControls extends StatelessWidget {
               screenShareSupported ? Colors.white : Colors.white54,
           onTap: onToggleScreenShare!,
         ),
-      // PiP-кнопка вынесена в верхнюю шапку (#7) — в нижнем баре не нужна.
+      // PiP-кнопка убрана из всех баров. Auto-PiP при сворачивании
+      // приложения работает сам (LighChatMeetingPipInlineBridge на
+      // canStartPictureInPictureAutomaticallyFromInline = true).
       if (virtualBackgroundMode != null &&
           onToggleVirtualBackground != null)
         _IconButton(
