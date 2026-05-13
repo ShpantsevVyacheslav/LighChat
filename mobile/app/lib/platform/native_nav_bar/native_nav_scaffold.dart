@@ -144,20 +144,31 @@ class _NativeNavScaffoldState extends State<NativeNavScaffold> {
       // `additionalSafeAreaInsets.top = 0`, чтобы chat мог рисовать
       // messages ПОД bar'ом с Liquid Glass blur. Поэтому для обычных
       // экранов (settings, features tour, auth, ...) Scaffold body
-      // уехал бы в зону под bar'ом. Накидываем `topBarOverlayPadding`
-      // как Padding над body, если не задано `extendBodyBehindBars`.
+      // уехал бы в зону под bar'ом.
+      //
+      // Считаем явно: статус-бар занимает `MediaQuery.padding.top` сверху,
+      // плюс наша native bar pill занимает `topBarOverlayPadding` ниже.
+      // Складываем и подмешиваем как top-padding ListView'у/контейнеру.
+      // Bottom: home indicator → MediaQuery.padding.bottom, плюс
+      // tab bar overlay если виден.
+      final mq = MediaQuery.of(context);
+      final topPad = widget.top.visible
+          ? mq.padding.top +
+              NativeNavBarFacade.instance.topBarOverlayPadding
+          : mq.padding.top;
+      final bottomPad = (widget.bottom?.visible ?? false)
+          ? NativeNavBarFacade.instance.bottomBarOverlayPadding
+          : 0.0;
       final Widget body = widget.extendBodyBehindBars
           ? widget.body
-          : Padding(
-              padding: EdgeInsets.only(
-                top: widget.top.visible
-                    ? NativeNavBarFacade.instance.topBarOverlayPadding
-                    : 0,
-                bottom: (widget.bottom?.visible ?? false)
-                    ? NativeNavBarFacade.instance.bottomBarOverlayPadding
-                    : 0,
+          : MediaQuery.removePadding(
+              context: context,
+              removeTop: true,
+              removeBottom: true,
+              child: Padding(
+                padding: EdgeInsets.only(top: topPad, bottom: bottomPad),
+                child: widget.body,
               ),
-              child: widget.body,
             );
       return Scaffold(
         backgroundColor: widget.backgroundColor,
