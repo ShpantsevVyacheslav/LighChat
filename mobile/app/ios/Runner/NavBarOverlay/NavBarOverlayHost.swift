@@ -39,6 +39,11 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
   // MARK: - Setup
 
+  /// Стандартная высота контента UITabBar / UINavigationBar. Apple использует
+  /// эти же константы внутри UITabBarController / UINavigationController.
+  private static let tabBarContentHeight: CGFloat = 49
+  private static let navBarContentHeight: CGFloat = 44
+
   func attach(to vc: UIViewController) {
     flutterVC = vc
 
@@ -64,7 +69,13 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
       bottom.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
       bottom.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
+      // Фон таб-бара тянется до низа экрана, чтобы покрыть home-indicator,
+      // но контент-зона (иконки + лейблы) остаётся над home indicator
+      // ровно в 49pt — как у Apple UITabBarController.
       bottom.bottomAnchor.constraint(equalTo: vc.view.bottomAnchor),
+      bottom.topAnchor.constraint(
+        equalTo: vc.view.safeAreaLayoutGuide.bottomAnchor,
+        constant: -Self.tabBarContentHeight),
     ])
 
     self.topBar = top
@@ -427,10 +438,17 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     guard let vc = flutterVC else { return }
     var insets = UIEdgeInsets.zero
     if topVisible, let bar = topBar, !bar.isHidden {
-      insets.top = bar.bounds.height
+      // UINavigationBar.bounds.height даёт правильный contentHeight (44 inline /
+      // 96 large title) — он зажат top constraint к safeArea.topAnchor.
+      insets.top = bar.bounds.height > 0 ? bar.bounds.height : Self.navBarContentHeight
     }
     if bottomVisible, let bar = bottomBar, !bar.isHidden {
-      insets.bottom = bar.bounds.height
+      // У UITabBar bounds.height = 49 + safeArea.bottom (фон тянется до низа),
+      // но Flutter контент должен заходить под home indicator. Поэтому
+      // дополнительный inset = только высота контента (49), системный inset
+      // home indicator уже учтён в view.safeAreaInsets.
+      _ = bar
+      insets.bottom = Self.tabBarContentHeight
     }
     vc.additionalSafeAreaInsets = insets
   }
