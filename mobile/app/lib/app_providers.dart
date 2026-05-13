@@ -298,6 +298,33 @@ final messagesProvider =
       );
     });
 
+/// Глобальный счётчик непрочитанных в ВСЕХ беседах текущего пользователя
+/// (`unreadCounts` + `unreadThreadCounts`). Используется ChatBottomNav,
+/// чтобы показать badge на табе «Chats» (native UITabBar.badgeValue).
+final chatsTotalUnreadProvider = Provider<int>((ref) {
+  final user = ref.watch(authUserProvider).asData?.value;
+  if (user == null) return 0;
+  final uid = user.uid;
+  final indexAsync = ref.watch(userChatIndexProvider(uid));
+  final idx = indexAsync.asData?.value;
+  if (idx == null) return 0;
+  final ids = idx.conversationIds
+      .where((id) => !id.startsWith('sdm_'))
+      .toList(growable: false);
+  if (ids.isEmpty) return 0;
+  final convAsync = ref.watch(
+    conversationsProvider((key: conversationIdsCacheKey(ids))),
+  );
+  final convs = convAsync.asData?.value;
+  if (convs == null) return 0;
+  var total = 0;
+  for (final c in convs) {
+    total += (c.data.unreadCounts?[uid] ?? 0);
+    total += (c.data.unreadThreadCounts?[uid] ?? 0);
+  }
+  return total;
+});
+
 final threadMessagesProvider =
     StreamProvider.family<
       List<ChatMessage>,

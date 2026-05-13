@@ -712,6 +712,8 @@ class _ChatContactsScreenState extends ConsumerState<ChatContactsScreen> {
                                 bottomNavIconNames: bottomNavIconNames,
                                 bottomNavIconGlobalStyle: bottomNavGlobalStyle,
                                 bottomNavIconStyles: bottomNavIconStyles,
+                                chatsUnreadCount:
+                                    ref.watch(chatsTotalUnreadProvider),
                               ),
                             ),
                           ],

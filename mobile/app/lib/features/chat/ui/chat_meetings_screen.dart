@@ -151,6 +151,8 @@ class _ChatMeetingsScreenState extends ConsumerState<ChatMeetingsScreen> {
                       bottomNavIconNames: bottomNavIconNames,
                       bottomNavIconGlobalStyle: bottomNavGlobalStyle,
                       bottomNavIconStyles: bottomNavIconStyles,
+                      chatsUnreadCount:
+                          ref.watch(chatsTotalUnreadProvider),
                     ),
                   ),
                 ],

@@ -30,6 +30,7 @@ class ChatBottomNav extends StatefulWidget {
     this.bottomNavIconNames = const <String, String>{},
     this.bottomNavIconGlobalStyle = const BottomNavIconVisualStyle(),
     this.bottomNavIconStyles = const <String, BottomNavIconVisualStyle>{},
+    this.chatsUnreadCount = 0,
   });
 
   final ChatBottomNavTab activeTab;
@@ -45,6 +46,10 @@ class ChatBottomNav extends StatefulWidget {
   final Map<String, String> bottomNavIconNames;
   final BottomNavIconVisualStyle bottomNavIconGlobalStyle;
   final Map<String, BottomNavIconVisualStyle> bottomNavIconStyles;
+
+  /// Total unread (`unreadCounts` + `unreadThreadCounts`) по всем чатам.
+  /// На native iOS отображается как badge на табе «Chats».
+  final int chatsUnreadCount;
 
   @override
   State<ChatBottomNav> createState() => _ChatBottomNavState();
@@ -155,12 +160,20 @@ class _ChatBottomNavState extends State<ChatBottomNav>
     String iconFor(String tabHref, String defaultLucide) =>
         lucideToSfSymbol(iconNames[tabHref] ?? defaultLucide);
 
+    // Badge для табов: '99+' если ≥100 (Apple-конвенция), иначе число.
+    String? badgeFor(int count) {
+      if (count <= 0) return null;
+      if (count >= 100) return '99+';
+      return '$count';
+    }
+
     final config = NavBarBottomConfig(
       items: [
         NavBarTab(
           id: 'chats',
           label: l10n?.bottom_nav_label_chats ?? 'Chats',
           icon: NavBarIcon(iconFor('/dashboard/chat', 'messages-square')),
+          badge: badgeFor(widget.chatsUnreadCount),
         ),
         NavBarTab(
           id: 'contacts',
@@ -339,7 +352,12 @@ class _ChatBottomNavState extends State<ChatBottomNav>
   void didUpdateWidget(ChatBottomNav oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (_native) {
-      if (oldWidget.activeTab != widget.activeTab) _pushNativeBottomBar();
+      // Перепушиваем native config при изменении: активной вкладки, badge'а
+      // (chatsUnreadCount), или user-customизации иконок/стилей.
+      final changed = oldWidget.activeTab != widget.activeTab ||
+          oldWidget.chatsUnreadCount != widget.chatsUnreadCount ||
+          oldWidget.bottomNavIconNames != widget.bottomNavIconNames;
+      if (changed) _pushNativeBottomBar();
       return;
     }
     if (oldWidget.activeTab != widget.activeTab &&

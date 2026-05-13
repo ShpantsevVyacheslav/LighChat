@@ -2112,6 +2112,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                       bottomNavIconNames: bottomNavIconNames,
                       bottomNavIconGlobalStyle: bottomNavGlobalStyle,
                       bottomNavIconStyles: bottomNavIconStyles,
+                      chatsUnreadCount: ref.watch(chatsTotalUnreadProvider),
                     ),
                 ],
               ),

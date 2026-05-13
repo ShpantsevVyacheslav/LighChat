@@ -509,6 +509,8 @@ class _ChatCallsScreenState extends ConsumerState<ChatCallsScreen> {
                               bottomNavIconNames: bottomNavIconNames,
                               bottomNavIconGlobalStyle: bottomNavGlobalStyle,
                               bottomNavIconStyles: bottomNavIconStyles,
+                              chatsUnreadCount:
+                                  ref.watch(chatsTotalUnreadProvider),
                             ),
                           ),
                         ],
