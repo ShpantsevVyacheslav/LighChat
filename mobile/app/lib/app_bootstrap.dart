@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:logger/logger.dart';
@@ -43,7 +44,44 @@ Future<void> bootstrap() async {
     return;
   }
 
+  await _disableKeychainAccessGroupOnMacOS();
   await _activateAppCheck();
+}
+
+/// macOS без paid Apple Developer Program: Firebase Auth по умолчанию
+/// использует `kSecAttrAccessGroup` через teamID из entitlements. Free
+/// Apple ID (Personal Team) такой teamID не выдаёт → SecItemAdd возвращает
+/// `-34018 errSecMissingEntitlement` → пользователь видит ошибку
+/// "An error occurred when accessing the keychain" при любом
+/// способе авторизации (email, Google, Apple, Yandex, QR).
+///
+/// Вызов `useUserAccessGroup(null)` говорит Firebase Auth НЕ привязывать
+/// keychain items к access group — они пишутся в legacy macOS keychain
+/// без entitlement (это тот же путь, что и `flutter_secure_storage` с
+/// `useDataProtectionKeyChain: false`).
+///
+/// На iOS эта проблема не возникает потому что у пользователя есть
+/// провижионинг через Xcode (Bundle ID + teamID привязаны автоматически).
+/// На Android / Windows / Linux access group не используется в принципе.
+///
+/// Когда появится paid Apple Developer Program — можно убрать этот вызов
+/// (тогда access group будет выдан автоматически и Firebase Auth будет
+/// нормально использовать data-protection keychain).
+Future<void> _disableKeychainAccessGroupOnMacOS() async {
+  if (kIsWeb) return;
+  if (!Platform.isMacOS) return;
+  try {
+    // `setSettings(userAccessGroup: null)` сбрасывает kSecAttrAccessGroup
+    // для Firebase Auth keychain items. Без paid Developer Program teamID
+    // не выдан, и default access group приводит к -34018.
+    await FirebaseAuth.instance.setSettings(userAccessGroup: null);
+  } catch (e, st) {
+    logger.w(
+      'FirebaseAuth.setSettings(userAccessGroup: null) failed on macOS.',
+      error: e,
+      stackTrace: st,
+    );
+  }
 }
 
 /// [audit CR-002] Firebase App Check для mobile (iOS + Android).
