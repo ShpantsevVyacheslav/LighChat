@@ -773,22 +773,20 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     }
     vc.additionalSafeAreaInsets = insets
 
-    // КОМПЕНСАЦИЯ circular feedback: additionalSafeAreaInsets.top сдвигает
-    // safeAreaLayoutGuide.topAnchor вниз на insets.top. bar.topConstraint
-    // тоже привязан к safeAreaLayoutGuide.topAnchor, и без этой коррекции
-    // он бы ехал вниз вместе с safeArea. Подкручиваем `constant`, чтобы
-    // абсолютная позиция bar.top осталась = originalSafeArea + navBarTopGap.
+    // КОМПЕНСАЦИЯ circular feedback для TOP bar:
+    // additionalSafeAreaInsets.top сдвигает safeAreaLayoutGuide.topAnchor
+    // вниз на insets.top. bar.topConstraint к нему привязан — без
+    // коррекции bar едет вниз вместе с safeArea. Восстанавливаем абсолютную
+    // позицию bar.top = originalSafeArea + navBarTopGap.
     topBarTopConstraint?.constant = Self.navBarTopGap - insets.top
 
-    // Симметричная компенсация для bottom bar: insets.bottom сдвигает
-    // safeAreaLayoutGuide.bottomAnchor ВВЕРХ на insets.bottom, и bar.top
-    // привязан к нему. Без коррекции bar становится высотой
-    // tabBarContentHeight + insets.bottom (132pt вместо 83pt), иконки
-    // оказываются в середине экрана.
-    // Формула: constant = -tabBarContentHeight + insets.bottom.
-    bottomBarTopConstraint?.constant = -Self.tabBarContentHeight + insets.bottom
+    // НЕ компенсируем bottom bar: UITabBar полагается на собственный
+    // расчёт safeAreaInsets для позиционирования items'ов. Apple ожидает,
+    // что bar.frame заходит ДО view.bottom (включая home indicator zone),
+    // а items рендерятся в верхних `tabBarContentHeight` pt frame'а.
+    // Compensation роняла items за пределы видимой области.
     Self.log(
-      "updateSafeAreaInsets insets.top=\(insets.top) topConst=\(Self.navBarTopGap - insets.top) insets.bottom=\(insets.bottom) botConst=\(-Self.tabBarContentHeight + insets.bottom)"
+      "updateSafeAreaInsets insets.top=\(insets.top) topConst=\(Self.navBarTopGap - insets.top) insets.bottom=\(insets.bottom)"
     )
   }
 
