@@ -23,47 +23,96 @@ export function MockLiveLocation({
   const t = React.useMemo(() => getFeaturesContent(locale).mockText, [locale]);
   return (
     <div className={cn('relative flex h-full w-full overflow-hidden', className)}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,#9be7c4_0%,#6ec5e8_45%,#3a4f86_100%)] dark:bg-[radial-gradient(circle_at_30%_30%,#3b6857_0%,#1f4566_45%,#0e1a3a_100%)]" />
-      <svg className="absolute inset-0 h-full w-full opacity-30" viewBox="0 0 400 240" preserveAspectRatio="none">
-        <path d="M0,160 C60,140 120,180 180,150 C240,120 300,160 400,130" fill="none" stroke="white" strokeWidth="1" />
-        <path d="M0,90 C80,80 160,110 220,90 C280,70 340,100 400,80" fill="none" stroke="white" strokeWidth="1" />
-        <path d="M40,0 L40,240 M180,0 L180,240 M320,0 L320,240" stroke="white" strokeWidth="0.5" opacity="0.4" />
+      {/* Базовый «ночной» тёмно-синий слой карты */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,#1a4570_0%,#142b4a_45%,#0a1a30_100%)]" />
+      {/* SVG-карта: парк, вода, здания, улицы, маршрут с движущимся пином и trail */}
+      <svg
+        className="absolute inset-0 h-full w-full"
+        viewBox="0 0 400 240"
+        preserveAspectRatio="xMidYMid slice"
+      >
+        {/* Парк */}
+        <path d="M30,30 Q120,15 180,45 Q150,100 40,110 Z" fill="#1E3A2E" />
+        {/* Вода */}
+        <path d="M300,130 Q380,120 420,170 L420,250 L280,250 Z" fill="#14304D" />
+        {/* Здания */}
+        {[
+          [200, 20, 30, 22],
+          [240, 30, 24, 14],
+          [280, 18, 32, 26],
+          [328, 50, 40, 22],
+          [60, 130, 32, 22],
+          [108, 145, 40, 16],
+          [180, 170, 32, 26],
+          [232, 158, 40, 22],
+          [40, 188, 28, 22],
+        ].map(([x, y, w, h], i) => (
+          <rect key={i} x={x} y={y} width={w} height={h} fill="#22324A" rx="1.5" />
+        ))}
+        {/* Главная дорога — горизонтальная */}
+        <line x1="0" y1="120" x2="400" y2="120" stroke="#4A5A6F" strokeWidth="5" />
+        {/* Диагональная */}
+        <line x1="0" y1="50" x2="400" y2="72" stroke="#3A4A5C" strokeWidth="3" />
+        {/* Вертикальные улицы */}
+        <line x1="100" y1="0" x2="100" y2="240" stroke="#3A4A5C" strokeWidth="2" />
+        <line x1="220" y1="0" x2="220" y2="240" stroke="#3A4A5C" strokeWidth="2" />
+        <line x1="320" y1="0" x2="320" y2="240" stroke="#3A4A5C" strokeWidth="2" />
+        {/* Тонкие */}
+        <line x1="0" y1="72" x2="400" y2="78" stroke="#3A4A5C" strokeWidth="1" opacity="0.55" />
+        <line x1="0" y1="168" x2="400" y2="172" stroke="#3A4A5C" strokeWidth="1" opacity="0.55" />
+
+        {/* Маршрут (статичный, виден полностью полупрозрачным) */}
+        <path
+          d="M48,188 C128,96 220,156 320,76"
+          fill="none"
+          stroke="rgba(52,211,153,0.18)"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        />
+        {/* Trail — анимированно «рисуется» от 0 до 100% длины */}
+        <path
+          d="M48,188 C128,96 220,156 320,76"
+          fill="none"
+          stroke="#34D399"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeDasharray="300"
+          strokeDashoffset="300"
+          className="animate-feat-live-trail"
+        />
+        {/* Бегущий пин по маршруту через CSS-offset-path */}
+        <g className="animate-feat-live-pin" style={{ offsetPath: 'path("M48,188 C128,96 220,156 320,76")' }}>
+          <circle r="14" fill="rgba(52,211,153,0.30)" className="animate-feat-pin-pulse" />
+          <circle r="8" fill="white" />
+          <circle r="4.5" fill="#10B981" />
+        </g>
       </svg>
-      <div className="relative flex h-full w-full flex-col items-center justify-center gap-3 p-3">
-        {/* Пульсирующий пин по центру */}
-        <div className="relative mx-auto h-24 w-24">
-          <span className="absolute inset-0 rounded-full bg-emerald-500/40 animate-feat-pin-pulse" />
-          <span
-            className="absolute inset-0 rounded-full bg-emerald-500/40 animate-feat-pin-pulse"
-            style={{ animationDelay: '1.2s' }}
-          />
-          <span className="absolute inset-3 rounded-full bg-emerald-500/70" />
-          <span className="absolute inset-7 rounded-full bg-white/95 shadow-lg flex items-center justify-center">
-            <MapPin className="h-5 w-5 text-emerald-600" aria-hidden />
-          </span>
-        </div>
-        {/* Реальный `LiveLocationStopBanner`: тёмно-зелёный */}
-        {!compact ? (
-          <div
-            className="flex w-full max-w-sm items-center gap-2 rounded-2xl border border-emerald-500/40 bg-emerald-950/90 px-3 py-2 text-sm text-emerald-50 shadow-lg backdrop-blur-md animate-feat-bubble-in"
-            style={{ animationDelay: '300ms' }}
-          >
-            <MapPin className="h-4 w-4 shrink-0 animate-pulse text-emerald-300" aria-hidden />
-            <span className="min-w-0 flex-1 font-medium">{t.liveLocationBanner}</span>
-            {/* Реальный `LiveLocationStopBanner` использует shadcn Button. */}
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              className="h-8 gap-1 bg-white/15 px-2 text-[11px] font-semibold text-white hover:bg-white/25"
-              aria-label="stop"
-            >
-              <X className="h-3 w-3" aria-hidden />
-              {t.liveLocationStop}
-            </Button>
-          </div>
-        ) : null}
+
+      {/* Watermark «Maps» */}
+      <div className="absolute right-1.5 top-1.5 rounded bg-black/40 px-1.5 py-0.5 text-[8px] font-bold tracking-wider text-white/70">
+        Maps
       </div>
+
+      {/* Stop banner */}
+      {!compact ? (
+        <div
+          className="absolute inset-x-3 bottom-3 flex items-center gap-2 rounded-2xl border border-emerald-500/50 bg-emerald-950 px-3 py-2 text-sm text-emerald-50 shadow-lg animate-feat-bubble-in"
+          style={{ animationDelay: '300ms' }}
+        >
+          <MapPin className="h-4 w-4 shrink-0 animate-pulse text-emerald-300" aria-hidden />
+          <span className="min-w-0 flex-1 font-medium">{t.liveLocationBanner}</span>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="h-8 gap-1 bg-white/15 px-2 text-[11px] font-semibold text-white hover:bg-white/25"
+            aria-label="stop"
+          >
+            <X className="h-3 w-3" aria-hidden />
+            {t.liveLocationStop}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

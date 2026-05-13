@@ -258,6 +258,22 @@ export default {
           '92%': { opacity: '1' },
           '100%': { opacity: '0' },
         },
+        /** Live-location trail: dash-offset рисует линию от 0 до 100% длины,
+         *  потом ждёт и сбрасывается. */
+        'feat-live-trail': {
+          '0%': { strokeDashoffset: '300' },
+          '70%': { strokeDashoffset: '0' },
+          '95%': { strokeDashoffset: '0' },
+          '100%': { strokeDashoffset: '300' },
+        },
+        /** Live-location pin: движется по offset-path от 0 до 100% и
+         *  возвращается. */
+        'feat-live-pin': {
+          '0%': { offsetDistance: '0%' },
+          '70%': { offsetDistance: '100%' },
+          '95%': { offsetDistance: '100%' },
+          '100%': { offsetDistance: '0%' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -292,6 +308,9 @@ export default {
         'feat-durak-defend': 'feat-durak-defend 10s ease-in-out infinite',
         'feat-durak-loser-glow': 'feat-durak-loser-glow 10s ease-out infinite',
         'feat-durak-slot-empty': 'feat-durak-slot-empty 10s linear infinite',
+        /** Live-location: trail + бегущий пин — 16s цикл, согласованы. */
+        'feat-live-trail': 'feat-live-trail 16s ease-in-out infinite',
+        'feat-live-pin': 'feat-live-pin 16s ease-in-out infinite',
       },
     },
   },

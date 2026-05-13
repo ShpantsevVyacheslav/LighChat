@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ChevronLeft, MessageCircle, Phone, Video } from 'lucide-react';
+import { ChevronLeft, Lock, MessageCircle, Phone, Video } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -42,11 +42,14 @@ export function MockChatHeader({
   className,
   /** Для DM-чатов реальный UI показывает иконку тредов; групповые без неё. */
   withThreads = true,
+  /** Маленькая иконка замка рядом с именем — для секретных и E2EE-чатов. */
+  withLock = false,
 }: {
   name: string;
   status: string;
   className?: string;
   withThreads?: boolean;
+  withLock?: boolean;
 }) {
   const initial = name.charAt(0).toUpperCase();
   return (
@@ -66,7 +69,15 @@ export function MockChatHeader({
         <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-emerald-500" />
       </div>
       <div className="min-w-0 flex-1">
-        <span className="block truncate text-[14px] font-semibold text-foreground">{name}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="truncate text-[14px] font-semibold text-foreground">{name}</span>
+          {withLock ? (
+            <Lock
+              className="h-3 w-3 shrink-0 text-emerald-500 dark:text-emerald-400"
+              aria-hidden
+            />
+          ) : null}
+        </div>
         <span className="block truncate text-[11px] text-muted-foreground">{status}</span>
       </div>
       {withThreads ? (

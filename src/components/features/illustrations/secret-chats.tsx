@@ -21,7 +21,7 @@ export function MockSecretChats({
   const t = React.useMemo(() => getFeaturesContent(locale).mockText, [locale]);
   return (
     <div className={cn('relative flex h-full w-full flex-col', className)}>
-      <MockChatHeader name={t.groupProject} status={t.secretStatus} />
+      <MockChatHeader name={t.groupProject} status={t.secretStatus} withLock />
       <div className="flex flex-1 flex-col gap-1.5 overflow-hidden p-3">
         <MockMessageBubble side="incoming" text={t.secretMsg1} time="14:02" delayMs={0} />
         <MockMessageBubble side="outgoing" text={t.secretMsg2} time="14:03" delayMs={300} />

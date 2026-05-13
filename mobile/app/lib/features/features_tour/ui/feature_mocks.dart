@@ -8,58 +8,8 @@ import '../data/features_data.dart';
 //  Анимационные хелперы
 // =====================================================================
 
-/// Бесконечно «пульсирующий» виджет — масштаб + прозрачность.
-class _RepeatingPulse extends StatefulWidget {
-  const _RepeatingPulse({
-    required this.child,
-    this.minScale = 1.0,
-    this.maxScale = 2.4,
-    this.delay = Duration.zero,
-  });
-  final Widget child;
-  final double minScale;
-  final double maxScale;
-  final Duration delay;
-
-  static const Duration _duration = Duration(milliseconds: 2200);
-
-  @override
-  State<_RepeatingPulse> createState() => _RepeatingPulseState();
-}
-
-class _RepeatingPulseState extends State<_RepeatingPulse>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c;
-
-  @override
-  void initState() {
-    super.initState();
-    _c = AnimationController(vsync: this, duration: _RepeatingPulse._duration);
-    Future<void>.delayed(widget.delay, () {
-      if (mounted) _c.repeat();
-    });
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _c,
-      child: widget.child,
-      builder: (context, child) {
-        final t = _c.value;
-        final scale = widget.minScale + (widget.maxScale - widget.minScale) * t;
-        final opacity = (1.0 - t).clamp(0.0, 1.0);
-        return Transform.scale(scale: scale, child: Opacity(opacity: opacity, child: child));
-      },
-    );
-  }
-}
+// `_RepeatingPulse` удалён вместе со старой live-location композицией:
+// его роль теперь выполняет painter-based пульс в `_AnimatedMapPainter`.
 
 /// «Дыхание» — лёгкое колебание прозрачности.
 class _Breathing extends StatefulWidget {
@@ -392,9 +342,14 @@ class FeatureMockFrame extends StatelessWidget {
 ///  `chatHeaderIconGlass = rounded-xl bg-background/28 backdrop-blur shadow-sm`
 ///  и палитру SF Symbols-style.
 class _MockChatHeader extends StatelessWidget {
-  const _MockChatHeader({required this.name, required this.status});
+  const _MockChatHeader({
+    required this.name,
+    required this.status,
+    this.withLock = false,
+  });
   final String name;
   final String status;
+  final bool withLock;
 
   static const Color _iosThreads = Color(0xFF007AFF);
   static const Color _iosCall = Color(0xFF34C759);
@@ -488,13 +443,22 @@ class _MockChatHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: scheme.onSurface)),
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                Flexible(
+                  child: Text(name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.onSurface)),
+                ),
+                if (withLock) ...[
+                  const SizedBox(width: 4),
+                  Icon(Icons.lock_rounded,
+                      size: 11, color: featureAccentEmerald),
+                ],
+              ]),
               Text(status,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -852,78 +816,63 @@ class MockEncryption extends StatelessWidget {
           ]),
         ),
         const SizedBox(height: 6),
-        // Реальный `E2eeFingerprintBadge`: Fingerprint-иконка + двухстрочный
-        // блок (hint сверху, monospace ниже). Здесь — пара для обеих сторон
-        // и пилюля «совпали» между ними.
-        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-          Expanded(child: _FingerprintBadge(label: t.peerAlice)),
-          const SizedBox(width: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-            decoration: BoxDecoration(
-              color: featureAccentEmerald.withValues(alpha: 0.20),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(t.fingerprintMatch.toUpperCase(),
-                style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    color: featureAccentEmerald)),
-          ),
-          const SizedBox(width: 6),
-          Expanded(child: _FingerprintBadge(label: t.peerBob, alignRight: true)),
-        ]),
+        // Реальный `E2eeFingerprintBadge`: ОДИН badge — Fingerprint-иконка
+        // + uppercase-hint сверху + monospace-код отпечатка снизу. Никаких
+        // «match» бейджей — сравнение отпечатков в LighChat это
+        // user-задача, не часть UI.
+        _FingerprintBadge(label: t.peerAlice),
       ]),
     );
   }
 }
 
-/// Точная мини-копия `E2eeFingerprintBadge` (web): иконка `Fingerprint` +
-/// uppercase-hint сверху + monospace-код снизу.
+/// Точная копия реального `E2eeFingerprintBadge` (см.
+/// `src/components/chat/E2eeFingerprintBadge.tsx`): иконка `Fingerprint`
+/// (`text-muted-foreground`) + двухстрочный блок справа (hint + monospace-код
+/// из 8 групп по 4 hex-символа через `·`).
 class _FingerprintBadge extends StatelessWidget {
-  const _FingerprintBadge({required this.label, this.alignRight = false});
+  const _FingerprintBadge({required this.label});
   final String label;
-  final bool alignRight;
 
   @override
   Widget build(BuildContext context) {
-    final body = Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment:
-          alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-      children: [
-        Text('E2EE · $label',
-            style: TextStyle(
-                fontSize: 7,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.4,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55))),
-        Text('5f2a · 8b91',
-            style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 9.5,
-                fontWeight: FontWeight.w700,
-                color: featureAccentEmerald)),
-      ],
-    );
+    final scheme = Theme.of(context).colorScheme;
+    const fp = '5f2a · 8b91 · 4cc8 · 3dea · a1b4 · 0e77 · c9d5 · 6f12';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: featureAccentEmerald.withValues(alpha: 0.05),
-        border: Border.all(color: featureAccentEmerald.withValues(alpha: 0.25)),
-        borderRadius: BorderRadius.circular(8),
+        color: scheme.surface.withValues(alpha: 0.55),
+        border: Border.all(color: scheme.onSurface.withValues(alpha: 0.08)),
+        borderRadius: BorderRadius.circular(10),
       ),
-      child: Row(
-          mainAxisSize: MainAxisSize.min,
-          textDirection: alignRight ? TextDirection.rtl : TextDirection.ltr,
-          children: [
-            Icon(Icons.fingerprint_rounded,
-                size: 11, color: featureAccentEmerald),
-            const SizedBox(width: 4),
-            // Принудительно вернуть LTR внутри текста, чтобы цифры не
-            // зеркалились.
-            Directionality(textDirection: TextDirection.ltr, child: body),
-          ]),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 1),
+          child: Icon(Icons.fingerprint_rounded,
+              size: 13, color: scheme.onSurface.withValues(alpha: 0.55)),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('E2EE · $label',
+                  style: TextStyle(
+                      fontSize: 8.5,
+                      color: scheme.onSurface.withValues(alpha: 0.55))),
+              Text(fp,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.onSurface.withValues(alpha: 0.92))),
+            ],
+          ),
+        ),
+      ]),
     );
   }
 }
@@ -940,7 +889,8 @@ class MockSecretChats extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = _mockText(context);
     return _ChatLikeMock(
-      header: _MockChatHeader(name: t.groupProject, status: t.secretStatus),
+      header: _MockChatHeader(
+          name: t.groupProject, status: t.secretStatus, withLock: true),
       bubbles: [
         _MockBubble(text: t.secretMsg1, outgoing: false, time: '14:02'),
         _MockBubble(text: t.secretMsg2, outgoing: true, time: '14:03'),
@@ -2009,125 +1959,213 @@ Widget _meetSep() {
 /// (тёмный фон, большой аватар по центру, кнопки mic/end) + видео-кружок
 /// в стиле `VideoCirclePlayer` с SVG progress-кольцом вокруг.
 /// Никакого эквалайзера — в реальном `AudioCallOverlay` его нет.
+/// Мокап темы `calls`: разделён на ДВЕ независимые сущности —
+///  Слева — экран real-time звонка (`AudioCallOverlay`-стиль).
+///  Справа — видео-кружок как inline-сообщение чата (`VideoCirclePlayer`).
+/// Раньше они были смешаны в одном fullscreen-стейдже, что некорректно:
+/// звонки и видео-кружки в LighChat — это разные сущности.
 class MockCalls extends StatelessWidget {
   const MockCalls({super.key});
   @override
   Widget build(BuildContext context) {
     final t = _mockText(context);
-    return Stack(fit: StackFit.expand, children: [
-      // Fullscreen `bg-slate-950` как у реального overlay.
-      Container(color: const Color(0xFF02060F)),
-      Container(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment.center,
-            radius: 1.2,
-            colors: [
-              featureAccentPrimary.withValues(alpha: 0.18),
-              Colors.transparent,
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: Row(children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 2, bottom: 3),
+                child: Text(t.callsAudioTitle,
+                    style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.4,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55))),
+              ),
+              Expanded(
+                child: _MockAudioCallScreen(
+                  name: t.peerAlice,
+                  meta: t.callsAudioMeta,
+                ),
+              ),
             ],
           ),
         ),
-      ),
-      Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          // Большой аватар + свечение
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  featureAccentEmerald,
-                  featureAccentEmerald.withValues(alpha: 0.7),
-                ],
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 2, bottom: 3),
+                child: Text(t.callsCircleTitle,
+                    style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.4,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55))),
               ),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.10), width: 3),
-              boxShadow: [
-                BoxShadow(
-                    color: featureAccentEmerald.withValues(alpha: 0.45),
-                    blurRadius: 24,
-                    spreadRadius: 2),
-              ],
-            ),
-            alignment: Alignment.center,
-            child: Text(t.peerAlice.characters.first,
-                style: const TextStyle(
-                    color: Color(0xFF0F2D24), fontSize: 22, fontWeight: FontWeight.w800)),
+              Expanded(
+                child: _MockVideoCircleMessage(
+                  initial: t.peerMikhail.characters.first,
+                  meta: t.callsCircleMeta,
+                  caption: t.callsCircleTitle,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(t.peerAlice,
-              style: const TextStyle(
-                  color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
-          Text(t.callsAudioMeta,
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 10)),
-          const SizedBox(height: 8),
-          // Круглые кнопки mic / end / cam
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            _callBtn(Icons.mic_rounded),
-            const SizedBox(width: 12),
-            _callBtn(Icons.call_end_rounded,
-                bg: const Color(0xFFEF4444),
-                glow: const Color(0xFFEF4444).withValues(alpha: 0.5)),
-            const SizedBox(width: 12),
-            _callBtn(Icons.videocam_outlined),
-          ]),
-          const SizedBox(height: 12),
-          // Видео-кружок с SVG progress (как реальный VideoCirclePlayer)
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              _VideoCircleWithProgress(
-                initial: t.peerMikhail.characters.first,
-                progress: 0.42,
-                duration: '0:25 / 1:00',
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(t.callsCircleTitle,
-                      style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white)),
-                  Text(t.callsCircleMeta,
-                      style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.white.withValues(alpha: 0.65))),
-                ],
-              ),
-            ]),
-          ),
-        ]),
-      ),
-    ]);
+        ),
+      ]),
+    );
   }
 }
 
-Widget _callBtn(IconData icon, {Color? bg, Color? glow}) {
+/// Тёмный fullscreen-overlay в стиле `AudioCallOverlay`.
+class _MockAudioCallScreen extends StatelessWidget {
+  const _MockAudioCallScreen({required this.name, required this.meta});
+  final String name;
+  final String meta;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: Stack(fit: StackFit.expand, children: [
+        Container(color: const Color(0xFF02060F)),
+        Container(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              center: Alignment.center,
+              radius: 1.2,
+              colors: [
+                featureAccentPrimary.withValues(alpha: 0.18),
+                Colors.transparent,
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        featureAccentEmerald,
+                        featureAccentEmerald.withValues(alpha: 0.7),
+                      ],
+                    ),
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.10), width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                          color: featureAccentEmerald.withValues(alpha: 0.45),
+                          blurRadius: 14,
+                          spreadRadius: 1),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(name.characters.first,
+                      style: const TextStyle(
+                          color: Color(0xFF0F2D24),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800)),
+                ),
+                const SizedBox(height: 4),
+                Text(name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
+                Text(meta,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 9)),
+                const SizedBox(height: 6),
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  _callBtn(Icons.mic_rounded, size: 22),
+                  const SizedBox(width: 8),
+                  _callBtn(Icons.call_end_rounded,
+                      bg: const Color(0xFFEF4444),
+                      glow: const Color(0xFFEF4444).withValues(alpha: 0.5),
+                      size: 24),
+                  const SizedBox(width: 8),
+                  _callBtn(Icons.videocam_outlined, size: 22),
+                ]),
+              ]),
+        ),
+      ]),
+    );
+  }
+}
+
+/// Видео-кружок как inline сообщение в чате (`VideoCirclePlayer`).
+class _MockVideoCircleMessage extends StatelessWidget {
+  const _MockVideoCircleMessage({
+    required this.initial,
+    required this.meta,
+    required this.caption,
+  });
+  final String initial;
+  final String meta;
+  final String caption;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface.withValues(alpha: 0.55),
+        border: Border.all(color: scheme.onSurface.withValues(alpha: 0.08)),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      padding: const EdgeInsets.all(8),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _VideoCircleWithProgress(
+            initial: initial,
+            progress: 0.42,
+            duration: meta,
+          ),
+          const SizedBox(height: 6),
+          Text(caption,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+          Text('0:25 / 1:00',
+              style: TextStyle(
+                  fontSize: 9, color: scheme.onSurface.withValues(alpha: 0.55))),
+        ],
+      ),
+    );
+  }
+}
+
+Widget _callBtn(IconData icon, {Color? bg, Color? glow, double size = 28}) {
   return Container(
-    width: 28,
-    height: 28,
+    width: size,
+    height: size,
     decoration: BoxDecoration(
       shape: BoxShape.circle,
       color: bg ?? Colors.white.withValues(alpha: 0.10),
       boxShadow: glow == null
           ? null
-          : [BoxShadow(color: glow, blurRadius: 10, spreadRadius: 1)],
+          : [BoxShadow(color: glow, blurRadius: 8, spreadRadius: 1)],
     ),
     alignment: Alignment.center,
-    child: Icon(icon, size: 14, color: Colors.white),
+    child: Icon(icon, size: size * 0.5, color: Colors.white),
   );
 }
 
@@ -2413,120 +2451,284 @@ class MockFoldersThreads extends StatelessWidget {
 
 // --- 9. Live Location: ЗЕЛЁНЫЙ баннер (как реальный LiveLocationStopBanner) ---
 
-class MockLiveLocation extends StatelessWidget {
+/// Анимированная карта с движущимся пином и trail — как в реальном live-location:
+///  - тёмно-синяя «карта» с дорогами, парком и зданиями (CustomPaint);
+///  - пин движется по кривой Безье с trail-полосой;
+///  - вверху watermark «Live location» (имитация Mapbox/OSM-attribution);
+///  - снизу — реальный LiveLocationStopBanner.
+class MockLiveLocation extends StatefulWidget {
   const MockLiveLocation({super.key});
+
+  @override
+  State<MockLiveLocation> createState() => _MockLiveLocationState();
+}
+
+class _MockLiveLocationState extends State<MockLiveLocation>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(vsync: this, duration: const Duration(seconds: 16))
+      ..repeat();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = _mockText(context);
-    return Stack(fit: StackFit.expand, children: [
-      Container(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment(-0.4, -0.4),
-            radius: 1.2,
-            colors: [Color(0xFF6EC5E8), Color(0xFF1F4566)],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Stack(fit: StackFit.expand, children: [
+        // Анимированная карта-холст
+        AnimatedBuilder(
+          animation: _c,
+          builder: (context, _) => CustomPaint(
+            painter: _AnimatedMapPainter(progress: _c.value),
           ),
         ),
-      ),
-      Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Spacer(),
-            Center(
-              child: SizedBox(
-                width: 80,
-                height: 80,
-                child: Stack(alignment: Alignment.center, children: [
-                  _RepeatingPulse(
-                    minScale: 1.0,
-                    maxScale: 2.6,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        // Реальный баннер — зелёный (emerald).
-                        color: featureAccentEmerald.withValues(alpha: 0.45),
-                      ),
-                    ),
-                  ),
-                  _RepeatingPulse(
-                    minScale: 1.0,
-                    maxScale: 2.6,
-                    delay: const Duration(milliseconds: 1100),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: featureAccentEmerald.withValues(alpha: 0.35),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                            color: featureAccentEmerald.withValues(alpha: 0.6),
-                            blurRadius: 24,
-                            spreadRadius: 4),
-                      ],
-                    ),
-                    child: Icon(Icons.location_on_rounded,
-                        color: featureAccentEmerald, size: 30),
-                  ),
+        // Watermark с источником карты — как у реальных Maps-виджетов
+        Positioned(
+          right: 6,
+          top: 6,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.40),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Text('Maps',
+                style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 7,
+                    fontWeight: FontWeight.w700)),
+          ),
+        ),
+        // Stop banner — реальный LiveLocationStopBanner.
+        Positioned(
+          left: 8,
+          right: 8,
+          bottom: 8,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF064E3B),
+              border: Border.all(color: featureAccentEmerald.withValues(alpha: 0.50)),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4)),
+              ],
+            ),
+            child: Row(children: [
+              Icon(Icons.location_on_rounded,
+                  size: 14, color: featureAccentEmerald.withValues(alpha: 0.95)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(t.liveLocationBanner,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: Color(0xFFD1FAE5),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.close_rounded, size: 12, color: Colors.white),
+                  const SizedBox(width: 3),
+                  Text(t.liveLocationStop,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700)),
                 ]),
               ),
-            ),
-            const Spacer(),
-            // Реальный LiveLocationStopBanner: тёмно-зелёный, с MapPin и «Остановить».
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF052E1A).withValues(alpha: 0.92),
-                border: Border.all(color: featureAccentEmerald.withValues(alpha: 0.40)),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(children: [
-                Icon(Icons.location_on_rounded,
-                    size: 14, color: featureAccentEmerald.withValues(alpha: 0.85)),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(t.liveLocationBanner,
-                      style: const TextStyle(
-                          color: Color(0xFFD1FAE5),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600)),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.close_rounded, size: 12, color: Colors.white),
-                    const SizedBox(width: 3),
-                    Text(t.liveLocationStop,
-                        style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700)),
-                  ]),
-                ),
-              ]),
-            ),
-          ],
+            ]),
+          ),
         ),
-      ),
-    ]);
+      ]),
+    );
   }
+}
+
+/// Painter «карты» — дороги, парк, здания, пин с trail.
+class _AnimatedMapPainter extends CustomPainter {
+  _AnimatedMapPainter({required this.progress});
+  final double progress;
+
+  // Тёмная палитра «ночной карты»
+  static const _bg = Color(0xFF0E1A2B);
+  static const _bgAlt = Color(0xFF1A2A3D);
+  static const _road = Color(0xFF3A4A5C);
+  static const _roadMajor = Color(0xFF4A5A6F);
+  static const _park = Color(0xFF1E3A2E);
+  static const _building = Color(0xFF22324A);
+  static const _water = Color(0xFF14304D);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final rect = Offset.zero & size;
+
+    // Фон
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_bg, _bgAlt],
+        ).createShader(rect),
+    );
+
+    // Парк (зелёный массив)
+    final park = Path()
+      ..moveTo(w * 0.08, h * 0.15)
+      ..quadraticBezierTo(w * 0.30, h * 0.05, w * 0.42, h * 0.20)
+      ..quadraticBezierTo(w * 0.36, h * 0.45, w * 0.10, h * 0.42)
+      ..close();
+    canvas.drawPath(park, Paint()..color = _park);
+
+    // Вода (синяя зона снизу-справа)
+    final water = Path()
+      ..moveTo(w * 0.75, h * 0.55)
+      ..quadraticBezierTo(w * 0.95, h * 0.50, w * 1.05, h * 0.70)
+      ..lineTo(w * 1.05, h * 0.95)
+      ..lineTo(w * 0.70, h * 0.95)
+      ..close();
+    canvas.drawPath(water, Paint()..color = _water);
+
+    // Здания — сетка прямоугольников в нижней части и центре
+    final buildingPaint = Paint()..color = _building;
+    final buildings = [
+      Rect.fromLTWH(w * 0.50, h * 0.10, w * 0.07, h * 0.08),
+      Rect.fromLTWH(w * 0.60, h * 0.13, w * 0.06, h * 0.05),
+      Rect.fromLTWH(w * 0.70, h * 0.08, w * 0.08, h * 0.10),
+      Rect.fromLTWH(w * 0.82, h * 0.20, w * 0.10, h * 0.08),
+      Rect.fromLTWH(w * 0.15, h * 0.55, w * 0.08, h * 0.08),
+      Rect.fromLTWH(w * 0.27, h * 0.60, w * 0.10, h * 0.06),
+      Rect.fromLTWH(w * 0.45, h * 0.70, w * 0.08, h * 0.10),
+      Rect.fromLTWH(w * 0.58, h * 0.65, w * 0.10, h * 0.08),
+      Rect.fromLTWH(w * 0.10, h * 0.78, w * 0.07, h * 0.08),
+    ];
+    for (final b in buildings) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(b, const Radius.circular(1.5)),
+        buildingPaint,
+      );
+    }
+
+    // Главная дорога (горизонтальная) — толстая
+    canvas.drawLine(
+      Offset(0, h * 0.50),
+      Offset(w, h * 0.50),
+      Paint()
+        ..color = _roadMajor
+        ..strokeWidth = 5,
+    );
+    // Дорога-диагональ
+    canvas.drawLine(
+      Offset(0, h * 0.20),
+      Offset(w, h * 0.30),
+      Paint()
+        ..color = _road
+        ..strokeWidth = 3.5,
+    );
+    // Вертикальные улицы
+    final streetPaint = Paint()
+      ..color = _road
+      ..strokeWidth = 2.5;
+    canvas.drawLine(Offset(w * 0.25, 0), Offset(w * 0.25, h), streetPaint);
+    canvas.drawLine(Offset(w * 0.55, 0), Offset(w * 0.55, h), streetPaint);
+    canvas.drawLine(Offset(w * 0.80, 0), Offset(w * 0.80, h), streetPaint);
+    // Тонкие улицы
+    final thinPaint = Paint()
+      ..color = _road.withValues(alpha: 0.55)
+      ..strokeWidth = 1.5;
+    canvas.drawLine(Offset(0, h * 0.30), Offset(w, h * 0.32), thinPaint);
+    canvas.drawLine(Offset(0, h * 0.70), Offset(w, h * 0.72), thinPaint);
+
+    // Маршрут движения пина (Безье) — рассчитываем точку на progress.
+    final routeStart = Offset(w * 0.12, h * 0.78);
+    final routeC1 = Offset(w * 0.32, h * 0.40);
+    final routeC2 = Offset(w * 0.55, h * 0.65);
+    final routeEnd = Offset(w * 0.80, h * 0.32);
+
+    Offset cubic(double t) {
+      final mt = 1 - t;
+      return Offset(
+        mt * mt * mt * routeStart.dx +
+            3 * mt * mt * t * routeC1.dx +
+            3 * mt * t * t * routeC2.dx +
+            t * t * t * routeEnd.dx,
+        mt * mt * mt * routeStart.dy +
+            3 * mt * mt * t * routeC1.dy +
+            3 * mt * t * t * routeC2.dy +
+            t * t * t * routeEnd.dy,
+      );
+    }
+
+    // Trail-полоса позади пина (последние ~25% пройденного пути).
+    final trailPath = Path();
+    final trailStartT = (progress - 0.20).clamp(0.0, 1.0);
+    if (progress > 0) {
+      final p0 = cubic(trailStartT);
+      trailPath.moveTo(p0.dx, p0.dy);
+      const steps = 18;
+      for (var i = 1; i <= steps; i++) {
+        final tt = trailStartT + (progress - trailStartT) * (i / steps);
+        final p = cubic(tt.clamp(0.0, 1.0));
+        trailPath.lineTo(p.dx, p.dy);
+      }
+    }
+    canvas.drawPath(
+      trailPath,
+      Paint()
+        ..color = featureAccentEmerald.withValues(alpha: 0.85)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..strokeCap = StrokeCap.round,
+    );
+
+    // Пин текущей позиции.
+    final pin = cubic(progress);
+    // Внешний пульсирующий «ореол» (зависит от progress)
+    final pulseT = (progress * 4) % 1.0;
+    canvas.drawCircle(
+      pin,
+      8 + pulseT * 14,
+      Paint()..color = featureAccentEmerald.withValues(alpha: 0.30 * (1 - pulseT)),
+    );
+    // Тень
+    canvas.drawCircle(
+      pin.translate(0, 2),
+      8,
+      Paint()..color = Colors.black.withValues(alpha: 0.30),
+    );
+    // Белый кружок пина
+    canvas.drawCircle(pin, 8, Paint()..color = Colors.white);
+    // Зелёная точка по центру
+    canvas.drawCircle(pin, 4.5, Paint()..color = featureAccentEmerald);
+  }
+
+  @override
+  bool shouldRepaint(covariant _AnimatedMapPainter old) =>
+      old.progress != progress;
 }
 
 // --- 10. Multi-device: новый — телефон + connector с ключами + ноут ---
