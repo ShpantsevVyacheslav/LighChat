@@ -2851,7 +2851,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                 !_inChatSearch &&
                                 !_stickersPanelOpen)
                               Positioned(
-                                top: nativeBarBottom + 6,
+                                // Прибиваем pinned pill ВПЛОТНУЮ к bar'у
+                                // (раньше +6pt gap, теперь -8pt, чтобы
+                                // визуально pill'ы слипались как у
+                                // Telegram).
+                                top: nativeBarBottom - 8,
                                 left: 8,
                                 right: 8,
                                 child: ChatPinnedStrip(

@@ -348,6 +348,13 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
     final next = _computeVisibleDayLabel();
     if (next == null) return;
     if (next != _stickyDayLabel) {
+      final scrollPx = widget.scrollController.hasClients
+          ? widget.scrollController.offset.toStringAsFixed(1)
+          : '<none>';
+      appLogger.d(
+        '[sticky-day] LABEL CHANGE "$_stickyDayLabel" → "$next" '
+        'scroll=$scrollPx topOverlayOffset=${widget.topOverlayOffset}',
+      );
       setState(() => _stickyDayLabel = next);
     }
   }
@@ -411,28 +418,26 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
     String? picked;
     DateTime? pickedDate;
     // Подробный лог для отладки бага: пишем y каждого header'а и
-    // выбранный matchкий для текущего scroll.
+    // выбранный matchкий для текущего scroll. ID сообщения-якоря тоже
+    // (helps trace stale-anchor / wrong-position issues).
     final l10n = AppLocalizations.of(context)!;
     final logBuf = StringBuffer(
-      '[sticky-day] line=$stickyLineY reversed=${widget.reversed} groups=${groups.length}',
+      '[sticky-day-compute] line=$stickyLineY reversed=${widget.reversed} groups=${groups.length} headers=',
     );
     for (final g in groups) {
       final dk = ChatMessageList.dayKey(g.first.createdAt);
       final ctx = _dayStartKeys[dk]?.currentContext;
       if (ctx == null) {
-        logBuf.write(' [${dk}=noctx]');
+        logBuf.write(' $dk:noctx');
         continue;
       }
       final ro = ctx.findRenderObject();
       if (ro is! RenderBox || !ro.hasSize || !ro.attached) {
-        logBuf.write(' [${dk}=noro]');
+        logBuf.write(' $dk:noro');
         continue;
       }
       final y = ro.localToGlobal(Offset.zero, ancestor: vp).dy;
-      logBuf.write(' [${dk}=${y.toStringAsFixed(1)}]');
-      // Ищем MAX y среди тех, что прошли линию (y ≤ stickyLineY). Это
-      // header, ближе всех находящийся к линии сверху → его день и
-      // есть тот, что сейчас виден в зоне капсулы.
+      logBuf.write(' $dk@${y.toStringAsFixed(0)}');
       if (y <= stickyLineY && y > pickedY) {
         pickedY = y;
         pickedDate = g.first.createdAt;
@@ -440,8 +445,8 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
       }
     }
     logBuf.write(
-      ' picked=${picked ?? "null"} pickedY=${pickedY == -double.infinity ? "none" : pickedY.toStringAsFixed(1)} '
-      'pickedDate=${pickedDate?.toIso8601String() ?? "null"}',
+      ' → picked=${picked ?? "null"}@${pickedY == -double.infinity ? "none" : pickedY.toStringAsFixed(0)}'
+      ' pickedDate=${pickedDate?.toLocal().toIso8601String() ?? "null"}',
     );
     appLogger.d(logBuf.toString());
 

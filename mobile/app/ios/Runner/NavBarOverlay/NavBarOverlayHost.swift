@@ -124,10 +124,9 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     top.translatesAutoresizingMaskIntoConstraints = false
     top.delegate = self
     top.isHidden = true
-    // Боковые отступы 2pt (раньше 4) — pill'ы ещё ближе к краям экрана,
-    // больше места под title pill в центре.
+    // Боковые отступы 1pt — pill'ы практически впритык к краям экрана.
     top.directionalLayoutMargins = NSDirectionalEdgeInsets(
-      top: 0, leading: 2, bottom: 0, trailing: 2)
+      top: 0, leading: 1, bottom: 0, trailing: 1)
     top.preservesSuperviewLayoutMargins = false
     LiquidGlassAppearance.applyNavigationBar(top, tint: .systemBlue)
 
@@ -249,36 +248,35 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       return [btn, negSpace]
     }
 
-    /// 44×44 круглая пилюля, визуально matched к title pill: тот же
-    /// материал (`.systemThinMaterial`), внутри — НЕ UIButton (он на
-    /// iOS 26 получал собственный system Liquid Glass overlay внутри
-    /// моего pill'а — отсюда «двойной» тёмно-серый fill), а
-    /// UIImageView + UITapGestureRecognizer на самом pill'е.
+    /// 44×44 «пилюля» БЕЗ собственного UIVisualEffectView фона.
+    /// iOS 26 автоматически оборачивает customView в Liquid Glass pill
+    /// → раньше получался DOUBLE fill (мой UIVisualEffectView ВНУТРИ
+    /// системного Liquid Glass). Теперь полагаемся на system-рендер:
+    /// просто прозрачный 44×44 container с иконкой, а iOS сам добавит
+    /// glass-обертку (matched к title pill 1:1).
     func makeBackPillItem(symbol: String) -> UIBarButtonItem {
-      let pill = UIVisualEffectView(
-        effect: UIBlurEffect(style: .systemThinMaterial))
-      pill.translatesAutoresizingMaskIntoConstraints = false
-      pill.layer.cornerRadius = 22
-      pill.layer.masksToBounds = true
-      pill.isUserInteractionEnabled = true
+      let container = UIView()
+      container.translatesAutoresizingMaskIntoConstraints = false
+      container.backgroundColor = .clear
+      container.isUserInteractionEnabled = true
       let tap = UITapGestureRecognizer(
         target: self, action: #selector(onLeadingTap))
-      pill.addGestureRecognizer(tap)
+      container.addGestureRecognizer(tap)
 
       let icon = UIImageView(image: SymbolMapper.image(named: symbol))
       icon.tintColor = .label
       icon.contentMode = .scaleAspectFit
       icon.translatesAutoresizingMaskIntoConstraints = false
-      pill.contentView.addSubview(icon)
+      container.addSubview(icon)
       NSLayoutConstraint.activate([
-        icon.centerXAnchor.constraint(equalTo: pill.contentView.centerXAnchor),
-        icon.centerYAnchor.constraint(equalTo: pill.contentView.centerYAnchor),
+        icon.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+        icon.centerYAnchor.constraint(equalTo: container.centerYAnchor),
         icon.widthAnchor.constraint(equalToConstant: 20),
         icon.heightAnchor.constraint(equalToConstant: 20),
-        pill.widthAnchor.constraint(equalToConstant: 44),
-        pill.heightAnchor.constraint(equalToConstant: 44),
+        container.widthAnchor.constraint(equalToConstant: 44),
+        container.heightAnchor.constraint(equalToConstant: 44),
       ])
-      return UIBarButtonItem(customView: pill)
+      return UIBarButtonItem(customView: container)
     }
 
     if let leading = config["leading"] as? [String: Any] {
