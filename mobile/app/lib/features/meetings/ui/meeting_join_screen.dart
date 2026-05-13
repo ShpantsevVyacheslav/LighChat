@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app_providers.dart';
 import '../../chat/ui/chat_avatar.dart';
 import '../data/meeting_models.dart';
 import '../data/meeting_providers.dart';
@@ -65,6 +67,9 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
   bool _initialCameraOff = false;
   bool _consumed = false;
   bool _rendererInitialized = false;
+  bool _bootstrapping = false;
+  bool _initialRequestDone = false;
+  Timer? _retryAfterSettingsTimer;
 
   @override
   void initState() {
@@ -78,8 +83,9 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Когда юзер возвращается из системных настроек (выдал разрешение
-    // камеры), повторим bootstrap. Без этого превью оставалось пустым даже
-    // после получения доступа.
+    // камеры), повторим bootstrap. iOS не всегда стабильно зовёт `resumed`
+    // после возврата — поэтому ещё держим delayed-fallback в
+    // _openAppSettings().
     if (state == AppLifecycleState.resumed) {
       if (_previewStream == null && !_consumed && mounted) {
         _bootstrapPreview();
@@ -87,56 +93,95 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
     }
   }
 
-  Future<void> _bootstrapPreview() async {
-    if (!_rendererInitialized) {
-      await _previewRenderer.initialize();
-      _rendererInitialized = true;
-    }
+  /// Сбрасываем lobby-превью к чистому состоянию. Используется при ретрае,
+  /// чтобы старая denied-плашка не «застревала».
+  void _resetPreviewState() {
+    if (!mounted) return;
+    setState(() {
+      _previewDenied = false;
+      // Не трогаем _initialCameraOff: его пользователь мог явно включить
+      // тапом по кнопке камеры — при ретрае оставим прежний выбор.
+    });
+  }
+
+  Future<void> _bootstrapPreview({bool forceRequest = false}) async {
+    if (_consumed) return;
+    if (_bootstrapping) return; // re-entrancy guard
+    _bootstrapping = true;
     try {
-      final cam = await Permission.camera.request();
-      final mic = await Permission.microphone.request();
-      if (cam.isDenied || cam.isPermanentlyDenied) {
+      if (!_rendererInitialized) {
+        await _previewRenderer.initialize();
+        _rendererInitialized = true;
+      }
+      try {
+        // Первый раз — `request()` поднимает системный диалог. Повторные
+        // ретраи (после возврата из настроек) — только `.status`, чтобы не
+        // спамить пользователя бесконечными prompt'ами.
+        final cam = forceRequest || !_initialRequestDone
+            ? await Permission.camera.request()
+            : await Permission.camera.status;
+        final mic = forceRequest || !_initialRequestDone
+            ? await Permission.microphone.request()
+            : await Permission.microphone.status;
+        _initialRequestDone = true;
+        if (!cam.isGranted && !cam.isLimited) {
+          if (mounted) {
+            setState(() {
+              _previewDenied = true;
+              _initialCameraOff = true;
+            });
+          }
+          return;
+        }
+        if (!mic.isGranted && !mic.isLimited) {
+          _initialMicMuted = true;
+        }
+        final stream =
+            await navigator.mediaDevices.getUserMedia(<String, dynamic>{
+          'audio': true,
+          'video': <String, dynamic>{'facingMode': 'user'},
+        });
+        if (!mounted) {
+          for (final t in stream.getTracks()) {
+            await t.stop();
+          }
+          await stream.dispose();
+          return;
+        }
+        _previewStream = stream;
+        _previewRenderer.srcObject = stream;
+        // Если пользователь до этого видел «доступ запрещён», сбрасываем
+        // флаги: камера снова доступна.
+        setState(() {
+          _previewReady = true;
+          _previewDenied = false;
+          _initialCameraOff = false;
+        });
+      } catch (e) {
+        appLogger.w('[meeting-lobby] preview failed', error: e);
         if (mounted) {
           setState(() {
             _previewDenied = true;
             _initialCameraOff = true;
           });
         }
-        return;
       }
-      if (mic.isDenied || mic.isPermanentlyDenied) {
-        // Микро может быть запрещено — это нормально, просто start с muted=true.
-        _initialMicMuted = true;
-      }
-      final stream = await navigator.mediaDevices.getUserMedia(<String, dynamic>{
-        'audio': true,
-        'video': <String, dynamic>{'facingMode': 'user'},
-      });
-      if (!mounted) {
-        for (final t in stream.getTracks()) {
-          await t.stop();
-        }
-        await stream.dispose();
-        return;
-      }
-      _previewStream = stream;
-      _previewRenderer.srcObject = stream;
-      // Если пользователь до этого видел «доступ запрещён», теперь сбрасываем
-      // флаги: камера снова доступна.
-      setState(() {
-        _previewReady = true;
-        _previewDenied = false;
-        _initialCameraOff = false;
-      });
-    } catch (e) {
-      appLogger.w('[meeting-lobby] preview failed', error: e);
-      if (mounted) {
-        setState(() {
-          _previewDenied = true;
-          _initialCameraOff = true;
-        });
-      }
+    } finally {
+      _bootstrapping = false;
     }
+  }
+
+  /// Открыть Settings.app и подстраховаться: запланировать повторный
+  /// bootstrap через 1.5 с — на случай, если `didChangeAppLifecycleState`
+  /// не выстрелит (наблюдалось на iOS 17/18).
+  Future<void> _openAppSettings() async {
+    _retryAfterSettingsTimer?.cancel();
+    await openAppSettings();
+    _retryAfterSettingsTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (mounted && _previewStream == null) {
+        _bootstrapPreview();
+      }
+    });
   }
 
   Future<void> _stopPreview() async {
@@ -177,6 +222,7 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
 
   @override
   void dispose() {
+    _retryAfterSettingsTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _nameCtrl.dispose();
     if (!_consumed) {
@@ -196,7 +242,25 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
     return buf.toString();
   }
 
+  static String? _asNonEmpty(dynamic v) {
+    if (v is! String) return null;
+    final t = v.trim();
+    return t.isEmpty ? null : t;
+  }
+
+  /// URL аватара, который пишем в `participants/{uid}.avatar` при джойне.
+  /// Приоритет: профиль `users/{uid}` → Firebase Auth photoURL → DiceBear.
   String _avatarUrl() {
+    if (!widget.isGuest && widget.selfUid.isNotEmpty) {
+      final userDoc = ref
+              .read(userChatSettingsDocProvider(widget.selfUid))
+              .asData
+              ?.value ??
+          const <String, dynamic>{};
+      final fromDoc =
+          _asNonEmpty(userDoc['avatar']) ?? _asNonEmpty(userDoc['avatarThumb']);
+      if (fromDoc != null) return fromDoc;
+    }
     return widget.initialAvatar ??
         'https://api.dicebear.com/7.x/avataaars/svg?seed=${widget.selfUid}';
   }
@@ -509,21 +573,43 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
                             height: 1.35,
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        TextButton.icon(
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            backgroundColor:
-                                Colors.white.withValues(alpha: 0.12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            TextButton.icon(
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor:
+                                    Colors.white.withValues(alpha: 0.18),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: _bootstrapping
+                                  ? null
+                                  : () {
+                                      _resetPreviewState();
+                                      _bootstrapPreview(forceRequest: true);
+                                    },
+                              icon: const Icon(Icons.refresh_rounded, size: 16),
+                              label: Text(l10n.meeting_lobby_retry),
                             ),
-                          ),
-                          onPressed: () async {
-                            await openAppSettings();
-                          },
-                          icon: const Icon(Icons.settings_rounded, size: 16),
-                          label: Text(l10n.meeting_lobby_open_settings),
+                            const SizedBox(width: 8),
+                            TextButton.icon(
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor:
+                                    Colors.white.withValues(alpha: 0.12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              onPressed: _openAppSettings,
+                              icon: const Icon(Icons.settings_rounded, size: 16),
+                              label: Text(l10n.meeting_lobby_open_settings),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -592,7 +678,19 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
     final l10n = AppLocalizations.of(context)!;
     final name = (widget.initialName ?? '').trim();
     final displayName = name.isEmpty ? l10n.meeting_join_guest : name;
-    final avatar = widget.initialAvatar;
+    // Тянем актуальный аватар из `users/{uid}` (как везде в приложении):
+    // `avatarThumb` → `avatar` → fallback `widget.initialAvatar` (Auth photoURL).
+    String? avatar = widget.initialAvatar;
+    if (!widget.isGuest && widget.selfUid.isNotEmpty) {
+      final userDoc = ref
+              .watch(userChatSettingsDocProvider(widget.selfUid))
+              .asData
+              ?.value ??
+          const <String, dynamic>{};
+      final fromDoc = _asNonEmpty(userDoc['avatarThumb']) ??
+          _asNonEmpty(userDoc['avatar']);
+      if (fromDoc != null) avatar = fromDoc;
+    }
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(

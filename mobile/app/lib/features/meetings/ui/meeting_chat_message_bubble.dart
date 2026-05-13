@@ -137,27 +137,44 @@ class MeetingChatMessageBubble extends StatelessWidget {
       context: context,
       barrierDismissible: true,
       barrierLabel: 'meeting-chat-menu',
-      barrierColor: Colors.black.withValues(alpha: 0.45),
-      transitionDuration: const Duration(milliseconds: 160),
+      // Прозрачный barrier — фон будем сами размывать ImageFilter'ом
+      // внутри transition'а; иначе чёрная подложка перекрывает blur.
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 180),
       pageBuilder: (ctx, anim, _) => const SizedBox.shrink(),
       transitionBuilder: (ctx, anim, _, _) {
         final eased = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
-        return FadeTransition(
-          opacity: eased,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.96, end: 1.0).animate(eased),
-            child: _MeetingChatMenu(
-              message: message,
-              selfUserId: selfUserId,
-              isSelf: isSelf,
-              canReply: canReply,
-              canReact: canReact,
-              canCopy: canCopy,
-              canEdit: canEdit,
-              canDelete: canDelete,
-              l10n: l10n,
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            // Полноэкранный blur + лёгкое затемнение — как в основном чате.
+            FadeTransition(
+              opacity: eased,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.32),
+                ),
+              ),
             ),
-          ),
+            FadeTransition(
+              opacity: eased,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.96, end: 1.0).animate(eased),
+                child: _MeetingChatMenu(
+                  message: message,
+                  selfUserId: selfUserId,
+                  isSelf: isSelf,
+                  canReply: canReply,
+                  canReact: canReact,
+                  canCopy: canCopy,
+                  canEdit: canEdit,
+                  canDelete: canDelete,
+                  l10n: l10n,
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -170,26 +187,7 @@ class MeetingChatMessageBubble extends StatelessWidget {
         await Clipboard.setData(ClipboardData(text: message.text ?? ''));
         if (context.mounted) {
           HapticFeedback.selectionClick();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(milliseconds: 1200),
-              margin: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-              backgroundColor: const Color(0xCC101521),
-              content: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.check_circle_rounded,
-                      color: Color(0xFF34D399), size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    l10n.meeting_chat_copied,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-          );
+          _showCopiedToast(context, l10n.meeting_chat_copied);
         }
       case MeetingChatMenuEdit():
         onEditText?.call(message);
@@ -572,69 +570,85 @@ class _MeetingChatMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 360),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xCC0F162A),
+    // Material обёртка кругом всего диалога: убирает «жёлтые подчёркивания»
+    // под текстом (Text без Material-предка получает дефолтный textStyle
+    // с TextDecoration.underline жёлтого цвета).
+    return Material(
+      type: MaterialType.transparency,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 340),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Превью исходного сообщения сверху — как в основном чате
+                // (см. screenshot #4: «SENT» metadata + сам пузырёк).
+                _SourceMessagePreview(message: message, isSelf: isSelf),
+                const SizedBox(height: 10),
+                ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.10),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0x99101521),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.10),
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (canReact) _reactionStrip(context),
+                          if (canReact)
+                            Container(
+                              height: 1,
+                              color: Colors.white.withValues(alpha: 0.08),
+                            ),
+                          if (canReply)
+                            _tile(
+                              context,
+                              icon: Icons.reply_rounded,
+                              label: l10n.meeting_chat_reply,
+                              onTap: () => Navigator.of(context)
+                                  .pop(const MeetingChatMenuReply()),
+                            ),
+                          if (canCopy)
+                            _tile(
+                              context,
+                              icon: Icons.copy_rounded,
+                              label: l10n.meeting_chat_copy,
+                              onTap: () => Navigator.of(context)
+                                  .pop(const MeetingChatMenuCopy()),
+                            ),
+                          if (canEdit)
+                            _tile(
+                              context,
+                              icon: Icons.edit_rounded,
+                              label: l10n.meeting_chat_edit,
+                              onTap: () => Navigator.of(context)
+                                  .pop(const MeetingChatMenuEdit()),
+                            ),
+                          if (canDelete)
+                            _tile(
+                              context,
+                              icon: Icons.delete_outline_rounded,
+                              label: l10n.meeting_chat_delete,
+                              danger: true,
+                              onTap: () => Navigator.of(context)
+                                  .pop(const MeetingChatMenuDelete()),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (canReact) _reactionStrip(context),
-                    if (canReact)
-                      Container(
-                        height: 1,
-                        color: Colors.white.withValues(alpha: 0.08),
-                      ),
-                    if (canReply)
-                      _tile(
-                        context,
-                        icon: Icons.reply_rounded,
-                        label: l10n.meeting_chat_reply,
-                        onTap: () => Navigator.of(context)
-                            .pop(const MeetingChatMenuReply()),
-                      ),
-                    if (canCopy)
-                      _tile(
-                        context,
-                        icon: Icons.copy_rounded,
-                        label: l10n.meeting_chat_copy,
-                        onTap: () => Navigator.of(context)
-                            .pop(const MeetingChatMenuCopy()),
-                      ),
-                    if (canEdit)
-                      _tile(
-                        context,
-                        icon: Icons.edit_rounded,
-                        label: l10n.meeting_chat_edit,
-                        onTap: () => Navigator.of(context)
-                            .pop(const MeetingChatMenuEdit()),
-                      ),
-                    if (canDelete)
-                      _tile(
-                        context,
-                        icon: Icons.delete_outline_rounded,
-                        label: l10n.meeting_chat_delete,
-                        danger: true,
-                        onTap: () => Navigator.of(context)
-                            .pop(const MeetingChatMenuDelete()),
-                      ),
-                  ],
-                ),
-              ),
+              ],
             ),
           ),
         ),
@@ -642,21 +656,28 @@ class _MeetingChatMenu extends StatelessWidget {
     );
   }
 
+  /// Лента быстрых реакций. ВАЖНО: контейнер фиксированной ширины
+  /// (ConstrainedBox в build()), а эмодзи скроллятся по горизонтали внутри.
+  /// Раньше Wrap растягивал меню вширь под количество эмодзи.
   Widget _reactionStrip(BuildContext context) {
     return SizedBox(
       height: 56,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        itemCount: kMeetingChatQuickReactions.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 4),
-        itemBuilder: (ctx, i) {
-          final e = kMeetingChatQuickReactions[i];
-          final reacted =
-              (message.reactions[e] ?? const <String>[]).contains(selfUserId);
-          return Material(
-            color: Colors.transparent,
-            child: InkWell(
+      child: ScrollConfiguration(
+        // Прячем скроллбар на эмодзи-ленте — лента короткая, скролл-индикатор
+        // отвлекает внимание.
+        behavior: const ScrollBehavior().copyWith(scrollbars: false),
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          physics: const BouncingScrollPhysics(),
+          itemCount: kMeetingChatQuickReactions.length,
+          separatorBuilder: (_, _) => const SizedBox(width: 2),
+          itemBuilder: (ctx, i) {
+            final e = kMeetingChatQuickReactions[i];
+            final reacted = (message.reactions[e] ?? const <String>[])
+                .contains(selfUserId);
+            return InkWell(
               borderRadius: BorderRadius.circular(14),
               onTap: () =>
                   Navigator.of(context).pop(MeetingChatMenuReact(e)),
@@ -670,11 +691,12 @@ class _MeetingChatMenu extends StatelessWidget {
                       ? const Color(0xFF2563EB).withValues(alpha: 0.30)
                       : Colors.transparent,
                 ),
-                child: Text(e, style: const TextStyle(fontSize: 24, height: 1)),
+                child:
+                    Text(e, style: const TextStyle(fontSize: 24, height: 1)),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -701,8 +723,231 @@ class _MeetingChatMenu extends StatelessWidget {
                 color: color,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
+                // Без явного decoration: none ловим дефолтное жёлтое
+                // подчёркивание из навигатора (без MaterialApp).
+                decoration: TextDecoration.none,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Кратковременный текстовый тоаст «Скопировано» по центру верха.
+/// Раньше использовали SnackBar внизу — пользователь его не замечал
+/// (нижняя панель управления митингом перекрывала).
+void _showCopiedToast(BuildContext context, String label) {
+  final overlay = Overlay.maybeOf(context);
+  if (overlay == null) return;
+  late OverlayEntry entry;
+  entry = OverlayEntry(
+    builder: (ctx) => _CopiedToast(
+      label: label,
+      onDone: () {
+        entry.remove();
+      },
+    ),
+  );
+  overlay.insert(entry);
+}
+
+class _CopiedToast extends StatefulWidget {
+  const _CopiedToast({required this.label, required this.onDone});
+  final String label;
+  final VoidCallback onDone;
+
+  @override
+  State<_CopiedToast> createState() => _CopiedToastState();
+}
+
+class _CopiedToastState extends State<_CopiedToast>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _fade;
+  late final Animation<double> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1700),
+    );
+    _fade = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 12),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 60),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 28),
+    ]).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    _slide = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: -8.0, end: 0.0), weight: 12),
+      TweenSequenceItem(tween: ConstantTween(0.0), weight: 88),
+    ]).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    _ctrl.forward().whenComplete(widget.onDone);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: AnimatedBuilder(
+          animation: _ctrl,
+          builder: (ctx, _) {
+            return Transform.translate(
+              offset: Offset(0, _slide.value),
+              child: Opacity(
+                opacity: _fade.value,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 56),
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: const Color(0xE6101521),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.10),
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x40000000),
+                            blurRadius: 18,
+                            offset: Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.check_circle_rounded,
+                              color: Color(0xFF34D399), size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            widget.label,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// Заголовок диалога: превью исходного сообщения + плашка «SENT … READ …».
+/// Дизайн зеркалит screen #4 из основного чата.
+class _SourceMessagePreview extends StatelessWidget {
+  const _SourceMessagePreview({required this.message, required this.isSelf});
+
+  final MeetingChatMessage message;
+  final bool isSelf;
+
+  String _format(DateTime d) {
+    final loc = d.toLocal();
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${two(loc.day)}.${two(loc.month)}.${loc.year} '
+        '${two(loc.hour)}:${two(loc.minute)}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = isSelf ? const Color(0xFF2563EB) : const Color(0xFF1F2937);
+    final text = message.text;
+    final sent = message.createdAt;
+    return Align(
+      alignment: isSelf ? Alignment.centerRight : Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 280),
+        child: Column(
+          crossAxisAlignment:
+              isSelf ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(14),
+                  topRight: const Radius.circular(14),
+                  bottomLeft: Radius.circular(isSelf ? 14 : 4),
+                  bottomRight: Radius.circular(isSelf ? 4 : 14),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!isSelf)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Text(
+                        message.senderName,
+                        style: const TextStyle(
+                          color: Color(0xFF93C5FD),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ),
+                  if (text != null && text.isNotEmpty)
+                    Text(
+                      text,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        decoration: TextDecoration.none,
+                      ),
+                    )
+                  else if (message.attachments.isNotEmpty)
+                    Text(
+                      '📎 ${message.attachments.length}',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        decoration: TextDecoration.none,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (sent != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                _format(sent),
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.4,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ],
           ],
         ),
       ),

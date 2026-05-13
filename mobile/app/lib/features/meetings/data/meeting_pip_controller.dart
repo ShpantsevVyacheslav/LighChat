@@ -22,7 +22,10 @@ import 'dart:io' show Platform;
 /// [enterPip] (без падения в случае iOS).
 class MeetingPipController {
   MeetingPipController({MethodChannel? channel})
-      : _channel = channel ?? const MethodChannel('lighchat/pip');
+      : _channel = channel ??
+            MethodChannel(
+              Platform.isIOS ? 'lighchat/meeting_pip' : 'lighchat/pip',
+            );
 
   final MethodChannel _channel;
   bool? _supportedCache;
@@ -45,10 +48,16 @@ class MeetingPipController {
       return _supportedCache!;
     }
     if (Platform.isIOS) {
-      // iOS-бридж сейчас умеет только URL-видео; для live WebRTC нужен
-      // отдельный pipeline. До его готовности возвращаем false.
-      _supportedCache = false;
-      return false;
+      // iOS 15+ — нативный AVPictureInPictureController (см.
+      // LighChatMeetingPipInlineBridge в AppDelegate.swift).
+      try {
+        final v = await _channel.invokeMethod<bool>('isSupported');
+        _supportedCache = v ?? false;
+      } catch (e) {
+        appLogger.w('[meeting-pip] isSupported failed', error: e);
+        _supportedCache = false;
+      }
+      return _supportedCache!;
     }
     _supportedCache = false;
     return false;

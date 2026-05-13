@@ -7057,7 +7057,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get meeting_open_chats => 'Open chats';
 
   @override
+  String get meeting_in_call_chat => 'In-call chat';
+
+  @override
   String get meeting_lobby_open_settings => 'Open settings';
+
+  @override
+  String get meeting_lobby_retry => 'Try again';
 
   @override
   String get meeting_minimized_resume => 'Tap to return to call';

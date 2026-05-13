@@ -12514,11 +12514,23 @@ abstract class AppLocalizations {
   /// **'Открыть чаты'**
   String get meeting_open_chats;
 
+  /// No description provided for @meeting_in_call_chat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чат конференции'**
+  String get meeting_in_call_chat;
+
   /// No description provided for @meeting_lobby_open_settings.
   ///
   /// In ru, this message translates to:
   /// **'Открыть настройки'**
   String get meeting_lobby_open_settings;
+
+  /// No description provided for @meeting_lobby_retry.
+  ///
+  /// In ru, this message translates to:
+  /// **'Повторить'**
+  String get meeting_lobby_retry;
 
   /// No description provided for @meeting_minimized_resume.
   ///

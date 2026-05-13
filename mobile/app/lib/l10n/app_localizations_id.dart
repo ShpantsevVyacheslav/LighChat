@@ -7086,7 +7086,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get meeting_open_chats => 'Открыть чаты';
 
   @override
+  String get meeting_in_call_chat => 'Чат конференции';
+
+  @override
   String get meeting_lobby_open_settings => 'Открыть настройки';
+
+  @override
+  String get meeting_lobby_retry => 'Повторить';
 
   @override
   String get meeting_minimized_resume => 'Нажмите, чтобы вернуться';

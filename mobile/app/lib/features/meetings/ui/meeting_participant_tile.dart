@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
+import '../../../app_providers.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../chat/ui/chat_avatar.dart';
 import '../data/meeting_models.dart';
@@ -9,7 +11,7 @@ import '../data/meeting_peer_stats.dart';
 /// Одна плитка в сетке участников.
 /// Рендерит либо живой видеопоток (`RTCVideoView`), либо плейсхолдер с аватаром.
 /// Иконки статуса (mic/video/hand/quality) — в правом нижнем углу.
-class MeetingParticipantTile extends StatefulWidget {
+class MeetingParticipantTile extends ConsumerStatefulWidget {
   const MeetingParticipantTile({
     super.key,
     required this.participant,
@@ -33,10 +35,11 @@ class MeetingParticipantTile extends StatefulWidget {
   final bool isActiveSpeaker;
 
   @override
-  State<MeetingParticipantTile> createState() => _MeetingParticipantTileState();
+  ConsumerState<MeetingParticipantTile> createState() =>
+      _MeetingParticipantTileState();
 }
 
-class _MeetingParticipantTileState extends State<MeetingParticipantTile> {
+class _MeetingParticipantTileState extends ConsumerState<MeetingParticipantTile> {
   final _renderer = RTCVideoRenderer();
   bool _rendererInitialized = false;
 
@@ -187,21 +190,43 @@ class _MeetingParticipantTileState extends State<MeetingParticipantTile> {
     );
   }
 
-  Widget _avatarPlaceholder(BuildContext context) {
+  /// Имя из глобального профиля `users/{uid}` — если есть, переопределяет
+  /// никнейм, введённый при джойне.
+  ({String name, String? avatar}) _displayFromProfile() {
+    final doc = ref
+            .watch(userChatSettingsDocProvider(widget.participant.id))
+            .asData
+            ?.value ??
+        const <String, dynamic>{};
+    String? str(dynamic v) {
+      if (v is! String) return null;
+      final t = v.trim();
+      return t.isEmpty ? null : t;
+    }
+
     final p = widget.participant;
+    return (
+      name: str(doc['name']) ?? p.name,
+      avatar: str(doc['avatar']) ?? str(doc['avatarThumb']) ?? p.avatarThumb ?? p.avatar,
+    );
+  }
+
+  Widget _avatarPlaceholder(BuildContext context) {
+    final d = _displayFromProfile();
     return Container(
       color: const Color(0xFF111827),
       alignment: Alignment.center,
       child: ChatAvatar(
-        title: p.name,
+        title: d.name,
         radius: 40,
-        avatarUrl: p.avatarThumb ?? p.avatar,
+        avatarUrl: d.avatar,
       ),
     );
   }
 
   Widget _overlay(BuildContext context) {
     final p = widget.participant;
+    final d = _displayFromProfile();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -213,7 +238,7 @@ class _MeetingParticipantTileState extends State<MeetingParticipantTile> {
         children: [
           Flexible(
             child: Text(
-              widget.isLocal ? '${p.name} (Вы)' : p.name,
+              widget.isLocal ? '${d.name} (Вы)' : d.name,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Colors.white,

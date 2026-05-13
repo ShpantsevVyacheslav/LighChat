@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app_providers.dart';
 import '../../chat/ui/chat_avatar.dart';
 import '../data/meeting_chat_message.dart';
 import '../data/meeting_chat_storage_upload.dart';
@@ -46,6 +47,7 @@ class MeetingSidebar extends ConsumerStatefulWidget {
     required this.onApproveRequest,
     required this.onDenyRequest,
     this.initialTabIndex,
+    this.requestedChatTabNonce = 0,
   });
 
   final String currentUserId;
@@ -67,8 +69,18 @@ class MeetingSidebar extends ConsumerStatefulWidget {
   final void Function(String userId) onDenyRequest;
   final int? initialTabIndex;
 
+  /// Каждое изменение этого значения === «открыли шторку через иконку
+  /// чата в шапке» — sidebar анимирует переключение на вкладку «Чат».
+  final int requestedChatTabNonce;
+
   @override
   ConsumerState<MeetingSidebar> createState() => _MeetingSidebarState();
+}
+
+String? _strOrNull(dynamic v) {
+  if (v is! String) return null;
+  final t = v.trim();
+  return t.isEmpty ? null : t;
 }
 
 class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
@@ -95,6 +107,17 @@ class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
       _chatFirstSnapshot = false;
     }
     _rebuildTabControllerIfNeeded();
+    // Сигнал «открыли чат через иконку в шапке» — переключаемся на
+    // вкладку «Чат» (даже если шторка уже была открыта на другой).
+    if (oldWidget.requestedChatTabNonce != widget.requestedChatTabNonce &&
+        widget.requestedChatTabNonce > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (_tabController.index != _layout.chatIndex) {
+          _tabController.animateTo(_layout.chatIndex);
+        }
+      });
+    }
   }
 
   void _rebuildTabControllerIfNeeded() {
@@ -294,14 +317,23 @@ class _MeetingSidebarState extends ConsumerState<MeetingSidebar>
         final isSelf = p.id == widget.currentUserId;
         final isHost = widget.meeting.hostId == p.id;
         final canModerate = widget.isHostOrAdmin && !isSelf && !isHost;
+        // Поверх никнейма (введённого при джойне) тянем глобальное имя
+        // из `users/{uid}` — то самое, под которым человек виден в чатах.
+        final overlay = ref.watch(
+          userChatSettingsDocProvider(p.id),
+        ).asData?.value ?? const <String, dynamic>{};
+        final profileName = _strOrNull(overlay['name']);
+        final profileAvatar = _strOrNull(overlay['avatar']) ??
+            _strOrNull(overlay['avatarThumb']);
+        final displayName = profileName ?? p.name;
         return ListTile(
           leading: ChatAvatar(
-            title: p.name,
+            title: displayName,
             radius: 18,
-            avatarUrl: p.avatarThumb ?? p.avatar,
+            avatarUrl: profileAvatar ?? p.avatarThumb ?? p.avatar,
           ),
           title: Text(
-            isSelf ? '${p.name} (Вы)' : p.name,
+            isSelf ? '$displayName (Вы)' : displayName,
             style: const TextStyle(color: Colors.white),
           ),
           subtitle: isHost

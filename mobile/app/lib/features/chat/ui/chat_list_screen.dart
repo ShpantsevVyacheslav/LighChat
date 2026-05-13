@@ -18,6 +18,7 @@ import '../data/e2ee_plaintext_cache.dart';
 import '../data/new_chat_user_search.dart' show ruEnSubstringMatch;
 import '../../settings/data/energy_saving_preference.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../meetings/data/active_meeting_provider.dart';
 
 import 'chat_folder_bar.dart';
 import 'chat_folders_rail.dart' show activeFoldersRailIdProvider;
@@ -40,7 +41,84 @@ class ChatListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Scaffold(
       resizeToAvoidBottomInset: false,
-      body: ChatListPane(),
+      body: Stack(
+        children: [
+          Positioned.fill(child: ChatListPane()),
+          // Пилюля «вернуться в звонок» — рендерится только если есть
+          // активная конференция и текущий /chats был открыт пушем поверх
+          // митинга. На тап делает Navigator.maybePop → возврат в комнату.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(bottom: false, child: _MeetingResumePill()),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MeetingResumePill extends ConsumerWidget {
+  const _MeetingResumePill();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final active = ref.watch(activeMeetingProvider);
+    if (active == null) return const SizedBox.shrink();
+    if (!Navigator.of(context).canPop()) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
+    final name = active.meetingName.isEmpty
+        ? l10n.meeting_minimized_resume
+        : active.meetingName;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Material(
+        color: const Color(0xFF1D4ED8),
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => Navigator.of(context).maybePop(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                const Icon(Icons.videocam_rounded,
+                    color: Colors.white, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.meeting_minimized_resume,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios_rounded,
+                    color: Colors.white, size: 14),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

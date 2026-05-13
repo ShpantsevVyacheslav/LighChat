@@ -13,6 +13,7 @@ import '../data/meeting_invite_link.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
+import '../data/active_meeting_provider.dart';
 import '../data/meeting_active_speaker_resolve.dart';
 import '../data/meeting_duration_format.dart';
 import '../data/meeting_models.dart';
@@ -66,6 +67,10 @@ class MeetingRoomScreen extends ConsumerStatefulWidget {
 class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
   MeetingWebRtc? _webrtc;
   StreamSubscription<MeetingWebRtcEvent>? _eventsSub;
+
+  /// Момент входа в комнату — используется для секундомера длительности
+  /// (#20: безлимитный митинг тикает с момента join, не createdAt).
+  late final DateTime _joinedAt;
 
   final Map<String, MediaStream> _remoteStreams = <String, MediaStream>{};
   final Map<String, PeerConnectionQuality> _remoteQuality =
@@ -129,6 +134,7 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
   @override
   void initState() {
     super.initState();
+    _joinedAt = DateTime.now().toUtc();
     _bootstrap();
   }
 
@@ -176,6 +182,21 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
         _webrtc = webrtc;
         _initialized = true;
       });
+
+      // Маркер «идёт звонок» — слушают чат-лист / mini-card,
+      // чтобы показать пилюлю «вернуться в звонок».
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final meeting = ref
+            .read(meetingDocProvider(widget.meetingId))
+            .asData
+            ?.value;
+        ref.read(activeMeetingProvider.notifier).set(ActiveMeetingInfo(
+              meetingId: widget.meetingId,
+              meetingName: meeting?.name ?? '',
+            ));
+      });
+
       _staleSweepTimer ??= Timer.periodic(const Duration(seconds: 15), (_) {
         if (mounted) setState(() {});
       });
@@ -300,6 +321,10 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
           .read(meetingRepositoryProvider)
           .leaveMeeting(widget.meetingId, widget.selfUid);
     } catch (_) {}
+    // Снимаем флаг «идёт звонок» — mini-card исчезает с других экранов.
+    if (mounted) {
+      ref.read(activeMeetingProvider.notifier).clear();
+    }
     if (!mounted) return;
     Navigator.of(context).pop();
   }
@@ -320,6 +345,10 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
           .leaveMeeting(widget.meetingId, widget.selfUid)
           .catchError((_) {});
     }
+    // На случай неконтролируемого dispose — снимаем mini-card.
+    try {
+      ref.read(activeMeetingProvider.notifier).clear();
+    } catch (_) {}
     super.dispose();
   }
 
@@ -519,20 +548,43 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
     );
   }
 
-  /// Идём в /chats без разрыва митинга. На Android конференция уходит в
-  /// нативный PiP. На iOS — в PiP через нативный плагин (см.
-  /// `LighChatPipPlugin`). Если PiP не поддержан — `Navigator.pop` всё равно
-  /// отработает, но тогда митинг прервётся (явно показано в snackbar).
-  Future<void> _openChatsKeepingMeeting() async {
-    if (_pipSupported) {
-      _pipLifecycle.suppressAutoOnce();
-      try {
-        await _pipController.enterPip();
-      } catch (_) {}
-    }
-    if (!mounted) return;
-    // GoRouter подключен в WorkspaceShell — выходим на список чатов.
-    context.go('/chats');
+  /// Открыть список чатов БЕЗ выхода из митинга.
+  /// Используем `context.push` — не `go`: GoRouter добавляет /chats
+  /// поверх стека, MeetingRoomScreen остаётся смонтированным (offstage),
+  /// WebRTC продолжает работать, audio тикает.
+  /// Кнопка с иконкой чата открывает другую дверь — внутренний чат-таб
+  /// в шторке; см. [_openInCallChat].
+  void _openChatList() {
+    context.push('/chats');
+  }
+
+  /// Открыть шторку на вкладке «Чат» (in-call chat). Это именно та кнопка,
+  /// которая дублирует основной чат внутри звонка.
+  void _openInCallChat() {
+    _tabRequestNonce++;
+    setState(() {
+      _sidebarOpen = true;
+    });
+  }
+
+  /// Счётчик «запросов» открыть чат-таб — увеличивается каждый раз,
+  /// когда пользователь жмёт иконку чата в шапке. Sidebar реагирует на
+  /// изменение значения и переключается на чат-таб даже если шторка уже
+  /// была открыта на другой вкладке.
+  int _tabRequestNonce = 0;
+
+  /// Количество непрочитанных сообщений в шторочном чате. Дублирует
+  /// логику `_buildControls` для нужд иконки в шапке. Sidebar при открытии
+  /// сам помечает все как прочитанные.
+  int _inCallChatUnread() {
+    final list = ref
+            .read(meetingChatMessagesProvider(widget.meetingId))
+            .asData
+            ?.value ??
+        const [];
+    if (_chatSeenCount < 0) return 0;
+    final v = list.length - _chatSeenCount;
+    return v < 0 ? 0 : v;
   }
 
   Widget _roomBody(
@@ -624,6 +676,7 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
             participants: participants,
             requests: requests,
             isHostOrAdmin: isHostOrAdmin,
+            requestedChatTabNonce: _tabRequestNonce,
             onClose: () => setState(() => _sidebarOpen = false),
             onForceMuteAudio: (userId) async {
               await ref
@@ -704,7 +757,7 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
               IconButton(
                 tooltip: l10n.meeting_back_to_chats,
                 icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                onPressed: _openChatsKeepingMeeting,
+                onPressed: _openChatList,
               ),
               Expanded(
                 child: Column(
@@ -722,8 +775,15 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
                       ),
                     ),
                     const SizedBox(height: 2),
+                    // Для безлимитной встречи секундомер тикает с момента
+                    // моего входа в комнату, не с createdAt — иначе при
+                    // подключении к давно идущему звонку прыгает в часы.
+                    // Для countdown'а оставляем createdAt: expiresAt задан
+                    // относительно него.
                     _MeetingDurationBadge(
-                      createdAt: meeting.createdAt,
+                      createdAt: meeting.expiresAt != null
+                          ? meeting.createdAt
+                          : _joinedAt,
                       expiresAt: meeting.expiresAt,
                     ),
                   ],
@@ -753,11 +813,10 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
                   color: Colors.white,
                 ),
               ),
-              IconButton(
-                tooltip: l10n.meeting_open_chats,
-                icon: const Icon(Icons.chat_bubble_outline_rounded,
-                    color: Colors.white),
-                onPressed: _openChatsKeepingMeeting,
+              _ChatBadgeButton(
+                tooltip: l10n.meeting_in_call_chat,
+                unread: _inCallChatUnread(),
+                onPressed: _openInCallChat,
               ),
               IconButton(
                 tooltip: l10n.meeting_copy_link_tooltip,
@@ -1017,3 +1076,54 @@ class _MeetingDurationBadgeState extends State<_MeetingDurationBadge> {
 /// Режим раскладки сетки участников в комнате. Повторяет `viewMode`
 /// из web (`src/components/meetings/MeetingRoom.tsx`).
 enum _MeetingViewMode { grid, speaker }
+
+/// Иконка чата в шапке с бейджем непрочитанных сверху-справа.
+class _ChatBadgeButton extends StatelessWidget {
+  const _ChatBadgeButton({
+    required this.tooltip,
+    required this.unread,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final int unread;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          tooltip: tooltip,
+          icon: const Icon(Icons.chat_bubble_outline_rounded,
+              color: Colors.white),
+          onPressed: onPressed,
+        ),
+        if (unread > 0)
+          Positioned(
+            right: 4,
+            top: 4,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDC2626),
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(color: Colors.black, width: 1),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                unread > 99 ? '99+' : unread.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
