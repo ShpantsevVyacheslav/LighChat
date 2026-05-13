@@ -6,8 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 import 'package:lighchat_mobile/brand_colors.dart';
-import 'package:lighchat_mobile/features/birthdays/data/birthday_cache_storage.dart';
-import 'package:lighchat_mobile/features/birthdays/data/birthday_date_utils.dart';
+import 'package:lighchat_mobile/features/birthdays/data/birthday_banner_dismiss.dart';
 import 'package:lighchat_mobile/features/birthdays/data/contact_birthday.dart';
 import 'package:lighchat_mobile/features/birthdays/data/contact_birthdays_provider.dart';
 import 'package:lighchat_mobile/features/chat/ui/chat_avatar.dart';
@@ -16,7 +15,9 @@ import 'package:lighchat_mobile/l10n/app_localizations.dart';
 /// Плашка над списком чатов: "{Имя} празднует день рождения!". Показывается
 /// только в день ДР и только если есть хотя бы один именинник среди
 /// контактов. При нескольких именинниках перелистывает их каждые 4 секунды.
-/// Скрывается на текущий день после тапа по ✕.
+/// Скрывается тапом по ✕ — только в рамках текущего запуска приложения
+/// (in-memory). После полного закрытия и повторного открытия — появляется
+/// снова, пока пользователь не закроет её ещё раз.
 class BirthdayBanner extends ConsumerStatefulWidget {
   const BirthdayBanner({super.key});
 
@@ -27,23 +28,6 @@ class BirthdayBanner extends ConsumerStatefulWidget {
 class _BirthdayBannerState extends ConsumerState<BirthdayBanner> {
   int _index = 0;
   Timer? _rotation;
-  String? _dismissedYmd;
-  bool _dismissLoaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    unawaited(_loadDismissed());
-  }
-
-  Future<void> _loadDismissed() async {
-    final v = await loadBirthdayBannerDismissedDate();
-    if (!mounted) return;
-    setState(() {
-      _dismissedYmd = v;
-      _dismissLoaded = true;
-    });
-  }
 
   void _restartRotation(int total) {
     _rotation?.cancel();
@@ -56,10 +40,8 @@ class _BirthdayBannerState extends ConsumerState<BirthdayBanner> {
     });
   }
 
-  Future<void> _dismissForToday() async {
-    final today = localYmd(DateTime.now());
-    setState(() => _dismissedYmd = today);
-    await saveBirthdayBannerDismissedDate(today);
+  void _dismissForToday() {
+    ref.read(birthdayBannerDismissProvider.notifier).dismissForToday();
   }
 
   @override
@@ -70,7 +52,6 @@ class _BirthdayBannerState extends ConsumerState<BirthdayBanner> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_dismissLoaded) return const SizedBox.shrink();
     final authAsync = ref.watch(authUserProvider);
     final user = authAsync.value;
     if (user == null) return const SizedBox.shrink();
@@ -78,8 +59,12 @@ class _BirthdayBannerState extends ConsumerState<BirthdayBanner> {
     final birthdays = ref.watch(todayBirthdaysProvider(user.uid));
     if (birthdays.isEmpty) return const SizedBox.shrink();
 
-    final todayYmd = localYmd(DateTime.now());
-    if (_dismissedYmd == todayYmd) return const SizedBox.shrink();
+    final dismissed = ref
+        .watch(birthdayBannerDismissProvider.notifier)
+        .isDismissedToday();
+    // watch также сам state, чтобы перестроиться при изменении.
+    ref.watch(birthdayBannerDismissProvider);
+    if (dismissed) return const SizedBox.shrink();
 
     // Поддерживаем валидный _index при изменении длины списка.
     final safeIndex = birthdays.isEmpty ? 0 : _index % birthdays.length;
@@ -103,7 +88,7 @@ class _BirthdayBannerState extends ConsumerState<BirthdayBanner> {
         current: current,
         extrasCount: extras,
         onTap: () => context.push('/birthdays'),
-        onDismiss: () => unawaited(_dismissForToday()),
+        onDismiss: _dismissForToday,
       ),
     );
   }
@@ -129,7 +114,7 @@ class _BannerCard extends StatelessWidget {
     final isDark = scheme.brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       child: Material(
         color: Colors.transparent,
         child: Ink(

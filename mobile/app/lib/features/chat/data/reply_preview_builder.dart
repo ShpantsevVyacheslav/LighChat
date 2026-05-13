@@ -11,6 +11,7 @@ ReplyContext buildReplyPreview({
   required AppLocalizations l10n,
   String? otherUserId,
   String? otherUserName,
+  String? decryptedText,
 }) {
   final senderName = _resolveSenderName(
     message.senderId,
@@ -27,7 +28,8 @@ ReplyContext buildReplyPreview({
   final hasPoll = (message.chatPollId ?? '').trim().isNotEmpty;
   final hasLocation = message.locationShare != null;
 
-  final raw = message.text ?? '';
+  // For E2EE messages, use decrypted text if available, otherwise fall back to message.text
+  final raw = decryptedText ?? message.text ?? '';
   if (raw.trim().isNotEmpty) {
     text = raw.contains('<') ? messageHtmlToPlainText(raw) : raw.trim();
   }
@@ -126,6 +128,7 @@ PinnedMessage buildPinnedMessageFromChatMessage({
   required AppLocalizations l10n,
   String? otherUserId,
   String? otherUserName,
+  String? decryptedText,
 }) {
   final preview = buildReplyPreview(
     message: message,
@@ -134,6 +137,7 @@ PinnedMessage buildPinnedMessageFromChatMessage({
     l10n: l10n,
     otherUserId: otherUserId,
     otherUserName: otherUserName,
+    decryptedText: decryptedText,
   );
   return PinnedMessage(
     messageId: message.id,

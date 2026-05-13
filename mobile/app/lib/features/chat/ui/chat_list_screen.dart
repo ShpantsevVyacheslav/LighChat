@@ -53,16 +53,7 @@ class ChatListScreen extends StatelessWidget {
             top: 0,
             left: 0,
             right: 0,
-            child: SafeArea(
-              bottom: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _MeetingResumePill(),
-                  BirthdayBanner(),
-                ],
-              ),
-            ),
+            child: SafeArea(bottom: false, child: _MeetingResumePill()),
           ),
         ],
       ),
@@ -1787,6 +1778,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                     ),
                     secondChild: const SizedBox.shrink(),
                   ),
+                  const BirthdayBanner(),
                   Expanded(
                     child: NotificationListener<ScrollNotification>(
                       onNotification: (notification) {

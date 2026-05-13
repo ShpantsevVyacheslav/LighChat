@@ -92,6 +92,14 @@ class NativeNavBarFacade {
   Future<void> setScrollOffset(double offset) =>
       _invoke('setScrollOffset', {'contentOffset': offset});
 
+  /// Включает/выключает gradient-blur полоску в верхнем safe-area
+  /// (status bar zone). Blur плавно усиливается СНИЗУ ВВЕРХ через
+  /// CAGradientLayer-mask — внизу 0 (прозрачно), наверху 1 (полный
+  /// материал). Используется только в чате, чтобы messages, проезжающие
+  /// под status bar'ом, мягко уходили в out-of-focus, как в Photos.
+  Future<void> setTopBlur({required bool enabled}) =>
+      _invoke('setTopBlur', {'enabled': enabled});
+
   Future<void> hideAll() {
     // КРИТИЧЕСКИЙ race condition был с `await` между двумя вызовами:
     // observer (didPop + didPush на context.go) запускал hideAll() ДВА

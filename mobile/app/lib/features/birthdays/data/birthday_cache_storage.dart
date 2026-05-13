@@ -96,25 +96,3 @@ class BirthdayCacheStorage {
   }
 }
 
-/// Дата дисмисса плашки — хранится одним ключом `YYYY-MM-DD` в локальной зоне.
-/// Если совпадает с сегодняшней — плашку не показываем.
-const String kDismissedBirthdayBannerKey =
-    'mobile_birthday_banner_dismissed_date_v1';
-
-Future<String?> loadBirthdayBannerDismissedDate() async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(kDismissedBirthdayBannerKey);
-  } catch (_) {
-    return null;
-  }
-}
-
-Future<void> saveBirthdayBannerDismissedDate(String localYmd) async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(kDismissedBirthdayBannerKey, localYmd);
-  } catch (_) {
-    // ignore: best-effort persistence
-  }
-}

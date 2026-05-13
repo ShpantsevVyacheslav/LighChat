@@ -182,27 +182,15 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
     // Компактный набор трейлинг-actions: показываем только реально
     // активные (threads/scheduled — только при наличии). Иначе шапка
     // переполняется и avatar+title не помещается.
+    // Порядок: search, threads, audio, video, scheduled (по запросу).
+    // Threads (обсуждения) теперь сразу после поиска — самая частая
+    // вторичная команда после поиска.
     final actions = <NavBarAction>[
       NavBarAction(
         id: _actionSearch,
         icon: const NavBarIcon('magnifyingglass'),
         title: l10n?.chat_header_tooltip_search,
       ),
-      if (widget.showCalls)
-        NavBarAction(
-          id: _actionVideo,
-          icon: const NavBarIcon('video.fill'),
-          title: l10n?.chat_header_tooltip_video_call,
-        ),
-      if (widget.showCalls)
-        NavBarAction(
-          id: _actionAudio,
-          icon: const NavBarIcon('phone.fill'),
-          title: l10n?.chat_header_tooltip_audio_call,
-        ),
-      // Threads icon — всегда показываем (default-action), badge только
-      // когда есть непрочитанные. Раньше скрывали при unread=0, но
-      // пользователю нужен прямой доступ к обсуждениям без захода в меню.
       NavBarAction(
         id: _actionThreads,
         icon: const NavBarIcon('bubble.left.and.bubble.right'),
@@ -211,6 +199,18 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
             : null,
         title: l10n?.chat_header_tooltip_threads,
       ),
+      if (widget.showCalls)
+        NavBarAction(
+          id: _actionAudio,
+          icon: const NavBarIcon('phone.fill'),
+          title: l10n?.chat_header_tooltip_audio_call,
+        ),
+      if (widget.showCalls)
+        NavBarAction(
+          id: _actionVideo,
+          icon: const NavBarIcon('video.fill'),
+          title: l10n?.chat_header_tooltip_video_call,
+        ),
       if (widget.scheduledCount > 0 && widget.onScheduledTap != null)
         NavBarAction(
           id: _actionScheduled,

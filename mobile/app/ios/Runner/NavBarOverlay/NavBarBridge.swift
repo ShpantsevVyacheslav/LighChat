@@ -46,6 +46,10 @@ final class NavBarBridge: NSObject, FlutterStreamHandler {
         let offset = (args["contentOffset"] as? NSNumber)?.doubleValue ?? 0
         NavBarOverlayHost.shared.applyScrollOffset(CGFloat(offset))
         result(nil)
+      case "setTopBlur":
+        let enabled = args["enabled"] as? Bool ?? false
+        NavBarOverlayHost.shared.applyTopBlur(enabled: enabled)
+        result(nil)
       default:
         NavBarOverlayHost.log("MethodChannel<- неизвестный метод \(call.method)")
         result(FlutterMethodNotImplemented)

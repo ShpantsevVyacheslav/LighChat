@@ -82,11 +82,4 @@ void main() {
     });
   });
 
-  group('BannerDismissedDate', () {
-    test('round-trips YYYY-MM-DD', () async {
-      expect(await loadBirthdayBannerDismissedDate(), isNull);
-      await saveBirthdayBannerDismissedDate('2026-05-13');
-      expect(await loadBirthdayBannerDismissedDate(), '2026-05-13');
-    });
-  });
 }

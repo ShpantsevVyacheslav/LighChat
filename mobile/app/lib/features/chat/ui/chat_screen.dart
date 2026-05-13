@@ -3865,8 +3865,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     ConversationWithId? convWrap,
     bool isGroup,
     String? otherId,
-    UserProfile? profile,
-  ) async {
+    UserProfile? profile, {
+    String? e2eeDecryptedText,
+  }) async {
     final repo = ref.read(chatRepositoryProvider);
     final conv = convWrap?.data;
     if (repo == null || conv == null) return;
@@ -3887,6 +3888,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       isGroup: isGroup,
       otherUserId: otherId,
       otherUserName: profile?.name,
+      decryptedText: e2eeDecryptedText,
     );
     final next = [...existing, entry];
     try {
@@ -4074,7 +4076,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           _startInlineEdit(m);
         });
       case MessageMenuActionType.pin:
-        await _pinMessage(m, user, convWrap, isGroup, otherId, profile);
+        await _pinMessage(
+          m,
+          user,
+          convWrap,
+          isGroup,
+          otherId,
+          profile,
+          e2eeDecryptedText: e2eeDecryptedText,
+        );
       case MessageMenuActionType.star:
         await _toggleMessageStar(
           message: m,

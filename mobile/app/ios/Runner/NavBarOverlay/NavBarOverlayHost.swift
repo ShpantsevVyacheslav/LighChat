@@ -20,6 +20,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   private var bottomBar: UITabBar?
   private var searchBar: UISearchBar?
 
+  /// Gradient blur полоска в верхнем safe-area. Masked CAGradientLayer'ом:
+  /// alpha=1 наверху, alpha=0 внизу → blur плавно усиливается снизу
+  /// вверх, граница невидима. Включается только на экране чата через
+  /// `applyTopBlur(enabled: true)` (там messages с яркими фото
+  /// проезжают под status bar'ом). На остальных экранах — выключен.
+  private var topGradientBlur: UIVisualEffectView?
+  private var topGradientMask: CAGradientLayer?
+
   private var topItem: UINavigationItem?
   private var topVisible: Bool = false
   private var bottomVisible: Bool = false
@@ -103,10 +111,9 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   private static let tabBarBottomOverlap: CGFloat = 12
   /// Отступ bar.top от safeArea.top. ОТРИЦАТЕЛЬНЫЙ — поднимаем bar в
   /// system-reserved area под Dynamic Island. Apple оставляет ~22pt
-  /// clearance под DI; -8pt пробивает половину этого «воздуха», items
-  /// визуально ближе к DI как у Telegram. Items при этом не клипятся
-  /// (DI overlays, не cuts).
-  private static let navBarTopGap: CGFloat = -8
+  /// clearance под DI; -16pt пробивает большую часть «воздуха», pill'ы
+  /// прижимаются к DI / status bar zone (Telegram-стиль).
+  private static let navBarTopGap: CGFloat = -16
   /// Структурное логирование для отладки overlay'я. Включается через
   /// `defaults write … NavBarOverlayDebug 1` или хардкодом ниже.
   private static let debugLog: Bool = true
@@ -131,6 +138,29 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     bottom.isHidden = true
     LiquidGlassAppearance.applyTabBar(bottom, tint: .systemBlue)
 
+    // Gradient blur strip над status bar zone — chat-only, opt-in через
+    // applyTopBlur(enabled:). Mask'им CAGradientLayer'ом alpha 0→1
+    // снизу→вверх, чтобы переход выглядел плавным, без видимой границы.
+    let topBlur = UIVisualEffectView(
+      effect: UIBlurEffect(style: .systemThinMaterial))
+    topBlur.translatesAutoresizingMaskIntoConstraints = false
+    topBlur.isUserInteractionEnabled = false
+    topBlur.isHidden = true  // chat включит явно
+
+    let gradientMask = CAGradientLayer()
+    // Colors UIColor (как CGColor) → alpha-channel'а для mask layer.
+    // Top = opaque (1.0), bottom = clear (0.0).
+    gradientMask.colors = [
+      UIColor.white.cgColor,
+      UIColor.white.withAlphaComponent(0.0).cgColor,
+    ]
+    gradientMask.startPoint = CGPoint(x: 0.5, y: 0.0)
+    gradientMask.endPoint = CGPoint(x: 0.5, y: 1.0)
+    topBlur.layer.mask = gradientMask
+    self.topGradientBlur = topBlur
+    self.topGradientMask = gradientMask
+
+    vc.view.addSubview(topBlur)
     vc.view.addSubview(top)
     vc.view.addSubview(bottom)
 
@@ -143,6 +173,16 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     topBarTopConstraint = topC
 
     NSLayoutConstraint.activate([
+      // Gradient blur от верха view до bottom edge nav bar pill'a
+      // (≈ safe-area.top + bar height + bit beyond). Mask делает
+      // переход невидимым на нижней границе.
+      topBlur.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
+      topBlur.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
+      topBlur.topAnchor.constraint(equalTo: vc.view.topAnchor),
+      topBlur.bottomAnchor.constraint(
+        equalTo: vc.view.safeAreaLayoutGuide.topAnchor,
+        constant: 4),
+
       top.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
       top.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
       topC,
@@ -191,48 +231,80 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
     let item = UINavigationItem()
 
-    // Leading: используем `leftBarButtonItems` с negative-fixedSpace ПОСЛЕ
-    // back/close/menu кнопки, чтобы зазор между back-pill и title-pill
-    // стал плотнее (паритет с trailing pill ниже).
+    // Leading: pre-compute `isChatStyleTitle`, чтобы для chat'а собрать
+    // back-pill как custom 44×44 view (matched к title pill), а для
+    // secondary-экранов оставить стандартную bar item (Apple Liquid
+    // Glass сам её отпилит).
+    let earlyTitleCfg = config["title"] as? [String: Any]
+    let earlyChatStyle =
+      ((earlyTitleCfg?["subtitle"] as? String) != nil)
+        || ((earlyTitleCfg?["avatarUrl"] as? String) != nil)
+
     func makeLeadingItems(_ btn: UIBarButtonItem) -> [UIBarButtonItem] {
       let negSpace = UIBarButtonItem(
         barButtonSystemItem: .fixedSpace, target: nil, action: nil)
       negSpace.width = -8
-      // leftBarButtonItems[0] — самый левый; index 1 — правее, между
-      // back-кнопкой и title.
       return [btn, negSpace]
     }
+
+    /// 44×44 круглая пилюля с UIVisualEffectView background — визуально
+    /// matched к title pill для chat-style шапки.
+    func makeBackPillItem(symbol: String) -> UIBarButtonItem {
+      let pill = UIVisualEffectView(
+        effect: UIBlurEffect(style: .systemThinMaterial))
+      pill.translatesAutoresizingMaskIntoConstraints = false
+      pill.layer.cornerRadius = 22
+      pill.layer.masksToBounds = true
+      pill.isUserInteractionEnabled = true
+
+      let icon = UIButton(type: .system)
+      icon.setImage(SymbolMapper.image(named: symbol), for: .normal)
+      icon.tintColor = .label
+      icon.addTarget(
+        self, action: #selector(onLeadingTap), for: .touchUpInside)
+      icon.translatesAutoresizingMaskIntoConstraints = false
+      pill.contentView.addSubview(icon)
+      NSLayoutConstraint.activate([
+        icon.centerXAnchor.constraint(equalTo: pill.contentView.centerXAnchor),
+        icon.centerYAnchor.constraint(equalTo: pill.contentView.centerYAnchor),
+        icon.widthAnchor.constraint(equalToConstant: 36),
+        icon.heightAnchor.constraint(equalToConstant: 36),
+        pill.widthAnchor.constraint(equalToConstant: 44),
+        pill.heightAnchor.constraint(equalToConstant: 44),
+      ])
+      return UIBarButtonItem(customView: pill)
+    }
+
     if let leading = config["leading"] as? [String: Any] {
       let type = leading["type"] as? String ?? "back"
       leadingId = leading["id"] as? String ?? "back"
+      let symbol: String
       switch type {
       case "none":
         item.leftBarButtonItems = nil
+        symbol = ""
       case "close":
-        let btn = UIBarButtonItem(
-          image: SymbolMapper.image(named: "xmark"),
-          style: .plain,
-          target: self,
-          action: #selector(onLeadingTap))
-        item.leftBarButtonItems = makeLeadingItems(btn)
+        symbol = "xmark"
       case "menu":
-        let symbol = (leading["icon"] as? [String: Any])?["symbol"] as? String
+        symbol = (leading["icon"] as? [String: Any])?["symbol"] as? String
           ?? "line.3.horizontal"
-        let btn = UIBarButtonItem(
-          image: SymbolMapper.image(named: symbol),
-          style: .plain,
-          target: self,
-          action: #selector(onLeadingTap))
-        item.leftBarButtonItems = makeLeadingItems(btn)
       case "back":
         fallthrough
       default:
-        let btn = UIBarButtonItem(
-          image: SymbolMapper.image(named: "chevron.backward"),
-          style: .plain,
-          target: self,
-          action: #selector(onLeadingTap))
-        item.leftBarButtonItems = makeLeadingItems(btn)
+        symbol = "chevron.backward"
+      }
+      if type != "none" {
+        if earlyChatStyle {
+          item.leftBarButtonItems = makeLeadingItems(
+            makeBackPillItem(symbol: symbol))
+        } else {
+          let btn = UIBarButtonItem(
+            image: SymbolMapper.image(named: symbol),
+            style: .plain,
+            target: self,
+            action: #selector(onLeadingTap))
+          item.leftBarButtonItems = makeLeadingItems(btn)
+        }
       }
     }
 
@@ -644,6 +716,19 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     _ = offset
   }
 
+  /// Включает/выключает gradient blur полоску в status-bar zone.
+  /// CAGradientLayer mask делает переход alpha 0→1 снизу→вверх плавным
+  /// без видимой границы. Вызывается чат-экраном при entry/leave.
+  func applyTopBlur(enabled: Bool) {
+    Self.log("applyTopBlur enabled=\(enabled)")
+    topGradientBlur?.isHidden = !enabled
+    // Mask frame обновится при следующем layout pass — но если view
+    // уже laid-out, прокачаем сейчас.
+    if let blur = topGradientBlur, let mask = topGradientMask {
+      mask.frame = blur.bounds
+    }
+  }
+
   // MARK: - Title view
 
   private func makeTitleView(
@@ -695,12 +780,13 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     }()
     contentHost.addSubview(container)
     NSLayoutConstraint.activate([
-      // Сжимаем внутренние отступы title-pill'а, чтобы текст имени мог
-      // занять больше горизонтального пространства (раньше 4/10 → 3/6).
+      // Воздух по краям title-pill'а: 10/8 — avatar не прижимается
+      // вплотную к левому краю, trailing icons — к правому. Раньше
+      // было 3/6, аватар выглядел вжатым в borderline.
       container.leadingAnchor.constraint(
-        equalTo: contentHost.leadingAnchor, constant: 3),
+        equalTo: contentHost.leadingAnchor, constant: 10),
       container.trailingAnchor.constraint(
-        equalTo: contentHost.trailingAnchor, constant: -6),
+        equalTo: contentHost.trailingAnchor, constant: -8),
       container.topAnchor.constraint(equalTo: contentHost.topAnchor),
       container.bottomAnchor.constraint(equalTo: contentHost.bottomAnchor),
     ])
@@ -808,16 +894,19 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
           self, action: #selector(onTrailingButtonTap(_:)),
           for: .touchUpInside)
         btn.translatesAutoresizingMaskIntoConstraints = false
-        btn.widthAnchor.constraint(equalToConstant: 32).isActive = true
-        btn.heightAnchor.constraint(equalToConstant: 32).isActive = true
+        // 36×36 — крупнее, чем 32, как просил пользователь. Apple's
+        // standard barButton hit-target минимум 44pt, но для grouped
+        // icons внутри pill'а 36 норм (видны как кликабельные).
+        btn.widthAnchor.constraint(equalToConstant: 36).isActive = true
+        btn.heightAnchor.constraint(equalToConstant: 36).isActive = true
         iconButtons.append(btn)
       }
       let iconStack = UIStackView(arrangedSubviews: iconButtons)
       iconStack.axis = .horizontal
       iconStack.alignment = .center
-      // 0pt spacing для embedded icons: 4 иконки × 32pt = 128pt — впритык,
-      // оставляем максимум места под avatar + имя.
-      iconStack.spacing = 0
+      // 4pt spacing между иконками — видны как отдельные кнопки, но
+      // остаются в одной visual-группе (одной пилюле).
+      iconStack.spacing = 4
       iconStack.translatesAutoresizingMaskIntoConstraints = false
       container.addSubview(iconStack)
       NSLayoutConstraint.activate([
