@@ -7,8 +7,8 @@ import 'package:image_picker/image_picker.dart';
 /// Эвристика «это стикер, а не обычное фото» для drag&drop из других
 /// приложений (особенно iOS Photos «Lift Subject» / Telegram-style паки).
 ///
-/// Стикер — PNG/WebP с прозрачным фоном, маленькой стороной (≤ 512px) и
-/// небольшим весом (≤ 1 MB). Чтобы отделить стикер от обычного PNG-фото
+/// Стикер — PNG/WebP с прозрачным фоном, маленькой стороной (≤ 1024px) и
+/// разумным весом (≤ 4 MiB). Чтобы отделить стикер от обычного PNG-фото
 /// с альфа-каналом (скриншоты UI и т.п.), дополнительно проверяем четыре
 /// угла: у настоящего «вырезанного subject» они прозрачны, у скриншота —
 /// заполнены.
@@ -20,8 +20,11 @@ import 'package:image_picker/image_picker.dart';
 /// Все шаги логируются через `debugPrint('[sticker-heuristic] …')` —
 /// пригодится для диагностики «почему именно мой стикер не распознался».
 
-const int kStickerMaxSidePx = 512;
-const int kStickerMaxBytes = 1 << 20; // 1 MiB
+// Лимиты подобраны по реальным дропам iOS Lift Subject: ретиновые PNG
+// 1024×1024 с альфой, файл 1.5–3 MiB. Угловой пробинг ниже защищает от
+// false-positive на обычных скриншотах с альфой даже с такими порогами.
+const int kStickerMaxSidePx = 1024;
+const int kStickerMaxBytes = 4 << 20; // 4 MiB
 const int _kCornerAlphaCutoff = 16;
 const int _kCornerProbeInset = 2;
 
