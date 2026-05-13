@@ -55,6 +55,12 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// Без компенсации шапка оказывается ~30pt ниже expected'а.
   private var topBarTopConstraint: NSLayoutConstraint?
 
+  /// Тот же compensation pattern для bottom bar: `additionalSafeAreaInsets.bottom`
+  /// сдвигает safeAreaLayoutGuide.bottomAnchor ВВЕРХ на insets.bottom,
+  /// и bar.top уезжает вместе с ним. Без компенсации tab bar становится
+  /// высотой 132pt вместо 83pt, иконки оказываются в середине экрана.
+  private var bottomBarTopConstraint: NSLayoutConstraint?
+
   // MARK: - Eventing
 
   var onEvent: ((String, [String: Any]) -> Void)?
@@ -74,8 +80,8 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// Top bar поднят до 56pt чтобы avatar 36×36 + title + subtitle помещались
   /// без обрезки (iOS 26 Liquid Glass).
   private static let tabBarContentHeight: CGFloat = 49
-  /// Высота nav bar'а. 40pt — компактно, items 36pt + 2pt margin top/bottom.
-  private static let navBarContentHeight: CGFloat = 40
+  /// Высота nav bar'а. 44pt — items pill 40pt + 2pt margin top/bottom.
+  private static let navBarContentHeight: CGFloat = 44
   /// Отступ bar.top от safeArea.top. ОТРИЦАТЕЛЬНЫЙ — поднимаем bar в
   /// system-reserved area под Dynamic Island. Apple оставляет ~22pt
   /// clearance под DI; -8pt пробивает половину этого «воздуха», items
@@ -93,10 +99,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     top.translatesAutoresizingMaskIntoConstraints = false
     top.delegate = self
     top.isHidden = true
-    // Уменьшенные боковые отступы: back-кнопка слева и call/video справа
-    // ближе к краям, чем дефолтные 16pt UINavigationBar.
+    // Минимальные боковые отступы — back прижат к левому краю, actions
+    // к правому. Освобождает центр для title pill (avatar+name+subtitle).
     top.directionalLayoutMargins = NSDirectionalEdgeInsets(
-      top: 0, leading: 8, bottom: 0, trailing: 8)
+      top: 0, leading: 4, bottom: 0, trailing: 4)
     top.preservesSuperviewLayoutMargins = false
     LiquidGlassAppearance.applyNavigationBar(top, tint: .systemBlue)
 
@@ -117,6 +123,11 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       constant: Self.navBarTopGap)
     topBarTopConstraint = topC
 
+    let bottomTopC = bottom.topAnchor.constraint(
+      equalTo: vc.view.safeAreaLayoutGuide.bottomAnchor,
+      constant: -Self.tabBarContentHeight)
+    bottomBarTopConstraint = bottomTopC
+
     NSLayoutConstraint.activate([
       top.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
       top.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
@@ -129,9 +140,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       // контент-зона (49pt) сидит над home-indicator — иконки/лейблы не
       // сплющены.
       bottom.bottomAnchor.constraint(equalTo: vc.view.bottomAnchor),
-      bottom.topAnchor.constraint(
-        equalTo: vc.view.safeAreaLayoutGuide.bottomAnchor,
-        constant: -Self.tabBarContentHeight),
+      bottomTopC,
     ])
 
     Self.log(
@@ -548,14 +557,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       let visual = UIVisualEffectView(
         effect: UIBlurEffect(style: .systemThinMaterial))
       visual.translatesAutoresizingMaskIntoConstraints = false
-      visual.layer.cornerRadius = 18  // = height/2 для full pill
+      visual.layer.cornerRadius = 20  // = height/2 для full pill (40pt)
       visual.layer.masksToBounds = true
       pill = visual
     } else {
       let v = UIView()
       v.translatesAutoresizingMaskIntoConstraints = false
       v.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.65)
-      v.layer.cornerRadius = 18
+      v.layer.cornerRadius = 20
       v.layer.masksToBounds = true
       pill = v
     }
@@ -590,7 +599,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
     let avatar = UIImageView()
     avatar.translatesAutoresizingMaskIntoConstraints = false
-    avatar.layer.cornerRadius = 15  // half of 30 для round avatar
+    avatar.layer.cornerRadius = 16  // half of 32 для round avatar
     avatar.layer.masksToBounds = true
     avatar.contentMode = .scaleAspectFill
     // Fallback fill: solid 0xFF18357C (тот же start-цвет Flutter
@@ -626,14 +635,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     let titleLabel = UILabel()
     titleLabel.translatesAutoresizingMaskIntoConstraints = false
     titleLabel.text = title
-    titleLabel.font = .systemFont(ofSize: 14, weight: .semibold)
+    titleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
     titleLabel.textColor = .label
     titleLabel.lineBreakMode = .byTruncatingTail
 
     let subtitleLabel = UILabel()
     subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
     subtitleLabel.text = subtitle
-    subtitleLabel.font = .systemFont(ofSize: 11, weight: .regular)
+    subtitleLabel.font = .systemFont(ofSize: 12, weight: .regular)
     subtitleLabel.textColor = .secondaryLabel
     subtitleLabel.lineBreakMode = .byTruncatingTail
     subtitleLabel.isHidden = (subtitle?.isEmpty ?? true)
@@ -648,10 +657,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     container.addSubview(textStack)
 
     NSLayoutConstraint.activate([
-      // Avatar 30×30, pill 36 — visually совпадает с Apple's iOS 26
-      // barButtonItem pills (back/search/video/phone group).
-      avatar.widthAnchor.constraint(equalToConstant: 30),
-      avatar.heightAnchor.constraint(equalToConstant: 30),
+      // Avatar 32×32, pill 40 — той же высоты, что Apple's iOS 26
+      // barButtonItem pills (back / search-video-phone group).
+      avatar.widthAnchor.constraint(equalToConstant: 32),
+      avatar.heightAnchor.constraint(equalToConstant: 32),
       avatar.leadingAnchor.constraint(equalTo: container.leadingAnchor),
       avatar.centerYAnchor.constraint(equalTo: container.centerYAnchor),
 
@@ -663,7 +672,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       textStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
       textStack.trailingAnchor.constraint(
         lessThanOrEqualTo: container.trailingAnchor),
-      container.heightAnchor.constraint(equalToConstant: 36),
+      container.heightAnchor.constraint(equalToConstant: 40),
     ])
 
     if let statusDotHex = statusDotHex, let color = UIColor.fromHex(statusDotHex) {
@@ -751,17 +760,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   private func updateSafeAreaInsets() {
     guard let vc = flutterVC else { return }
     var insets = UIEdgeInsets.zero
-    if topVisible, let bar = topBar, !bar.isHidden {
-      // Bar pinned: safeArea.top + navBarTopGap, height = navBarContentHeight.
-      // Flutter контент должен оставаться ниже bar.bottomEdge = gap + height.
-      let h = bar.bounds.height > 0 ? bar.bounds.height : Self.navBarContentHeight
-      insets.top = Self.navBarTopGap + h
-    }
+    // ВАЖНО: insets.top = 0 — Flutter content рисует во всю высоту view,
+    // status bar items + наши pills overlay'ются сверху на контент. При
+    // скролле messages и date-tag проходят под прозрачной пилюлей шапки
+    // (Telegram-эффект). Раньше insets.top = 32 → контент cut'ился у
+    // safeArea-границы.
     if bottomVisible, let bar = bottomBar, !bar.isHidden {
-      // У UITabBar bounds.height = 49 + safeArea.bottom (фон тянется до низа),
-      // но Flutter контент должен заходить под home indicator. Поэтому
-      // дополнительный inset = только высота контента (49), системный inset
-      // home indicator уже учтён в view.safeAreaInsets.
+      // Для tab bar inset нужен — иначе list-контент уезжает под bar
+      // (icons не прозрачные, items перекрывают последние элементы списка).
       _ = bar
       insets.bottom = Self.tabBarContentHeight
     }
@@ -770,11 +776,20 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     // КОМПЕНСАЦИЯ circular feedback: additionalSafeAreaInsets.top сдвигает
     // safeAreaLayoutGuide.topAnchor вниз на insets.top. bar.topConstraint
     // тоже привязан к safeAreaLayoutGuide.topAnchor, и без этой коррекции
-    // он бы ехал вниз вместе с safeArea (что мы и видели на скринах —
-    // ~60pt void над items). Подкручиваем `constant`, чтобы абсолютная
-    // позиция bar.top осталась = originalSafeArea + navBarTopGap.
+    // он бы ехал вниз вместе с safeArea. Подкручиваем `constant`, чтобы
+    // абсолютная позиция bar.top осталась = originalSafeArea + navBarTopGap.
     topBarTopConstraint?.constant = Self.navBarTopGap - insets.top
-    Self.log("updateSafeAreaInsets insets.top=\(insets.top) topConstraint.constant=\(Self.navBarTopGap - insets.top)")
+
+    // Симметричная компенсация для bottom bar: insets.bottom сдвигает
+    // safeAreaLayoutGuide.bottomAnchor ВВЕРХ на insets.bottom, и bar.top
+    // привязан к нему. Без коррекции bar становится высотой
+    // tabBarContentHeight + insets.bottom (132pt вместо 83pt), иконки
+    // оказываются в середине экрана.
+    // Формула: constant = -tabBarContentHeight + insets.bottom.
+    bottomBarTopConstraint?.constant = -Self.tabBarContentHeight + insets.bottom
+    Self.log(
+      "updateSafeAreaInsets insets.top=\(insets.top) topConst=\(Self.navBarTopGap - insets.top) insets.bottom=\(insets.bottom) botConst=\(-Self.tabBarContentHeight + insets.bottom)"
+    )
   }
 
   // MARK: - Targets
