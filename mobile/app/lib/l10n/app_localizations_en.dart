@@ -6408,6 +6408,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get system_event_game_started => 'Game started';
 
   @override
+  String get system_event_call_missed => 'Missed call';
+
+  @override
+  String get system_event_call_cancelled => 'Call rejected';
+
+  @override
   String get system_event_default_actor => 'User';
 
   @override

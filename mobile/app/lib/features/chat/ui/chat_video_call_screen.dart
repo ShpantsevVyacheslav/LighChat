@@ -368,9 +368,7 @@ class _ChatVideoCallScreenState extends State<ChatVideoCallScreen> {
         final l10n = AppLocalizations.of(context)!;
         final txt = resolvedStatus == 'missed'
             ? l10n.video_call_status_missed
-            : resolvedStatus == 'cancelled'
-                ? l10n.video_call_status_cancelled
-                : l10n.video_call_ended;
+            : null;
         await _close(txt);
         return;
       }

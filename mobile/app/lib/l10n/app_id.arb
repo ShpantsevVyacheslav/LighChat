@@ -3014,6 +3014,8 @@
   },
   "system_event_game_lobby_created": "Permainan lobby Dibuat",
   "system_event_game_started": "Permainan started",
+  "system_event_call_missed": "Panggilan terlewat",
+  "system_event_call_cancelled": "Panggilan ditolak",
   "system_event_default_actor": "Pengguna",
   "system_event_default_device": "Perangkat",
   "image_editor_add_caption": "Tambah caption...",

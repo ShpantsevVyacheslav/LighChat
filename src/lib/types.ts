@@ -819,7 +819,9 @@ export type ChatSystemEventType =
   | 'e2ee.v2.device.revoked'
   | 'e2ee.v2.fingerprint.changed'
   | 'gameLobbyCreated'
-  | 'gameStarted';
+  | 'gameStarted'
+  | 'call.missed'
+  | 'call.cancelled';
 
 export type ChatSystemEvent = {
   type: ChatSystemEventType;
@@ -834,6 +836,12 @@ export type ChatSystemEvent = {
     nextFingerprint?: string;
     gameId?: string;
     gameType?: 'durak' | string;
+    /** Для call events: ID звонка */
+    callId?: string;
+    /** Для call events: ID звонящего */
+    callerId?: string;
+    /** Для call events: тип звонка */
+    isVideo?: boolean;
   };
 };
 

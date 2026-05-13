@@ -70,6 +70,7 @@ export {
   onchatthreadmessagemediatranscode,
 } from './triggers/firestore/onChatMessageMediaTranscode';
 export { oncallcreated } from './triggers/firestore/onCallCreated';
+export { oncallupdated } from './triggers/firestore/onCallUpdated';
 export { onmeetingparticipantcreated } from './triggers/firestore/onMeetingParticipantCreated';
 
 // Scheduler Triggers

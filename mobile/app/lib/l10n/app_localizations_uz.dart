@@ -6473,6 +6473,12 @@ class AppLocalizationsUz extends AppLocalizations {
   String get system_event_game_started => 'Oʻyin boshlandi';
 
   @override
+  String get system_event_call_missed => 'Qo\'ng\'iroqni qabul qilinmadi';
+
+  @override
+  String get system_event_call_cancelled => 'Qo\'ng\'iroq rad etildi';
+
+  @override
   String get system_event_default_actor => 'Foydalanuvchi';
 
   @override

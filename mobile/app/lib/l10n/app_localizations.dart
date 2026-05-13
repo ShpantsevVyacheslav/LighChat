@@ -11344,6 +11344,18 @@ abstract class AppLocalizations {
   /// **'Игра началась'**
   String get system_event_game_started;
 
+  /// No description provided for @system_event_call_missed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пропущенный звонок'**
+  String get system_event_call_missed;
+
+  /// No description provided for @system_event_call_cancelled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Звонок отклонён'**
+  String get system_event_call_cancelled;
+
   /// No description provided for @system_event_default_actor.
   ///
   /// In ru, this message translates to:

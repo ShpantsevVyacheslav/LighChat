@@ -6433,6 +6433,12 @@ class AppLocalizationsId extends AppLocalizations {
   String get system_event_game_started => 'Permainan started';
 
   @override
+  String get system_event_call_missed => 'Panggilan terlewat';
+
+  @override
+  String get system_event_call_cancelled => 'Panggilan ditolak';
+
+  @override
   String get system_event_default_actor => 'Pengguna';
 
   @override

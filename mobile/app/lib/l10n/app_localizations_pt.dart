@@ -6474,6 +6474,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get system_event_game_started => 'Jogo started';
 
   @override
+  String get system_event_call_missed => 'Chamada perdida';
+
+  @override
+  String get system_event_call_cancelled => 'Chamada rejeitada';
+
+  @override
   String get system_event_default_actor => 'Usuário';
 
   @override
@@ -14572,6 +14578,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get system_event_game_started => 'Jogo started';
+
+  @override
+  String get system_event_call_missed => 'Chamada perdida';
+
+  @override
+  String get system_event_call_cancelled => 'Chamada rejeitada';
 
   @override
   String get system_event_default_actor => 'Usuário';

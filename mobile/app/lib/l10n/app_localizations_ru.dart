@@ -6431,6 +6431,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get system_event_game_started => 'Игра началась';
 
   @override
+  String get system_event_call_missed => 'Пропущенный звонок';
+
+  @override
+  String get system_event_call_cancelled => 'Звонок отклонён';
+
+  @override
   String get system_event_default_actor => 'Пользователь';
 
   @override

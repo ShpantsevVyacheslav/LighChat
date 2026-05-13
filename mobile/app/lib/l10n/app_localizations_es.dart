@@ -6489,6 +6489,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get system_event_game_started => 'Juego iniciado';
 
   @override
+  String get system_event_call_missed => 'Llamada perdida';
+
+  @override
+  String get system_event_call_cancelled => 'Llamada rechazada';
+
+  @override
   String get system_event_default_actor => 'Usuario';
 
   @override
@@ -14600,6 +14606,12 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get system_event_game_started => 'Juego iniciado';
+
+  @override
+  String get system_event_call_missed => 'Llamada perdida';
+
+  @override
+  String get system_event_call_cancelled => 'Llamada rechazada';
 
   @override
   String get system_event_default_actor => 'Usuario';

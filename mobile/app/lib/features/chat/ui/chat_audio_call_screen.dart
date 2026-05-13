@@ -280,9 +280,7 @@ class _ChatAudioCallScreenState extends State<ChatAudioCallScreen> {
         );
         final txt = resolvedStatus == 'missed'
             ? AppLocalizations.of(context)!.audio_call_missed
-            : resolvedStatus == 'cancelled'
-            ? AppLocalizations.of(context)!.audio_call_cancelled
-            : AppLocalizations.of(context)!.audio_call_ended;
+            : null;
         await _close(txt);
         return;
       }

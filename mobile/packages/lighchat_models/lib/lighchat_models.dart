@@ -1302,7 +1302,9 @@ enum ChatSystemEventType {
   e2eeV2DeviceRevoked('e2ee.v2.device.revoked'),
   e2eeV2FingerprintChanged('e2ee.v2.fingerprint.changed'),
   gameLobbyCreated('gameLobbyCreated'),
-  gameStarted('gameStarted');
+  gameStarted('gameStarted'),
+  callMissed('call.missed'),
+  callCancelled('call.cancelled');
 
   const ChatSystemEventType(this.wire);
   final String wire;

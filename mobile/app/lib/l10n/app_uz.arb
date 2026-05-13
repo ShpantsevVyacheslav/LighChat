@@ -3014,6 +3014,8 @@
   },
   "system_event_game_lobby_created": "Oʻyin lobbisi yaratildi",
   "system_event_game_started": "Oʻyin boshlandi",
+  "system_event_call_missed": "Qo'ng'iroqni qabul qilinmadi",
+  "system_event_call_cancelled": "Qo'ng'iroq rad etildi",
   "system_event_default_actor": "Foydalanuvchi",
   "system_event_default_device": "qurilma",
   "image_editor_add_caption": "Izoh qoʻshing...",

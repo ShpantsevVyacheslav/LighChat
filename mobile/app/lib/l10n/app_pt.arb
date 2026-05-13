@@ -3014,6 +3014,8 @@
   },
   "system_event_game_lobby_created": "Jogo lobby created",
   "system_event_game_started": "Jogo started",
+  "system_event_call_missed": "Chamada perdida",
+  "system_event_call_cancelled": "Chamada rejeitada",
   "system_event_default_actor": "Usuário",
   "system_event_default_device": "dispositivo",
   "image_editor_add_caption": "Adicionar caption...",

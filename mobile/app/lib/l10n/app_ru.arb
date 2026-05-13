@@ -3355,6 +3355,8 @@
   },
   "system_event_game_lobby_created": "Создано лобби игры",
   "system_event_game_started": "Игра началась",
+  "system_event_call_missed": "Пропущенный звонок",
+  "system_event_call_cancelled": "Звонок отклонён",
   "system_event_default_actor": "Пользователь",
   "system_event_default_device": "устройство",
   "image_editor_add_caption": "Добавить подпись...",

@@ -6444,6 +6444,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get system_event_game_started => 'Oyun başladı';
 
   @override
+  String get system_event_call_missed => 'Cevapsız çağrı';
+
+  @override
+  String get system_event_call_cancelled => 'Çağrı reddedildi';
+
+  @override
   String get system_event_default_actor => 'Kullanıcı';
 
   @override

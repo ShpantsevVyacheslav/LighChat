@@ -3014,6 +3014,8 @@
   },
   "system_event_game_lobby_created": "Создабірақ лоббжәне ойындар",
   "system_event_game_started": "Ойын началась",
+  "system_event_call_missed": "Сыннан тыс қоңырау",
+  "system_event_call_cancelled": "Қоңырау түсініктелді",
   "system_event_default_actor": "Пользователь",
   "system_event_default_device": "құрылғы",
   "image_editor_add_caption": "Қосу подпись...",

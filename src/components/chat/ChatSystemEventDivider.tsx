@@ -9,7 +9,7 @@
  * forward-compatible type, не падал.
  */
 
-import { Lock, LockOpen, Shield, Smartphone, Fingerprint, RefreshCw, Swords } from 'lucide-react';
+import { Lock, LockOpen, Shield, Smartphone, Fingerprint, RefreshCw, Swords, AlertCircle, PhoneOff } from 'lucide-react';
 import type { ChatSystemEvent } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
@@ -31,6 +31,10 @@ function pickIcon(type: ChatSystemEvent['type']) {
     case 'gameLobbyCreated':
     case 'gameStarted':
       return Swords;
+    case 'call.missed':
+      return AlertCircle;
+    case 'call.cancelled':
+      return PhoneOff;
     default:
       return Lock;
   }
@@ -66,6 +70,10 @@ export function ChatSystemEventDivider({
         return event.data?.gameType === 'durak' ? t('chat.systemEvent.gameLobbyDurak') : t('chat.systemEvent.gameLobbyGeneric');
       case 'gameStarted':
         return event.data?.gameType === 'durak' ? t('chat.systemEvent.gameStartedDurak') : t('chat.systemEvent.gameStartedGeneric');
+      case 'call.missed':
+        return t('chat.systemEvent.callMissed');
+      case 'call.cancelled':
+        return t('chat.systemEvent.callCancelled');
       default:
         return t('chat.systemEvent.generic');
     }

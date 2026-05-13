@@ -3040,6 +3040,8 @@
   },
   "system_event_game_lobby_created": "Game lobby created",
   "system_event_game_started": "Game started",
+  "system_event_call_missed": "Missed call",
+  "system_event_call_cancelled": "Call rejected",
   "system_event_default_actor": "User",
   "system_event_default_device": "device",
   "image_editor_add_caption": "Add caption...",

@@ -6446,6 +6446,12 @@ class AppLocalizationsKk extends AppLocalizations {
   String get system_event_game_started => 'Ойын началась';
 
   @override
+  String get system_event_call_missed => 'Сыннан тыс қоңырау';
+
+  @override
+  String get system_event_call_cancelled => 'Қоңырау түсініктелді';
+
+  @override
   String get system_event_default_actor => 'Пользователь';
 
   @override

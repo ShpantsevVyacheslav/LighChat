@@ -3014,6 +3014,8 @@
   },
   "system_event_game_lobby_created": "Oyun lobisi oluşturuldu",
   "system_event_game_started": "Oyun başladı",
+  "system_event_call_missed": "Cevapsız çağrı",
+  "system_event_call_cancelled": "Çağrı reddedildi",
   "system_event_default_actor": "Kullanıcı",
   "system_event_default_device": "cihaz",
   "image_editor_add_caption": "Açıklama ekle...",

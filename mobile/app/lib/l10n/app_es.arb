@@ -3014,6 +3014,8 @@
   },
   "system_event_game_lobby_created": "Sala de juego creada",
   "system_event_game_started": "Juego iniciado",
+  "system_event_call_missed": "Llamada perdida",
+  "system_event_call_cancelled": "Llamada rechazada",
   "system_event_default_actor": "Usuario",
   "system_event_default_device": "dispositivo",
   "image_editor_add_caption": "Agregar descripción...",

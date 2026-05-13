@@ -88,6 +88,10 @@ class ChatSystemEventDivider extends StatelessWidget {
         return Icons.style_rounded;
       case ChatSystemEventType.gameStarted:
         return Icons.sports_esports_rounded;
+      case ChatSystemEventType.callMissed:
+        return Icons.call_missed_outlined;
+      case ChatSystemEventType.callCancelled:
+        return Icons.call_end_outlined;
     }
   }
 
@@ -117,6 +121,10 @@ class ChatSystemEventDivider extends StatelessWidget {
         return l10n.system_event_game_lobby_created;
       case ChatSystemEventType.gameStarted:
         return l10n.system_event_game_started;
+      case ChatSystemEventType.callMissed:
+        return l10n.system_event_call_missed;
+      case ChatSystemEventType.callCancelled:
+        return l10n.system_event_call_cancelled;
     }
   }
 }
