@@ -68,7 +68,6 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
   bool _consumed = false;
   bool _rendererInitialized = false;
   bool _bootstrapping = false;
-  bool _initialRequestDone = false;
   Timer? _retryAfterSettingsTimer;
 
   @override
@@ -106,41 +105,49 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
 
   Future<void> _bootstrapPreview({bool forceRequest = false}) async {
     if (_consumed) return;
-    if (_bootstrapping) return; // re-entrancy guard
+    // forceRequest === «пользователь явно нажал Try again»: пропускаем
+    // re-entrancy guard, чтобы не игнорировать его если предыдущий
+    // bootstrap ещё не успел упасть.
+    if (_bootstrapping && !forceRequest) return;
     _bootstrapping = true;
     try {
       if (!_rendererInitialized) {
         await _previewRenderer.initialize();
         _rendererInitialized = true;
       }
+
+      // ВАЖНО: на iOS НЕ полагаемся на permission_handler — он кеширует
+      // статус и после возврата из Settings.app может ещё несколько
+      // секунд отдавать `denied`, тогда как flutter_webrtc через
+      // AVCaptureDevice уже видит фактический grant. Поэтому идём
+      // напрямую к `getUserMedia`: WebRTC сам поднимет системный диалог
+      // (если первый раз), либо использует существующий grant. Если
+      // mic/camera запрещены — `getUserMedia` бросит, и мы обработаем
+      // в catch.
+      //
+      // На Android тоже норм: flutter_webrtc-android вызывает
+      // `requestPermissions` под капотом при необходимости.
       try {
-        // Первый раз — `request()` поднимает системный диалог. Повторные
-        // ретраи (после возврата из настроек) — только `.status`, чтобы не
-        // спамить пользователя бесконечными prompt'ами.
-        final cam = forceRequest || !_initialRequestDone
-            ? await Permission.camera.request()
-            : await Permission.camera.status;
-        final mic = forceRequest || !_initialRequestDone
-            ? await Permission.microphone.request()
-            : await Permission.microphone.status;
-        _initialRequestDone = true;
-        if (!cam.isGranted && !cam.isLimited) {
-          if (mounted) {
-            setState(() {
-              _previewDenied = true;
-              _initialCameraOff = true;
-            });
-          }
-          return;
-        }
-        if (!mic.isGranted && !mic.isLimited) {
+        // Сначала пытаемся получить и аудио, и видео.
+        MediaStream? stream;
+        try {
+          stream =
+              await navigator.mediaDevices.getUserMedia(<String, dynamic>{
+            'audio': true,
+            'video': <String, dynamic>{'facingMode': 'user'},
+          });
+        } catch (e1) {
+          appLogger.w('[meeting-lobby] full getUserMedia failed', error: e1);
+          // Фолбэк: только видео без аудио (вдруг микро отдельно
+          // запрещён). Если и это упало — реально отказ камеры.
           _initialMicMuted = true;
+          stream =
+              await navigator.mediaDevices.getUserMedia(<String, dynamic>{
+            'audio': false,
+            'video': <String, dynamic>{'facingMode': 'user'},
+          });
         }
-        final stream =
-            await navigator.mediaDevices.getUserMedia(<String, dynamic>{
-          'audio': true,
-          'video': <String, dynamic>{'facingMode': 'user'},
-        });
+
         if (!mounted) {
           for (final t in stream.getTracks()) {
             await t.stop();
@@ -150,8 +157,11 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
         }
         _previewStream = stream;
         _previewRenderer.srcObject = stream;
-        // Если пользователь до этого видел «доступ запрещён», сбрасываем
-        // флаги: камера снова доступна.
+        // Если в стриме нет аудио-треков — значит микро запрещён,
+        // войдём в комнату с muted=true.
+        if (stream.getAudioTracks().isEmpty) {
+          _initialMicMuted = true;
+        }
         setState(() {
           _previewReady = true;
           _previewDenied = false;
@@ -439,23 +449,9 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
         if (meeting.isPrivate && !meeting.isAdmin(widget.selfUid))
           _privateJoinFlow(ownRequest)
         else
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
+          _GradientPrimaryButton(
             onPressed: _goToRoom,
-            child: Text(
-              AppLocalizations.of(context)!.meeting_enter_room,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            label: AppLocalizations.of(context)!.meeting_enter_room,
           ),
       ],
     );
@@ -463,32 +459,10 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
 
   Widget _privateJoinFlow(MeetingRequestDoc? ownRequest) {
     if (!_requestSubmitted) {
-      return ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF3B82F6),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
+      return _GradientPrimaryButton(
         onPressed: _sendingRequest ? null : _submitRequest,
-        child: _sendingRequest
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
-              )
-            : Text(
-                AppLocalizations.of(context)!.meeting_request_join,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+        label: AppLocalizations.of(context)!.meeting_request_join,
+        busy: _sendingRequest,
       );
     }
     final status = ownRequest?.status ?? 'pending';
@@ -745,6 +719,75 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
           message,
           textAlign: TextAlign.center,
           style: const TextStyle(color: Colors.white70),
+        ),
+      ),
+    );
+  }
+}
+
+/// Основная кнопка с градиентом — паритет с «Save» в редактировании
+/// профиля (`features/auth/ui/profile_screen.dart`).
+class _GradientPrimaryButton extends StatelessWidget {
+  const _GradientPrimaryButton({
+    required this.onPressed,
+    required this.label,
+    this.busy = false,
+  });
+
+  final VoidCallback? onPressed;
+  final String label;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null && !busy;
+    return SizedBox(
+      height: 54,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: enabled
+              ? const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    Color(0xFF2E86FF),
+                    Color(0xFF5F90FF),
+                    Color(0xFF9A18FF),
+                  ],
+                )
+              : LinearGradient(
+                  colors: [
+                    Colors.white.withValues(alpha: 0.18),
+                    Colors.white.withValues(alpha: 0.18),
+                  ],
+                ),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: TextButton(
+          onPressed: enabled ? onPressed : null,
+          style: TextButton.styleFrom(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
+            foregroundColor: Colors.white,
+          ),
+          child: busy
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
         ),
       ),
     );
