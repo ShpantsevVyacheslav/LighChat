@@ -449,12 +449,23 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
         }
       }
 
-      let tab = UITabBarItem(title: label, image: normalImage, selectedImage: selectedImage)
+      // Icon-only tab bar: убираем подписи. UITabBar при пустом title
+      // оставляет место для label'а внизу item'а; сдвигаем icon вниз
+      // через положительный `imageInsets.top`, чтобы он сел по центру
+      // item-frame'а (компенсация ~12pt label-area).
+      let tab = UITabBarItem(
+        title: "", image: normalImage, selectedImage: selectedImage)
       tab.badgeValue = badge
+      tab.imageInsets = UIEdgeInsets(top: 6, left: 0, bottom: -6, right: 0)
+      // Title-tint больше не нужен (нет label), но оставляем гард на
+      // случай возврата подписей — клиент управляет через `label`.
       if let color = tintColor {
         tab.setTitleTextAttributes([.foregroundColor: color], for: .normal)
         tab.setTitleTextAttributes([.foregroundColor: color], for: .selected)
       }
+      // Accessibility: VoiceOver всё равно должен прочитать назначение
+      // таба, поэтому `accessibilityLabel` берём из Dart-конфига.
+      tab.accessibilityLabel = label.isEmpty ? nil : label
       tabItemsById[ObjectIdentifier(tab)] = id
       if id == selectedId {
         selected = tab
@@ -931,7 +942,12 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
           Self.log("loadTabAvatar FAILED tab=\(tabId) status=\(status) err=\(errDescr)")
           return
         }
-        let cropped = self.makeCircularTabImage(raw, size: 26)
+        // 32pt — крупнее, как просил пользователь. Apple's default
+        // tab-bar SF Symbol image ≈ 25pt; 32pt бросается в глаза, но
+        // не клипится по высоте item'а (28pt iconHeight для standard
+        // bar.height = 49). UITabBar при необходимости сам отскейлит
+        // вниз, нам важна max quality оригинала.
+        let cropped = self.makeCircularTabImage(raw, size: 32)
         self.tabAvatarImageCache[urlStr] = cropped
         Self.log("loadTabAvatar OK tab=\(tabId) status=\(status) bytes=\(data.count)")
         // Найти текущий UITabBarItem и обновить картинку. Cropped уже
