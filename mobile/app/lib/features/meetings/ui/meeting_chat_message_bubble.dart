@@ -147,13 +147,17 @@ class MeetingChatMessageBubble extends StatelessWidget {
         return Stack(
           fit: StackFit.expand,
           children: [
-            // Полноэкранный blur + лёгкое затемнение — как в основном чате.
-            FadeTransition(
-              opacity: eased,
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                child: Container(
-                  color: Colors.black.withValues(alpha: 0.32),
+            // Полноэкранный blur barrier — RepaintBoundary защищает
+            // от падений GL/UIRender pipeline при screenshot capture
+            // (наблюдалось белое лого замораживание после нажатия меню).
+            RepaintBoundary(
+              child: FadeTransition(
+                opacity: eased,
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.32),
+                  ),
                 ),
               ),
             ),
@@ -573,13 +577,17 @@ class _MeetingChatMenu extends StatelessWidget {
     // Material обёртка кругом всего диалога: убирает «жёлтые подчёркивания»
     // под текстом (Text без Material-предка получает дефолтный textStyle
     // с TextDecoration.underline жёлтого цвета).
+    // Узкий вариант меню (#1: сделать в 2 раза уже). И **без**
+    // вложенного BackdropFilter — он провоцирует белый экран при
+    // системном скриншоте и при rapid dismiss/click. Внешний blur
+    // на barrier остался — этого достаточно для эффекта стекла.
     return Material(
       type: MaterialType.transparency,
       child: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 340),
+            constraints: const BoxConstraints(maxWidth: 220),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -589,13 +597,12 @@ class _MeetingChatMenu extends StatelessWidget {
                 _SourceMessagePreview(message: message, isSelf: isSelf),
                 const SizedBox(height: 10),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+                  borderRadius: BorderRadius.circular(18),
+                  child: RepaintBoundary(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: const Color(0x99101521),
-                        borderRadius: BorderRadius.circular(20),
+                        color: const Color(0xE6101521),
+                        borderRadius: BorderRadius.circular(18),
                         border: Border.all(
                           color: Colors.white.withValues(alpha: 0.10),
                         ),

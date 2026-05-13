@@ -30,6 +30,7 @@ import 'features/auth/device_session_firestore_sync.dart';
 import 'features/chat/ui/live_location_firestore_sync.dart';
 import 'features/settings/data/app_language_preference.dart';
 import 'features/chat/ui/in_app_call_mini_window_host.dart';
+import 'features/meetings/ui/meeting_floating_mini_stream.dart';
 import 'features/desktop_shell/desktop_shell.dart';
 import 'features/desktop_shell/desktop_drop_target.dart';
 import 'features/desktop_shell/desktop_deep_links.dart';
@@ -276,7 +277,9 @@ class _MyAppState extends ConsumerState<MyApp> {
               child: PushMessagingScope(
                 child: DesktopDropTarget(
                   router: _router,
-                  child: child ?? const SizedBox.shrink(),
+                  child: MeetingFloatingMiniStream(
+                    child: child ?? const SizedBox.shrink(),
+                  ),
                 ),
               ),
             ),

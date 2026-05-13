@@ -44,4 +44,48 @@ void main() {
       expect(container.read(activeMeetingProvider), isNull);
     });
   });
+
+  group('ActiveMeetingInfo.copyWith', () {
+    test('replaces meetingName only', () {
+      const a = ActiveMeetingInfo(meetingId: 'm', meetingName: 'old');
+      final b = a.copyWith(meetingName: 'new');
+      expect(b.meetingId, 'm');
+      expect(b.meetingName, 'new');
+      expect(b.localStream, isNull);
+      expect(b.frontCamera, isTrue);
+    });
+
+    test('flips frontCamera independently', () {
+      const a = ActiveMeetingInfo(meetingId: 'm', meetingName: 'x');
+      final b = a.copyWith(frontCamera: false);
+      expect(b.frontCamera, isFalse);
+      expect(b.meetingId, 'm');
+    });
+  });
+
+  group('ActiveMeetingNotifier.updateLocalStream', () {
+    test('is no-op when no active meeting', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      // localStream==null здесь и есть смысл «нет стрима»; до set() это
+      // вообще noop, поэтому state остаётся null.
+      container.read(activeMeetingProvider.notifier).updateLocalStream(null);
+      expect(container.read(activeMeetingProvider), isNull);
+    });
+
+    test('updates frontCamera while preserving other fields', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(activeMeetingProvider.notifier).set(
+            const ActiveMeetingInfo(meetingId: 'm', meetingName: 'n'),
+          );
+      container
+          .read(activeMeetingProvider.notifier)
+          .updateLocalStream(null, frontCamera: false);
+      final v = container.read(activeMeetingProvider)!;
+      expect(v.meetingId, 'm');
+      expect(v.meetingName, 'n');
+      expect(v.frontCamera, isFalse);
+    });
+  });
 }

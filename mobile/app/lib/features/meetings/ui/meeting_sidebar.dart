@@ -2,8 +2,8 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -580,34 +580,37 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
     super.dispose();
   }
 
+  /// Выбор фото/видео из системной галереи. Раньше открывался FilePicker
+  /// (любой файл) — пользователю это было неудобно: фото в чатах
+  /// конференции — типичный кейс, а файлы — редкий.
   Future<void> _pickAttachments() async {
-    final r = await FilePicker.pickFiles(
-      allowMultiple: true,
-      withData: true,
-    );
-    if (r == null || r.files.isEmpty) return;
+    final picker = ImagePicker();
+    final files = await picker.pickMultipleMedia(imageQuality: 90);
+    if (files.isEmpty) return;
     const maxFiles = 10;
     const maxBytes = 40 * 1024 * 1024;
     final add = <_StagedAttachment>[];
-    for (final f in r.files) {
+    for (final x in files) {
       if (_staging.length + add.length >= maxFiles) break;
-      var b = f.bytes;
-      if (b == null && f.path != null) {
-        try {
-          b = await File(f.path!).readAsBytes();
-        } catch (_) {}
+      Uint8List? bytes;
+      try {
+        bytes = await x.readAsBytes();
+      } catch (_) {
+        continue;
       }
-      if (b == null) continue;
-      if (b.length > maxBytes) {
+      if (bytes.length > maxBytes) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)!.meeting_file_too_big(f.name))),
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!
+                  .meeting_file_too_big(x.name)),
+            ),
           );
         }
         continue;
       }
-      final name = f.name.isNotEmpty ? f.name : 'file';
-      add.add(_StagedAttachment(name: name, bytes: b, mime: null));
+      final name = x.name.isNotEmpty ? x.name : 'media';
+      add.add(_StagedAttachment(name: name, bytes: bytes, mime: x.mimeType));
     }
     if (add.isEmpty) return;
     setState(() => _staging.addAll(add));
@@ -787,31 +790,38 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
     return Column(
       children: [
         Expanded(
-          child: emptyList
-              ? Center(
-                  child: Text(
-                    AppLocalizations.of(context)!.meeting_no_messages,
-                    style: const TextStyle(color: Colors.white54),
+          // Тап в пустое место скрывает клавиатуру (#4).
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: emptyList
+                ? Center(
+                    child: Text(
+                      AppLocalizations.of(context)!.meeting_no_messages,
+                      style: const TextStyle(color: Colors.white54),
+                    ),
+                  )
+                : ListView.builder(
+                    controller: _scroll,
+                    padding: const EdgeInsets.all(12),
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    itemCount: widget.messages.length,
+                    itemBuilder: (ctx, i) {
+                      final m = widget.messages[i];
+                      final isSelf = m.senderId == widget.currentUserId;
+                      return MeetingChatMessageBubble(
+                        message: m,
+                        isSelf: isSelf,
+                        selfUserId: widget.currentUserId,
+                        onEditText: isSelf ? _startInlineEdit : null,
+                        onDelete: isSelf ? () => _confirmDelete(m) : null,
+                        onReply: _startReply,
+                        onToggleReaction: _toggleReaction,
+                      );
+                    },
                   ),
-                )
-              : ListView.builder(
-                  controller: _scroll,
-                  padding: const EdgeInsets.all(12),
-                  itemCount: widget.messages.length,
-                  itemBuilder: (ctx, i) {
-                    final m = widget.messages[i];
-                    final isSelf = m.senderId == widget.currentUserId;
-                    return MeetingChatMessageBubble(
-                      message: m,
-                      isSelf: isSelf,
-                      selfUserId: widget.currentUserId,
-                      onEditText: isSelf ? _startInlineEdit : null,
-                      onDelete: isSelf ? () => _confirmDelete(m) : null,
-                      onReply: _startReply,
-                      onToggleReaction: _toggleReaction,
-                    );
-                  },
-                ),
+          ),
         ),
         _inputBar(),
       ],

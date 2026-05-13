@@ -326,6 +326,9 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
     _stopPreview();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
+        // Имя нужно, чтобы пилюля «Вернуться в звонок» из чат-листа
+        // могла popUntil именно до комнаты (а не до лобби/entry).
+        settings: const RouteSettings(name: 'meeting-room'),
         builder: (_) => MeetingRoomScreen(
           meetingId: widget.meetingId,
           selfUid: widget.selfUid,

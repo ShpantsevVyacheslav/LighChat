@@ -48,6 +48,10 @@ class _MeetingFloatingMessagesState
     super.dispose();
   }
 
+  /// Cap на размер `_seenIds`: за долгий звонок (часы, сотни сообщений)
+  /// Set'е может разрастись и держать память впустую — оставляем хвост.
+  static const int _maxSeenIds = 1000;
+
   void _onMessages(List<MeetingChatMessage> list) {
     if (!mounted) return;
     if (_firstSnapshot) {
@@ -55,12 +59,14 @@ class _MeetingFloatingMessagesState
       for (final m in list) {
         _seenIds.add(m.id);
       }
+      _capSeenIds();
       return;
     }
     if (!widget.enabled) {
       for (final m in list) {
         _seenIds.add(m.id);
       }
+      _capSeenIds();
       return;
     }
     for (final m in list) {
@@ -89,6 +95,17 @@ class _MeetingFloatingMessagesState
         });
       });
     }
+    _capSeenIds();
+  }
+
+  void _capSeenIds() {
+    if (_seenIds.length <= _maxSeenIds) return;
+    // Кеш «уже виденных» обрезаем до последнего хвоста: дубль-уведомление
+    // пятисотой давности нас не интересует.
+    final keep = _seenIds.toList().sublist(_seenIds.length - _maxSeenIds ~/ 2);
+    _seenIds
+      ..clear()
+      ..addAll(keep);
     setState(() {});
   }
 

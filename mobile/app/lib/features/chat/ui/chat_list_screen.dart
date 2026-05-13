@@ -78,7 +78,12 @@ class _MeetingResumePill extends ConsumerWidget {
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          onTap: () => Navigator.of(context).maybePop(),
+          // popUntil до именованного route 'meeting-room' — а не просто
+          // maybePop, который мог проскочить до /meetings/:id (entry) и
+          // открыть лобби-флоу заново (#9).
+          onTap: () => Navigator.of(context).popUntil(
+            (r) => r.settings.name == 'meeting-room' || r.isFirst,
+          ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(

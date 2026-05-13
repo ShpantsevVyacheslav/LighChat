@@ -70,7 +70,18 @@ class _MeetingReactionsOverlayState extends State<MeetingReactionsOverlay>
     }
   }
 
+  /// Cap на одновременно живущие частицы — защита от «бури реакций»
+  /// (десяток участников жмут эмодзи в течение секунды). Без cap'а на
+  /// долгой встрече накапливалось 200+ AnimationController'ов
+  /// одновременно, что давало UI-пресс.
+  static const int _maxActiveParticles = 80;
+
   void _spawnSingle(String emoji) {
+    if (_active.length >= _maxActiveParticles) {
+      // Самый старый — на выход (release controller).
+      final oldest = _active.removeAt(0);
+      oldest.controller.dispose();
+    }
     final ctrl = AnimationController(
       vsync: this,
       // 3.6–6.0 с: ощутимо медленнее предыдущих 2.4–4.2 с — глаз успевает

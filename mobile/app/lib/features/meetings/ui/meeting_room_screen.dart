@@ -183,8 +183,10 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
         _initialized = true;
       });
 
-      // Маркер «идёт звонок» — слушают чат-лист / mini-card,
-      // чтобы показать пилюлю «вернуться в звонок».
+      // Маркер «идёт звонок» — слушают чат-лист / mini-card / floater.
+      // Локальный стрим подключим тут же — плавающая миниатюра
+      // (`MeetingFloatingMiniStream`) подвяжется к нему как только
+      // пользователь выйдет в /chats.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         final meeting = ref
@@ -194,10 +196,16 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
         ref.read(activeMeetingProvider.notifier).set(ActiveMeetingInfo(
               meetingId: widget.meetingId,
               meetingName: meeting?.name ?? '',
+              localStream: webrtc.localStream,
+              frontCamera: webrtc.frontCamera,
             ));
       });
 
-      _staleSweepTimer ??= Timer.periodic(const Duration(seconds: 15), (_) {
+      // 30 секунд — раньше было 15. Чаще не нужно: cron на сервере чистит
+      // участников за 90 сек, а более частые setState'ы только заставляли
+      // подсетку ресканировать тайлы. На длинных встречах (>1ч) это давало
+      // лишнее давление на память/GC.
+      _staleSweepTimer ??= Timer.periodic(const Duration(seconds: 30), (_) {
         if (mounted) setState(() {});
       });
 
@@ -458,12 +466,7 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
       participantsCount: participants.length,
       notificationsCount: notificationsCount,
       onOpenNotifications: () => setState(() => _sidebarOpen = true),
-      onEnterPip: _pipSupported
-          ? () {
-              _pipLifecycle.suppressAutoOnce();
-              _pipController.enterPip();
-            }
-          : null,
+      // PiP-кнопка перенесена в шапку — здесь не передаём.
       virtualBackgroundMode: vb.isPlatformBacked ? _vbMode : null,
       onToggleVirtualBackground:
           vb.isPlatformBacked ? _cycleVirtualBackground : null,
@@ -818,6 +821,17 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
                 unread: _inCallChatUnread(),
                 onPressed: _openInCallChat,
               ),
+              // PiP-кнопка в шапке (раньше была в нижнем баре).
+              if (_pipSupported)
+                IconButton(
+                  tooltip: l10n.meeting_pip_button,
+                  icon: const Icon(Icons.picture_in_picture_alt_rounded,
+                      color: Colors.white),
+                  onPressed: () {
+                    _pipLifecycle.suppressAutoOnce();
+                    _pipController.enterPip();
+                  },
+                ),
               IconButton(
                 tooltip: l10n.meeting_copy_link_tooltip,
                 onPressed: () async {

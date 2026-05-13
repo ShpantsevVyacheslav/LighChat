@@ -128,13 +128,7 @@ class MeetingControls extends StatelessWidget {
               screenShareSupported ? Colors.white : Colors.white54,
           onTap: onToggleScreenShare!,
         ),
-      if (onEnterPip != null)
-        _IconButton(
-          icon: Icons.picture_in_picture_alt_rounded,
-          label: l10n.meeting_pip_button,
-          background: Colors.white24,
-          onTap: onEnterPip!,
-        ),
+      // PiP-кнопка вынесена в верхнюю шапку (#7) — в нижнем баре не нужна.
       if (virtualBackgroundMode != null &&
           onToggleVirtualBackground != null)
         _IconButton(
