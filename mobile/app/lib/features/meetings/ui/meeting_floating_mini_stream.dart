@@ -31,7 +31,19 @@ class _MeetingFloatingMiniStreamState
   Widget build(BuildContext context) {
     final info = ref.watch(activeMeetingProvider);
     // Маршруты, где митинг сам по себе уже на экране — миниатюру не нужно.
-    final location = GoRouterState.of(context).uri.path;
+    //
+    // ВАЖНО: `GoRouterState.of(context)` бросает GoError, если виджет
+    // смонтирован ВНЕ sub-tree GoRouter (например в shell-обёртке поверх
+    // RouterDelegate). На старте приложения это даёт white-screen crash.
+    // Оборачиваем в try/catch и считаем «не на /meetings/» при отсутствии
+    // ancestor'а — миниатюра тогда показывается только если есть active
+    // stream.
+    String location = '';
+    try {
+      location = GoRouterState.of(context).uri.path;
+    } catch (_) {
+      // GoRouterState ancestor отсутствует — игнорируем, location = ''.
+    }
     final onMeetingRoute = location.startsWith('/meetings/');
     final visible = info != null &&
         info.localStream != null &&
