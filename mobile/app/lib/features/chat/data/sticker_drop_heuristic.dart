@@ -20,12 +20,16 @@ import 'package:image_picker/image_picker.dart';
 /// Все шаги логируются через `debugPrint('[sticker-heuristic] …')` —
 /// пригодится для диагностики «почему именно мой стикер не распознался».
 
-// Лимиты подобраны по реальным дропам iOS Lift Subject: ретиновые PNG
-// 1024×1024 (иногда больше) с альфой, файл часто 5–8 MiB при сложных
-// субъектах. Угловой пробинг ниже защищает от false-positive на обычных
-// скриншотах с альфой даже с такими порогами — у скриншота все 4 угла
-// непрозрачны, а у вырезанного subject всегда прозрачны.
-const int kStickerMaxSidePx = 1024;
+// Лимиты подобраны по реальным дропам iOS Lift Subject: с iOS 17 Apple
+// возвращает PNG в **оригинальном разрешении исходного фото** (3024×3292
+// и больше для iPhone-камеры) с альфой по силуэту. Жёстко ограничивать
+// сторону 1024px нельзя — иначе lift subject из обычного фото никогда
+// не пройдёт. Оставляем мягкий потолок 4096px (защита от мегаобоев) и
+// 16 MiB по размеру файла. Главные фильтры false-positive — PNG/WebP
+// magic + alpha-channel + 4 прозрачных угла (см. _allCornersTransparent
+// ниже): у скриншота UI углы непрозрачны, у вырезанного subject —
+// всегда прозрачны.
+const int kStickerMaxSidePx = 4096;
 const int kStickerMaxBytes = 16 << 20; // 16 MiB
 const int _kCornerAlphaCutoff = 16;
 const int _kCornerProbeInset = 2;
