@@ -17,31 +17,21 @@ enum LiquidGlassAppearance {
     bar.tintColor = tint
     bar.isTranslucent = true
     let appearance = UINavigationBarAppearance()
-    let glassApplied = enableGlassEffectIfAvailable(on: appearance)
-    if !glassApplied {
-      appearance.configureWithDefaultBackground()
-    }
-    // Standalone UINavigationBar (без UINavigationController) на iOS 26
-    // часто теряет автоматический translucent backing и выглядит «пустым»,
-    // из-за чего avatar + title в titleView сливаются с контентом снизу.
-    // Принудительно ставим thin material — даёт классический glass UI на
-    // всех iOS 13+.
-    if #available(iOS 13.0, *) {
-      // По design-feedback'у: «воздух» между Dynamic Island и avatar'ом
-      // воспринимался как «толстая чёрная плашка» — это был visible
-      // backgroundEffect под full bar height. Делаем фон ULTRA-thin
-      // (почти прозрачный) и убираем shadowColor — bar визуально сливается
-      // с контентом, видна только статус-bar + items.
-      appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
-      appearance.shadowColor = .clear
-    }
+    // Telegram-style на iOS 26: фон bar'а ПОЛНОСТЬЮ прозрачный, каждый
+    // UIBarButtonItem рендерится OS'ом со своим Liquid Glass pill'ом.
+    // Никаких больших серых плашек поверх контента — bar становится
+    // невидимым контейнером, только items плавают.
+    appearance.configureWithTransparentBackground()
+    appearance.backgroundColor = .clear
+    appearance.backgroundEffect = nil
+    appearance.shadowColor = .clear
     bar.standardAppearance = appearance
     bar.scrollEdgeAppearance = appearance
     bar.compactAppearance = appearance
     if #available(iOS 15.0, *) {
       bar.compactScrollEdgeAppearance = appearance
     }
-    return glassApplied
+    return isLiquidGlassRuntimeAvailable()
   }
 
   @discardableResult
@@ -49,21 +39,17 @@ enum LiquidGlassAppearance {
     bar.tintColor = tint
     bar.isTranslucent = true
     let appearance = UITabBarAppearance()
-    let glassApplied = enableGlassEffectIfAvailable(on: appearance)
-    if !glassApplied {
-      appearance.configureWithDefaultBackground()
-    }
-    if #available(iOS 13.0, *) {
-      // Минимальный «pill» вокруг tab bar — лёгкий ultra-thin material.
-      // Не «жирный» chrome-style.
-      appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
-      appearance.shadowColor = .clear
-    }
+    // Tab bar тоже без жирной плашки — items сами рендерятся pill'ами
+    // на iOS 26 (см. selected/normal состояния UITabBarItem).
+    appearance.configureWithTransparentBackground()
+    appearance.backgroundColor = .clear
+    appearance.backgroundEffect = nil
+    appearance.shadowColor = .clear
     bar.standardAppearance = appearance
     if #available(iOS 15.0, *) {
       bar.scrollEdgeAppearance = appearance
     }
-    return glassApplied
+    return isLiquidGlassRuntimeAvailable()
   }
 
   /// Liquid Glass became part of `UIBarAppearance` in iOS 26 SDK. Try to

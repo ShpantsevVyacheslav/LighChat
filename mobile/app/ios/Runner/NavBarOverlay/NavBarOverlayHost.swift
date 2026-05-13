@@ -25,12 +25,6 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   private var leadingId: String = "back"
   private var selectionActionsById: [Int: String] = [:]
 
-  /// Расширение blur'а top bar'а под status bar / Dynamic Island —
-  /// чтобы между системной зоной и avatar'ом не было визуальной «ступеньки».
-  /// Apple не позволяет физически убрать status bar, но мы можем сделать
-  /// единое стекло от верха экрана до низа nav bar'а.
-  private var topBarStatusExtension: UIVisualEffectView?
-
   private var topBarHeight: CGFloat = 0
   private var bottomBarHeight: CGFloat = 0
 
@@ -103,33 +97,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     bottom.isHidden = true
     LiquidGlassAppearance.applyTabBar(bottom, tint: .systemBlue)
 
-    // Status bar background extension — отдельная ultra-thin плёнка от
-    // верха экрана до safeArea.top. Визуально объединяется с top bar'ом
-    // в одно стекло. Status bar items (часы, батарея, Dynamic Island)
-    // продолжают рендериться поверх OS'ом.
-    let statusExt: UIVisualEffectView
-    if #available(iOS 13.0, *) {
-      statusExt = UIVisualEffectView(
-        effect: UIBlurEffect(style: .systemUltraThinMaterial))
-    } else {
-      statusExt = UIVisualEffectView(effect: UIBlurEffect(style: .light))
-    }
-    statusExt.translatesAutoresizingMaskIntoConstraints = false
-    statusExt.isHidden = true
-
-    vc.view.addSubview(statusExt)
     vc.view.addSubview(top)
     vc.view.addSubview(bottom)
 
     NSLayoutConstraint.activate([
-      // Status bar extension: от верха экрана до safeArea.top — закрывает
-      // визуально zone Dynamic Island / часов, продлевая blur top bar'а.
-      statusExt.topAnchor.constraint(equalTo: vc.view.topAnchor),
-      statusExt.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
-      statusExt.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
-      statusExt.bottomAnchor.constraint(
-        equalTo: vc.view.safeAreaLayoutGuide.topAnchor),
-
       top.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
       top.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
       // Небольшой gap (6pt) от status bar — bar «дышит», как в дизайне iOS 26.
@@ -158,7 +129,6 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
     self.topBar = top
     self.bottomBar = bottom
-    self.topBarStatusExtension = statusExt
   }
 
   // MARK: - Public API (called by NavBarBridge)
@@ -173,14 +143,12 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     Self.log("applyTopBar visible=\(visible) searchActive=\(searchActive)")
     if !visible {
       bar.isHidden = true
-      topBarStatusExtension?.isHidden = true
       topBar?.items = []
       topItem = nil
       updateSafeAreaInsets()
       return
     }
     bar.isHidden = false
-    topBarStatusExtension?.isHidden = false
 
     let item = UINavigationItem()
 
