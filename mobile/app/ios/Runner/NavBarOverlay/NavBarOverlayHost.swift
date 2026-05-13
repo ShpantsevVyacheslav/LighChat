@@ -124,9 +124,15 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     top.translatesAutoresizingMaskIntoConstraints = false
     top.delegate = self
     top.isHidden = true
-    // Боковые отступы 1pt — pill'ы практически впритык к краям экрана.
-    top.directionalLayoutMargins = NSDirectionalEdgeInsets(
-      top: 0, leading: 1, bottom: 0, trailing: 1)
+    // Боковые отступы 0pt. Дополнительно отключаем
+    // `insetsLayoutMarginsFromSafeArea` — без этого UINavigationBar
+    // получал автоматические system-margins от safe area, перебивая
+    // наши directionalLayoutMargins. И UIKit-старый layoutMargins
+    // тоже явно обнуляем (некоторые внутренние пути в iOS 26 читают
+    // именно его).
+    top.directionalLayoutMargins = .zero
+    top.layoutMargins = .zero
+    top.insetsLayoutMarginsFromSafeArea = false
     top.preservesSuperviewLayoutMargins = false
     LiquidGlassAppearance.applyNavigationBar(top, tint: .systemBlue)
 
@@ -244,18 +250,16 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
         || ((earlyTitleCfg?["avatarUrl"] as? String) != nil)
 
     func makeLeadingItems(_ btn: UIBarButtonItem) -> [UIBarButtonItem] {
-      // negEdge — отрицательная фикс-полоска ПЕРЕД back'ом, чтобы
-      // back-pill ушёл максимально близко к левому краю экрана.
-      // iOS 26 удерживает ~12pt system-margin от screen edge даже
-      // когда `directionalLayoutMargins.leading = 1`; negEdge -12pt
-      // компенсирует это и подтягивает pill вплотную к границе.
+      // negEdge ВЛЕВО — большой отрицательный отступ, чтобы перебить
+      // system-min-margin iOS 26 (~16pt) у first leftBarButtonItem'а
+      // и подтянуть back-pill вплотную к screen edge ≈8pt (паритет
+      // с pinned-pill'ом, у которого `left: 8`).
       let negEdge = UIBarButtonItem(
         barButtonSystemItem: .fixedSpace, target: nil, action: nil)
-      negEdge.width = -12
+      negEdge.width = -8
       let negSpace = UIBarButtonItem(
         barButtonSystemItem: .fixedSpace, target: nil, action: nil)
       negSpace.width = -8
-      // leftBarButtonItems[0] — самый левый. Порядок: negEdge → back → negSpace.
       return [negEdge, btn, negSpace]
     }
 
@@ -407,11 +411,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
         stack.translatesAutoresizingMaskIntoConstraints = false
         let group = UIBarButtonItem(customView: stack)
         // rightBarButtonItems[0] — самый правый. Перед группой ставим
-        // отрицательный negEdge (-12pt), чтобы pill подтянулся к
-        // правому краю экрана сквозь системный auto-margin iOS 26.
+        // отрицательный negEdge (-8pt), компенсирующий system-min-margin
+        // iOS 26 у first rightBarButtonItem'а; вместе с
+        // `directionalLayoutMargins = .zero` + `layoutMargins = .zero` +
+        // `insetsLayoutMarginsFromSafeArea = false` это даёт ≈8pt от
+        // screen edge (паритет с pinned-pill'ом).
         let negEdge = UIBarButtonItem(
           barButtonSystemItem: .fixedSpace, target: nil, action: nil)
-        negEdge.width = -12
+        negEdge.width = -8
         let negSpace = UIBarButtonItem(
           barButtonSystemItem: .fixedSpace, target: nil, action: nil)
         negSpace.width = -8
