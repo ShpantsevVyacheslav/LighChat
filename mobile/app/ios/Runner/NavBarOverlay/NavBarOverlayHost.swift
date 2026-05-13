@@ -89,6 +89,12 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// Apple's barButtonItem pills (back, search-video-phone group) на
   /// iOS 26 рендерятся ~44pt — title pill подгоняем под этот размер.
   private static let navBarContentHeight: CGFloat = 48
+  /// Сдвиг content'а UITabBarItem'а ВНИЗ относительно стандартной позиции.
+  /// Apple Photos / iOS 26 native apps кладут items в safe-area zone
+  /// (над home indicator stripe). UITabBar по-стандарту центрирует items
+  /// в top 49pt frame'а (выше safe area), но imageInsets +
+  /// titlePositionAdjustment позволяют пушнуть icon+label ниже.
+  private static let tabItemVerticalOffset: CGFloat = 18
   /// Отступ bar.top от safeArea.top. ОТРИЦАТЕЛЬНЫЙ — поднимаем bar в
   /// system-reserved area под Dynamic Island. Apple оставляет ~22pt
   /// clearance под DI; -8pt пробивает половину этого «воздуха», items
@@ -367,6 +373,12 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
       let tab = UITabBarItem(title: label, image: normalImage, selectedImage: selectedImage)
       tab.badgeValue = badge
+      // Пушим icon+label вниз внутри item-слота — Photos-style. UITabBar
+      // рендерит item'ы в top 49pt своего frame'а (выше home indicator),
+      // эти insets смещают визуальное содержимое item'а в safe area zone.
+      let off = Self.tabItemVerticalOffset
+      tab.imageInsets = UIEdgeInsets(top: off, left: 0, bottom: -off, right: 0)
+      tab.titlePositionAdjustment = UIOffset(horizontal: 0, vertical: off)
       tabItemsById[ObjectIdentifier(tab)] = id
       if id == selectedId {
         selected = tab
