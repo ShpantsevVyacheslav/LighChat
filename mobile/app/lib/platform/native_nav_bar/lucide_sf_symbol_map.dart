@@ -11,6 +11,38 @@ String lucideToSfSymbol(String lucideName, {String fallback = 'circle'}) {
   return _lucideToSf[lucideName] ?? fallback;
 }
 
+/// Возвращает SF Symbol для **selected** состояния таба — обычно
+/// filled-вариант базового (Apple-pattern: outline when normal, filled
+/// when selected). Если для конкретной иконки нет .fill в SF Symbols,
+/// native side тихо фолбэкнется на normal image (см.
+/// `selectedSymbol.map { SymbolMapper.image(named:) } ?? normalImage`
+/// в NavBarOverlayHost.swift).
+String lucideToSfSymbolFilled(String lucideName, {String fallback = 'circle'}) {
+  final base = _lucideToSf[lucideName] ?? fallback;
+  // Уже filled? Не дописываем.
+  if (base.endsWith('.fill')) return base;
+  // Особые случаи: SF Symbol, у которых .fill нет (нативно outline-only).
+  const noFillVariant = <String>{
+    'magnifyingglass',
+    'calendar',
+    'iphone',
+    'globe',
+    'wifi',
+    'number',
+    'at',
+    'paperclip',
+    'link',
+    'sparkles',
+    'list.bullet',
+    'chevron.backward',
+    'chevron.forward',
+    'line.3.horizontal',
+    'ellipsis',
+  };
+  if (noFillVariant.contains(base)) return base;
+  return '$base.fill';
+}
+
 // Lucide-иконки в settings-picker'е отрисованы в outline-стиле. Чтобы
 // native UITabBar визуально совпадал с выбором, используем outline-вариант
 // SF Symbol (без `.fill`) везде, где возможно.

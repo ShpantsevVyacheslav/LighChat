@@ -159,6 +159,8 @@ class _ChatBottomNavState extends State<ChatBottomNav>
 
     String iconFor(String tabHref, String defaultLucide) =>
         lucideToSfSymbol(iconNames[tabHref] ?? defaultLucide);
+    String selectedIconFor(String tabHref, String defaultLucide) =>
+        lucideToSfSymbolFilled(iconNames[tabHref] ?? defaultLucide);
 
     // Tint для конкретного таба = merge(global, perHref).iconColor.
     // Возвращает '#RRGGBB' для native или null если не задано.
@@ -185,6 +187,8 @@ class _ChatBottomNavState extends State<ChatBottomNav>
           id: 'chats',
           label: l10n?.bottom_nav_label_chats ?? 'Chats',
           icon: NavBarIcon(iconFor('/dashboard/chat', 'messages-square')),
+          selectedIcon: NavBarIcon(
+              selectedIconFor('/dashboard/chat', 'messages-square')),
           badge: badgeFor(widget.chatsUnreadCount),
           tintHex: tintFor('/dashboard/chat'),
         ),
@@ -192,18 +196,24 @@ class _ChatBottomNavState extends State<ChatBottomNav>
           id: 'contacts',
           label: l10n?.bottom_nav_label_contacts ?? 'Contacts',
           icon: NavBarIcon(iconFor('/dashboard/contacts', 'contact')),
+          selectedIcon: NavBarIcon(
+              selectedIconFor('/dashboard/contacts', 'contact')),
           tintHex: tintFor('/dashboard/contacts'),
         ),
         NavBarTab(
           id: 'calls',
           label: l10n?.bottom_nav_label_calls ?? 'Calls',
           icon: NavBarIcon(iconFor('/dashboard/calls', 'phone-call')),
+          selectedIcon: NavBarIcon(
+              selectedIconFor('/dashboard/calls', 'phone-call')),
           tintHex: tintFor('/dashboard/calls'),
         ),
         NavBarTab(
           id: 'meetings',
           label: l10n?.bottom_nav_label_conferences ?? 'Meetings',
           icon: NavBarIcon(iconFor('/dashboard/meetings', 'video')),
+          selectedIcon: NavBarIcon(
+              selectedIconFor('/dashboard/meetings', 'video')),
           tintHex: tintFor('/dashboard/meetings'),
         ),
         NavBarTab(
@@ -212,6 +222,7 @@ class _ChatBottomNavState extends State<ChatBottomNav>
           // "Profile" — локализация добавится отдельным PR-ом если нужно.
           label: 'Profile',
           icon: const NavBarIcon('person.crop.circle'),
+          selectedIcon: const NavBarIcon('person.crop.circle.fill'),
         ),
       ],
       selectedId: _tabId(widget.activeTab),

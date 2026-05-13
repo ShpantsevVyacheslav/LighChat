@@ -41,4 +41,21 @@ void main() {
       expect(lucideToSfSymbol('settings'), 'gearshape');
     });
   });
+
+  group('lucideToSfSymbolFilled (selected state)', () {
+    test('добавляет .fill к outline-SF Symbol', () {
+      expect(lucideToSfSymbolFilled('messages-square'),
+          'bubble.left.and.bubble.right.fill');
+      expect(lucideToSfSymbolFilled('phone-call'), 'phone.fill');
+      expect(lucideToSfSymbolFilled('video'), 'video.fill');
+      expect(lucideToSfSymbolFilled('contact'),
+          'person.crop.rectangle.fill');
+    });
+
+    test('SF Symbols без .fill варианта возвращают outline', () {
+      expect(lucideToSfSymbolFilled('search'), 'magnifyingglass');
+      expect(lucideToSfSymbolFilled('calendar'), 'calendar');
+      expect(lucideToSfSymbolFilled('smartphone'), 'iphone');
+    });
+  });
 }
