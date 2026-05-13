@@ -148,6 +148,15 @@ export const signInWithTelegram = onCall(
     cors: true,
   },
   async (request) => {
+    // [DEBUG] Log request entry point
+    logger.info("signInWithTelegram: Request received", {
+      method: request.rawRequest?.method,
+      ip: request.rawRequest?.ip,
+      auth: request.auth?.uid ? "authenticated" : "pre-auth",
+      appCheckToken: request.appCheck?.token ? "present" : "absent",
+      timestamp: new Date().toISOString(),
+    });
+
     // SECURITY: pre-auth callable. Per-IP rate limit (10 req / minute).
     // Same rationale as requestQrLogin: stop automated brute-force /
     // resource exhaustion before we touch HMAC verification, Firestore writes
@@ -159,22 +168,37 @@ export const signInWithTelegram = onCall(
       windowSec: 60,
     });
     if (!rlIp.allowed) {
+      logger.warn("signInWithTelegram: Rate limit exceeded", {
+        ip: callerIpKey(request.rawRequest),
+      });
       throw new HttpsError("resource-exhausted", "RATE_LIMITED");
     }
+    logger.debug("signInWithTelegram: Rate limit passed", { allowed: rlIp.allowed });
 
     const botToken = telegramBotToken.value().trim();
     if (!botToken) {
+      logger.error("signInWithTelegram: TELEGRAM_BOT_TOKEN not configured");
       throw new HttpsError(
         "failed-precondition",
         "TELEGRAM_BOT_TOKEN is not configured."
       );
     }
+    logger.debug("signInWithTelegram: Bot token loaded");
 
     const body = request.data as { auth?: Record<string, unknown> };
     const raw = body?.auth;
     if (!raw || typeof raw !== "object") {
+      logger.warn("signInWithTelegram: Missing or invalid auth payload", {
+        payloadType: typeof body?.auth,
+        hasAuth: !!body?.auth,
+      });
       throw new HttpsError("invalid-argument", "Missing auth payload.");
     }
+    logger.debug("signInWithTelegram: Auth payload received", {
+      authKeys: Object.keys(raw),
+      hasHash: "hash" in raw,
+      hasAuthDate: "auth_date" in raw,
+    });
 
     // [audit H-005] TELEGRAM_DEBUG_LOGIN_INFO ветка снята — раньше при
     // включённом env flag в Cloud Logging писался полный payload (хоть и
@@ -183,9 +207,14 @@ export const signInWithTelegram = onCall(
     // logs` руками, а не через persistent prod-flag.
 
     if (!verifyTelegramLoginWidget(raw, botToken)) {
-      logger.warn("signInWithTelegram: invalid telegram hash");
+      logger.warn("signInWithTelegram: Telegram signature verification failed", {
+        hasId: "id" in raw,
+        hasHash: "hash" in raw,
+        hasAuthDate: "auth_date" in raw,
+      });
       throw new HttpsError("permission-denied", "Invalid Telegram authorization.");
     }
+    logger.debug("signInWithTelegram: Telegram signature verified");
 
     // SECURITY: anti-replay. The widget signature is valid for some TTL; an
     // attacker who captures one payload (logs / shared screenshot of the
@@ -194,6 +223,11 @@ export const signInWithTelegram = onCall(
     // use returns ALREADY_EXISTS and we reject.
     const authDate = Number(raw.auth_date);
     const hash = String(raw.hash);
+    logger.debug("signInWithTelegram: Checking anti-replay", {
+      authDate,
+      hashLength: hash.length,
+    });
+
     const replay = await claimTelegramAuthOnce(
       admin.firestore(),
       authDate,
@@ -202,26 +236,44 @@ export const signInWithTelegram = onCall(
     );
     if (!replay.ok) {
       if (replay.reason === "REPLAY") {
-        logger.warn("signInWithTelegram: replay attempt", { authDate });
+        logger.warn("signInWithTelegram: Replay attempt detected", {
+          authDate,
+          reason: replay.reason,
+        });
         throw new HttpsError("permission-denied", "TELEGRAM_AUTH_ALREADY_USED");
       }
       // Storage failure: fail closed for this auth attempt — better to ask
       // the user to retry than to allow a potentially-replayed signature.
-      logger.warn("signInWithTelegram: replay store unavailable, refusing");
+      logger.warn("signInWithTelegram: Replay store error, refusing", {
+        reason: replay.reason,
+      });
       throw new HttpsError("unavailable", "TRY_AGAIN");
     }
+    logger.debug("signInWithTelegram: Anti-replay passed");
 
     const telegramId = telegramUserIdFromPayload(raw);
     if (!telegramId) {
+      logger.warn("signInWithTelegram: Invalid Telegram user ID", {
+        id: raw.id,
+        idType: typeof raw.id,
+      });
       throw new HttpsError("invalid-argument", "Invalid Telegram user id.");
     }
+    logger.debug("signInWithTelegram: Telegram ID extracted", { uid: `tg_${telegramId}` });
 
     const uid = `tg_${telegramId}`;
     const displayName = displayNameFromTelegram(raw);
     const photoURL = photoUrlFromTelegram(raw);
     const phoneRaw = phoneFromTelegramPayload(raw);
 
+    logger.debug("signInWithTelegram: Creating/updating user", {
+      uid,
+      displayName,
+      hasPhoto: !!photoURL,
+      hasPhone: !!phoneRaw,
+    });
     await getOrCreateTelegramAuthUser(uid, displayName, photoURL);
+    logger.debug("signInWithTelegram: User created/updated successfully", { uid });
 
     const db = admin.firestore();
 
@@ -272,12 +324,23 @@ export const signInWithTelegram = onCall(
     }
 
     try {
+      logger.debug("signInWithTelegram: Creating custom token", { uid });
       const customToken = await admin
         .auth()
         .createCustomToken(uid, { telegram: true });
+      logger.info("signInWithTelegram: Authentication successful", {
+        uid,
+        tokenLength: customToken.length,
+        timestamp: new Date().toISOString(),
+      });
       return { customToken, uid };
     } catch (e: unknown) {
-      logger.error("signInWithTelegram: createCustomToken failed", e);
+      logger.error("signInWithTelegram: createCustomToken failed", {
+        uid,
+        error: e instanceof Error ? e.message : String(e),
+        errorCode: (e as any)?.code || "unknown",
+        stack: e instanceof Error ? e.stack : undefined,
+      });
       throw new HttpsError("internal", "Could not issue sign-in token.");
     }
   }
