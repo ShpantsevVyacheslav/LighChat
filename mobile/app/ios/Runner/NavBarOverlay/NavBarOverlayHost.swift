@@ -20,6 +20,16 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   private var bottomBar: UITabBar?
   private var searchBar: UISearchBar?
 
+  /// Тонкие safe-area blur strips — Apple Photos pattern. Status bar area
+  /// и home indicator area получают лёгкий backdrop blur, чтобы контент
+  /// (фото / messages), скроллящийся под ними, визуально «уходил»
+  /// (out-of-focus), а не оставался резким за пределами bar pill'а.
+  /// Используется UIVisualEffectView со systemUltraThinMaterial — почти
+  /// прозрачный, но размывает + слегка тонирует под адаптивный
+  /// фон. Управление видимостью — параллельно top/bottom bar'ам.
+  private var topSafeAreaBlur: UIVisualEffectView?
+  private var bottomSafeAreaBlur: UIVisualEffectView?
+
   private var topItem: UINavigationItem?
   private var topVisible: Bool = false
   private var bottomVisible: Bool = false
@@ -131,8 +141,53 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     bottom.isHidden = true
     LiquidGlassAppearance.applyTabBar(bottom, tint: .systemBlue)
 
+    // Safe-area blur strips (Apple Photos pattern). Кладём ПОД bars, поверх
+    // FlutterView'а, чтобы пилюли nav/tab bar'ов оставались чёткими, а
+    // status-bar / home-indicator zones получали лёгкий backdrop blur.
+    // По умолчанию blur'ы видны как только host прикреплён. Это safe-area
+    // edge softening, не зависит от того, виден ли конкретный bar в
+    // данный момент. Hide происходит только при applyTopBar(visible:false)
+    // для top-strip'а (если на экране вообще нет шапки — например,
+    // splash). Bottom-strip всегда видим.
+    let topBlur = UIVisualEffectView(
+      effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    topBlur.translatesAutoresizingMaskIntoConstraints = false
+    topBlur.isUserInteractionEnabled = false
+    topBlur.isHidden = false
+
+    let bottomBlur = UIVisualEffectView(
+      effect: UIBlurEffect(style: .systemUltraThinMaterial))
+    bottomBlur.translatesAutoresizingMaskIntoConstraints = false
+    bottomBlur.isUserInteractionEnabled = false
+    bottomBlur.isHidden = false
+
+    vc.view.addSubview(topBlur)
+    vc.view.addSubview(bottomBlur)
     vc.view.addSubview(top)
     vc.view.addSubview(bottom)
+
+    NSLayoutConstraint.activate([
+      // Top blur: от верха view до safe-area top (status bar zone). Pill
+      // nav bar'а сидит ниже safeArea.top (он перекрывается в DI gap), но
+      // блюр здесь — это ИМЕННО полоска под status-bar items'ами,
+      // отделяющая их от контента. Дальше pill сам по себе glass.
+      topBlur.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
+      topBlur.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
+      topBlur.topAnchor.constraint(equalTo: vc.view.topAnchor),
+      topBlur.bottomAnchor.constraint(
+        equalTo: vc.view.safeAreaLayoutGuide.topAnchor),
+
+      // Bottom blur: от safe-area bottom (= home indicator top) до низа
+      // view. Полоска ~34pt у iPhone X+, делает home-indicator зону
+      // визуально soft-blurred (как в Photos library bottom toolbar).
+      bottomBlur.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
+      bottomBlur.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
+      bottomBlur.topAnchor.constraint(
+        equalTo: vc.view.safeAreaLayoutGuide.bottomAnchor),
+      bottomBlur.bottomAnchor.constraint(equalTo: vc.view.bottomAnchor),
+    ])
+    self.topSafeAreaBlur = topBlur
+    self.bottomSafeAreaBlur = bottomBlur
 
     // Top constraint храним по ref'у — будем обновлять constant в
     // updateSafeAreaInsets() для компенсации circular feedback с
@@ -182,12 +237,15 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     Self.log("applyTopBar visible=\(visible) searchActive=\(searchActive)")
     if !visible {
       bar.isHidden = true
+      topSafeAreaBlur?.isHidden = true
       topBar?.items = []
       topItem = nil
       updateSafeAreaInsets()
       return
     }
     bar.isHidden = false
+    // Параллельно барбару показываем soft-blur strip в status-bar zone.
+    topSafeAreaBlur?.isHidden = false
 
     let item = UINavigationItem()
 
@@ -384,11 +442,16 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       // когда сразу следом приходит show с тем же набором (наш typical
       // tab-switch flow: observer hide → новый экран show).
       bar.isHidden = true
+      // На экранах без tab bar'а (chat, settings) home-indicator zone
+      // тоже получает blur — это smoothing edge, не зависит от наличия
+      // tab bar'а. Всегда видим, если host прикреплён.
+      bottomSafeAreaBlur?.isHidden = false
       updateSafeAreaInsets()
       return
     }
 
     bar.isHidden = false
+    bottomSafeAreaBlur?.isHidden = false
 
     if signature == lastBottomBarItemsSignature,
       let existingItems = bar.items, !existingItems.isEmpty {
