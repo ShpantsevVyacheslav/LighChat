@@ -850,26 +850,21 @@ class _ChatTabBodyState extends ConsumerState<_ChatTabBody> {
             ),
           if (_staging.isNotEmpty)
             SizedBox(
-              height: 40,
+              height: 76,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
                 itemCount: _staging.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 6),
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (ctx, i) {
                   final s = _staging[i];
-                  return Chip(
-                    label: Text(
-                      s.name,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    onDeleted: _sending
+                  return _AttachmentPreview(
+                    name: s.name,
+                    bytes: s.bytes,
+                    mime: s.mime,
+                    onRemove: _sending
                         ? null
                         : () => setState(() => _staging.removeAt(i)),
-                    deleteIconColor: Colors.white70,
-                    backgroundColor: Colors.white12,
-                    labelStyle: const TextStyle(color: Colors.white70),
                   );
                 },
               ),
@@ -1105,6 +1100,117 @@ class _ComposerReplyBanner extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Маленькая превью-карточка для прикреплённого вложения над композером —
+/// thumbnail-картинка (или иконка для не-image), и крестик для снятия.
+/// Паритет с основным чатом мобилки (#3 ревью).
+class _AttachmentPreview extends StatelessWidget {
+  const _AttachmentPreview({
+    required this.name,
+    required this.bytes,
+    required this.mime,
+    required this.onRemove,
+  });
+
+  final String name;
+  final Uint8List bytes;
+  final String? mime;
+  final VoidCallback? onRemove;
+
+  bool get _isImage {
+    final m = mime?.toLowerCase() ?? '';
+    if (m.startsWith('image/')) return true;
+    final n = name.toLowerCase();
+    return n.endsWith('.jpg') ||
+        n.endsWith('.jpeg') ||
+        n.endsWith('.png') ||
+        n.endsWith('.heic') ||
+        n.endsWith('.webp') ||
+        n.endsWith('.gif');
+  }
+
+  bool get _isVideo {
+    final m = mime?.toLowerCase() ?? '';
+    if (m.startsWith('video/')) return true;
+    final n = name.toLowerCase();
+    return n.endsWith('.mp4') || n.endsWith('.mov') || n.endsWith('.m4v');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 64,
+      height: 64,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                color: Colors.white.withValues(alpha: 0.08),
+                child: _isImage
+                    ? Image.memory(
+                        bytes,
+                        fit: BoxFit.cover,
+                        gaplessPlayback: true,
+                        errorBuilder: (_, _, _) => const Center(
+                          child: Icon(Icons.broken_image_rounded,
+                              color: Colors.white54, size: 22),
+                        ),
+                      )
+                    : Center(
+                        child: Icon(
+                          _isVideo
+                              ? Icons.play_circle_outline_rounded
+                              : Icons.insert_drive_file_rounded,
+                          color: Colors.white70,
+                          size: 26,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+          if (_isVideo)
+            const Positioned(
+              left: 4,
+              bottom: 4,
+              child: Icon(
+                Icons.videocam_rounded,
+                size: 14,
+                color: Colors.white,
+              ),
+            ),
+          if (onRemove != null)
+            Positioned(
+              top: -4,
+              right: -4,
+              child: GestureDetector(
+                onTap: onRemove,
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black.withValues(alpha: 0.75),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.18),
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.close_rounded,
+                    color: Colors.white,
+                    size: 12,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

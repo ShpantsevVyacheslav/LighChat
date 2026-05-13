@@ -183,10 +183,11 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
         _initialized = true;
       });
 
-      // Маркер «идёт звонок» — слушают чат-лист / mini-card / floater.
-      // Локальный стрим подключим тут же — плавающая миниатюра
-      // (`MeetingFloatingMiniStream`) подвяжется к нему как только
-      // пользователь выйдет в /chats.
+      // Маркер «идёт звонок» — слушает чат-лист, чтобы показать пилюлю
+      // «Вернуться в звонок». На мобиле сам видеострим в мини-окно
+      // прокидывает нативный PiP (Android Activity / iOS PiP plugin) —
+      // отдельная Flutter-миниатюра убрана, она конфликтовала с
+      // RTCVideoRenderer'ом основной комнаты (#1, #4).
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         final meeting = ref
@@ -196,8 +197,6 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
         ref.read(activeMeetingProvider.notifier).set(ActiveMeetingInfo(
               meetingId: widget.meetingId,
               meetingName: meeting?.name ?? '',
-              localStream: webrtc.localStream,
-              frontCamera: webrtc.frontCamera,
             ));
       });
 
@@ -559,9 +558,23 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
   /// Используем `context.push` — не `go`: GoRouter добавляет /chats
   /// поверх стека, MeetingRoomScreen остаётся смонтированным (offstage),
   /// WebRTC продолжает работать, audio тикает.
+  ///
+  /// Дополнительно: триггерим нативный PiP. На Android вся Activity
+  /// сворачивается в системное PiP-окно (видео+звук как в FaceTime).
+  /// На iOS PiP — отдельный плагин, видео-фрейм пока placeholder
+  /// (см. AppDelegate `LighChatMeetingPipInlineBridge`), но звук и
+  /// keep-alive звонка работают.
+  ///
   /// Кнопка с иконкой чата открывает другую дверь — внутренний чат-таб
   /// в шторке; см. [_openInCallChat].
-  void _openChatList() {
+  Future<void> _openChatList() async {
+    if (_pipSupported) {
+      _pipLifecycle.suppressAutoOnce();
+      try {
+        await _pipController.enterPip();
+      } catch (_) {}
+    }
+    if (!mounted) return;
     context.push('/chats');
   }
 

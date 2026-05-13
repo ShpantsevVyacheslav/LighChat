@@ -149,18 +149,26 @@ class MeetingChatMessageBubble extends StatelessWidget {
           children: [
             // Полноэкранный blur barrier — RepaintBoundary защищает
             // от падений GL/UIRender pipeline при screenshot capture
-            // (наблюдалось белое лого замораживание после нажатия меню).
+            // (наблюдалось белое замораживание после нажатия меню).
+            // GestureDetector с HitTestBehavior.opaque — закрывает меню
+            // по тапу в пустое место (#2): barrierDismissible не сработал
+            // потому что Container из BackdropFilter перехватывал тап.
             RepaintBoundary(
               child: FadeTransition(
                 opacity: eased,
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.32),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Navigator.of(ctx).pop(),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.32),
+                    ),
                   ),
                 ),
               ),
             ),
+            // Само меню — НЕ закрывается по клику по нему.
             FadeTransition(
               opacity: eased,
               child: ScaleTransition(
