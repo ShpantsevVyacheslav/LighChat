@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import 'package:lighchat_models/lighchat_models.dart';
@@ -13,6 +15,7 @@ class ChatPinnedStrip extends StatelessWidget {
     required this.totalPins,
     required this.onUnpin,
     this.onOpenPinned,
+    this.pill = false,
   });
 
   final PinnedMessage pin;
@@ -21,6 +24,12 @@ class ChatPinnedStrip extends StatelessWidget {
 
   /// Скролл к закреплённому сообщению в списке (не срабатывает на кнопке «×»).
   final VoidCallback? onOpenPinned;
+
+  /// Telegram-style: рендерим как floating pill с blur'ом и закруглёнными
+  /// углами вместо сплошной полосы на всю ширину. Используется на iOS, где
+  /// native nav bar — overlay, и под ним стек ChatPinnedStrip иначе уезжает
+  /// в статус-бар.
+  final bool pill;
 
   @override
   Widget build(BuildContext context) {
@@ -71,64 +80,87 @@ class ChatPinnedStrip extends StatelessWidget {
       ],
     );
 
-    return Material(
-      color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Icon(Icons.push_pin_rounded, size: 16, color: scheme.primary),
-            const SizedBox(width: 8),
-            Expanded(
-              child: onOpenPinned != null
-                  ? InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: onOpenPinned,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
-                        ),
-                        child: Row(
-                          children: [
-                            _PinnedMediaThumb(
-                              mediaType: effectiveMediaType,
-                              mediaPreviewUrl: pin.mediaPreviewUrl,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(child: preview),
-                          ],
-                        ),
+    final Widget row = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(Icons.push_pin_rounded, size: 16, color: scheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: onOpenPinned != null
+                ? InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: onOpenPinned,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
                       ),
-                    )
-                  : Row(
-                      children: [
-                        _PinnedMediaThumb(
-                          mediaType: effectiveMediaType,
-                          mediaPreviewUrl: pin.mediaPreviewUrl,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(child: preview),
-                      ],
+                      child: Row(
+                        children: [
+                          _PinnedMediaThumb(
+                            mediaType: effectiveMediaType,
+                            mediaPreviewUrl: pin.mediaPreviewUrl,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(child: preview),
+                        ],
+                      ),
                     ),
-            ),
-            SizedBox(
-              width: 30,
-              height: 30,
-              child: IconButton(
-                tooltip: l10n.pinned_unpin_tooltip,
-                padding: EdgeInsets.zero,
-                visualDensity: VisualDensity.compact,
-                onPressed: onUnpin,
-                icon: Icon(
-                  Icons.close_rounded,
-                  size: 18,
-                  color: scheme.onSurface.withValues(alpha: 0.65),
-                ),
+                  )
+                : Row(
+                    children: [
+                      _PinnedMediaThumb(
+                        mediaType: effectiveMediaType,
+                        mediaPreviewUrl: pin.mediaPreviewUrl,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(child: preview),
+                    ],
+                  ),
+          ),
+          SizedBox(
+            width: 30,
+            height: 30,
+            child: IconButton(
+              tooltip: l10n.pinned_unpin_tooltip,
+              padding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+              onPressed: onUnpin,
+              icon: Icon(
+                Icons.close_rounded,
+                size: 18,
+                color: scheme.onSurface.withValues(alpha: 0.65),
               ),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+
+    if (!pill) {
+      return Material(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.55),
+        child: row,
+      );
+    }
+
+    // Telegram-style floating pill: 14pt corner radius, лёгкий blur через
+    // BackdropFilter и translucent заливка, чтобы под ним мог
+    // просвечивать чат (так же, как messages скроллятся под native nav
+    // bar'ом).
+    final dark = scheme.brightness == Brightness.dark;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        child: Material(
+          color: (dark ? Colors.black : Colors.white).withValues(alpha: 0.6),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: row,
+          ),
         ),
       ),
     );
