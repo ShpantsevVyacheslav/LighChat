@@ -351,7 +351,17 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
     }
   }
 
-  /// День «у верхнего края» списка: последний по порядку дней, чей маркер уже прошёл линию.
+  /// День «у верхнего края» списка: ищем все day-header'ы, чей `y` в
+  /// viewport-координатах ≤ stickyLineY (header уже прошёл вверх за
+  /// линию), и выбираем ТОТ, у которого `y` максимально (header ближе
+  /// всего к линии = «текущий» visible день под капсулой).
+  ///
+  /// БАГ, который это фиксит: раньше код просто перетирал `picked` при
+  /// каждом совпадении в цикле `for (final g in groups)`. С `reversed:
+  /// true` groups идут newest→oldest, и last-match всегда оказывался
+  /// САМЫМ СТАРЫМ днём с header'ом над линией — капсула показывала
+  /// неактуальный день, если на экране был средний день из длинной
+  /// истории (все более старые дни тоже удовлетворяли `y ≤ 28`).
   String? _computeVisibleDayLabel() {
     final groups = _cachedGroups;
     if (groups.isEmpty) return null;
@@ -370,15 +380,23 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
       }
     }
 
+    // Самый «свежий» день — это тот, что виден ПЕРВЫМ при скролле от
+    // bottom (= newest сообщения). В reversed-режиме это `groups.first`,
+    // в обычном — `groups.last`. Используем как fallback пока vp не
+    // материализовался.
+    final newestGroup =
+        widget.reversed ? groups.first : groups.last;
+
     if (vp == null) {
       return _stickyDayLabel ??
           formatChatDayLabel(
-            groups.last.first.createdAt.toLocal(),
+            newestGroup.first.createdAt.toLocal(),
             AppLocalizations.of(context)!,
           );
     }
 
     const stickyLineY = 28.0;
+    double pickedY = -double.infinity;
     String? picked;
     for (final g in groups) {
       final dk = ChatMessageList.dayKey(g.first.createdAt);
@@ -387,7 +405,11 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
       final ro = ctx.findRenderObject();
       if (ro is! RenderBox || !ro.hasSize || !ro.attached) continue;
       final y = ro.localToGlobal(Offset.zero, ancestor: vp).dy;
-      if (y <= stickyLineY) {
+      // Ищем MAX y среди тех, что прошли линию (y ≤ 28). Это header,
+      // ближе всех находящийся к линии сверху → его день и есть тот,
+      // что сейчас виден в зоне капсулы.
+      if (y <= stickyLineY && y > pickedY) {
+        pickedY = y;
         picked = formatChatDayLabel(
           g.first.createdAt.toLocal(),
           AppLocalizations.of(context)!,
@@ -395,9 +417,15 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
       }
     }
 
+    // Fallback: ни один header не прошёл линию ⇒ мы выше topmost'а,
+    // т.е. показываем САМЫЙ СТАРЫЙ день (top of conversation в
+    // reversed → groups.last; в обычном → groups.first).
+    final oldestGroup =
+        widget.reversed ? groups.last : groups.first;
+
     return picked ??
         formatChatDayLabel(
-          groups.first.first.createdAt.toLocal(),
+          oldestGroup.first.createdAt.toLocal(),
           AppLocalizations.of(context)!,
         );
   }
