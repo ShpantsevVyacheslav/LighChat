@@ -91,11 +91,11 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   private static let navBarContentHeight: CGFloat = 48
   /// Насколько сместить ВЕСЬ tab bar вниз относительно view.bottom.
   /// Apple Photos и другие iOS-26 apps кладут items впритык над home
-  /// indicator stripe — gap всего ~10-15pt. UITabBar по-стандарту
+  /// indicator stripe — gap всего ~5-10pt. UITabBar по-стандарту
   /// сидит над safe area (gap 34pt). Положительный overlap двигает
   /// bar.frame ниже screen edge (часть bar'а уезжает за пределы
   /// видимой области, items спускаются в safe-area zone).
-  private static let tabBarBottomOverlap: CGFloat = 22
+  private static let tabBarBottomOverlap: CGFloat = 28
   /// Отступ bar.top от safeArea.top. ОТРИЦАТЕЛЬНЫЙ — поднимаем bar в
   /// system-reserved area под Dynamic Island. Apple оставляет ~22pt
   /// clearance под DI; -8pt пробивает половину этого «воздуха», items
@@ -779,12 +779,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     // скролле messages и date-tag проходят под прозрачной пилюлей шапки
     // (Telegram-эффект). Раньше insets.top = 32 → контент cut'ился у
     // safeArea-границы.
-    if bottomVisible, let bar = bottomBar, !bar.isHidden {
-      // Для tab bar inset нужен — иначе list-контент уезжает под bar
-      // (icons не прозрачные, items перекрывают последние элементы списка).
-      _ = bar
-      insets.bottom = Self.tabBarContentHeight
-    }
+    // ВАЖНО: insets.bottom = 0 даже когда tab bar виден. Контент Flutter
+    // (списки чатов/звонков, сообщения чата) рисуется до view.bottom-34
+    // (system home indicator), и items tab bar'а наезжают сверху с
+    // прозрачным glass-фоном. Apple Photos pattern — последние items
+    // частично видны под bar'ом, полностью открываются при scroll'е.
+    // Flutter-сторона должна добавить bottom-padding (≈ tabBar content +
+    // overlap) на свои ListView'ы, чтобы пользователь мог проскроллить
+    // последнюю запись выше bar'а.
     vc.additionalSafeAreaInsets = insets
 
     // КОМПЕНСАЦИЯ circular feedback для TOP bar:
