@@ -48,6 +48,13 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// когда observer hide/show циклит между табами-экранами.
   private var lastBottomBarItemsSignature: String = ""
 
+  /// Ref на top constraint top bar'а — динамически обновляется в
+  /// updateSafeAreaInsets() для компенсации circular feedback:
+  /// `additionalSafeAreaInsets.top` РАСШИРЯЕТ safeAreaLayoutGuide.topAnchor,
+  /// а bar.top к нему привязан → bar толкается вниз вместе с safeArea.
+  /// Без компенсации шапка оказывается ~30pt ниже expected'а.
+  private var topBarTopConstraint: NSLayoutConstraint?
+
   // MARK: - Eventing
 
   var onEvent: ((String, [String: Any]) -> Void)?
@@ -102,16 +109,18 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     vc.view.addSubview(top)
     vc.view.addSubview(bottom)
 
+    // Top constraint храним по ref'у — будем обновлять constant в
+    // updateSafeAreaInsets() для компенсации circular feedback с
+    // additionalSafeAreaInsets.top.
+    let topC = top.topAnchor.constraint(
+      equalTo: vc.view.safeAreaLayoutGuide.topAnchor,
+      constant: Self.navBarTopGap)
+    topBarTopConstraint = topC
+
     NSLayoutConstraint.activate([
       top.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
       top.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
-      // Небольшой gap (6pt) от status bar — bar «дышит», как в дизайне iOS 26.
-      top.topAnchor.constraint(
-        equalTo: vc.view.safeAreaLayoutGuide.topAnchor,
-        constant: Self.navBarTopGap),
-      // Явная высота 56pt — выше дефолтных 44pt UINavigationBar, чтобы
-      // chat header (avatar 36 + title + subtitle) дышал и не упирался
-      // в bar-buttons по вертикали.
+      topC,
       top.heightAnchor.constraint(equalToConstant: Self.navBarContentHeight),
 
       bottom.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
@@ -757,6 +766,15 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       insets.bottom = Self.tabBarContentHeight
     }
     vc.additionalSafeAreaInsets = insets
+
+    // КОМПЕНСАЦИЯ circular feedback: additionalSafeAreaInsets.top сдвигает
+    // safeAreaLayoutGuide.topAnchor вниз на insets.top. bar.topConstraint
+    // тоже привязан к safeAreaLayoutGuide.topAnchor, и без этой коррекции
+    // он бы ехал вниз вместе с safeArea (что мы и видели на скринах —
+    // ~60pt void над items). Подкручиваем `constant`, чтобы абсолютная
+    // позиция bar.top осталась = originalSafeArea + navBarTopGap.
+    topBarTopConstraint?.constant = Self.navBarTopGap - insets.top
+    Self.log("updateSafeAreaInsets insets.top=\(insets.top) topConstraint.constant=\(Self.navBarTopGap - insets.top)")
   }
 
   // MARK: - Targets
