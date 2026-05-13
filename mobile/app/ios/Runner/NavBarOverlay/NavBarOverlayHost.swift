@@ -28,10 +28,18 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   private var topBarHeight: CGFloat = 0
   private var bottomBarHeight: CGFloat = 0
 
+  /// Кэш «оригинальной» конфигурации, чтобы корректно восстанавливать avatar +
+  /// trailing actions после выхода из режима поиска.
+  private var customTitleView: UIView?
+  private var lastPlainTitle: String?
+  private var storedRightItems: [UIBarButtonItem] = []
+
   /// Avatar download tasks keyed by URL so the same URL is not fetched twice
   /// while the bar is updated repeatedly.
   private var avatarTasks: [URL: URLSessionDataTask] = [:]
   private var lastAvatarUrl: URL?
+  private var avatarImageView: UIImageView?
+  private var cachedAvatarImage: UIImage?
 
   // MARK: - Eventing
 
@@ -41,8 +49,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
   /// Стандартная высота контента UITabBar / UINavigationBar. Apple использует
   /// эти же константы внутри UITabBarController / UINavigationController.
+  /// Top bar поднят до 56pt чтобы avatar 36×36 + title + subtitle помещались
+  /// без обрезки (iOS 26 Liquid Glass).
   private static let tabBarContentHeight: CGFloat = 49
-  private static let navBarContentHeight: CGFloat = 44
+  private static let navBarContentHeight: CGFloat = 56
 
   func attach(to vc: UIViewController) {
     flutterVC = vc
@@ -66,6 +76,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       top.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
       top.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
       top.topAnchor.constraint(equalTo: vc.view.safeAreaLayoutGuide.topAnchor),
+      // Явная высота 56pt — выше дефолтных 44pt UINavigationBar, чтобы
+      // chat header (avatar 36 + title + subtitle) дышал и не упирался
+      // в bar-buttons по вертикали.
+      top.heightAnchor.constraint(equalToConstant: Self.navBarContentHeight),
 
       bottom.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
       bottom.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
@@ -142,8 +156,9 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       let fallbackInitial = title["avatarFallbackInitial"] as? String
       let statusDot = title["statusDotColorHex"] as? String
 
+      lastPlainTitle = plain
       if subtitle != nil || avatarUrl != nil {
-        item.titleView = makeTitleView(
+        customTitleView = makeTitleView(
           title: plain,
           subtitle: subtitle,
           avatarUrl: avatarUrl,
@@ -151,15 +166,25 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
           statusDotHex: statusDot
         )
       } else {
-        item.title = plain
-        item.titleView = nil
+        customTitleView = nil
+      }
+
+      // Когда активен режим поиска — UISearchBar держит titleView. Никакой
+      // плоский title тоже не показываем (он перекрывает search bar).
+      if !searchActive {
+        item.titleView = customTitleView
+        item.title = customTitleView == nil ? plain : nil
+      } else {
+        item.titleView = searchBar
+        item.title = nil
       }
     }
 
-    // Trailing actions
+    // Trailing actions — building list once, заодно кэшируем для restore'а
+    // после выхода из поиска.
     trailingActionsById.removeAll(keepingCapacity: true)
+    var items: [UIBarButtonItem] = []
     if let trailing = config["trailing"] as? [[String: Any]] {
-      var items: [UIBarButtonItem] = []
       for action in trailing.reversed() {
         let id = action["id"] as? String ?? ""
         let symbol = (action["icon"] as? [String: Any])?["symbol"] as? String
@@ -180,8 +205,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
         btn.tag = key
         items.append(btn)
       }
-      item.rightBarButtonItems = items
     }
+    storedRightItems = items
+    // В режиме поиска прячем actions, чтобы UISearchBar получил всё место.
+    item.rightBarButtonItems = searchActive ? [] : items
 
     // Style
     let styleName = config["style"] as? String ?? "inline"
@@ -259,29 +286,46 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     let active = config["active"] as? Bool ?? false
     let placeholder = config["placeholder"] as? String ?? ""
     let value = config["value"] as? String ?? ""
-
+    let wasActive = searchActive
     searchActive = active
 
     if !active {
-      searchBar?.removeFromSuperview()
+      // Деактивация: убираем search bar, восстанавливаем custom title (avatar +
+      // title + subtitle) и trailing actions, спрятанные при включении поиска.
+      if let bar = searchBar {
+        bar.resignFirstResponder()
+        bar.delegate = nil
+      }
       searchBar = nil
-      // Restore previous title view if topItem stored one
+      topItem?.titleView = customTitleView
+      if customTitleView == nil {
+        topItem?.title = lastPlainTitle
+      }
+      topItem?.rightBarButtonItems = storedRightItems
       return
     }
 
+    // Активация / обновление: выставляем UISearchBar в titleView, прячем
+    // все trailing actions, чтобы место хватало под текст + cancel.
     let bar = searchBar ?? UISearchBar()
     bar.placeholder = placeholder
-    bar.delegate = self
-    bar.text = value
-    bar.showsCancelButton = true
     bar.searchBarStyle = .minimal
+    bar.showsCancelButton = true
+    bar.delegate = self
+    if bar.text != value { bar.text = value }
     bar.translatesAutoresizingMaskIntoConstraints = false
 
-    if let item = topItem {
-      item.titleView = bar
-    }
+    topItem?.titleView = bar
+    topItem?.title = nil
+    topItem?.rightBarButtonItems = []
     searchBar = bar
-    DispatchQueue.main.async { [weak bar] in bar?.becomeFirstResponder() }
+
+    // ОЧЕНЬ ВАЖНО: вызываем becomeFirstResponder только при первом включении.
+    // На последующих updates (каждый ребилд Flutter widget'а тригерит push)
+    // повторный becomeFirstResponder ловит resign/become и клавиатура «прыгает».
+    if !wasActive {
+      DispatchQueue.main.async { [weak bar] in bar?.becomeFirstResponder() }
+    }
   }
 
   func applySelection(_ config: [String: Any]) {
@@ -337,10 +381,19 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
     let avatar = UIImageView()
     avatar.translatesAutoresizingMaskIntoConstraints = false
-    avatar.layer.cornerRadius = 16
+    avatar.layer.cornerRadius = 18
     avatar.layer.masksToBounds = true
     avatar.contentMode = .scaleAspectFill
     avatar.backgroundColor = .tertiarySystemFill
+    // Reuse cached image immediately, чтобы избежать «мигания» при пересоздании
+    // custom title view (Flutter пушит config на каждое изменение subtitle).
+    if let cached = cachedAvatarImage,
+      let raw = avatarUrl,
+      let url = URL(string: raw),
+      lastAvatarUrl == url {
+      avatar.image = cached
+    }
+    avatarImageView = avatar
 
     let initialLabel = UILabel()
     initialLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -375,8 +428,8 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     container.addSubview(textStack)
 
     NSLayoutConstraint.activate([
-      avatar.widthAnchor.constraint(equalToConstant: 32),
-      avatar.heightAnchor.constraint(equalToConstant: 32),
+      avatar.widthAnchor.constraint(equalToConstant: 36),
+      avatar.heightAnchor.constraint(equalToConstant: 36),
       avatar.leadingAnchor.constraint(equalTo: container.leadingAnchor),
       avatar.centerYAnchor.constraint(equalTo: container.centerYAnchor),
 
@@ -384,11 +437,11 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       initialLabel.centerYAnchor.constraint(equalTo: avatar.centerYAnchor),
 
       textStack.leadingAnchor.constraint(
-        equalTo: avatar.trailingAnchor, constant: 8),
+        equalTo: avatar.trailingAnchor, constant: 10),
       textStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
       textStack.trailingAnchor.constraint(
         lessThanOrEqualTo: container.trailingAnchor),
-      container.heightAnchor.constraint(equalToConstant: 40),
+      container.heightAnchor.constraint(equalToConstant: 44),
     ])
 
     if let statusDotHex = statusDotHex, let color = UIColor.fromHex(statusDotHex) {
@@ -408,8 +461,19 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     }
 
     if let raw = avatarUrl, let url = URL(string: raw) {
-      lastAvatarUrl = url
-      loadAvatar(url: url, into: avatar)
+      // Уже загружали этот URL → отдаём из кэша, без сетевого запроса.
+      if lastAvatarUrl == url, let cached = cachedAvatarImage {
+        avatar.image = cached
+      } else {
+        lastAvatarUrl = url
+        cachedAvatarImage = nil
+        loadAvatar(url: url, into: avatar)
+      }
+    } else {
+      // URL не задан → сбрасываем кэш, чтобы при возврате аватара его
+      // перезагрузили.
+      lastAvatarUrl = nil
+      cachedAvatarImage = nil
     }
 
     return container
@@ -425,7 +489,13 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
           let data = data,
           let image = UIImage(data: data)
         else { return }
+        self.cachedAvatarImage = image
         imageView.image = image
+        // Если customTitleView пересоздался за время сетевого запроса —
+        // обновляем актуальный imageView, тот, что сейчас в нашем кэше.
+        if let live = self.avatarImageView, live !== imageView {
+          live.image = image
+        }
       }
     }
     avatarTasks[url] = task

@@ -167,21 +167,34 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
 
   void _pushNativeTopBar() {
     final l10n = AppLocalizations.of(context);
+    // Компактный набор трейлинг-actions: показываем только реально
+    // активные (threads/scheduled — только при наличии). Иначе шапка
+    // переполняется и avatar+title не помещается.
     final actions = <NavBarAction>[
-      if (widget.threadsUnreadCount > 0 || _native)
-        NavBarAction(
-          id: _actionThreads,
-          icon: const NavBarIcon('bubble.left.and.bubble.right'),
-          badge: widget.threadsUnreadCount > 0
-              ? widget.threadsUnreadCount.toString()
-              : null,
-          title: l10n?.chat_header_tooltip_threads,
-        ),
       NavBarAction(
         id: _actionSearch,
         icon: const NavBarIcon('magnifyingglass'),
         title: l10n?.chat_header_tooltip_search,
       ),
+      if (widget.showCalls)
+        NavBarAction(
+          id: _actionVideo,
+          icon: const NavBarIcon('video.fill'),
+          title: l10n?.chat_header_tooltip_video_call,
+        ),
+      if (widget.showCalls)
+        NavBarAction(
+          id: _actionAudio,
+          icon: const NavBarIcon('phone.fill'),
+          title: l10n?.chat_header_tooltip_audio_call,
+        ),
+      if (widget.threadsUnreadCount > 0)
+        NavBarAction(
+          id: _actionThreads,
+          icon: const NavBarIcon('bubble.left.and.bubble.right'),
+          badge: widget.threadsUnreadCount.toString(),
+          title: l10n?.chat_header_tooltip_threads,
+        ),
       if (widget.scheduledCount > 0 && widget.onScheduledTap != null)
         NavBarAction(
           id: _actionScheduled,
@@ -189,18 +202,6 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
           badge: widget.scheduledCount.toString(),
           title: l10n?.chat_header_tooltip_scheduled,
         ),
-      if (widget.showCalls) ...[
-        NavBarAction(
-          id: _actionVideo,
-          icon: const NavBarIcon('video.fill'),
-          title: l10n?.chat_header_tooltip_video_call,
-        ),
-        NavBarAction(
-          id: _actionAudio,
-          icon: const NavBarIcon('phone.fill'),
-          title: l10n?.chat_header_tooltip_audio_call,
-        ),
-      ],
     ];
 
     final initial = widget.title.isNotEmpty
