@@ -150,11 +150,15 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
   }
 
   void _pushNativeTopBar() {
-    // Не пушим конфиг если chat_screen не вершина: иначе при ребилде во
-    // время открытия threads/profile (новый экран сверху) bar опять
-    // покажется с avatar/title чата.
+    // Пушим только когда chat_screen реально вершина стека.
+    //   * route == null  — экран уже popped, ещё не успел дисповнуться
+    //     (back-транзишен ~300ms); если push'нуть здесь, шапка чата
+    //     вспыхнет на списке диалогов.
+    //   * isCurrent == false — поверх открыт threads / profile / settings.
+    // В обоих случаях skip — observer уже сделал hideAll() при transition,
+    // didPopNext перепушит конфиг когда мы реально вернёмся на вершину.
     final route = ModalRoute.of(context);
-    if (route != null && route.isCurrent == false) return;
+    if (route?.isCurrent != true) return;
 
     final l10n = AppLocalizations.of(context);
     // Компактный набор трейлинг-actions: показываем только реально
@@ -226,6 +230,10 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
   void _syncSearchValue() {
     if (!_native) return;
     if (!widget.searchActive) return;
+    // Тот же guard, что и в _pushNativeTopBar — не дёргаем search при
+    // ребилдах когда chat_screen не вершина.
+    final route = ModalRoute.of(context);
+    if (route?.isCurrent != true) return;
     final l10n = AppLocalizations.of(context);
     unawaited(
       NativeNavBarFacade.instance.setSearchMode(

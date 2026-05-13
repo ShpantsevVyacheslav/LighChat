@@ -124,6 +124,12 @@ class _ChatBottomNavState extends State<ChatBottomNav>
   }
 
   void _pushNativeBottomBar() {
+    // Пушим только когда экран-владелец реально вершина стека: иначе при
+    // ребилде chat_list/contacts (под открытым чатом) таб-бар вспыхнет.
+    // RouteObserver.didPopNext перепушит config когда мы вернёмся.
+    final route = ModalRoute.of(context);
+    if (route?.isCurrent != true) return;
+
     // Берём пользовательский выбор иконок из настроек (Firestore) — те же
     // имена, что и для Flutter-таб-бара. Если ключа нет, fallback на default.
     final iconNames = widget.bottomNavIconNames;
