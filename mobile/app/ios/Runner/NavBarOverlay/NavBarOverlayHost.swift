@@ -89,8 +89,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// Top bar поднят до 56pt чтобы avatar 36×36 + title + subtitle помещались
   /// без обрезки (iOS 26 Liquid Glass).
   private static let tabBarContentHeight: CGFloat = 49
-  /// Высота nav bar'а. 44pt — items pill 40pt + 2pt margin top/bottom.
-  private static let navBarContentHeight: CGFloat = 44
+  /// Высота nav bar'а. 48pt — title pill 44pt + 2pt margin сверху/снизу.
+  /// Apple's barButtonItem pills (back, search-video-phone group) на
+  /// iOS 26 рендерятся ~44pt — title pill подгоняем под этот размер.
+  private static let navBarContentHeight: CGFloat = 48
   /// Отступ bar.top от safeArea.top. ОТРИЦАТЕЛЬНЫЙ — поднимаем bar в
   /// system-reserved area под Dynamic Island. Apple оставляет ~22pt
   /// clearance под DI; -8pt пробивает половину этого «воздуха», items
@@ -562,14 +564,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       let visual = UIVisualEffectView(
         effect: UIBlurEffect(style: .systemThinMaterial))
       visual.translatesAutoresizingMaskIntoConstraints = false
-      visual.layer.cornerRadius = 20  // = height/2 для full pill (40pt)
+      visual.layer.cornerRadius = 22  // = height/2 для full pill (44pt)
       visual.layer.masksToBounds = true
       pill = visual
     } else {
       let v = UIView()
       v.translatesAutoresizingMaskIntoConstraints = false
       v.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.65)
-      v.layer.cornerRadius = 20
+      v.layer.cornerRadius = 22
       v.layer.masksToBounds = true
       pill = v
     }
@@ -604,7 +606,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
     let avatar = UIImageView()
     avatar.translatesAutoresizingMaskIntoConstraints = false
-    avatar.layer.cornerRadius = 16  // half of 32 для round avatar
+    avatar.layer.cornerRadius = 17  // half of 34 для round avatar
     avatar.layer.masksToBounds = true
     avatar.contentMode = .scaleAspectFill
     // Fallback fill: solid 0xFF18357C (тот же start-цвет Flutter
@@ -662,10 +664,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     container.addSubview(textStack)
 
     NSLayoutConstraint.activate([
-      // Avatar 32×32, pill 40 — той же высоты, что Apple's iOS 26
+      // Avatar 34×34, pill 44 — точно совпадает с Apple's iOS 26
       // barButtonItem pills (back / search-video-phone group).
-      avatar.widthAnchor.constraint(equalToConstant: 32),
-      avatar.heightAnchor.constraint(equalToConstant: 32),
+      avatar.widthAnchor.constraint(equalToConstant: 34),
+      avatar.heightAnchor.constraint(equalToConstant: 34),
       avatar.leadingAnchor.constraint(equalTo: container.leadingAnchor),
       avatar.centerYAnchor.constraint(equalTo: container.centerYAnchor),
 
@@ -677,7 +679,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       textStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
       textStack.trailingAnchor.constraint(
         lessThanOrEqualTo: container.trailingAnchor),
-      container.heightAnchor.constraint(equalToConstant: 40),
+      container.heightAnchor.constraint(equalToConstant: 44),
     ])
 
     if let statusDotHex = statusDotHex, let color = UIColor.fromHex(statusDotHex) {
