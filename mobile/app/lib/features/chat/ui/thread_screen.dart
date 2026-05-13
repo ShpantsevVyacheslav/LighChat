@@ -658,13 +658,18 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
       if (!mounted) return;
       try {
         // См. ChatScreen._sendDroppedStickers — ужимаем 13 MiB Lift
-        // Subject PNG до ~300 KiB через decode+resize+encode в isolate.
+        // Subject PNG до ~300 KiB через decode+resize+encode в isolate
+        // и помечаем displayName = 'sticker_*' (дискриминатор стикера
+        // по всему проекту: _isStickerAttachment/_isStickerAttachmentForMenu).
         final compact = await downscaleStickerForSend(s);
         if (!mounted) return;
+        final stickerName =
+            'sticker_${DateTime.now().toUtc().microsecondsSinceEpoch}.png';
         final att = await uploadChatAttachmentFromXFile(
           storage: FirebaseStorage.instance,
           conversationId: widget.conversationId,
           file: compact,
+          displayName: stickerName,
         );
         if (!mounted) return;
         await _sendThreadStickerOrGifAttachment(uid, repo, att);

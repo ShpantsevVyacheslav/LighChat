@@ -3351,10 +3351,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         // UI не фризится.
         final compact = await downscaleStickerForSend(s);
         if (!mounted) return;
+        // ВАЖНО: displayName с префиксом 'sticker_' — иначе message UI
+        // (см. _isStickerAttachment в message_attachments.dart и
+        // _isStickerAttachmentForMenu в message_context_menu.dart)
+        // не распознаёт это как стикер: рендерится крупным изображением,
+        // в context-menu показывается «Создать стикер» вместо «Сохранить
+        // в стикеры». Префикс — единственный дискриминатор по проекту.
+        final stickerName =
+            'sticker_${DateTime.now().toUtc().microsecondsSinceEpoch}.png';
         final att = await uploadChatAttachmentFromXFile(
           storage: FirebaseStorage.instance,
           conversationId: widget.conversationId,
           file: compact,
+          displayName: stickerName,
         );
         if (!mounted) return;
         await _sendStickerOrGifAttachment(uid, repo, att);
