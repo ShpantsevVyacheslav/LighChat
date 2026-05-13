@@ -110,10 +110,9 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// (ещё чуть выше — больше воздуха над home indicator).
   private static let tabBarBottomOverlap: CGFloat = 12
   /// Отступ bar.top от safeArea.top. ОТРИЦАТЕЛЬНЫЙ — поднимаем bar в
-  /// system-reserved area под Dynamic Island. Apple оставляет ~22pt
-  /// clearance под DI; -16pt пробивает большую часть «воздуха», pill'ы
-  /// прижимаются к DI / status bar zone (Telegram-стиль).
-  private static let navBarTopGap: CGFloat = -16
+  /// system-reserved area под Dynamic Island. -6pt — pill'ы чуть-чуть
+  /// заходят в DI clearance, но не прижимаются к status bar items.
+  private static let navBarTopGap: CGFloat = -6
   /// Структурное логирование для отладки overlay'я. Включается через
   /// `defaults write … NavBarOverlayDebug 1` или хардкодом ниже.
   private static let debugLog: Bool = true
@@ -125,10 +124,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     top.translatesAutoresizingMaskIntoConstraints = false
     top.delegate = self
     top.isHidden = true
-    // Минимальные боковые отступы — back прижат к левому краю, actions
-    // к правому. Освобождает центр для title pill (avatar+name+subtitle).
+    // Боковые отступы 2pt (раньше 4) — pill'ы ещё ближе к краям экрана,
+    // больше места под title pill в центре.
     top.directionalLayoutMargins = NSDirectionalEdgeInsets(
-      top: 0, leading: 4, bottom: 0, trailing: 4)
+      top: 0, leading: 2, bottom: 0, trailing: 2)
     top.preservesSuperviewLayoutMargins = false
     LiquidGlassAppearance.applyNavigationBar(top, tint: .systemBlue)
 
@@ -250,8 +249,11 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       return [btn, negSpace]
     }
 
-    /// 44×44 круглая пилюля с UIVisualEffectView background — визуально
-    /// matched к title pill для chat-style шапки.
+    /// 44×44 круглая пилюля, визуально matched к title pill: тот же
+    /// материал (`.systemThinMaterial`), внутри — НЕ UIButton (он на
+    /// iOS 26 получал собственный system Liquid Glass overlay внутри
+    /// моего pill'а — отсюда «двойной» тёмно-серый fill), а
+    /// UIImageView + UITapGestureRecognizer на самом pill'е.
     func makeBackPillItem(symbol: String) -> UIBarButtonItem {
       let pill = UIVisualEffectView(
         effect: UIBlurEffect(style: .systemThinMaterial))
@@ -259,19 +261,20 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       pill.layer.cornerRadius = 22
       pill.layer.masksToBounds = true
       pill.isUserInteractionEnabled = true
+      let tap = UITapGestureRecognizer(
+        target: self, action: #selector(onLeadingTap))
+      pill.addGestureRecognizer(tap)
 
-      let icon = UIButton(type: .system)
-      icon.setImage(SymbolMapper.image(named: symbol), for: .normal)
+      let icon = UIImageView(image: SymbolMapper.image(named: symbol))
       icon.tintColor = .label
-      icon.addTarget(
-        self, action: #selector(onLeadingTap), for: .touchUpInside)
+      icon.contentMode = .scaleAspectFit
       icon.translatesAutoresizingMaskIntoConstraints = false
       pill.contentView.addSubview(icon)
       NSLayoutConstraint.activate([
         icon.centerXAnchor.constraint(equalTo: pill.contentView.centerXAnchor),
         icon.centerYAnchor.constraint(equalTo: pill.contentView.centerYAnchor),
-        icon.widthAnchor.constraint(equalToConstant: 36),
-        icon.heightAnchor.constraint(equalToConstant: 36),
+        icon.widthAnchor.constraint(equalToConstant: 20),
+        icon.heightAnchor.constraint(equalToConstant: 20),
         pill.widthAnchor.constraint(equalToConstant: 44),
         pill.heightAnchor.constraint(equalToConstant: 44),
       ])
