@@ -191,20 +191,30 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
     let item = UINavigationItem()
 
-    // Leading
+    // Leading: используем `leftBarButtonItems` с negative-fixedSpace ПОСЛЕ
+    // back/close/menu кнопки, чтобы зазор между back-pill и title-pill
+    // стал плотнее (паритет с trailing pill ниже).
+    func makeLeadingItems(_ btn: UIBarButtonItem) -> [UIBarButtonItem] {
+      let negSpace = UIBarButtonItem(
+        barButtonSystemItem: .fixedSpace, target: nil, action: nil)
+      negSpace.width = -8
+      // leftBarButtonItems[0] — самый левый; index 1 — правее, между
+      // back-кнопкой и title.
+      return [btn, negSpace]
+    }
     if let leading = config["leading"] as? [String: Any] {
       let type = leading["type"] as? String ?? "back"
       leadingId = leading["id"] as? String ?? "back"
       switch type {
       case "none":
-        item.leftBarButtonItem = nil
+        item.leftBarButtonItems = nil
       case "close":
         let btn = UIBarButtonItem(
           image: SymbolMapper.image(named: "xmark"),
           style: .plain,
           target: self,
           action: #selector(onLeadingTap))
-        item.leftBarButtonItem = btn
+        item.leftBarButtonItems = makeLeadingItems(btn)
       case "menu":
         let symbol = (leading["icon"] as? [String: Any])?["symbol"] as? String
           ?? "line.3.horizontal"
@@ -213,7 +223,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
           style: .plain,
           target: self,
           action: #selector(onLeadingTap))
-        item.leftBarButtonItem = btn
+        item.leftBarButtonItems = makeLeadingItems(btn)
       case "back":
         fallthrough
       default:
@@ -222,7 +232,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
           style: .plain,
           target: self,
           action: #selector(onLeadingTap))
-        item.leftBarButtonItem = btn
+        item.leftBarButtonItems = makeLeadingItems(btn)
       }
     }
 
@@ -258,21 +268,25 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       }
     }
 
-    // Trailing actions — building list once, заодно кэшируем для restore'а
-    // после выхода из поиска.
+    // Trailing actions: вместо набора независимых UIBarButtonItem'ов (iOS 26
+    // вокруг каждого рендерит свою Liquid Glass-пилюлю с системным зазором
+    // ~12pt) собираем ОДНУ группу — UIStackView внутри одного
+    // UIBarButtonItem(customView:). Получаем единую пилюлю с tight spacing
+    // между иконками; за счёт этого pill становится уже, и UINavigationBar
+    // даёт titleView (имя юзера) больше места.
     trailingActionsById.removeAll(keepingCapacity: true)
     var items: [UIBarButtonItem] = []
     if let trailing = config["trailing"] as? [[String: Any]] {
-      for action in trailing.reversed() {
+      var buttons: [UIButton] = []
+      // Native order = left-to-right, без reversed: stack сам уложит
+      // их в визуальном порядке (left = search, right = phone).
+      for action in trailing {
         let id = action["id"] as? String ?? ""
         let symbol = (action["icon"] as? [String: Any])?["symbol"] as? String
           ?? "ellipsis"
         let enabled = action["enabled"] as? Bool ?? true
-        let btn = UIBarButtonItem(
-          image: SymbolMapper.image(named: symbol),
-          style: .plain,
-          target: self,
-          action: #selector(onTrailingTap(_:)))
+        let btn = UIButton(type: .system)
+        btn.setImage(SymbolMapper.image(named: symbol), for: .normal)
         btn.isEnabled = enabled
         if let tintHex = action["tintHex"] as? String,
           let color = UIColor.fromHex(tintHex) {
@@ -281,7 +295,32 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
         let key = btn.hash
         trailingActionsById[key] = id
         btn.tag = key
-        items.append(btn)
+        btn.addTarget(
+          self, action: #selector(onTrailingButtonTap(_:)),
+          for: .touchUpInside)
+        // 36×36 — компактный hit-target, ≥44 не нужен (Apple recommends
+        // minimum только для standalone elements, не для grouped icons).
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        btn.widthAnchor.constraint(equalToConstant: 36).isActive = true
+        btn.heightAnchor.constraint(equalToConstant: 36).isActive = true
+        buttons.append(btn)
+      }
+      if !buttons.isEmpty {
+        let stack = UIStackView(arrangedSubviews: buttons)
+        stack.axis = .horizontal
+        stack.alignment = .center
+        // spacing 2pt → 3 иконки ≈ 112pt total (vs ~150pt при independent
+        // pill'ах с системными зазорами).
+        stack.spacing = 2
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        let group = UIBarButtonItem(customView: stack)
+        // Negative fixedSpace СЛЕВА от группы → подтягиваем pill ближе к
+        // title. В UINavigationBar `rightBarButtonItems[0]` — самый
+        // правый, дальше ВЛЕВО. Поэтому negSpace ставим ПОСЛЕ group.
+        let negSpace = UIBarButtonItem(
+          barButtonSystemItem: .fixedSpace, target: nil, action: nil)
+        negSpace.width = -8
+        items = [group, negSpace]
       }
     }
     storedRightItems = items
@@ -641,10 +680,12 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     }()
     contentHost.addSubview(container)
     NSLayoutConstraint.activate([
+      // Сжимаем внутренние отступы title-pill'а, чтобы текст имени мог
+      // занять больше горизонтального пространства (раньше 4/10 → 3/6).
       container.leadingAnchor.constraint(
-        equalTo: contentHost.leadingAnchor, constant: 4),
+        equalTo: contentHost.leadingAnchor, constant: 3),
       container.trailingAnchor.constraint(
-        equalTo: contentHost.trailingAnchor, constant: -10),
+        equalTo: contentHost.trailingAnchor, constant: -6),
       container.topAnchor.constraint(equalTo: contentHost.topAnchor),
       container.bottomAnchor.constraint(equalTo: contentHost.bottomAnchor),
     ])
@@ -720,10 +761,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       initialLabel.centerYAnchor.constraint(equalTo: avatar.centerYAnchor),
 
       textStack.leadingAnchor.constraint(
-        equalTo: avatar.trailingAnchor, constant: 8),
+        equalTo: avatar.trailingAnchor, constant: 6),
       textStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+      // textStack.trailingAnchor `equalTo` (а не lessThanOrEqualTo)
+      // container.trailingAnchor → title pill claim'ит всю доступную
+      // ширину вместо схлопывания по intrinsic content size, и длинные
+      // имена не truncate'аются с эллипсисом раньше времени.
       textStack.trailingAnchor.constraint(
-        lessThanOrEqualTo: container.trailingAnchor),
+        equalTo: container.trailingAnchor),
       container.heightAnchor.constraint(equalToConstant: 44),
     ])
 
@@ -923,6 +968,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   }
 
   @objc private func onTrailingTap(_ sender: UIBarButtonItem) {
+    if let id = trailingActionsById[sender.tag] {
+      onEvent?("actionTap", ["id": id])
+    }
+  }
+
+  /// Handler для UIButton-ов внутри grouped trailing pill'а. Хранит id
+  /// по тому же ключу `tag` → `trailingActionsById`.
+  @objc private func onTrailingButtonTap(_ sender: UIButton) {
     if let id = trailingActionsById[sender.tag] {
       onEvent?("actionTap", ["id": id])
     }
