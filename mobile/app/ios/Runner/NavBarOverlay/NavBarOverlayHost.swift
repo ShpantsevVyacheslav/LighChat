@@ -67,12 +67,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// Top bar поднят до 56pt чтобы avatar 36×36 + title + subtitle помещались
   /// без обрезки (iOS 26 Liquid Glass).
   private static let tabBarContentHeight: CGFloat = 49
-  /// Высота nav bar'а. Telegram-style: avatar+title в собственной
-  /// Liquid Glass пилюле, поэтому bar может быть очень компактным —
-  /// pill сам форсит свою высоту изнутри.
-  private static let navBarContentHeight: CGFloat = 44
-  /// Gap между status bar и nav bar. 0 = шапка вплотную под Dynamic Island.
-  private static let navBarTopGap: CGFloat = 0
+  /// Высота nav bar'а. 40pt — компактно, items 36pt + 2pt margin top/bottom.
+  private static let navBarContentHeight: CGFloat = 40
+  /// Отступ bar.top от safeArea.top. ОТРИЦАТЕЛЬНЫЙ — поднимаем bar в
+  /// system-reserved area под Dynamic Island. Apple оставляет ~22pt
+  /// clearance под DI; -8pt пробивает половину этого «воздуха», items
+  /// визуально ближе к DI как у Telegram. Items при этом не клипятся
+  /// (DI overlays, не cuts).
+  private static let navBarTopGap: CGFloat = -8
   /// Структурное логирование для отладки overlay'я. Включается через
   /// `defaults write … NavBarOverlayDebug 1` или хардкодом ниже.
   private static let debugLog: Bool = true
@@ -537,14 +539,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       let visual = UIVisualEffectView(
         effect: UIBlurEffect(style: .systemThinMaterial))
       visual.translatesAutoresizingMaskIntoConstraints = false
-      visual.layer.cornerRadius = 16
+      visual.layer.cornerRadius = 18  // = height/2 для full pill
       visual.layer.masksToBounds = true
       pill = visual
     } else {
       let v = UIView()
       v.translatesAutoresizingMaskIntoConstraints = false
       v.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.65)
-      v.layer.cornerRadius = 16
+      v.layer.cornerRadius = 18
       v.layer.masksToBounds = true
       pill = v
     }
@@ -579,7 +581,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
     let avatar = UIImageView()
     avatar.translatesAutoresizingMaskIntoConstraints = false
-    avatar.layer.cornerRadius = 14
+    avatar.layer.cornerRadius = 15  // half of 30 для round avatar
     avatar.layer.masksToBounds = true
     avatar.contentMode = .scaleAspectFill
     // Fallback fill: solid 0xFF18357C (тот же start-цвет Flutter
@@ -637,8 +639,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     container.addSubview(textStack)
 
     NSLayoutConstraint.activate([
-      avatar.widthAnchor.constraint(equalToConstant: 28),
-      avatar.heightAnchor.constraint(equalToConstant: 28),
+      // Avatar 30×30, pill 36 — visually совпадает с Apple's iOS 26
+      // barButtonItem pills (back/search/video/phone group).
+      avatar.widthAnchor.constraint(equalToConstant: 30),
+      avatar.heightAnchor.constraint(equalToConstant: 30),
       avatar.leadingAnchor.constraint(equalTo: container.leadingAnchor),
       avatar.centerYAnchor.constraint(equalTo: container.centerYAnchor),
 
@@ -650,7 +654,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       textStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
       textStack.trailingAnchor.constraint(
         lessThanOrEqualTo: container.trailingAnchor),
-      container.heightAnchor.constraint(equalToConstant: 32),
+      container.heightAnchor.constraint(equalToConstant: 36),
     ])
 
     if let statusDotHex = statusDotHex, let color = UIColor.fromHex(statusDotHex) {
