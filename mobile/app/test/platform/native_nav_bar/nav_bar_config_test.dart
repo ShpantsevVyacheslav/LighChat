@@ -181,6 +181,37 @@ void main() {
       final items = config.toMap()['items'] as List;
       expect((items[0] as Map)['badge'], '12');
     });
+
+    test('tintHex на табе попадает в wire', () {
+      const config = NavBarBottomConfig(
+        items: [
+          NavBarTab(
+            id: 'chats',
+            label: 'Chats',
+            icon: NavBarIcon('bubble.left'),
+            tintHex: '#FF8800',
+          ),
+        ],
+        selectedId: 'chats',
+      );
+      final items = config.toMap()['items'] as List;
+      expect((items[0] as Map)['tintHex'], '#FF8800');
+    });
+
+    test('tintHex отсутствует когда null', () {
+      const config = NavBarBottomConfig(
+        items: [
+          NavBarTab(
+            id: 'chats',
+            label: 'Chats',
+            icon: NavBarIcon('bubble.left'),
+          ),
+        ],
+        selectedId: 'chats',
+      );
+      final item = (config.toMap()['items'] as List).first as Map;
+      expect(item.containsKey('tintHex'), false);
+    });
   });
 
   group('NavBarSearchConfig.toMap', () {

@@ -169,6 +169,7 @@ class NavBarTab {
     required this.icon,
     this.selectedIcon,
     this.badge,
+    this.tintHex,
   });
 
   final String id;
@@ -177,12 +178,19 @@ class NavBarTab {
   final NavBarIcon? selectedIcon;
   final String? badge;
 
+  /// Hex-цвет иконки/лейбла этого item'а. `#RRGGBB` или `#AARRGGBB`.
+  /// Применяется native side через `image.withTintColor` + label
+  /// `setTitleTextAttributes(foregroundColor:)`. Если null — наследуется
+  /// глобальный `bar.tintColor`.
+  final String? tintHex;
+
   Map<String, Object?> toMap() => {
         'id': id,
         'label': label,
         'icon': icon.toMap(),
         if (selectedIcon != null) 'selectedIcon': selectedIcon!.toMap(),
         if (badge != null) 'badge': badge,
+        if (tintHex != null) 'tintHex': tintHex,
       };
 }
 

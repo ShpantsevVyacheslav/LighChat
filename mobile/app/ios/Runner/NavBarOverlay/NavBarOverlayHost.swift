@@ -325,7 +325,8 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       let id = cfg["id"] as? String ?? ""
       let label = cfg["label"] as? String ?? ""
       let symbol = (cfg["icon"] as? [String: Any])?["symbol"] as? String ?? ""
-      return "\(id)/\(label)/\(symbol)"
+      let tint = cfg["tintHex"] as? String ?? ""
+      return "\(id)/\(label)/\(symbol)/\(tint)"
     }.joined(separator: "|")
 
     Self.log("applyBottomBar visible=\(visible) itemsCount=\(configs.count) selectedId=\(selectedId) signatureEq=\(signature == lastBottomBarItemsSignature)")
@@ -368,13 +369,30 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       let selectedSymbol =
         (cfg["selectedIcon"] as? [String: Any])?["symbol"] as? String
       let badge = cfg["badge"] as? String
+      let tintHex = cfg["tintHex"] as? String
+      let tintColor = tintHex.flatMap { UIColor.fromHex($0) }
 
-      let normalImage = SymbolMapper.image(named: iconSymbol)
-      let selectedImage =
+      var normalImage = SymbolMapper.image(named: iconSymbol)
+      var selectedImage =
         selectedSymbol.map { SymbolMapper.image(named: $0) } ?? normalImage
+
+      // Per-item tint: image rendered as .alwaysOriginal с заданным
+      // цветом, чтобы UITabBar не перекрасил его в свой tintColor.
+      // Применяется и к normal, и к selected (если selectedIcon отдельный —
+      // получает тот же tint).
+      if let color = tintColor {
+        if #available(iOS 13.0, *) {
+          normalImage = normalImage?.withTintColor(color, renderingMode: .alwaysOriginal)
+          selectedImage = selectedImage?.withTintColor(color, renderingMode: .alwaysOriginal)
+        }
+      }
 
       let tab = UITabBarItem(title: label, image: normalImage, selectedImage: selectedImage)
       tab.badgeValue = badge
+      if let color = tintColor {
+        tab.setTitleTextAttributes([.foregroundColor: color], for: .normal)
+        tab.setTitleTextAttributes([.foregroundColor: color], for: .selected)
+      }
       tabItemsById[ObjectIdentifier(tab)] = id
       if id == selectedId {
         selected = tab

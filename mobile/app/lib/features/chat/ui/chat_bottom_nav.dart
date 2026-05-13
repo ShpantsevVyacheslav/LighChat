@@ -160,6 +160,18 @@ class _ChatBottomNavState extends State<ChatBottomNav>
     String iconFor(String tabHref, String defaultLucide) =>
         lucideToSfSymbol(iconNames[tabHref] ?? defaultLucide);
 
+    // Tint для конкретного таба = merge(global, perHref).iconColor.
+    // Возвращает '#RRGGBB' для native или null если не задано.
+    String? tintFor(String tabHref) {
+      final style = mergeBottomNavIconVisualStyles(
+        widget.bottomNavIconGlobalStyle,
+        widget.bottomNavIconStyles[tabHref],
+      );
+      final raw = style.iconColor?.trim();
+      if (raw == null || raw.isEmpty) return null;
+      return raw;
+    }
+
     // Badge для табов: '99+' если ≥100 (Apple-конвенция), иначе число.
     String? badgeFor(int count) {
       if (count <= 0) return null;
@@ -174,21 +186,25 @@ class _ChatBottomNavState extends State<ChatBottomNav>
           label: l10n?.bottom_nav_label_chats ?? 'Chats',
           icon: NavBarIcon(iconFor('/dashboard/chat', 'messages-square')),
           badge: badgeFor(widget.chatsUnreadCount),
+          tintHex: tintFor('/dashboard/chat'),
         ),
         NavBarTab(
           id: 'contacts',
           label: l10n?.bottom_nav_label_contacts ?? 'Contacts',
           icon: NavBarIcon(iconFor('/dashboard/contacts', 'contact')),
+          tintHex: tintFor('/dashboard/contacts'),
         ),
         NavBarTab(
           id: 'calls',
           label: l10n?.bottom_nav_label_calls ?? 'Calls',
           icon: NavBarIcon(iconFor('/dashboard/calls', 'phone-call')),
+          tintHex: tintFor('/dashboard/calls'),
         ),
         NavBarTab(
           id: 'meetings',
           label: l10n?.bottom_nav_label_conferences ?? 'Meetings',
           icon: NavBarIcon(iconFor('/dashboard/meetings', 'video')),
+          tintHex: tintFor('/dashboard/meetings'),
         ),
         NavBarTab(
           id: 'profile',
@@ -356,7 +372,10 @@ class _ChatBottomNavState extends State<ChatBottomNav>
       // (chatsUnreadCount), или user-customизации иконок/стилей.
       final changed = oldWidget.activeTab != widget.activeTab ||
           oldWidget.chatsUnreadCount != widget.chatsUnreadCount ||
-          oldWidget.bottomNavIconNames != widget.bottomNavIconNames;
+          oldWidget.bottomNavIconNames != widget.bottomNavIconNames ||
+          oldWidget.bottomNavIconGlobalStyle !=
+              widget.bottomNavIconGlobalStyle ||
+          oldWidget.bottomNavIconStyles != widget.bottomNavIconStyles;
       if (changed) _pushNativeBottomBar();
       return;
     }
