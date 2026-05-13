@@ -135,6 +135,14 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
   void initState() {
     super.initState();
     _joinedAt = DateTime.now().toUtc();
+    // Когда юзер тапает «Вернуться» прямо в PiP-окне, native стороной
+    // зовётся этот callback. Делаем popUntil до meeting-room.
+    _pipController.onReturnToCall = () {
+      if (!mounted) return;
+      Navigator.of(context).popUntil(
+        (r) => r.settings.name == 'meeting-room' || r.isFirst,
+      );
+    };
     _bootstrap();
   }
 

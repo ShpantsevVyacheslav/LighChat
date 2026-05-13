@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show VoidCallback;
 import 'package:flutter/services.dart';
 
 import 'package:lighchat_mobile/core/app_logger.dart';
@@ -25,7 +26,23 @@ class MeetingPipController {
       : _channel = channel ??
             MethodChannel(
               Platform.isIOS ? 'lighchat/meeting_pip' : 'lighchat/pip',
-            );
+            ) {
+    // Принимаем сообщения с native-стороны (returnToCall — юзер
+    // нажал кнопку «Вернуться» прямо в PiP-окне).
+    _channel.setMethodCallHandler((call) async {
+      switch (call.method) {
+        case 'returnToCall':
+          appLogger.i('[meeting-pip] returnToCall received from native');
+          onReturnToCall?.call();
+          break;
+      }
+      return null;
+    });
+  }
+
+  /// Зовётся из native PiP-окна, когда юзер тапнул «Вернуться в звонок».
+  /// MeetingRoomScreen прокидывает сюда колбэк для navigator.popUntil.
+  VoidCallback? onReturnToCall;
 
   final MethodChannel _channel;
   bool? _supportedCache;

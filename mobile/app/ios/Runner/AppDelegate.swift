@@ -722,16 +722,56 @@ private final class LighChatVirtualBackgroundBridge: NSObject {
 final class LighChatMeetingPipCallVC: AVPictureInPictureVideoCallViewController {
   let displayLayer = AVSampleBufferDisplayLayer()
 
+  /// Текущий applied поворот (радианы). 0 = no rotation.
+  /// LighChatPipVideoRenderer сравнивает с frame.rotation и пере-применяет
+  /// transform только при изменении.
+  var appliedRotation: CGFloat = 0
+
+  /// Кнопка «Вернуться в звонок» в углу PiP-окна. По тапу зовёт
+  /// `lighchat/meeting_pip:returnToCall` → Dart popUntil meeting-room.
+  /// AVPictureInPictureVideoCallViewController пропускает gesture'ы
+  /// своих subviews сквозь систему overlay'я PiP.
+  private let returnButton = UIButton(type: .system)
+
   override func viewDidLoad() {
     super.viewDidLoad()
     view.backgroundColor = .black
     displayLayer.videoGravity = .resizeAspect
     view.layer.addSublayer(displayLayer)
+
+    // Return-to-call: круглая полупрозрачная кнопка снизу-по-центру.
+    returnButton.translatesAutoresizingMaskIntoConstraints = false
+    returnButton.setImage(
+      UIImage(systemName: "phone.fill.arrow.up.right"),
+      for: .normal)
+    returnButton.tintColor = .white
+    returnButton.backgroundColor = UIColor.systemBlue
+    returnButton.layer.cornerRadius = 22
+    returnButton.clipsToBounds = true
+    returnButton.addTarget(
+      self, action: #selector(returnTapped), for: .touchUpInside)
+    view.addSubview(returnButton)
+    NSLayoutConstraint.activate([
+      returnButton.widthAnchor.constraint(equalToConstant: 44),
+      returnButton.heightAnchor.constraint(equalToConstant: 44),
+      returnButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+      returnButton.bottomAnchor.constraint(
+        equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+    ])
   }
 
   override func viewDidLayoutSubviews() {
     super.viewDidLayoutSubviews()
     displayLayer.frame = view.bounds
+    // Перецентрируем displayLayer после rotation — anchor по центру.
+    displayLayer.position = CGPoint(
+      x: view.bounds.midX, y: view.bounds.midY)
+  }
+
+  @objc private func returnTapped() {
+    if #available(iOS 15.0, *) {
+      LighChatMeetingPipInlineBridge.shared.returnToCallFromPip()
+    }
   }
 }
 
@@ -744,6 +784,13 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
   private var pipController: AVPictureInPictureController?
   private var callVC: LighChatMeetingPipCallVC?
   private var sourceView: UIView?
+  /// Сохраняем messenger при register'е — нужен для invokeMethod
+  /// обратно в Dart (например, на тап «Вернуться в звонок»).
+  private weak var messenger: FlutterBinaryMessenger?
+  /// Запущен ли prepare/start транзишен. Защищает от двойного
+  /// startPictureInPicture за один шаг (AVKit возвращает -1001 если
+  /// предыдущий ещё не завершился).
+  private var startInFlight = false
 
   /// trackId, полученный из Dart (см. `bindLocalTrack`). Используется для
   /// поиска LocalVideoTrack в FlutterWebRTCPlugin.sharedSingleton.
@@ -754,6 +801,7 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
   private override init() { super.init() }
 
   func register(messenger: FlutterBinaryMessenger) {
+    self.messenger = messenger
     let channel = FlutterMethodChannel(
       name: "lighchat/meeting_pip", binaryMessenger: messenger)
     channel.setMethodCallHandler { [weak self] call, result in
@@ -845,6 +893,7 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
       return
     }
     pipRenderer.displayLayer = callVC?.displayLayer
+    pipRenderer.contentVC = callVC
     NSLog("[MeetingPiP] attachRenderer: adding pipRenderer to LocalVideoTrack "
         + "(displayLayer set: %@)",
         pipRenderer.displayLayer != nil ? "yes" : "no")
@@ -856,6 +905,7 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
   private func detachRendererFromTrack() {
     guard rendererAttached else {
       pipRenderer.displayLayer = nil
+      pipRenderer.contentVC = nil
       return
     }
     guard let trackId = boundTrackId,
@@ -867,6 +917,7 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
       NSLog("[MeetingPiP] detachRenderer: track gone, clearing local flag")
       rendererAttached = false
       pipRenderer.displayLayer = nil
+      pipRenderer.contentVC = nil
       return
     }
     NSLog("[MeetingPiP] detachRenderer: removing pipRenderer from track %@",
@@ -1022,13 +1073,22 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
     result: @escaping FlutterResult
   ) {
     NSLog(
-      "[MeetingPiP] attemptStart: possible=%@ active=%@ suspended=%@ left=%d",
+      "[MeetingPiP] attemptStart: possible=%@ active=%@ suspended=%@ "
+        + "inFlight=%@ left=%d",
       pip.isPictureInPicturePossible ? "true" : "false",
       pip.isPictureInPictureActive ? "true" : "false",
       pip.isPictureInPictureSuspended ? "true" : "false",
+      startInFlight ? "true" : "false",
       attemptsLeft)
+    // Guard: уже идёт транзишен или PiP активен — не дёргаем заново.
+    if pip.isPictureInPictureActive || startInFlight {
+      NSLog("[MeetingPiP] attemptStart: PiP already active or starting, skip")
+      result(true)
+      return
+    }
     if pip.isPictureInPicturePossible {
       NSLog("[MeetingPiP] attemptStart: calling startPictureInPicture()")
+      startInFlight = true
       pip.startPictureInPicture()
       result(true)
       return
@@ -1074,6 +1134,7 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
     _ pictureInPictureController: AVPictureInPictureController
   ) {
     NSLog("[MeetingPiP] delegate: DID START")
+    startInFlight = false
   }
 
   func pictureInPictureControllerWillStopPictureInPicture(
@@ -1086,7 +1147,10 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
     _ pictureInPictureController: AVPictureInPictureController
   ) {
     NSLog("[MeetingPiP] delegate: DID STOP")
-    teardown()
+    startInFlight = false
+    // НЕ зовём teardown — controller остаётся жив для повторного
+    // запуска (например, авто-PiP при следующем сворачивании). Renderer
+    // не отключаем. Освободим всё на unbindLocalTrack/dispose.
   }
 
   func pictureInPictureController(
@@ -1097,7 +1161,23 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
           error.localizedDescription,
           (error as NSError).domain,
           (error as NSError).code)
-    teardown()
+    startInFlight = false
+    // -1001 (CannotEnter) обычно временный: система занята/transition
+    // в процессе. Controller оставляем живым — следующий enter может
+    // сработать. teardown только когда unbindLocalTrack/dispose.
+  }
+
+  /// Вызывается из LighChatMeetingPipCallVC при тапе на «Вернуться».
+  /// Сообщаем Dart, чтобы тот закрыл /chats и вернулся в комнату.
+  fileprivate func returnToCallFromPip() {
+    NSLog("[MeetingPiP] returnToCallFromPip tapped")
+    if let messenger = self.messenger {
+      let ch = FlutterMethodChannel(
+        name: "lighchat/meeting_pip", binaryMessenger: messenger)
+      ch.invokeMethod("returnToCall", arguments: nil)
+    }
+    // Заодно гасим PiP-окно, чтобы пользователь вернулся к полному UI.
+    pipController?.stopPictureInPicture()
   }
 }
 
@@ -1119,6 +1199,11 @@ final class LighChatPipVideoRenderer: NSObject, RTCVideoRenderer {
   /// layer в памяти после exit'а PiP.
   weak var displayLayer: AVSampleBufferDisplayLayer?
 
+  /// Ссылка на parent VC — нужна, чтобы применить affine transform для
+  /// поворота кадра (камера на iOS отдаёт 640×480 + rotation=90, что
+  /// нужно повернуть на 90° для портретного отображения).
+  weak var contentVC: LighChatMeetingPipCallVC?
+
   /// Счётчик принятых кадров — раз в N логируем, чтобы видеть, что
   /// поток идёт. Сбрасывается в `teardown`.
   var frameCount: Int = 0
@@ -1127,6 +1212,16 @@ final class LighChatPipVideoRenderer: NSObject, RTCVideoRenderer {
   /// сам читает размер из CVPixelBuffer).
   func setSize(_ size: CGSize) {
     NSLog("[MeetingPiP] renderer.setSize → %@", NSCoder.string(for: size))
+  }
+
+  /// Маппинг WebRTC rotation → радианы для CALayer transform.
+  private func radians(for rotation: RTCVideoRotation) -> CGFloat {
+    switch rotation {
+    case ._90: return .pi / 2
+    case ._180: return .pi
+    case ._270: return -.pi / 2
+    default: return 0
+    }
   }
 
   func renderFrame(_ frame: RTCVideoFrame?) {
@@ -1166,6 +1261,21 @@ final class LighChatPipVideoRenderer: NSObject, RTCVideoRenderer {
       NSLog("[MeetingPiP] renderer: %d frames pumped", frameCount)
     }
     frameCount += 1
+
+    // Применить поворот при первом кадре и при смене rotation. CALayer
+    // affine-transform поворачивает layer в его parent. AVSample-
+    // BufferDisplayLayer с videoGravity=.resizeAspect аккуратно впишет
+    // 640×480 → 480×640 portrait после 90° поворота.
+    let targetRotation = radians(for: frame.rotation)
+    if let vc = contentVC, vc.appliedRotation != targetRotation {
+      let layer = layer  // capture local
+      let rot = targetRotation
+      DispatchQueue.main.async {
+        layer.setAffineTransform(CGAffineTransform(rotationAngle: rot))
+        vc.appliedRotation = rot
+        NSLog("[MeetingPiP] renderer: applied rotation %.2f rad", Double(rot))
+      }
+    }
 
     // Учитываем rotation: PiP сам не вращает кадр, поэтому если устройство
     // в портретной ориентации (frame.rotation = ._90), нужно прокрутить.
