@@ -120,7 +120,9 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   func attach(to vc: UIViewController) {
     flutterVC = vc
 
-    let top = UINavigationBar(frame: .zero)
+    // EdgeHuggingNavigationBar overrides `safeAreaInsets = .zero` —
+    // нужно для подтягивания pill'ов вплотную к screen edge.
+    let top = EdgeHuggingNavigationBar(frame: .zero)
     top.translatesAutoresizingMaskIntoConstraints = false
     top.delegate = self
     top.isHidden = true
@@ -250,13 +252,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
         || ((earlyTitleCfg?["avatarUrl"] as? String) != nil)
 
     func makeLeadingItems(_ btn: UIBarButtonItem) -> [UIBarButtonItem] {
-      // negEdge ВЛЕВО — большой отрицательный отступ, чтобы перебить
-      // system-min-margin iOS 26 (~16pt) у first leftBarButtonItem'а
-      // и подтянуть back-pill вплотную к screen edge ≈8pt (паритет
-      // с pinned-pill'ом, у которого `left: 8`).
+      // negEdge -16pt: iOS 26 у first leftBarButtonItem'а добавляет
+      // ~16pt system margin от safe-area, который наши zero'ы margin'ов
+      // не перебивают (внутри bar'а используется safeAreaLayoutGuide
+      // для items). -16pt компенсирует это, оставляя back-pill на
+      // ≈8pt от screen edge (паритет с pinned-pill `left: 8`).
       let negEdge = UIBarButtonItem(
         barButtonSystemItem: .fixedSpace, target: nil, action: nil)
-      negEdge.width = -8
+      negEdge.width = -16
       let negSpace = UIBarButtonItem(
         barButtonSystemItem: .fixedSpace, target: nil, action: nil)
       negSpace.width = -8
@@ -410,15 +413,13 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
         stack.spacing = 2
         stack.translatesAutoresizingMaskIntoConstraints = false
         let group = UIBarButtonItem(customView: stack)
-        // rightBarButtonItems[0] — самый правый. Перед группой ставим
-        // отрицательный negEdge (-8pt), компенсирующий system-min-margin
-        // iOS 26 у first rightBarButtonItem'а; вместе с
-        // `directionalLayoutMargins = .zero` + `layoutMargins = .zero` +
-        // `insetsLayoutMarginsFromSafeArea = false` это даёт ≈8pt от
-        // screen edge (паритет с pinned-pill'ом).
+        // rightBarButtonItems[0] — самый правый. negEdge -16pt
+        // компенсирует system-min-margin iOS 26 (~16pt от safe-area
+        // edge у first rightBarButtonItem'а). Итог: pill ≈8pt от
+        // screen edge (паритет с pinned-pill `right: 8`).
         let negEdge = UIBarButtonItem(
           barButtonSystemItem: .fixedSpace, target: nil, action: nil)
-        negEdge.width = -8
+        negEdge.width = -16
         let negSpace = UIBarButtonItem(
           barButtonSystemItem: .fixedSpace, target: nil, action: nil)
         negSpace.width = -8
@@ -1250,4 +1251,16 @@ final class GradientMaskedEffectView: UIVisualEffectView {
     super.layoutSubviews()
     layer.mask?.frame = bounds
   }
+}
+
+/// UINavigationBar с занулённым `safeAreaInsets` — нужно, чтобы
+/// leftBarButtonItems и rightBarButtonItems НЕ получали системный
+/// inset от safe area при layout'е своих pill'ов. iOS 26 даже при
+/// `directionalLayoutMargins = .zero` + `layoutMargins = .zero` +
+/// `insetsLayoutMarginsFromSafeArea = false` всё равно использует
+/// `safeAreaLayoutGuide` для positioning bar items'ов. Override
+/// `safeAreaInsets` — единственный публичный способ полностью
+/// отключить это поведение.
+final class EdgeHuggingNavigationBar: UINavigationBar {
+  override var safeAreaInsets: UIEdgeInsets { .zero }
 }
