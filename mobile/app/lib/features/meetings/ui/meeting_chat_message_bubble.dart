@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../data/meeting_chat_attachment.dart';
 import '../data/meeting_chat_message.dart';
 
 /// Набор быстрых реакций над контекстным меню — совпадает с web и
@@ -79,44 +80,27 @@ class MeetingChatMessageBubble extends StatelessWidget {
   }
 
   void _showFullImage(BuildContext context, String url) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.black,
-        insetPadding: EdgeInsets.zero,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Center(
-              child: InteractiveViewer(
-                minScale: 0.5,
-                maxScale: 4,
-                child: CachedNetworkImage(
-                  imageUrl: url,
-                  fit: BoxFit.contain,
-                  placeholder: (context, url) => const SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: CircularProgressIndicator(color: Colors.white54),
-                  ),
-                  errorWidget: (context, url, error) => const Icon(
-                    Icons.broken_image_outlined,
-                    color: Colors.white54,
-                    size: 48,
-                  ),
-                ),
-              ),
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        opaque: false,
+        barrierColor: Colors.black,
+        // Hero-style transition с фейдом + лёгким zoom-in — приближаемся
+        // к UX основного чата мобилки. Drag-down dismiss обрабатывается
+        // внутри _FullScreenImageViewer.
+        transitionDuration: const Duration(milliseconds: 220),
+        reverseTransitionDuration: const Duration(milliseconds: 220),
+        pageBuilder: (_, anim, _) => _FullScreenImageViewer(url: url),
+        transitionsBuilder: (ctx, anim, _, child) {
+          final eased =
+              CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+          return FadeTransition(
+            opacity: eased,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.96, end: 1.0).animate(eased),
+              child: child,
             ),
-            Positioned(
-              top: MediaQuery.of(ctx).padding.top + 8,
-              right: 8,
-              child: IconButton(
-                icon: const Icon(Icons.close_rounded, color: Colors.white),
-                onPressed: () => Navigator.pop(ctx),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -212,6 +196,148 @@ class MeetingChatMessageBubble extends StatelessWidget {
     }
   }
 
+  /// Render media-only message без обёрнутого colored bubble — паритет с
+  /// основным чатом мобилки. Картинка/grid занимает ВСЁ место, время в
+  /// правом-нижнем углу — overlay полупрозрачной таблеткой.
+  Widget _buildMediaOnly(
+    BuildContext context,
+    List<MeetingChatAttachment> images,
+    BorderRadius radius,
+    bool hasReactions,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final maxW = MediaQuery.of(context).size.width * 0.78;
+    final cross = images.length > 1 ? 2 : 1;
+    return Align(
+      alignment: isSelf ? Alignment.centerRight : Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxW),
+        child: GestureDetector(
+          onLongPress: () => _onLongPress(context),
+          child: Column(
+            crossAxisAlignment:
+                isSelf ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!isSelf)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, top: 4, bottom: 2),
+                  child: Text(
+                    message.senderName,
+                    style: const TextStyle(
+                      color: Color(0xFF93C5FD),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 2),
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(borderRadius: radius),
+                child: Stack(
+                  children: [
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: cross,
+                        crossAxisSpacing: 2,
+                        mainAxisSpacing: 2,
+                      ),
+                      itemCount: images.length,
+                      itemBuilder: (ctx, i) {
+                        final a = images[i];
+                        return GestureDetector(
+                          onTap: () => _showFullImage(context, a.url),
+                          child: AspectRatio(
+                            aspectRatio: 1,
+                            child: CachedNetworkImage(
+                              imageUrl: a.url,
+                              fit: BoxFit.cover,
+                              placeholder: (c, _) => Container(
+                                color: Colors.black26,
+                                child: const Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white54,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (c, _, _) => Container(
+                                color: Colors.black38,
+                                child: const Icon(
+                                    Icons.broken_image_outlined,
+                                    color: Colors.white54),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    // Полупрозрачная таблетка с временем — overlay
+                    // правого-нижнего угла.
+                    Positioned(
+                      right: 6,
+                      bottom: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _timeLabel(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (message.updatedAt != null) ...[
+                              const SizedBox(width: 4),
+                              Text(
+                                l10n.meeting_chat_edited_mark,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (hasReactions)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2, bottom: 4),
+                  child: _ReactionsRow(
+                    reactions: message.reactions,
+                    selfUserId: selfUserId,
+                    onTap: onToggleReaction == null
+                        ? null
+                        : (emoji, reacted) =>
+                            onToggleReaction!(message, emoji, reacted),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -251,6 +377,17 @@ class MeetingChatMessageBubble extends StatelessWidget {
       bottomRight: Radius.circular(isSelf ? 4 : 14),
     );
     final hasReactions = message.reactions.isNotEmpty;
+    // Bubble-less: чистое медиа без подписи. Пузырь рисуется только когда
+    // в сообщении есть текст / файлы / reply-quote — тогда они должны
+    // визуально объединяться с медиа. Иначе картинка показывается чистым
+    // прямоугольником с rounded corners (как в основном чате мобилки).
+    final isMediaOnly = images.isNotEmpty &&
+        (message.text == null || message.text!.isEmpty) &&
+        files.isEmpty &&
+        message.replyTo == null;
+    if (isMediaOnly) {
+      return _buildMediaOnly(context, images, radius, hasReactions);
+    }
     return Align(
       alignment: isSelf ? Alignment.centerRight : Alignment.centerLeft,
       child: ConstrainedBox(
@@ -965,6 +1102,113 @@ class _SourceMessagePreview extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Полноэкранный просмотрщик одиночной картинки в чате конференции.
+/// Аналог основного чата: pinch-zoom, double-tap-to-zoom (1× ↔ 2.5×),
+/// drag-down → dismiss с fade-out, X-кнопка в углу.
+class _FullScreenImageViewer extends StatefulWidget {
+  const _FullScreenImageViewer({required this.url});
+  final String url;
+
+  @override
+  State<_FullScreenImageViewer> createState() => _FullScreenImageViewerState();
+}
+
+class _FullScreenImageViewerState extends State<_FullScreenImageViewer> {
+  final _transform = TransformationController();
+  double _dragOffset = 0;
+  bool _zoomed = false;
+
+  @override
+  void dispose() {
+    _transform.dispose();
+    super.dispose();
+  }
+
+  void _onDoubleTap(TapDownDetails d) {
+    if (_zoomed) {
+      _transform.value = Matrix4.identity();
+      _zoomed = false;
+    } else {
+      final scale = 2.5;
+      final pos = d.localPosition;
+      final m = Matrix4.identity()
+        ..translateByDouble(-pos.dx * (scale - 1), -pos.dy * (scale - 1), 0, 1)
+        ..scaleByDouble(scale, scale, 1, 1);
+      _transform.value = m;
+      _zoomed = true;
+    }
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fade = (1.0 - (_dragOffset.abs() / 300).clamp(0.0, 1.0));
+    return Material(
+      color: Colors.black.withValues(alpha: fade),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          GestureDetector(
+            onVerticalDragUpdate: _zoomed
+                ? null
+                : (d) {
+                    setState(() => _dragOffset += d.delta.dy);
+                  },
+            onVerticalDragEnd: _zoomed
+                ? null
+                : (_) {
+                    if (_dragOffset.abs() > 120) {
+                      Navigator.of(context).pop();
+                    } else {
+                      setState(() => _dragOffset = 0);
+                    }
+                  },
+            onDoubleTapDown: _onDoubleTap,
+            onDoubleTap: () {}, // нужно для onDoubleTapDown
+            child: Center(
+              child: Transform.translate(
+                offset: Offset(0, _dragOffset),
+                child: InteractiveViewer(
+                  transformationController: _transform,
+                  minScale: 0.8,
+                  maxScale: 6,
+                  onInteractionEnd: (_) {
+                    final s = _transform.value.getMaxScaleOnAxis();
+                    _zoomed = s > 1.05;
+                  },
+                  child: CachedNetworkImage(
+                    imageUrl: widget.url,
+                    fit: BoxFit.contain,
+                    placeholder: (c, _) => const SizedBox(
+                      width: 48,
+                      height: 48,
+                      child:
+                          CircularProgressIndicator(color: Colors.white54),
+                    ),
+                    errorWidget: (c, _, _) => const Icon(
+                      Icons.broken_image_outlined,
+                      color: Colors.white54,
+                      size: 48,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 8,
+            child: IconButton(
+              icon: const Icon(Icons.close_rounded, color: Colors.white),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+        ],
       ),
     );
   }

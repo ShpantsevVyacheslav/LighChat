@@ -334,7 +334,9 @@ class _IconButton extends StatelessWidget {
     final effective = isAccent
         ? background
         : Colors.black.withValues(alpha: 0.28);
-    return InkWell(
+    return Tooltip(
+      message: label,
+      child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(28),
       child: Column(
@@ -381,16 +383,10 @@ class _IconButton extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          // Текстовые подписи под иконками убраны — UX как у FaceTime/
+          // Telegram: только иконка. `label` остаётся для tooltip/a11y.
         ],
+      ),
       ),
     );
   }

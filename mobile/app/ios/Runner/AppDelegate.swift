@@ -1130,17 +1130,61 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
     NSLog("[MeetingPiP] delegate: WILL START")
   }
 
+  /// Таймер, который раз в 1 секунду логирует «жив ли поток кадров».
+  /// Запускается на DID START, гасится на WILL/DID STOP. Если кадры
+  /// перестали приходить — увидим заморозку в логах.
+  private var frameLivenessTimer: Timer?
+  private var lastLoggedFrameCount: Int = 0
+
   func pictureInPictureControllerDidStartPictureInPicture(
     _ pictureInPictureController: AVPictureInPictureController
   ) {
     NSLog("[MeetingPiP] delegate: DID START")
     startInFlight = false
+    lastLoggedFrameCount = pipRenderer.frameCount
+    frameLivenessTimer?.invalidate()
+    frameLivenessTimer = Timer.scheduledTimer(withTimeInterval: 1.0,
+                                              repeats: true) { [weak self] _ in
+      guard let self = self else { return }
+      let cur = self.pipRenderer.frameCount
+      let diff = cur - self.lastLoggedFrameCount
+      let layer = self.callVC?.displayLayer
+      NSLog(
+        "[MeetingPiP] LIVENESS: framesLast1s=%d total=%d layerStatus=%@ "
+          + "ready=%@",
+        diff, cur,
+        Self.layerStatusString(layer?.status ?? .unknown),
+        layer?.isReadyForMoreMediaData == true ? "yes" : "no")
+      if diff == 0 {
+        NSLog(
+          "[MeetingPiP] LIVENESS: ⚠️ FROZEN — no frames in last 1s "
+            + "(renderer.displayLayer=%@, rendererAttached=%@, "
+            + "boundTrackId=%@)",
+          self.pipRenderer.displayLayer != nil ? "set" : "nil",
+          self.rendererAttached ? "yes" : "no",
+          self.boundTrackId ?? "nil")
+      }
+      self.lastLoggedFrameCount = cur
+    }
+  }
+
+  private static func layerStatusString(_ s: AVQueuedSampleBufferRenderingStatus)
+    -> String
+  {
+    switch s {
+    case .unknown: return "unknown"
+    case .rendering: return "rendering"
+    case .failed: return "failed"
+    @unknown default: return "unknown"
+    }
   }
 
   func pictureInPictureControllerWillStopPictureInPicture(
     _ pictureInPictureController: AVPictureInPictureController
   ) {
     NSLog("[MeetingPiP] delegate: WILL STOP")
+    frameLivenessTimer?.invalidate()
+    frameLivenessTimer = nil
   }
 
   func pictureInPictureControllerDidStopPictureInPicture(
@@ -1148,6 +1192,8 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
   ) {
     NSLog("[MeetingPiP] delegate: DID STOP")
     startInFlight = false
+    frameLivenessTimer?.invalidate()
+    frameLivenessTimer = nil
     // НЕ зовём teardown — controller остаётся жив для повторного
     // запуска (например, авто-PiP при следующем сворачивании). Renderer
     // не отключаем. Освободим всё на unbindLocalTrack/dispose.

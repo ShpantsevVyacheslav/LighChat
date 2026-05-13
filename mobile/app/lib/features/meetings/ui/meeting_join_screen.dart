@@ -408,7 +408,9 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
           }
           return SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+              // Top padding 24 → 56 — отступ от AppBar (с «Join» / «×»),
+              // чтобы превью видео не залезало под него.
+              padding: const EdgeInsets.fromLTRB(24, 56, 24, 24),
               child: _body(context, meeting, ownRequest),
             ),
           );
@@ -624,7 +626,9 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
                     icon: _initialMicMuted
                         ? Icons.mic_off_rounded
                         : Icons.mic_rounded,
-                    bg: _initialMicMuted ? Colors.redAccent : Colors.black54,
+                    // Прозрачный круг: красная заливка только когда muted,
+                    // иначе — лишь тонкая белая обводка поверх видео.
+                    bg: _initialMicMuted ? Colors.redAccent : Colors.transparent,
                     onTap: _toggleMicLocal,
                   ),
                   const SizedBox(width: 14),
@@ -632,7 +636,7 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
                     icon: _initialCameraOff
                         ? Icons.videocam_off_rounded
                         : Icons.videocam_rounded,
-                    bg: _initialCameraOff ? Colors.redAccent : Colors.black54,
+                    bg: _initialCameraOff ? Colors.redAccent : Colors.transparent,
                     onTap: _previewDenied ? null : _toggleCameraLocal,
                     disabled: _previewDenied,
                   ),
@@ -651,18 +655,22 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
     required VoidCallback? onTap,
     bool disabled = false,
   }) {
+    // Material с shape: circle — чтобы tap-ripple подсветка тоже была
+    // круглой. Без явного `shape` splash рисовался прямоугольником
+    // вокруг иконки (даже если Container внутри — circle).
     return Material(
-      color: Colors.transparent,
-      child: InkResponse(
+      color: bg.withValues(alpha: disabled ? 0.4 : (bg == Colors.transparent ? 0.0 : 0.85)),
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: onTap,
-        radius: 28,
+        customBorder: const CircleBorder(),
         child: Container(
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: bg.withValues(alpha: disabled ? 0.4 : 0.85),
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.45), width: 1.4),
           ),
           alignment: Alignment.center,
           child: Icon(icon, color: Colors.white, size: 22),
