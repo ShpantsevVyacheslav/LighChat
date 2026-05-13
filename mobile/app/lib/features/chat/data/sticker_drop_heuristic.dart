@@ -16,11 +16,24 @@ import 'package:image_picker/image_picker.dart';
 /// Контракт: чисто синхронные проверки + один decode через `package:image`.
 /// Любая ошибка (битый файл, неподдерживаемый формат) — `false`, чтобы
 /// дроп тихо ушёл по обычному pending‑attachment пути.
+///
+/// Все шаги логируются через `debugPrint('[sticker-heuristic] …')` —
+/// пригодится для диагностики «почему именно мой стикер не распознался».
 
 const int kStickerMaxSidePx = 512;
 const int kStickerMaxBytes = 1 << 20; // 1 MiB
 const int _kCornerAlphaCutoff = 16;
 const int _kCornerProbeInset = 2;
+
+void _log(String msg) {
+  debugPrint('[sticker-heuristic] $msg');
+}
+
+String _magicTag(Uint8List b) {
+  if (b.length < 12) return '<too-short:${b.length}>';
+  String hex(int i) => b[i].toRadixString(16).padLeft(2, '0');
+  return '${hex(0)} ${hex(1)} ${hex(2)} ${hex(3)} … ${hex(8)} ${hex(9)} ${hex(10)} ${hex(11)}';
+}
 
 bool _hasPngOrWebpMagic(Uint8List bytes) {
   if (bytes.length < 12) return false;
@@ -51,52 +64,100 @@ bool _hasPngOrWebpMagic(Uint8List bytes) {
 bool _allCornersTransparent(img.Image image) {
   final w = image.width;
   final h = image.height;
-  if (w <= _kCornerProbeInset * 2 || h <= _kCornerProbeInset * 2) return false;
+  if (w <= _kCornerProbeInset * 2 || h <= _kCornerProbeInset * 2) {
+    _log('rejected: image too small for corner probe (${w}x$h)');
+    return false;
+  }
   final pts = <List<int>>[
     [_kCornerProbeInset, _kCornerProbeInset],
     [w - 1 - _kCornerProbeInset, _kCornerProbeInset],
     [_kCornerProbeInset, h - 1 - _kCornerProbeInset],
     [w - 1 - _kCornerProbeInset, h - 1 - _kCornerProbeInset],
   ];
+  final alphas = <num>[];
   for (final p in pts) {
     final px = image.getPixel(p[0], p[1]);
-    if (px.a > _kCornerAlphaCutoff) return false;
+    alphas.add(px.a);
   }
+  final maxAlpha = alphas.reduce((a, b) => a > b ? a : b);
+  if (maxAlpha > _kCornerAlphaCutoff) {
+    _log(
+      'rejected: corner not transparent — alphas=$alphas '
+      '(cutoff=$_kCornerAlphaCutoff)',
+    );
+    return false;
+  }
+  _log('corners ok: alphas=$alphas');
   return true;
 }
 
 /// Проверяет, выглядит ли файл как стикер (PNG/WebP ≤ 512px, ≤ 1 MiB,
-/// прозрачные углы). Возвращает `null` если файл нечитаем.
-///
-/// Тяжёлый шаг — `img.decodeImage`. Для drop из iOS Photos одиночного
-/// PNG это десятки миллисекунд; пакетный drop из 5+ изображений лучше
-/// прогонять через `compute()`, но для текущего сценария (один файл за
-/// раз) этого не нужно.
+/// прозрачные углы). Возвращает `false` если файл нечитаем или не подходит
+/// под эвристику; в обоих случаях каждое отклонение пишется в лог.
 Future<bool> isLikelyStickerXFile(XFile file) async {
+  final tag = file.name.isNotEmpty ? file.name : file.path;
   try {
     final path = file.path;
-    if (path.isEmpty) return false;
-    final f = File(path);
-    if (!await f.exists()) return false;
-    final size = await f.length();
-    if (size <= 0 || size > kStickerMaxBytes) return false;
-
-    final bytes = await f.readAsBytes();
-    if (!_hasPngOrWebpMagic(bytes)) return false;
-
-    final decoded = img.decodeImage(bytes);
-    if (decoded == null) return false;
-    if (decoded.width > kStickerMaxSidePx ||
-        decoded.height > kStickerMaxSidePx) {
+    if (path.isEmpty) {
+      _log('"$tag" rejected: empty path');
       return false;
     }
-    if (decoded.numChannels < 4) return false; // нет alpha‑канала
-    return _allCornersTransparent(decoded);
-  } catch (e, st) {
-    // best‑effort: при любой ошибке падаем в обычный pending pipeline.
-    if (kDebugMode) {
-      debugPrint('isLikelyStickerXFile failed: $e\n$st');
+    final f = File(path);
+    if (!await f.exists()) {
+      _log('"$tag" rejected: file not exists at $path');
+      return false;
     }
+    final size = await f.length();
+    if (size <= 0) {
+      _log('"$tag" rejected: empty file');
+      return false;
+    }
+    if (size > kStickerMaxBytes) {
+      _log(
+        '"$tag" rejected: too large — $size bytes '
+        '(limit=$kStickerMaxBytes)',
+      );
+      return false;
+    }
+
+    final bytes = await f.readAsBytes();
+    if (!_hasPngOrWebpMagic(bytes)) {
+      _log(
+        '"$tag" rejected: not PNG/WebP — magic=${_magicTag(bytes)} '
+        'mime=${file.mimeType ?? 'null'}',
+      );
+      return false;
+    }
+
+    final decoded = img.decodeImage(bytes);
+    if (decoded == null) {
+      _log('"$tag" rejected: image decoder returned null');
+      return false;
+    }
+    _log(
+      '"$tag" decoded: ${decoded.width}x${decoded.height} '
+      'channels=${decoded.numChannels} size=$size',
+    );
+    if (decoded.width > kStickerMaxSidePx ||
+        decoded.height > kStickerMaxSidePx) {
+      _log(
+        '"$tag" rejected: dimensions too large — '
+        '${decoded.width}x${decoded.height} (limit=${kStickerMaxSidePx}px)',
+      );
+      return false;
+    }
+    if (decoded.numChannels < 4) {
+      _log(
+        '"$tag" rejected: no alpha channel '
+        '(numChannels=${decoded.numChannels})',
+      );
+      return false;
+    }
+    final ok = _allCornersTransparent(decoded);
+    _log('"$tag" verdict: ${ok ? 'STICKER' : 'not sticker'}');
+    return ok;
+  } catch (e, st) {
+    _log('"$tag" rejected: exception $e\n$st');
     return false;
   }
 }

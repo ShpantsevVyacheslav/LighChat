@@ -1793,7 +1793,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                       conversationId: conversationId,
                                       isGroup: conv.data.isGroup,
                                     ),
-                                  if (topPin != null && conv != null)
+                                  // На iOS native bar — overlay поверх
+                                  // Column'а с belowHeaderGap=0, поэтому
+                                  // pinned strip уезжает к самому верху и
+                                  // перекрывается status-bar'ом. Telegram-
+                                  // style: рендерим pill как Positioned ниже
+                                  // (см. nativeBarBottom).
+                                  if (topPin != null &&
+                                      conv != null &&
+                                      !usesNativeBar)
                                     ChatPinnedStrip(
                                       pin: topPin,
                                       totalPins: sortedPins.length,
@@ -2782,6 +2790,39 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                 ],
                               ),
                             ),
+                            // iOS-only: Telegram-style pinned pill, рендерим
+                            // как floating overlay чтобы он сидел ровно под
+                            // native nav bar'ом и messages могли свободно
+                            // скроллиться под ним.
+                            if (usesNativeBar &&
+                                topPin != null &&
+                                conv != null)
+                              Positioned(
+                                top: nativeBarBottom + 6,
+                                left: 8,
+                                right: 8,
+                                child: ChatPinnedStrip(
+                                  pin: topPin,
+                                  totalPins: sortedPins.length,
+                                  pill: true,
+                                  onUnpin: () =>
+                                      _unpinMessage(topPin, conv.data),
+                                  onOpenPinned: () {
+                                    final n = sortedPins.length;
+                                    if (n == 0) return;
+                                    final i = displayPinIdx;
+                                    final target = sortedPins[i];
+                                    _scrollToMessageId(target.messageId);
+                                    setState(() {
+                                      _pinnedBarSkipSyncUntilMs =
+                                          DateTime.now()
+                                              .millisecondsSinceEpoch +
+                                          900;
+                                      _barPinIndex = (i - 1 + n) % n;
+                                    });
+                                  },
+                                ),
+                              ),
                             if (showCalls &&
                                 dmOtherId != null &&
                                 dmOtherId.isNotEmpty)
@@ -3208,15 +3249,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   Future<void> _dispatchDroppedFiles(List<XFile> files) async {
+    debugPrint('[chat-drop] dispatch: ${files.length} file(s) to classify');
     final stickers = <XFile>[];
     final pending = <XFile>[];
     for (final f in files) {
-      if (await isLikelyStickerXFile(f)) {
+      final isSticker = await isLikelyStickerXFile(f);
+      if (isSticker) {
         stickers.add(f);
       } else {
         pending.add(f);
       }
     }
+    debugPrint(
+      '[chat-drop] dispatch result: '
+      'stickers=${stickers.length} pending=${pending.length}',
+    );
     if (!mounted) return;
     if (pending.isNotEmpty) {
       setState(() => _pendingAttachments.addAll(pending));

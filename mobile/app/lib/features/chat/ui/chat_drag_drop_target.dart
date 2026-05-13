@@ -67,13 +67,44 @@ class _ChatDragDropTargetState extends State<ChatDragDropTarget> {
       setState(() => _isDragOver = false);
     }
     if (!widget.enabled) return;
+    final items = event.session.items;
+    debugPrint(
+      '[chat-drop] performDrop: items=${items.length} '
+      'allowedOps=${event.session.allowedOperations}',
+    );
+    for (var i = 0; i < items.length; i++) {
+      final r = items[i].dataReader;
+      if (r == null) {
+        debugPrint('[chat-drop] item[$i]: no dataReader');
+        continue;
+      }
+      final fmts = r.getFormats(Formats.standardFormats);
+      debugPrint(
+        '[chat-drop] item[$i]: formats='
+        '${fmts.map((f) => f.toString()).join(", ")}',
+      );
+    }
     final readers = <DataReader>[
-      for (final item in event.session.items)
+      for (final item in items)
         if (item.dataReader != null) item.dataReader!,
     ];
-    if (readers.isEmpty) return;
+    if (readers.isEmpty) {
+      debugPrint('[chat-drop] performDrop: no readers, abort');
+      return;
+    }
     try {
       final payload = await readComposerPayloadFromDataReaders(readers);
+      debugPrint(
+        '[chat-drop] payload: files=${payload.files.length} '
+        'text=${payload.text == null ? 'null' : "${payload.text!.length} chars"}',
+      );
+      for (var i = 0; i < payload.files.length; i++) {
+        final f = payload.files[i];
+        debugPrint(
+          '[chat-drop] file[$i]: name="${f.name}" path="${f.path}" '
+          'mime=${f.mimeType ?? 'null'}',
+        );
+      }
       if (!mounted) return;
       if (payload.files.isNotEmpty) {
         widget.onFilesDropped(payload.files);
@@ -82,10 +113,11 @@ class _ChatDragDropTargetState extends State<ChatDragDropTarget> {
       if (text.isNotEmpty) {
         widget.onTextDropped(text);
       }
-    } catch (_) {
-      // Silent: drop — best‑effort. Если super_clipboard не смог прочитать
-      // конкретный формат, мы не показываем ошибку — пользователь увидит
-      // лишь, что ничего не добавилось, и может попробовать через скрепку.
+    } catch (e, st) {
+      // Silent для UX: drop — best‑effort, ошибки не показываем юзеру.
+      // Но в лог пишем — без этого диагностика «почему ничего не
+      // добавилось» превращается в гадание.
+      debugPrint('[chat-drop] payload read failed: $e\n$st');
     }
   }
 
@@ -156,10 +188,16 @@ class _ChatDropOverlayHint extends StatelessWidget {
                   const SizedBox(width: 10),
                   Text(
                     '${l10n.attach_title}: ${l10n.attach_files}',
+                    // decoration:none — иначе родительский DefaultTextStyle
+                    // (или iOS system spell‑check) рисует жёлтые волнистые
+                    // подчёркивания под капсулой overlay.
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
+                      decoration: TextDecoration.none,
+                      decorationColor: Colors.transparent,
+                      decorationThickness: 0,
                     ),
                   ),
                 ],

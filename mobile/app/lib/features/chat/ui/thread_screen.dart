@@ -621,15 +621,21 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
   }
 
   Future<void> _dispatchDroppedFiles(List<XFile> files) async {
+    debugPrint('[thread-drop] dispatch: ${files.length} file(s) to classify');
     final stickers = <XFile>[];
     final pending = <XFile>[];
     for (final f in files) {
-      if (await isLikelyStickerXFile(f)) {
+      final isSticker = await isLikelyStickerXFile(f);
+      if (isSticker) {
         stickers.add(f);
       } else {
         pending.add(f);
       }
     }
+    debugPrint(
+      '[thread-drop] dispatch result: '
+      'stickers=${stickers.length} pending=${pending.length}',
+    );
     if (!mounted) return;
     if (pending.isNotEmpty) {
       setState(() => _pendingAttachments.addAll(pending));
