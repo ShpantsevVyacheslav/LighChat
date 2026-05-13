@@ -818,8 +818,10 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
       NSLog("[MeetingPiP] attachRenderer: plugin.localTracks nil")
       return
     }
+    // `localTracks` — NSMutableDictionary; Swift не даёт ему `.keys`
+    // напрямую, поэтому идём через `allKeys` (NSDictionary API).
     NSLog("[MeetingPiP] attachRenderer: localTracks keys=%@",
-          Array(localTracks.keys).description)
+          localTracks.allKeys.description)
     guard let raw = localTracks[trackId] else {
       NSLog("[MeetingPiP] attachRenderer: trackId=%@ NOT FOUND in localTracks",
             trackId)
@@ -903,7 +905,7 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
     window.addSubview(src)
     self.sourceView = src
     NSLog("[MeetingPiP] enterPip: sourceView added to window (size %@)",
-          NSStringFromCGSize(window.bounds.size))
+          NSCoder.string(for: window.bounds.size))
 
     // 2. Content view controller — то, что увидит юзер в PiP-окне.
     let vc = LighChatMeetingPipCallVC()
@@ -953,7 +955,7 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
       NSLog("[MeetingPiP] attemptStart: GAVE UP — isPictureInPicturePossible "
           + "never became true (window size: %@, hasCallVC=%@, "
           + "hasSourceView=%@, rendererAttached=%@)",
-          NSStringFromCGSize(callVC?.view.bounds.size ?? .zero),
+          NSCoder.string(for: callVC?.view.bounds.size ?? .zero),
           callVC != nil ? "yes" : "no",
           sourceView != nil ? "yes" : "no",
           rendererAttached ? "yes" : "no")
@@ -1042,7 +1044,7 @@ final class LighChatPipVideoRenderer: NSObject, RTCVideoRenderer {
   /// Не используется (RTCVideoRenderer обязан реализовать, но AVSampleBuffer
   /// сам читает размер из CVPixelBuffer).
   func setSize(_ size: CGSize) {
-    NSLog("[MeetingPiP] renderer.setSize → %@", NSStringFromCGSize(size))
+    NSLog("[MeetingPiP] renderer.setSize → %@", NSCoder.string(for: size))
   }
 
   func renderFrame(_ frame: RTCVideoFrame?) {

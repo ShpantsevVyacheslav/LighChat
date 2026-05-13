@@ -1507,7 +1507,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                         : sortedPins[displayPinIdx];
                     final topInset = MediaQuery.paddingOf(context).top;
                     final headerBar = _selectedMessageIds.isEmpty ? 56.0 : 56.0;
-                    final belowHeaderGap = topInset + headerBar;
+                    // belowHeaderGap двигает контент ниже шапки. На iOS
+                    // с native nav bar overlay'ом мы НЕ хотим этот gap —
+                    // тогда сообщения будут скроллиться ПОД bar'ом с
+                    // translucent blur (iOS-26 native pattern).
+                    // На Android — Flutter ChatHeader занимает место,
+                    // gap нужен.
+                    final usesNativeBar =
+                        NativeNavBarFacade.instance.isSupported;
+                    final belowHeaderGap = usesNativeBar
+                        ? 0.0
+                        : topInset + headerBar;
+                    // Для Positioned-banner'ов нужна фактическая позиция
+                    // bottom-edge native bar'а независимо от
+                    // belowHeaderGap. На iOS — статус-bar + ~48pt bar.
+                    final nativeBarBottom = usesNativeBar
+                        ? topInset + 48.0
+                        : belowHeaderGap;
                     final sortedAscForAnchor = List<ChatMessage>.from(msgs)
                       ..sort((a, b) {
                         final t = a.createdAt.compareTo(b.createdAt);
@@ -2770,7 +2786,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                 dmOtherId != null &&
                                 dmOtherId.isNotEmpty)
                               Positioned(
-                                top: belowHeaderGap + 8,
+                                // На iOS native bar поверх Column'а с
+                                // belowHeaderGap=0 → banner надо
+                                // позиционировать по nativeBarBottom.
+                                top: nativeBarBottom + 8,
                                 left: 12,
                                 right: 12,
                                 child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
