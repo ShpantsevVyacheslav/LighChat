@@ -1,6 +1,15 @@
 import Flutter
 import UIKit
 
+/// UITabBar, который НЕ резервирует internal safe-area для home indicator.
+/// Apple's стандартный UITabBar читает parent's `safeAreaInsets.bottom`
+/// (у нас 34 + additional 49 = 83pt) и пушит items вверх внутри своего
+/// frame. Items в 49pt bar схлопываются. Subclass с safeAreaInsets =
+/// .zero отключает эту логику — items рендерятся в полную высоту bar'а.
+private final class CompactTabBar: UITabBar {
+  override var safeAreaInsets: UIEdgeInsets { .zero }
+}
+
 /// Hosts native `UINavigationBar` + `UITabBar` overlays on top of the root
 /// `FlutterViewController.view`. Owns no layout itself — `additionalSafeAreaInsets`
 /// on the Flutter VC is updated whenever bar visibility/height changes so
@@ -106,7 +115,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     top.preservesSuperviewLayoutMargins = false
     LiquidGlassAppearance.applyNavigationBar(top, tint: .systemBlue)
 
-    let bottom = UITabBar(frame: .zero)
+    let bottom = CompactTabBar(frame: .zero)
     bottom.translatesAutoresizingMaskIntoConstraints = false
     bottom.delegate = self
     bottom.isHidden = true
