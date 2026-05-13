@@ -1643,7 +1643,23 @@ export function ChatWindow({
   const handlePinMessage = async (msg: ChatMessage) => {
     if (!firestore || !conversation.id) return;
     const convRef = doc(firestore, 'conversations', conversation.id);
-    const replyPreview = getReplyPreview(msg, allUsers, e2eePlaintextByMessageId);
+
+    // Ensure message is decrypted before pinning
+    let plaintext = e2eePlaintextByMessageId[msg.id];
+    if (msg.e2ee?.ciphertext && !plaintext) {
+      try {
+        const result = await e2eeConv.decryptMessagePayload(msg.e2ee, msg.id);
+        plaintext = result;
+      } catch (e) {
+        logger.error('chat', 'Failed to decrypt message for pinning', e);
+      }
+    }
+
+    const decryptedByIdWithNew = plaintext
+      ? { ...e2eePlaintextByMessageId, [msg.id]: plaintext }
+      : e2eePlaintextByMessageId;
+
+    const replyPreview = getReplyPreview(msg, allUsers, decryptedByIdWithNew);
     const existing = conversationPinnedList(conversation);
     if (existing.some((p) => p.messageId === msg.id)) {
       toast({ title: t('chat.pinAlready') });

@@ -153,7 +153,6 @@ export const signInWithTelegram = onCall(
       method: request.rawRequest?.method,
       ip: request.rawRequest?.ip,
       auth: request.auth?.uid ? "authenticated" : "pre-auth",
-      appCheckToken: request.appCheck?.token ? "present" : "absent",
       timestamp: new Date().toISOString(),
     });
 
