@@ -136,12 +136,14 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
     super.initState();
     _joinedAt = DateTime.now().toUtc();
     // Когда юзер тапает «Вернуться» прямо в PiP-окне, native стороной
-    // зовётся этот callback. Делаем popUntil до meeting-room.
+    // зовётся этот callback. С новой архитектурой MeetingEntryScreen
+    // отдельного named-route 'meeting-room' нет — комната живёт ВНУТРИ
+    // /meetings/:id page'и. Просто `maybePop`: попаем верхний route
+    // (обычно /chats, пушнутый из back-arrow), под ним остался
+    // /meetings/:id → MeetingRoomScreen жив.
     _pipController.onReturnToCall = () {
       if (!mounted) return;
-      Navigator.of(context).popUntil(
-        (r) => r.settings.name == 'meeting-room' || r.isFirst,
-      );
+      Navigator.of(context).maybePop();
     };
     _bootstrap();
   }

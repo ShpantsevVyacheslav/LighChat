@@ -15,7 +15,7 @@ import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 import '../../chat/ui/chat_avatar.dart';
 import '../data/meeting_models.dart';
 import '../data/meeting_providers.dart';
-import 'meeting_room_screen.dart';
+import 'meeting_entry_screen.dart' show MeetingRoomEntryArgs;
 
 /// Pre-join screen: вход в приватный митинг (waiting room) или прямой джойн
 /// в публичный. Поддерживает два сценария:
@@ -34,6 +34,7 @@ class MeetingJoinScreen extends ConsumerStatefulWidget {
     required this.meetingId,
     required this.selfUid,
     required this.isGuest,
+    required this.onEnterRoom,
     this.initialName,
     this.initialAvatar,
     this.initialAvatarThumb,
@@ -47,6 +48,12 @@ class MeetingJoinScreen extends ConsumerStatefulWidget {
   final String? initialAvatar;
   final String? initialAvatarThumb;
   final String? role;
+
+  /// Callback в parent (MeetingEntryScreen): пользователь хочет в комнату.
+  /// Parent переключит свой `setState` с Join → Room, оставаясь внутри
+  /// ОДНОЙ GoRouter page'и — без pushReplacement, который GoRouter
+  /// rebuild'ы сбрасывают.
+  final void Function(MeetingRoomEntryArgs args) onEnterRoom;
 
   @override
   ConsumerState<MeetingJoinScreen> createState() => _MeetingJoinScreenState();
@@ -332,40 +339,26 @@ class _MeetingJoinScreenState extends ConsumerState<MeetingJoinScreen>
             ? widget.initialName!.trim()
             : AppLocalizations.of(context)!.meeting_join_guest)
         : resolved;
-    // ВАЖНО: avatar резолвим ЗДЕСЬ, до pushReplacement — иначе builder
-    // материализует MeetingRoomScreen уже после того, как этот State
-    // помечен на размонтирование, и `ref.read(...)` внутри `_avatarUrl()`
-    // бросает `Bad state: Using ref when a widget is about to or has been
-    // unmounted is unsafe.` → белый экран при заходе в комнату.
+    // Avatar резолвим ЗДЕСЬ, пока State ещё mounted (`ref.read` иначе
+    // бросит в build'е MeetingRoomScreen).
     final avatar = _avatarUrl();
-    final initialMicMuted = _initialMicMuted;
-    final initialCameraOff = _initialCameraOff;
-    final meetingId = widget.meetingId;
-    final selfUid = widget.selfUid;
-    final avatarThumb = widget.initialAvatarThumb;
-    final role = widget.role;
+    final args = MeetingRoomEntryArgs(
+      name: name,
+      avatar: avatar,
+      avatarThumb: widget.initialAvatarThumb,
+      role: widget.role,
+      initialMicMuted: _initialMicMuted,
+      initialCameraOff: _initialCameraOff,
+    );
 
     _consumed = true;
     // Стрим лобби-превью гасим перед заходом в комнату — там WebRtc
     // запросит свежий getUserMedia с теми же камерой/микрофоном.
     _stopPreview();
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        // Имя нужно, чтобы пилюля «Вернуться в звонок» из чат-листа
-        // могла popUntil именно до комнаты (а не до лобби/entry).
-        settings: const RouteSettings(name: 'meeting-room'),
-        builder: (_) => MeetingRoomScreen(
-          meetingId: meetingId,
-          selfUid: selfUid,
-          selfName: name,
-          selfAvatar: avatar,
-          selfAvatarThumb: avatarThumb,
-          selfRole: role,
-          initialMicMuted: initialMicMuted,
-          initialCameraOff: initialCameraOff,
-        ),
-      ),
-    );
+    // Отдаём управление parent'у (MeetingEntryScreen.setState):
+    // он перерисует свой build с MeetingRoomScreen вместо JoinScreen
+    // в РАМКАХ ОДНОЙ GoRouter page'и. Без pushReplacement.
+    widget.onEnterRoom(args);
   }
 
   @override

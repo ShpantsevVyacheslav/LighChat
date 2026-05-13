@@ -67,7 +67,6 @@ class _MeetingResumePill extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final active = ref.watch(activeMeetingProvider);
     if (active == null) return const SizedBox.shrink();
-    if (!Navigator.of(context).canPop()) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context)!;
     final name = active.meetingName.isEmpty
         ? l10n.meeting_minimized_resume
@@ -79,12 +78,19 @@ class _MeetingResumePill extends ConsumerWidget {
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
-          // popUntil до именованного route 'meeting-room' — а не просто
-          // maybePop, который мог проскочить до /meetings/:id (entry) и
-          // открыть лобби-флоу заново (#9).
-          onTap: () => Navigator.of(context).popUntil(
-            (r) => r.settings.name == 'meeting-room' || r.isFirst,
-          ),
+          // Возврат в комнату: попаем /chats, который сами и пушили
+          // из MeetingRoomScreen. Под ним остался /meetings/:id с
+          // живым MeetingRoomScreen (state `_roomArgs` сохранился).
+          // Если /chats — это initial route без поданного сверху pop'а,
+          // canPop() будет false и тогда фолбэк к context.go.
+          onTap: () {
+            final nav = Navigator.of(context);
+            if (nav.canPop()) {
+              nav.pop();
+            } else {
+              context.go('/meetings/${active.meetingId}');
+            }
+          },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
