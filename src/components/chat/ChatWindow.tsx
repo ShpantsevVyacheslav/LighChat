@@ -1643,7 +1643,7 @@ export function ChatWindow({
   const handlePinMessage = async (msg: ChatMessage) => {
     if (!firestore || !conversation.id) return;
     const convRef = doc(firestore, 'conversations', conversation.id);
-    const replyPreview = getReplyPreview(msg, allUsers);
+    const replyPreview = getReplyPreview(msg, allUsers, e2eePlaintextByMessageId);
     const existing = conversationPinnedList(conversation);
     if (existing.some((p) => p.messageId === msg.id)) {
       toast({ title: t('chat.pinAlready') });

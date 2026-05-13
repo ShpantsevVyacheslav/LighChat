@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<title>LighChat wordmark — font preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Geist:wght@600;700;800&family=Manrope:wght@600;700;800&family=Montserrat:wght@600;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Outfit:wght@600;700;800&family=DM+Sans:wght@600;700;800&family=Sora:wght@600;700;800&family=Onest:wght@600;700;800&family=Inter+Tight:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #1E3A5F;
+    --navy-dark: #c5d9ed;
+    --orange: #F4A12C;
+    --bg-light: #ffffff;
+    --bg-dark: #0d1117;
+    --muted: #6b7280;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #f3f4f6; color: #111; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  header {
+    padding: 28px 32px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fff;
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { margin: 0 0 6px; font-size: 22px; font-weight: 700; }
+  header p { margin: 0; color: var(--muted); font-size: 14px; }
+  .legend { margin-top: 12px; display: flex; gap: 16px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .swatch { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch span.dot { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+  main { padding: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); gap: 20px; }
+  .card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .card h2 {
+    margin: 0;
+    padding: 14px 18px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .card h2 small { color: var(--muted); font-weight: 500; font-size: 12px; }
+  .pane {
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .pane.dark { background: var(--bg-dark); }
+  .wm { line-height: 1; letter-spacing: -0.02em; font-weight: 700; display: flex; align-items: baseline; gap: 0; }
+  .wm .ligh { color: var(--navy); }
+  .wm .chat { color: var(--orange); }
+  .pane.dark .wm .ligh { color: var(--navy-dark); }
+  .row { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+  .size-tag { font-size: 11px; color: var(--muted); font-family: ui-monospace, monospace; min-width: 38px; }
+  .pane.dark .size-tag { color: #9ca3af; }
+
+  .f-space     { font-family: 'Space Grotesk', sans-serif; }
+  .f-jakarta   { font-family: 'Plus Jakarta Sans', sans-serif; }
+  .f-geist     { font-family: 'Geist', sans-serif; }
+  .f-manrope   { font-family: 'Manrope', sans-serif; }
+  .f-montserrat{ font-family: 'Montserrat', sans-serif; }
+  .f-bricolage { font-family: 'Bricolage Grotesque', sans-serif; }
+  .f-outfit    { font-family: 'Outfit', sans-serif; }
+  .f-dmsans    { font-family: 'DM Sans', sans-serif; }
+  .f-sora      { font-family: 'Sora', sans-serif; }
+  .f-onest     { font-family: 'Onest', sans-serif; }
+  .f-itight    { font-family: 'Inter Tight', sans-serif; }
+
+  .current-note {
+    margin: 0 22px 18px;
+    padding: 10px 14px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 10px;
+    font-size: 12px;
+    color: #9a3412;
+  }
+
+  .group-divider {
+    grid-column: 1 / -1;
+    margin: 8px 0 -4px;
+    padding: 6px 4px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #9ca3af;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>LighChat wordmark — font preview</h1>
+    <p>10 кандидатов + текущий Montserrat. Цвета финальные: «Ligh» — navy #1E3A5F (dark: #c5d9ed), «Chat» — #F4A12C.</p>
+    <div class="legend">
+      <span class="swatch"><span class="dot" style="background:#1E3A5F"></span>«Ligh» — navy #1E3A5F (light) / #c5d9ed (dark)</span>
+      <span class="swatch"><span class="dot" style="background:#F4A12C"></span>«Chat» — orange #F4A12C</span>
+    </div>
+  </header>
+
+  <main>
+
+    <div class="group-divider">Group 1 — geometric grotesque (tech-feel)</div>
+
+    <!-- Space Grotesk -->
+    <section class="card">
+      <h2>Space Grotesk <small>weight 700 · уже в проекте</small></h2>
+      <div class="pane">
+        <div class="row"><span class="size-tag">96px</span><div class="wm f-space" style="font-size:96px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-space" style="font-size:72px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-space" style="font-size:48px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">32px</span><div class="wm f-space" style="font-size:32px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+      <div class="pane dark">
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-space" style="font-size:72px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-space" style="font-size:48px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+    </section>
+
+    <!-- Geist -->
+    <section class="card">
+      <h2>Geist <small>weight 700 · Vercel/Next.js</small></h2>
+      <div class="pane">
+        <div class="row"><span class="size-tag">96px</span><div class="wm f-geist" style="font-size:96px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-geist" style="font-size:72px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-geist" style="font-size:48px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">32px</span><div class="wm f-geist" style="font-size:32px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+      <div class="pane dark">
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-geist" style="font-size:72px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-geist" style="font-size:48px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+    </section>
+
+    <!-- Sora -->
+    <section class="card">
+      <h2>Sora <small>weight 700 · technical, чуть «AI-vibe»</small></h2>
+      <div class="pane">
+        <div class="row"><span class="size-tag">96px</span><div class="wm f-sora" style="font-size:96px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-sora" style="font-size:72px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-sora" style="font-size:48px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">32px</span><div class="wm f-sora" style="font-size:32px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+      <div class="pane dark">
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-sora" style="font-size:72px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-sora" style="font-size:48px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+    </section>
+
+    <!-- Onest -->
+    <section class="card">
+      <h2>Onest <small>weight 700 · neutral, очень чистый</small></h2>
+      <div class="pane">
+        <div class="row"><span class="size-tag">96px</span><div class="wm f-onest" style="font-size:96px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-onest" style="font-size:72px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-onest" style="font-size:48px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">32px</span><div class="wm f-onest" style="font-size:32px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+      <div class="pane dark">
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-onest" style="font-size:72px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-onest" style="font-size:48px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+    </section>
+
+    <div class="group-divider">Group 2 — humanist (тёплый, дружелюбный)</div>
+
+    <!-- Plus Jakarta Sans -->
+    <section class="card">
+      <h2>Plus Jakarta Sans <small>weight 800</small></h2>
+      <div class="pane">
+        <div class="row"><span class="size-tag">96px</span><div class="wm f-jakarta" style="font-size:96px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-jakarta" style="font-size:72px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-jakarta" style="font-size:48px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">32px</span><div class="wm f-jakarta" style="font-size:32px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+      <div class="pane dark">
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-jakarta" style="font-size:72px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-jakarta" style="font-size:48px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+    </section>
+
+    <!-- Manrope -->
+    <section class="card">
+      <h2>Manrope <small>weight 800</small></h2>
+      <div class="pane">
+        <div class="row"><span class="size-tag">96px</span><div class="wm f-manrope" style="font-size:96px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-manrope" style="font-size:72px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-manrope" style="font-size:48px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">32px</span><div class="wm f-manrope" style="font-size:32px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+      <div class="pane dark">
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-manrope" style="font-size:72px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-manrope" style="font-size:48px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+    </section>
+
+    <!-- DM Sans -->
+    <section class="card">
+      <h2>DM Sans <small>weight 700 · low contrast, мягкий</small></h2>
+      <div class="pane">
+        <div class="row"><span class="size-tag">96px</span><div class="wm f-dmsans" style="font-size:96px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-dmsans" style="font-size:72px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-dmsans" style="font-size:48px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">32px</span><div class="wm f-dmsans" style="font-size:32px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+      <div class="pane dark">
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-dmsans" style="font-size:72px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-dmsans" style="font-size:48px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+    </section>
+
+    <div class="group-divider">Group 3 — display / character (для wordmark особенно)</div>
+
+    <!-- Bricolage Grotesque -->
+    <section class="card">
+      <h2>Bricolage Grotesque <small>weight 800 · современный display, чуть «играет»</small></h2>
+      <div class="pane">
+        <div class="row"><span class="size-tag">96px</span><div class="wm f-bricolage" style="font-size:96px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-bricolage" style="font-size:72px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-bricolage" style="font-size:48px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">32px</span><div class="wm f-bricolage" style="font-size:32px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+      <div class="pane dark">
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-bricolage" style="font-size:72px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-bricolage" style="font-size:48px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+    </section>
+
+    <!-- Outfit -->
+    <section class="card">
+      <h2>Outfit <small>weight 800 · geometric, очень популярен в SaaS</small></h2>
+      <div class="pane">
+        <div class="row"><span class="size-tag">96px</span><div class="wm f-outfit" style="font-size:96px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-outfit" style="font-size:72px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-outfit" style="font-size:48px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">32px</span><div class="wm f-outfit" style="font-size:32px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+      <div class="pane dark">
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-outfit" style="font-size:72px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-outfit" style="font-size:48px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+    </section>
+
+    <!-- Inter Tight -->
+    <section class="card">
+      <h2>Inter Tight <small>weight 800 · компактный Inter, для крупных размеров</small></h2>
+      <div class="pane">
+        <div class="row"><span class="size-tag">96px</span><div class="wm f-itight" style="font-size:96px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-itight" style="font-size:72px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-itight" style="font-size:48px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">32px</span><div class="wm f-itight" style="font-size:32px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+      <div class="pane dark">
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-itight" style="font-size:72px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-itight" style="font-size:48px;font-weight:800"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+    </section>
+
+    <div class="group-divider">Для сравнения — текущий</div>
+
+    <!-- Current: Montserrat -->
+    <section class="card" style="grid-column: 1 / -1;">
+      <h2>Montserrat <small>weight 700 · текущий вариант</small></h2>
+      <div class="current-note">
+        Это то, что используется сейчас. Здесь «Chat» уже #F4A12C (как в финальной палитре),
+        но в реальном wordmark «i» — отдельная SVG другого оттенка, со съездом по baseline.
+      </div>
+      <div class="pane">
+        <div class="row"><span class="size-tag">96px</span><div class="wm f-montserrat" style="font-size:96px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">72px</span><div class="wm f-montserrat" style="font-size:72px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+        <div class="row"><span class="size-tag">48px</span><div class="wm f-montserrat" style="font-size:48px"><span class="ligh">Ligh</span><span class="chat">Chat</span></div></div>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>
