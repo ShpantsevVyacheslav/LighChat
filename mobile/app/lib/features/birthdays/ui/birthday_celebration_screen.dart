@@ -55,8 +55,8 @@ class _BirthdayCelebrationScreenState
     final l10n = AppLocalizations.of(context)!;
     try {
       final me = await _ensureSelf();
+      if (!mounted) return;
       if (me == null) {
-        if (!mounted) return;
         _showSnack(l10n.birthday_error_self);
         return;
       }
@@ -72,6 +72,13 @@ class _BirthdayCelebrationScreenState
       if (!mounted) return;
       if (res.conversationId == null) {
         _showSnack(l10n.birthday_error_send);
+        return;
+      }
+      if (res.needsManualSend) {
+        // E2EE-чат / иной отказ rule — текст сохранён как draft, открываем
+        // чат, чтобы юзер дотап-отправил его через основной композер.
+        HapticFeedback.lightImpact();
+        context.push('/chats/${res.conversationId}');
         return;
       }
       HapticFeedback.lightImpact();
