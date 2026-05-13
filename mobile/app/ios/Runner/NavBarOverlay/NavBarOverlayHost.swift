@@ -25,7 +25,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// вверх, граница невидима. Включается только на экране чата через
   /// `applyTopBlur(enabled: true)` (там messages с яркими фото
   /// проезжают под status bar'ом). На остальных экранах — выключен.
-  private var topGradientBlur: UIVisualEffectView?
+  private var topGradientBlur: GradientMaskedEffectView?
   private var topGradientMask: CAGradientLayer?
 
   private var topItem: UINavigationItem?
@@ -141,7 +141,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     // Gradient blur strip над status bar zone — chat-only, opt-in через
     // applyTopBlur(enabled:). Mask'им CAGradientLayer'ом alpha 0→1
     // снизу→вверх, чтобы переход выглядел плавным, без видимой границы.
-    let topBlur = UIVisualEffectView(
+    // GradientMaskedEffectView отслеживает layoutSubviews и
+    // переписывает mask.frame = bounds (стандартный CALayer.mask не
+    // получает auto-resize).
+    let topBlur = GradientMaskedEffectView(
       effect: UIBlurEffect(style: .systemThinMaterial))
     topBlur.translatesAutoresizingMaskIntoConstraints = false
     topBlur.isUserInteractionEnabled = false
@@ -1210,5 +1213,16 @@ extension UIColor {
       b = CGFloat(value & 0xff) / 255
     }
     return UIColor(red: r, green: g, blue: b, alpha: a)
+  }
+}
+
+/// UIVisualEffectView с CAGradientLayer-mask, которая авто-resize'ится
+/// под bounds при каждом `layoutSubviews`. Стандартный CALayer.mask
+/// получает frame один раз и не реагирует на Auto Layout — без override
+/// blur'ом mask'илась бы 1-pixel полоска. Здесь — корректно.
+final class GradientMaskedEffectView: UIVisualEffectView {
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    layer.mask?.frame = bounds
   }
 }

@@ -31,7 +31,14 @@ class ChatHeader extends StatefulWidget {
     this.scheduledCount = 0,
     this.onScheduledTap,
     this.disappearingMessagesEnabled = false,
+    this.stickersPanelOpen = false,
   });
+
+  /// При открытой шторке стикеров скрываем native header целиком,
+  /// чтобы он не перекрывал стикер-композер и список паков. Без
+  /// этого пилюлю было «прибито» сверху, под ней закрепительная и
+  /// search-фильд стикеров уезжали в недоступную zone.
+  final bool stickersPanelOpen;
 
   final String title;
   final String subtitle;
@@ -224,16 +231,22 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
         ? widget.title.characters.first.toUpperCase()
         : null;
 
-    final config = NavBarTopConfig(
-      title: NavBarTitle(
-        title: widget.title,
-        subtitle: widget.subtitle.isEmpty ? null : widget.subtitle,
-        avatarUrl: widget.avatarUrl,
-        avatarFallbackInitial: initial,
-      ),
-      leading: const NavBarLeading.back(id: 'chat_back'),
-      trailing: actions,
-    );
+    // При открытой шторке стикеров полностью прячем native шапку чата.
+    // Stickers panel — модальная UX-зона: показ search-фильтра стикеров,
+    // фрейм списка паков. Если native pill висит сверху, он перекрывает
+    // search-input и мешает.
+    final config = widget.stickersPanelOpen
+        ? const NavBarTopConfig.hidden()
+        : NavBarTopConfig(
+            title: NavBarTitle(
+              title: widget.title,
+              subtitle: widget.subtitle.isEmpty ? null : widget.subtitle,
+              avatarUrl: widget.avatarUrl,
+              avatarFallbackInitial: initial,
+            ),
+            leading: const NavBarLeading.back(id: 'chat_back'),
+            trailing: actions,
+          );
 
     unawaited(NativeNavBarFacade.instance.setTopBar(config));
     unawaited(

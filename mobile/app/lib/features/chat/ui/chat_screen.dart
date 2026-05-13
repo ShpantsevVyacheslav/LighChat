@@ -420,6 +420,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     _scrollController.addListener(_onPinnedBarScrollSync);
     _controller.addListener(_scheduleChatDraftSave);
     _captureKeyboardHeight();
+    // Chat-only gradient blur в status bar zone (см. NavBarOverlayHost).
+    // Включаем при входе, выключаем в dispose. Других экранов не
+    // касается — secondary-страницы остаются без blur'а.
+    unawaited(NativeNavBarFacade.instance.setTopBlur(enabled: true));
     // Phase B: системный «Поделиться → LighChat». Применяем payload до
     // первого build, чтобы пользователь сразу увидел готовые pending‑файлы
     // и pre‑filled текст. Применяем один раз — повторных push'ов не
@@ -968,6 +972,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   @override
   void dispose() {
+    // Выключаем gradient blur — на следующем экране (chat list, etc.)
+    // он не нужен. Дедуп в facade'е защищает от двойного off'а.
+    unawaited(NativeNavBarFacade.instance.setTopBlur(enabled: false));
     _chatDraftDebounce?.cancel();
     _messageExpiryTimer?.cancel();
     _scheduledCountSub?.cancel();
@@ -1647,6 +1654,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                   onBack: handleBack,
                                   showCalls: showCalls,
                                   threadsUnreadCount: threadsUnread,
+                                  // Скрываем native header целиком, когда
+                                  // открыта стикер-шторка — иначе она
+                                  // перекрывает search-input стикеров.
+                                  stickersPanelOpen: _stickersPanelOpen,
                                   onThreadsTap: () {
                                     context.push(
                                       '/chats/$conversationId/threads',
@@ -1799,14 +1810,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                   // style: рендерим pill как Positioned ниже
                                   // (см. nativeBarBottom).
                                   // Pinned strip скрываем в режиме поиска
-                                  // на всех платформах: search-результаты
-                                  // и так перекрывают всё активной
-                                  // карточкой, а pinned под scrim'ом
-                                  // только засоряет UX.
+                                  // на всех платформах + при открытой
+                                  // шторке стикеров: оба сценария — это
+                                  // модальная UX-зона, pinned под ней
+                                  // только засоряет экран.
                                   if (topPin != null &&
                                       conv != null &&
                                       !usesNativeBar &&
-                                      !_inChatSearch)
+                                      !_inChatSearch &&
+                                      !_stickersPanelOpen)
                                     ChatPinnedStrip(
                                       pin: topPin,
                                       totalPins: sortedPins.length,
@@ -2831,13 +2843,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                             // как floating overlay чтобы он сидел ровно под
                             // native nav bar'ом и messages могли свободно
                             // скроллиться под ним.
-                            // В режиме поиска скрываем pinned pill —
-                            // ChatMessageSearchOverlay перекрывает экран,
-                            // pinned под scrim'ом только мешает.
+                            // В режиме поиска / при открытой стикер-шторке
+                            // прячем — модальная UX зона.
                             if (usesNativeBar &&
                                 topPin != null &&
                                 conv != null &&
-                                !_inChatSearch)
+                                !_inChatSearch &&
+                                !_stickersPanelOpen)
                               Positioned(
                                 top: nativeBarBottom + 6,
                                 left: 8,

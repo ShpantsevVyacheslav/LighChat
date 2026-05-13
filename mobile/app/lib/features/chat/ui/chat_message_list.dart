@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lighchat_mobile/core/app_logger.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
@@ -388,6 +389,9 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
         widget.reversed ? groups.first : groups.last;
 
     if (vp == null) {
+      appLogger.d(
+        '[sticky-day] vp=null fallback → ${formatChatDayLabel(newestGroup.first.createdAt.toLocal(), AppLocalizations.of(context)!)}',
+      );
       return _stickyDayLabel ??
           formatChatDayLabel(
             newestGroup.first.createdAt.toLocal(),
@@ -395,39 +399,65 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
           );
     }
 
-    const stickyLineY = 28.0;
+    // КРИТИЧНО: stickyLineY должен совпадать с Y-координатой капсулы
+    // в viewport'е. Иначе логика «какой день под капсулой» расходится
+    // с visual position. Раньше было 28 hardcoded; на iOS с native nav
+    // bar + pinned pill реальная капсула рендерится на y=topOverlayOffset
+    // (см. chat_screen вычисление). Используем тот же offset + небольшую
+    // дельту (≈ половина высоты капсулы), чтобы линия попадала в
+    // визуальный центр капсулы.
+    final stickyLineY = widget.topOverlayOffset + 16;
     double pickedY = -double.infinity;
     String? picked;
+    DateTime? pickedDate;
+    // Подробный лог для отладки бага: пишем y каждого header'а и
+    // выбранный matchкий для текущего scroll.
+    final l10n = AppLocalizations.of(context)!;
+    final logBuf = StringBuffer(
+      '[sticky-day] line=$stickyLineY reversed=${widget.reversed} groups=${groups.length}',
+    );
     for (final g in groups) {
       final dk = ChatMessageList.dayKey(g.first.createdAt);
       final ctx = _dayStartKeys[dk]?.currentContext;
-      if (ctx == null) continue;
+      if (ctx == null) {
+        logBuf.write(' [${dk}=noctx]');
+        continue;
+      }
       final ro = ctx.findRenderObject();
-      if (ro is! RenderBox || !ro.hasSize || !ro.attached) continue;
+      if (ro is! RenderBox || !ro.hasSize || !ro.attached) {
+        logBuf.write(' [${dk}=noro]');
+        continue;
+      }
       final y = ro.localToGlobal(Offset.zero, ancestor: vp).dy;
-      // Ищем MAX y среди тех, что прошли линию (y ≤ 28). Это header,
-      // ближе всех находящийся к линии сверху → его день и есть тот,
-      // что сейчас виден в зоне капсулы.
+      logBuf.write(' [${dk}=${y.toStringAsFixed(1)}]');
+      // Ищем MAX y среди тех, что прошли линию (y ≤ stickyLineY). Это
+      // header, ближе всех находящийся к линии сверху → его день и
+      // есть тот, что сейчас виден в зоне капсулы.
       if (y <= stickyLineY && y > pickedY) {
         pickedY = y;
-        picked = formatChatDayLabel(
-          g.first.createdAt.toLocal(),
-          AppLocalizations.of(context)!,
-        );
+        pickedDate = g.first.createdAt;
+        picked = formatChatDayLabel(g.first.createdAt.toLocal(), l10n);
       }
     }
+    logBuf.write(
+      ' picked=${picked ?? "null"} pickedY=${pickedY == -double.infinity ? "none" : pickedY.toStringAsFixed(1)} '
+      'pickedDate=${pickedDate?.toIso8601String() ?? "null"}',
+    );
+    appLogger.d(logBuf.toString());
 
     // Fallback: ни один header не прошёл линию ⇒ мы выше topmost'а,
     // т.е. показываем САМЫЙ СТАРЫЙ день (top of conversation в
     // reversed → groups.last; в обычном → groups.first).
     final oldestGroup =
         widget.reversed ? groups.last : groups.first;
+    if (picked == null) {
+      appLogger.d(
+        '[sticky-day] no match → oldest fallback ${formatChatDayLabel(oldestGroup.first.createdAt.toLocal(), l10n)}',
+      );
+    }
 
     return picked ??
-        formatChatDayLabel(
-          oldestGroup.first.createdAt.toLocal(),
-          AppLocalizations.of(context)!,
-        );
+        formatChatDayLabel(oldestGroup.first.createdAt.toLocal(), l10n);
   }
 
   List<List<ChatMessage>> _groupByDay(List<ChatMessage> asc) {
