@@ -2715,10 +2715,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                         final mq = MediaQuery.of(context);
                                         final defaultH =
                                             mq.size.height * 0.42;
+                                        // fullScreen-режим панели стикеров:
+                                        // ограничиваем сверху safe-area
+                                        // top (status bar + Dynamic Island)
+                                        // + extra 24pt — иначе search-input
+                                        // панели застревал под DI.
+                                        final maxFullH = mq.size.height
+                                            - mq.padding.top
+                                            - 24;
                                         final fullScreenH =
-                                            (mq.size.height * 0.92).clamp(
+                                            (mq.size.height * 0.88).clamp(
                                               mq.size.height * 0.62,
-                                              mq.size.height - 1,
+                                              maxFullH,
                                             );
                                         // Высота панели — locked snapshot,
                                         // взятый при открытии. Не пересматриваем

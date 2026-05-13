@@ -1262,4 +1262,23 @@ final class GradientMaskedEffectView: UIVisualEffectView {
 /// отключить это поведение.
 final class EdgeHuggingNavigationBar: UINavigationBar {
   override var safeAreaInsets: UIEdgeInsets { .zero }
+
+  /// Логируем фактические frames items'ов после каждого layout pass.
+  /// Помогает понять, какой именно subview iOS 26 ставит на N pt от
+  /// edge: мой customView или system wrapper ItemWrapperView.
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    var report = "[layoutSubviews] bar.bounds=\(bounds)"
+    func describe(_ v: UIView, depth: Int) {
+      let pad = String(repeating: "  ", count: depth)
+      report += "\n\(pad)\(type(of: v)) frame=\(v.frame)"
+      for sub in v.subviews {
+        describe(sub, depth: depth + 1)
+      }
+    }
+    for sub in subviews {
+      describe(sub, depth: 1)
+    }
+    NavBarOverlayHost.log(report)
+  }
 }
