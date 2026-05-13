@@ -90,9 +90,18 @@
 	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
-		<!-- voip + remote-notification временно убраны для free Apple ID (Personal Team).
-		     После покупки paid Apple Developer Program ($99/год) — верни через git checkout. -->
+		<!-- `audio` — фоновое аудио (PiP, music).
+		     `voip` — нужен ИМЕННО для того, чтобы AVCaptureSession (камера)
+		     не приостанавливалась в фоне на устройствах без поддержки
+		     `multitaskingCameraAccessSupported` (старые iPhone и/или
+		     ситуации когда WebRTC создаёт session до того, как мы можем
+		     выставить флаг). Без этого PiP замерзает на последнем кадре.
+		     ВАЖНО: сам plist-ключ `voip` работает на free Apple ID
+		     (Personal Team). Что требует paid program ($99/год) — это
+		     PushKit VoIP push notifications + `remote-notification`.
+		     Их здесь нет — добавим, когда будет paid account. -->
 		<string>audio</string>
+		<string>voip</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
