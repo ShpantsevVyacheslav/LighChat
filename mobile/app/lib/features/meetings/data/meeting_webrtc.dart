@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import 'meeting_active_speaker_sampler.dart';
@@ -111,6 +113,11 @@ class MeetingWebRtc {
         t.enabled = false;
       }
     }
+
+    // Сообщаем нативному PiP-плагину trackId локального video-track'а —
+    // он подвесит свой RTCVideoRenderer, чтобы в PiP-окне шло реальное
+    // видео, а не placeholder. См. AppDelegate.swift → LighChatPipVideoRenderer.
+    await _notifyPipBindLocalTrack();
 
     _signalsSub = _signaling.watchIncoming().listen(_handleIncomingSignals);
 
@@ -552,6 +559,7 @@ class MeetingWebRtc {
     _speakingTimer?.cancel();
     _speakingSampler.clear();
     _reactionResetTimer?.cancel();
+    await _notifyPipUnbindLocalTrack();
     await _signalsSub?.cancel();
     for (final id in _peers.keys.toList()) {
       await _destroyPeer(id);
@@ -587,6 +595,38 @@ class MeetingWebRtc {
   void _emit(MeetingWebRtcEvent e) {
     if (_events.isClosed) return;
     _events.add(e);
+  }
+
+  /// Кросс-платформенный safety: рассказываем нативному PiP-плагину про
+  /// trackId локального video-track'а. На iOS native side через
+  /// `LocalVideoTrack.addRenderer(...)` подвесит свой
+  /// `LighChatPipVideoRenderer`, который форвардит RTCVideoFrame в
+  /// AVSampleBufferDisplayLayer PiP-окна.
+  ///
+  /// На Android — no-op (Android Activity PiP сворачивает Flutter UI
+  /// целиком, ему не нужен отдельный канал кадров).
+  Future<void> _notifyPipBindLocalTrack() async {
+    if (!Platform.isIOS) return;
+    final tracks = _localStream?.getVideoTracks() ?? const [];
+    if (tracks.isEmpty) return;
+    final trackId = tracks.first.id;
+    if (trackId == null || trackId.isEmpty) return;
+    try {
+      await const MethodChannel('lighchat/meeting_pip')
+          .invokeMethod<bool>('bindLocalTrack', <String, Object?>{
+        'trackId': trackId,
+      });
+    } catch (e) {
+      appLogger.w('[meeting-pip] bindLocalTrack failed', error: e);
+    }
+  }
+
+  Future<void> _notifyPipUnbindLocalTrack() async {
+    if (!Platform.isIOS) return;
+    try {
+      await const MethodChannel('lighchat/meeting_pip')
+          .invokeMethod<bool>('unbindLocalTrack');
+    } catch (_) {}
   }
 }
 

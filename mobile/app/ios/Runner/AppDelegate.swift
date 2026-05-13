@@ -697,10 +697,15 @@ private final class LighChatVirtualBackgroundBridge: NSObject {
 // PiP-окно для активной видеоконференции, чтобы митинг продолжался поверх
 // других экранов приложения.
 //
-// Текущая реализация — минимальный «keep-alive»: PiP-окно открывается с
-// placeholder-кадром (тёмно-серый). Прокидывание реальных кадров
-// `RTCVideoTrack` сюда требует bridge с flutter_webrtc — это отдельный PR
-// (см. `ios/MeetingPip/MeetingPipBridge.swift` — расширенная версия).
+// Архитектура:
+//   1. Dart-сторона при старте `MeetingWebRtc` присылает trackId локального
+//      video-track'а → `bindLocalTrack`. Мы запоминаем id и достаём
+//      `LocalVideoTrack` из `FlutterWebRTCPlugin.sharedSingleton`.
+//   2. При `enter` создаём `AVSampleBufferDisplayLayer`, кладём его в
+//      `AVPictureInPictureController.ContentSource`, и вешаем на
+//      `LocalVideoTrack` свой `LighChatPipVideoRenderer` (реализует
+//      RTCVideoRenderer): каждый RTCVideoFrame → CMSampleBuffer → enqueue.
+//   3. При `exit`/teardown — снимаем renderer.
 
 @available(iOS 15.0, *)
 private final class LighChatMeetingPipInlineBridge: NSObject,
@@ -712,6 +717,12 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
   private var pipController: AVPictureInPictureController?
   private var sampleBufferDisplayLayer: AVSampleBufferDisplayLayer?
   private var hostView: UIView?
+
+  /// trackId, полученный из Dart (см. `bindLocalTrack`). Используется для
+  /// поиска LocalVideoTrack в FlutterWebRTCPlugin.sharedSingleton.
+  private var boundTrackId: String?
+  private let pipRenderer = LighChatPipVideoRenderer()
+  private var rendererAttached = false
 
   private override init() { super.init() }
 
@@ -731,10 +742,60 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
           self.teardown()
           result(true)
         }
+      case "bindLocalTrack":
+        if let args = call.arguments as? [String: Any],
+          let id = args["trackId"] as? String, !id.isEmpty
+        {
+          self.boundTrackId = id
+          // Если PiP уже активно — переподцепимся к новому треку.
+          if self.rendererAttached {
+            self.detachRendererFromTrack()
+            self.attachRendererToTrack()
+          }
+          result(true)
+        } else {
+          result(false)
+        }
+      case "unbindLocalTrack":
+        self.detachRendererFromTrack()
+        self.boundTrackId = nil
+        result(true)
       default:
         result(FlutterMethodNotImplemented)
       }
     }
+  }
+
+  /// Найти `LocalVideoTrack` через `FlutterWebRTCPlugin.sharedSingleton` и
+  /// повесить наш renderer.
+  private func attachRendererToTrack() {
+    guard let trackId = boundTrackId,
+      let plugin = FlutterWebRTCPlugin.sharedSingleton(),
+      let localTracks = plugin.localTracks
+    else { return }
+    guard let raw = localTracks[trackId] else { return }
+    // raw — это id<LocalTrack>; для видео это LocalVideoTrack.
+    guard let videoTrack = raw as? LocalVideoTrack else { return }
+    pipRenderer.displayLayer = sampleBufferDisplayLayer
+    videoTrack.addRenderer(pipRenderer)
+    rendererAttached = true
+  }
+
+  private func detachRendererFromTrack() {
+    guard rendererAttached,
+      let trackId = boundTrackId,
+      let plugin = FlutterWebRTCPlugin.sharedSingleton(),
+      let localTracks = plugin.localTracks,
+      let raw = localTracks[trackId],
+      let videoTrack = raw as? LocalVideoTrack
+    else {
+      rendererAttached = false
+      pipRenderer.displayLayer = nil
+      return
+    }
+    videoTrack.removeRenderer(pipRenderer)
+    pipRenderer.displayLayer = nil
+    rendererAttached = false
   }
 
   private static func keyWindow() -> UIWindow? {
@@ -778,9 +839,12 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
     pip.delegate = self
     self.pipController = pip
 
-    // Один placeholder-кадр — чтобы AVSampleBufferDisplayLayer стал
-    // ready и `isPictureInPicturePossible` стало true.
+    // Один placeholder-кадр — нужен AVSampleBufferDisplayLayer'у, чтобы
+    // выйти в ready state до прихода первого кадра WebRTC. Если bound
+    // trackId есть — сразу подцепим renderer; реальные кадры быстро
+    // перезапишут placeholder.
     pushPlaceholderFrame(into: layer)
+    attachRendererToTrack()
 
     self.attemptStart(pip: pip, attemptsLeft: 30, result: result)
   }
@@ -844,6 +908,7 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
   }
 
   fileprivate func teardown() {
+    detachRendererFromTrack()
     pipController?.delegate = nil
     pipController = nil
     sampleBufferDisplayLayer = nil
@@ -889,4 +954,83 @@ private final class LighChatMeetingPipInlineBridge: NSObject,
     skipByInterval skipInterval: CMTime,
     completion completionHandler: @escaping () -> Void
   ) { completionHandler() }
+}
+
+// MARK: - LighChatPipVideoRenderer
+//
+// Конформит RTCVideoRenderer (WebRTC SDK) — мы вешаем эту штуку на
+// `LocalVideoTrack.addRenderer(_:)` через flutter_webrtc, и каждый
+// входящий RTCVideoFrame конвертируется в CMSampleBuffer, который
+// летит в `AVSampleBufferDisplayLayer` PiP-окна.
+//
+// Поддерживаем только `RTCCVPixelBuffer`-backed кадры (нулевая копия) —
+// камера и ReplayKit на iOS отдают именно такие. Если когда-нибудь
+// потребуется I420 (например, software-decoded поток) — добавим
+// конвертацию через manual UV-pack в NV12 CVPixelBuffer.
+@available(iOS 15.0, *)
+final class LighChatPipVideoRenderer: NSObject, RTCVideoRenderer {
+  /// Выставляется LighChatMeetingPipInlineBridge перед attach'ем; при
+  /// teardown — обнуляется. Renderer держит weak, чтобы не задерживать
+  /// layer в памяти после exit'а PiP.
+  weak var displayLayer: AVSampleBufferDisplayLayer?
+
+  /// Не используется (RTCVideoRenderer обязан реализовать, но AVSampleBuffer
+  /// сам читает размер из CVPixelBuffer).
+  func setSize(_ size: CGSize) {}
+
+  func renderFrame(_ frame: RTCVideoFrame?) {
+    guard let frame = frame, let layer = self.displayLayer else { return }
+
+    // На iOS камера/screen-share отдают RTCCVPixelBuffer (NV12). Если
+    // буфер другой — пропускаем кадр (PiP покажет последний валидный).
+    // Конверсия I420→NV12 руками — отдельная задача, пока не нужна.
+    guard let cv = frame.buffer as? RTCCVPixelBuffer else { return }
+    let pb = cv.pixelBuffer
+
+    // Учитываем rotation: PiP сам не вращает кадр, поэтому если устройство
+    // в портретной ориентации (frame.rotation = ._90), нужно прокрутить.
+    // Простейший способ — выставить sampleBuffer attachments
+    // `kCMSampleAttachmentKey_DisplayImmediately`. Реальный rotate под
+    // капотом делает CoreMedia + Metal.
+    var formatDesc: CMFormatDescription?
+    let status = CMVideoFormatDescriptionCreateForImageBuffer(
+      allocator: nil, imageBuffer: pb, formatDescriptionOut: &formatDesc)
+    guard status == noErr, let desc = formatDesc else { return }
+
+    let pts = CMTime(value: frame.timeStampNs, timescale: 1_000_000_000)
+    var timing = CMSampleTimingInfo(
+      duration: CMTime(value: 1, timescale: 30),
+      presentationTimeStamp: pts,
+      decodeTimeStamp: .invalid)
+
+    var sampleBuffer: CMSampleBuffer?
+    CMSampleBufferCreateForImageBuffer(
+      allocator: nil, imageBuffer: pb, dataReady: true,
+      makeDataReadyCallback: nil, refcon: nil,
+      formatDescription: desc, sampleTiming: &timing,
+      sampleBufferOut: &sampleBuffer)
+    guard let sb = sampleBuffer else { return }
+
+    // displayImmediately — нужно, потому что у нас live-стрим, не
+    // плановое воспроизведение. attachments array возвращает CFArray
+    // изменяемых CFMutableDictionary'ев — пишем флаг прямо в первый.
+    if let attachments = CMSampleBufferGetSampleAttachmentsArray(
+      sb, createIfNecessary: true) as NSArray?,
+      let dict = attachments.firstObject as? NSMutableDictionary
+    {
+      dict[kCMSampleAttachmentKey_DisplayImmediately] = true
+    }
+
+    // enqueue должен идти на main или на dedicated serial queue.
+    DispatchQueue.main.async { [weak layer] in
+      guard let layer = layer else { return }
+      if layer.status == .failed {
+        layer.flush()
+      }
+      if layer.isReadyForMoreMediaData {
+        layer.enqueue(sb)
+      }
+    }
+  }
+
 }
