@@ -125,13 +125,10 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
       if (_routeSubscribed) {
         nativeNavRouteObserver.unsubscribe(this);
       }
-      // Скрываем top bar + search при размонтировании, чтобы следующий экран
-      // не увидел наш ChatHeader (avatar/title/actions).
-      unawaited(
-        NativeNavBarFacade.instance.setTopBar(
-          const NavBarTopConfig.hidden(),
-        ),
-      );
+      // Search-режим всегда чистим, иначе UISearchBar мог остаться в
+      // titleView от прошлого экрана. Top bar hide делает observer на
+      // переходе — здесь не дублируем, иначе hide прилетит после
+      // initState нового экрана (race с анимацией transition).
       unawaited(
         NativeNavBarFacade.instance.setSearchMode(
           const NavBarSearchConfig.inactive(),
@@ -141,28 +138,12 @@ class _ChatHeaderState extends State<ChatHeader> with RouteAware {
     super.dispose();
   }
 
-  // RouteAware: chat_screen ушёл с вершины (модалка / threads / settings) →
-  // прячем top bar; вернулся → пушим конфиг заново.
+  // RouteAware: при возврате на chat_screen пушим конфиг заново.
+  // Hide при push'е другого экрана сверху делает observer.
 
   @override
   void didPopNext() {
     if (_native) _pushNativeTopBar();
-  }
-
-  @override
-  void didPushNext() {
-    if (_native) {
-      unawaited(
-        NativeNavBarFacade.instance.setTopBar(
-          const NavBarTopConfig.hidden(),
-        ),
-      );
-      unawaited(
-        NativeNavBarFacade.instance.setSearchMode(
-          const NavBarSearchConfig.inactive(),
-        ),
-      );
-    }
   }
 
   void _pushNativeTopBar() {

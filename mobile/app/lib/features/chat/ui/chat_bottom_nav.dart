@@ -104,39 +104,21 @@ class _ChatBottomNavState extends State<ChatBottomNav>
     _nativeEvents?.cancel();
     if (_native) {
       nativeNavRouteObserver.unsubscribe(this);
-      // Скрываем bottom bar при размонтировании, чтобы overlay не «прилип»
-      // на следующем экране.
-      unawaited(
-        NativeNavBarFacade.instance.setBottomBar(
-          const NavBarBottomConfig.hidden(),
-        ),
-      );
+      // ВАЖНО: не пушим hidden в dispose! Из-за анимации перехода dispose
+      // вызывается позже initState нового экрана — гонка делает bar
+      // невидимым после context.go. Hide делает сам observer на каждом
+      // переходе (см. _NativeNavRouteObserver).
     }
     _stopPillAnimation();
     super.dispose();
   }
 
-  // RouteAware: на родном маршруте — пушим конфиг, при уходе — скрываем.
+  // RouteAware: re-push конфига при возврате на этот экран. Hide на push
+  // другого экрана/replace выполняется observer'ом.
 
   @override
   void didPopNext() {
     if (_native) _pushNativeBottomBar();
-  }
-
-  @override
-  void didPush() {
-    if (_native) _pushNativeBottomBar();
-  }
-
-  @override
-  void didPushNext() {
-    if (_native) {
-      unawaited(
-        NativeNavBarFacade.instance.setBottomBar(
-          const NavBarBottomConfig.hidden(),
-        ),
-      );
-    }
   }
 
   void _pushNativeBottomBar() {

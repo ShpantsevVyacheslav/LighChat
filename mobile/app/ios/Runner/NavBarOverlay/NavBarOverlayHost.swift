@@ -53,6 +53,9 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// без обрезки (iOS 26 Liquid Glass).
   private static let tabBarContentHeight: CGFloat = 49
   private static let navBarContentHeight: CGFloat = 56
+  /// Небольшой gap между status bar и nav bar — чтобы шапка не «прилипала»
+  /// к Dynamic Island / индикаторам.
+  private static let navBarTopGap: CGFloat = 6
 
   func attach(to vc: UIViewController) {
     flutterVC = vc
@@ -75,7 +78,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     NSLayoutConstraint.activate([
       top.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
       top.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
-      top.topAnchor.constraint(equalTo: vc.view.safeAreaLayoutGuide.topAnchor),
+      // Небольшой gap (6pt) от status bar — bar «дышит», как в дизайне iOS 26.
+      top.topAnchor.constraint(
+        equalTo: vc.view.safeAreaLayoutGuide.topAnchor,
+        constant: Self.navBarTopGap),
       // Явная высота 56pt — выше дефолтных 44pt UINavigationBar, чтобы
       // chat header (avatar 36 + title + subtitle) дышал и не упирался
       // в bar-buttons по вертикали.
@@ -508,9 +514,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     guard let vc = flutterVC else { return }
     var insets = UIEdgeInsets.zero
     if topVisible, let bar = topBar, !bar.isHidden {
-      // UINavigationBar.bounds.height даёт правильный contentHeight (44 inline /
-      // 96 large title) — он зажат top constraint к safeArea.topAnchor.
-      insets.top = bar.bounds.height > 0 ? bar.bounds.height : Self.navBarContentHeight
+      // Bar pinned: safeArea.top + navBarTopGap, height = navBarContentHeight.
+      // Flutter контент должен оставаться ниже bar.bottomEdge = gap + height.
+      let h = bar.bounds.height > 0 ? bar.bounds.height : Self.navBarContentHeight
+      insets.top = Self.navBarTopGap + h
     }
     if bottomVisible, let bar = bottomBar, !bar.isHidden {
       // У UITabBar bounds.height = 49 + safeArea.bottom (фон тянется до низа),
