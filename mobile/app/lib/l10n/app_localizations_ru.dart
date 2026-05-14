@@ -4553,6 +4553,9 @@ class AppLocalizationsRu extends AppLocalizations {
       'Выберите фото из галереи или настройте';
 
   @override
+  String get chat_settings_builtin_wallpapers_heading => 'Фирменные обои';
+
+  @override
   String get chat_settings_emoji_effects => 'Эффекты эмодзи';
 
   @override

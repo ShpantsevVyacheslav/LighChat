@@ -1,14 +1,25 @@
 'use client';
 
 import React from 'react';
+import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
+import {
+  isBuiltinWallpaperValue,
+  pickBuiltinWallpaperSrc,
+  resolveBuiltinWallpaper,
+} from '@/lib/builtinWallpapers';
 
 export function isChatWallpaperImageUrl(wallpaper: string | null | undefined): boolean {
   return !!(wallpaper && (wallpaper.startsWith('http') || wallpaper.startsWith('data:')));
 }
 
 type ChatWallpaperLayerProps = {
-  /** `chatSettings.chatWallpaper`: URL/data URL изображения или CSS `background` (градиент). */
+  /**
+   * `chatSettings.chatWallpaper`. Поддерживаемые форматы:
+   * - `http(s)://...` или `data:...` — пользовательская картинка;
+   * - `builtin:<slug>` — встроенный обой (см. `src/lib/builtinWallpapers.ts`);
+   * - любая другая строка — CSS `background` (градиент).
+   */
   wallpaper: string | null | undefined;
   className?: string;
 };
@@ -17,19 +28,29 @@ type ChatWallpaperLayerProps = {
  * Фон переписки (градиент или картинка + затемнение). Один источник для `ChatWindow`, треда и пустой колонки чата.
  */
 export function ChatWallpaperLayer({ wallpaper, className }: ChatWallpaperLayerProps) {
-  const isImage = isChatWallpaperImageUrl(wallpaper);
-  const wallpaperStyle = !isImage && wallpaper ? ({ background: wallpaper } as React.CSSProperties) : undefined;
+  const { resolvedTheme } = useTheme();
+  const builtin = resolveBuiltinWallpaper(wallpaper);
+  const builtinSrc = builtin
+    ? pickBuiltinWallpaperSrc(builtin, resolvedTheme === 'dark' ? 'dark' : 'light')
+    : null;
+  const isImage = !builtin && isChatWallpaperImageUrl(wallpaper);
+  const wallpaperStyle =
+    !builtin && !isImage && wallpaper && !isBuiltinWallpaperValue(wallpaper)
+      ? ({ background: wallpaper } as React.CSSProperties)
+      : undefined;
 
-  if (!isImage && !wallpaperStyle) return null;
+  if (!builtinSrc && !isImage && !wallpaperStyle) return null;
+
+  const renderedSrc = builtinSrc ?? (isImage ? wallpaper! : null);
 
   return (
     <div
       className={cn('absolute inset-0 z-0 min-h-full min-w-full pointer-events-none', className)}
       aria-hidden
     >
-      {isImage ? (
+      {renderedSrc ? (
         <>
-          <img src={wallpaper!} alt="" className="absolute inset-0 h-full min-h-full w-full object-cover object-center" />
+          <img src={renderedSrc} alt="" className="absolute inset-0 h-full min-h-full w-full object-cover object-center" />
           <div className="absolute inset-0 bg-black/40 dark:bg-black/55" />
         </>
       ) : (

@@ -1,0 +1,120 @@
+/**
+ * Встроенные фирменные обои чата. Источник правды для web и mobile.
+ *
+ * Значение поля `chatSettings.chatWallpaper` для встроенного обоя имеет вид
+ * `builtin:<slug>` — клиент сам резолвит slug в конкретный ассет и подбирает
+ * вариант под текущую тему интерфейса. Параллельный manifest для Flutter:
+ * `mobile/app/lib/features/chat/data/builtin_wallpapers.dart`.
+ */
+export const BUILTIN_WALLPAPER_PREFIX = 'builtin:';
+
+export type BuiltinWallpaperSlug =
+  | 'lighthouse-dawn'
+  | 'keeper-watch'
+  | 'crab-shore'
+  | 'lighthouse-aurora'
+  | 'keeper-cabin'
+  | 'crew-shore'
+  | 'mark-constellation'
+  | 'ocean-waves';
+
+export interface BuiltinWallpaper {
+  slug: BuiltinWallpaperSlug;
+  /** i18n key under `chatSettings.builtinWallpaperLabel.*` */
+  labelKey: string;
+  /** Public path for the light-theme variant. */
+  light: string;
+  /** Public path for the dark-theme variant. */
+  dark: string;
+  /** Lightweight CSS gradient used for instant preview before the WebP loads. */
+  previewGradient: string;
+}
+
+export const BUILTIN_WALLPAPERS: readonly BuiltinWallpaper[] = [
+  {
+    slug: 'lighthouse-dawn',
+    labelKey: 'lighthouseDawn',
+    light: '/wallpapers/lighthouse-dawn-light.webp',
+    dark: '/wallpapers/lighthouse-dawn-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #FFDCBC 0%, #D4E8EB 100%)',
+  },
+  {
+    slug: 'keeper-watch',
+    labelKey: 'keeperWatch',
+    light: '/wallpapers/keeper-watch-light.webp',
+    dark: '/wallpapers/keeper-watch-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #C8DCF0 0%, #F5E6D2 100%)',
+  },
+  {
+    slug: 'crab-shore',
+    labelKey: 'crabShore',
+    light: '/wallpapers/crab-shore-light.webp',
+    dark: '/wallpapers/crab-shore-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #C8E6EB 0%, #F4DCB2 100%)',
+  },
+  {
+    slug: 'lighthouse-aurora',
+    labelKey: 'lighthouseAurora',
+    light: '/wallpapers/lighthouse-aurora-light.webp',
+    dark: '/wallpapers/lighthouse-aurora-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #EBF0FA 0%, #D7EBF0 100%)',
+  },
+  {
+    slug: 'keeper-cabin',
+    labelKey: 'keeperCabin',
+    light: '/wallpapers/keeper-cabin-light.webp',
+    dark: '/wallpapers/keeper-cabin-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #D2DCE6 0%, #B4C3D2 100%)',
+  },
+  {
+    slug: 'crew-shore',
+    labelKey: 'crewShore',
+    light: '/wallpapers/crew-shore-light.webp',
+    dark: '/wallpapers/crew-shore-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #F0DEC8 0%, #C8DCE8 100%)',
+  },
+  {
+    slug: 'mark-constellation',
+    labelKey: 'markConstellation',
+    light: '/wallpapers/mark-constellation-light.webp',
+    dark: '/wallpapers/mark-constellation-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #E1EBFA 0%, #C8DCF0 100%)',
+  },
+  {
+    slug: 'ocean-waves',
+    labelKey: 'oceanWaves',
+    light: '/wallpapers/ocean-waves-light.webp',
+    dark: '/wallpapers/ocean-waves-dark.webp',
+    previewGradient: 'linear-gradient(135deg, #E0EAFF 0%, #E3D7F5 100%)',
+  },
+] as const;
+
+const BUILTIN_BY_SLUG: Record<string, BuiltinWallpaper> = Object.fromEntries(
+  BUILTIN_WALLPAPERS.map((w) => [w.slug, w]),
+);
+
+export function isBuiltinWallpaperValue(value: string | null | undefined): boolean {
+  return !!value && value.startsWith(BUILTIN_WALLPAPER_PREFIX);
+}
+
+export function parseBuiltinWallpaperSlug(value: string | null | undefined): BuiltinWallpaperSlug | null {
+  if (!isBuiltinWallpaperValue(value)) return null;
+  const slug = value!.slice(BUILTIN_WALLPAPER_PREFIX.length);
+  return BUILTIN_BY_SLUG[slug] ? (slug as BuiltinWallpaperSlug) : null;
+}
+
+export function resolveBuiltinWallpaper(value: string | null | undefined): BuiltinWallpaper | null {
+  const slug = parseBuiltinWallpaperSlug(value);
+  return slug ? BUILTIN_BY_SLUG[slug] : null;
+}
+
+export function builtinWallpaperValue(slug: BuiltinWallpaperSlug): string {
+  return `${BUILTIN_WALLPAPER_PREFIX}${slug}`;
+}
+
+export function pickBuiltinWallpaperSrc(
+  wallpaper: BuiltinWallpaper,
+  resolvedTheme: 'light' | 'dark' | null | undefined,
+): string {
+  return resolvedTheme === 'dark' ? wallpaper.dark : wallpaper.light;
+}

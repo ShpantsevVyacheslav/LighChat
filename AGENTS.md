@@ -38,8 +38,8 @@
 - `mobile/app/lib/features/settings/{ui/energy_saving_screen,data/energy_saving_preference}.dart` - экран «Энергосбережение» (Telegram-style); `EnergySavingNotifier` хранит флаги в SharedPreferences `energySaving.*`, слушает `battery_plus` (включая системный Low Power Mode), отдаёт `effective*`-геттеры. Маршрут `/settings/energy-saving`.
 - `src/app/dashboard/features` + `src/components/features/*` - раздел «Возможности LighChat» (web): оглавление + 12 подстраниц `/dashboard/features/[topic]`, welcome-оверлей `FeaturesWelcomeOverlay` (флаг `lc_features_welcome_v1` в `localStorage`). Точка входа — пункт «Возможности» в `DashboardAccountMenuContent`.
 - `mobile/app/lib/features/features_tour` - тот же раздел в mobile: маршруты `/features` и `/features/:topic`, per-uid флаг `features_tour_shown_<uid>` (`SharedPreferences`). После welcome-анимации `_exitToChats()` редиректит на `/features?source=welcome` при необходимости. Точка входа — пункт `account_menu_features` в `chat_account_screen.dart`.
-- `scripts` - утилиты сборки/брендинга.
-- `public` - статика, PWA-иконки и манифест.
+- `scripts` - утилиты сборки/брендинга. `scripts/generate-chat-wallpapers.py` — генерация фирменных встроенных обоев чата (Pillow, использует геометрию `LighthousePainter`/`KeeperPainter`/`CrabPainter` из welcome-painters; выводит 16 WebP в `public/wallpapers/` и `mobile/app/assets/wallpapers/`).
+- `public` - статика, PWA-иконки, манифест и `public/wallpapers/` — встроенные обои чата (8 концептов × light/dark). Каталог-источник — [`src/lib/builtinWallpapers.ts`](src/lib/builtinWallpapers.ts); параллельный manifest для Flutter — [`mobile/app/lib/features/chat/data/builtin_wallpapers.dart`](mobile/app/lib/features/chat/data/builtin_wallpapers.dart). Значение в Firestore: sentinel `builtin:<slug>` в `users.chatSettings.chatWallpaper` (рядом с URL и CSS-градиентами).
 
 ## Известные ограничения macOS Debug (free Apple ID)
 

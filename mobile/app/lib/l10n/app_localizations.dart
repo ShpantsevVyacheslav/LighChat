@@ -7966,6 +7966,12 @@ abstract class AppLocalizations {
   /// **'Выберите фото из галереи или настройте'**
   String get chat_settings_background_hint;
 
+  /// No description provided for @chat_settings_builtin_wallpapers_heading.
+  ///
+  /// In ru, this message translates to:
+  /// **'Фирменные обои'**
+  String get chat_settings_builtin_wallpapers_heading;
+
   /// No description provided for @chat_settings_emoji_effects.
   ///
   /// In ru, this message translates to:

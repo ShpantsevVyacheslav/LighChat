@@ -108,6 +108,10 @@ dependencies:
   flutter_webrtc: ^1.2.0
   record: ^6.1.2
   path_provider: ^2.1.5
+  # On-device перевод сообщений / транскриптов голосовых. Модели качаются
+  # с mlkit.gstatic.com (~30 МБ на языковую пару), дальше работают офлайн.
+  # Поддерживает основные языки приложения, кроме kk/uz.
+  google_mlkit_translation: ^0.13.0
   super_clipboard: ^0.9.1
   super_drag_and_drop: ^0.9.1
   receive_sharing_intent: ^1.8.1
@@ -199,6 +203,7 @@ flutter:
     - assets/google_icon.png
     - assets/legal/ru/
     - assets/legal/en/
+    - assets/wallpapers/
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

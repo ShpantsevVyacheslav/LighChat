@@ -4587,6 +4587,9 @@ class AppLocalizationsEs extends AppLocalizations {
       'Elige una foto de la galería o personaliza';
 
   @override
+  String get chat_settings_builtin_wallpapers_heading => 'Fondos de marca';
+
+  @override
   String get chat_settings_emoji_effects => 'Efectos de emoji';
 
   @override
@@ -12855,6 +12858,9 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   @override
   String get chat_settings_background_hint =>
       'Elige una foto de la galería o personaliza';
+
+  @override
+  String get chat_settings_builtin_wallpapers_heading => 'Fondos de marca';
 
   @override
   String get chat_settings_emoji_effects => 'Efectos de emoji';

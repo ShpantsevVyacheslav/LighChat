@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useTheme } from "next-themes";
 import { useSettings, DEFAULT_CHAT_SETTINGS } from "@/hooks/use-settings";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +19,12 @@ import { cn } from "@/lib/utils";
 import { BUBBLE_RADIUS_OPTIONS, bubbleRadiusToClass, normalizeBubbleRadius } from "@/lib/chat-bubble-radius";
 import { BottomNavIconsSettingsSection } from "@/components/settings/BottomNavIconsSettingsSection";
 import { useI18n } from "@/hooks/use-i18n";
+import {
+  BUILTIN_WALLPAPERS,
+  builtinWallpaperValue,
+  pickBuiltinWallpaperSrc,
+  resolveBuiltinWallpaper,
+} from "@/lib/builtinWallpapers";
 
 const FONT_SIZES = [
   { value: "small" as const, labelKey: "small" as const, textClass: "text-xs" },
@@ -63,11 +70,16 @@ function isImageUrl(value: string | null): boolean {
   return value.startsWith("http") || value.startsWith("data:");
 }
 
+function isBuiltinValue(value: string | null): boolean {
+  return !!value && value.startsWith("builtin:");
+}
+
 export default function ChatSettingsPage() {
   const { user, isLoading } = useAuth();
   const { chatSettings, updateChatSettings } = useSettings();
   const { toast } = useToast();
   const { t } = useI18n();
+  const { resolvedTheme } = useTheme();
   const firestore = useFirestore();
   const storage = useStorage();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -143,6 +155,11 @@ export default function ChatSettingsPage() {
   const incomingColor = getDisplayColor(chatSettings.incomingBubbleColor, "hsl(var(--muted))");
   const currentWallpaper = chatSettings.chatWallpaper;
   const isCustomImage = isImageUrl(currentWallpaper);
+  const activeBuiltin = resolveBuiltinWallpaper(currentWallpaper);
+  const activeBuiltinSrc = activeBuiltin
+    ? pickBuiltinWallpaperSrc(activeBuiltin, resolvedTheme === "dark" ? "dark" : "light")
+    : null;
+  const previewImageSrc = activeBuiltinSrc ?? (isCustomImage ? currentWallpaper : null);
   const previewRadius = bubbleRadiusToClass(chatSettings.bubbleRadius);
   const activeBubblePreset = normalizeBubbleRadius(
     chatSettings.bubbleRadius as string | undefined
@@ -166,12 +183,16 @@ export default function ChatSettingsPage() {
         <div
             className="relative rounded-2xl overflow-hidden p-4 min-h-[160px] flex flex-col justify-end gap-2"
             style={{
-              background: isCustomImage ? undefined : (currentWallpaper ?? "var(--muted)"),
+              background: previewImageSrc
+                ? undefined
+                : isBuiltinValue(currentWallpaper)
+                  ? (activeBuiltin?.previewGradient ?? "var(--muted)")
+                  : (currentWallpaper ?? "var(--muted)"),
             }}
           >
-            {isCustomImage && (
+            {previewImageSrc && (
               <>
-                <img src={currentWallpaper!} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <img src={previewImageSrc} alt="" className="absolute inset-0 w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-black/40 dark:bg-black/55" />
               </>
             )}
@@ -352,6 +373,48 @@ export default function ChatSettingsPage() {
                 </button>
               );
             })}
+          </div>
+
+          {/* Built-in branded wallpapers */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">{t('chatSettings.builtinWallpapersHeading')}</p>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              {BUILTIN_WALLPAPERS.map((wp) => {
+                const value = builtinWallpaperValue(wp.slug);
+                const isActive = currentWallpaper === value;
+                const src = pickBuiltinWallpaperSrc(wp, resolvedTheme === "dark" ? "dark" : "light");
+                const label = t(`chatSettings.builtinWallpaperLabel.${wp.labelKey}`);
+                return (
+                  <button
+                    key={wp.slug}
+                    type="button"
+                    title={label}
+                    onClick={() => handleUpdate({ chatWallpaper: value })}
+                    className={cn(
+                      "relative h-20 rounded-2xl border-2 overflow-hidden transition-all hover:scale-105 active:scale-95",
+                      isActive ? "border-primary ring-2 ring-primary/30" : "border-transparent"
+                    )}
+                    style={{ background: wp.previewGradient }}
+                  >
+                    <img
+                      src={src}
+                      alt=""
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/20" />
+                    {isActive && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                        <Check className="h-5 w-5 text-white drop-shadow" />
+                      </div>
+                    )}
+                    <span className="absolute bottom-1 left-0 right-0 text-center text-[9px] font-medium text-white drop-shadow-md">
+                      {label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Custom wallpapers section */}

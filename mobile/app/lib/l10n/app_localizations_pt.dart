@@ -4571,6 +4571,9 @@ class AppLocalizationsPt extends AppLocalizations {
       'Escolha uma foto da galeria ou personalize';
 
   @override
+  String get chat_settings_builtin_wallpapers_heading => 'Fundos da marca';
+
+  @override
   String get chat_settings_emoji_effects => 'Efeitos de emoji';
 
   @override
@@ -12825,6 +12828,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get chat_settings_background_hint =>
       'Escolha uma foto da galeria ou personalize';
+
+  @override
+  String get chat_settings_builtin_wallpapers_heading => 'Fundos da marca';
 
   @override
   String get chat_settings_emoji_effects => 'Efeitos de emoji';

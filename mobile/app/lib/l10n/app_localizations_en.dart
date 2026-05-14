@@ -4524,6 +4524,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Choose a photo from gallery or customize';
 
   @override
+  String get chat_settings_builtin_wallpapers_heading => 'Branded wallpapers';
+
+  @override
   String get chat_settings_emoji_effects => 'Emoji effects';
 
   @override

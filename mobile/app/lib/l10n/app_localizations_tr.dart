@@ -4556,6 +4556,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'Galeriden bir fotoğraf seçin veya özelleştirin';
 
   @override
+  String get chat_settings_builtin_wallpapers_heading =>
+      'Marka duvar kâğıtları';
+
+  @override
   String get chat_settings_emoji_effects => 'Emoji efektleri';
 
   @override

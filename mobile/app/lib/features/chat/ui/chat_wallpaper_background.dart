@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../data/builtin_wallpapers.dart';
 import 'chat_cached_network_image.dart';
 import 'chat_wallpaper_scope.dart';
 
@@ -58,13 +59,26 @@ class ChatWallpaperBackground extends StatelessWidget {
       return ChatWallpaperScope(wallpaper: null, child: _DefaultChatBackdrop(child: child));
     }
 
+    final builtin = resolveBuiltinWallpaper(raw);
     final gradient = _gradients[raw];
+    final isNetwork = raw.startsWith('http');
+    final isImage = builtin != null || isNetwork;
+
     return ChatWallpaperScope(
       wallpaper: raw,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (raw.startsWith('http'))
+          if (builtin != null)
+            Positioned.fill(
+              child: Image.asset(
+                builtin.assetFor(Theme.of(context).brightness),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    const _DefaultChatBackdrop(child: SizedBox.expand()),
+              ),
+            )
+          else if (isNetwork)
             Positioned.fill(
               child: ChatCachedNetworkImage(
                 url: raw,
@@ -77,7 +91,7 @@ class ChatWallpaperBackground extends StatelessWidget {
             DecoratedBox(decoration: BoxDecoration(gradient: gradient))
           else
             const _DefaultChatBackdrop(child: SizedBox.expand()),
-          if (raw.startsWith('http'))
+          if (isImage)
             Container(color: Colors.black.withValues(alpha: 0.35)),
           child,
         ],

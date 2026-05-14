@@ -4540,6 +4540,9 @@ class AppLocalizationsId extends AppLocalizations {
       'Pilih a Foto from Galeri atau customize';
 
   @override
+  String get chat_settings_builtin_wallpapers_heading => 'Wallpaper bermerek';
+
+  @override
   String get chat_settings_emoji_effects => 'Efek emoji';
 
   @override

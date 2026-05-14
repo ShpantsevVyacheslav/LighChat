@@ -1,7 +1,8 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { ImagePlus, Loader2 } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { ImagePlus, Loader2, Check } from 'lucide-react';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useFirestore, useStorage } from '@/firebase';
@@ -14,6 +15,12 @@ import { compressImage } from '@/lib/image-compression';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import {
+  BUILTIN_WALLPAPERS,
+  builtinWallpaperValue,
+  pickBuiltinWallpaperSrc,
+  resolveBuiltinWallpaper,
+} from '@/lib/builtinWallpapers';
 
 const WALLPAPERS: { value: string | null; labelKey: string }[] = [
   { value: null, labelKey: 'chat.theme.presetAsGlobal' },
@@ -39,6 +46,7 @@ export function ConversationThemePanel({
   const storage = useStorage();
   const { toast } = useToast();
   const { t } = useI18n();
+  const { resolvedTheme } = useTheme();
   const globalWallpaper = useSettings().chatSettings.chatWallpaper;
   const { prefs, updatePrefs, clearChatWallpaperOverride } = useChatConversationPrefs(userId, conversationId);
   const effectiveLocal = prefs?.chatWallpaper;
@@ -47,6 +55,11 @@ export function ConversationThemePanel({
 
   const activeWallpaper =
     effectiveLocal != null && effectiveLocal !== '' ? effectiveLocal : globalWallpaper;
+  const activeBuiltin = resolveBuiltinWallpaper(activeWallpaper);
+  const activeBuiltinSrc = activeBuiltin
+    ? pickBuiltinWallpaperSrc(activeBuiltin, resolvedTheme === 'dark' ? 'dark' : 'light')
+    : null;
+  const previewImageSrc = activeBuiltinSrc ?? (isImageUrl(activeWallpaper) ? activeWallpaper : null);
 
   const setGradient = (value: string | null) => {
     if (value === null) {
@@ -99,15 +112,17 @@ export function ConversationThemePanel({
             'mt-2 flex h-28 w-full items-center justify-center overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 text-xs text-zinc-500'
           )}
           style={
-            isImageUrl(activeWallpaper)
+            previewImageSrc
               ? undefined
-              : activeWallpaper
-                ? { background: activeWallpaper }
-                : undefined
+              : activeBuiltin
+                ? { background: activeBuiltin.previewGradient }
+                : activeWallpaper
+                  ? { background: activeWallpaper }
+                  : undefined
           }
         >
-          {isImageUrl(activeWallpaper) ? (
-            <img src={activeWallpaper!} alt="" className="h-full w-full object-cover" />
+          {previewImageSrc ? (
+            <img src={previewImageSrc} alt="" className="h-full w-full object-cover" />
           ) : activeWallpaper ? null : (
             t('chat.theme.defaultLabel')
           )}
@@ -129,6 +144,39 @@ export function ConversationThemePanel({
               {t(w.labelKey)}
             </Button>
           ))}
+        </div>
+      </div>
+
+      <div className="mt-6 space-y-3">
+        <Label>{t('chat.theme.builtinPresetsLabel')}</Label>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+          {BUILTIN_WALLPAPERS.map((wp) => {
+            const value = builtinWallpaperValue(wp.slug);
+            const isActive = activeWallpaper === value;
+            const src = pickBuiltinWallpaperSrc(wp, resolvedTheme === 'dark' ? 'dark' : 'light');
+            const label = t(`chatSettings.builtinWallpaperLabel.${wp.labelKey}`);
+            return (
+              <button
+                key={wp.slug}
+                type="button"
+                title={label}
+                onClick={() => setGradient(value)}
+                className={cn(
+                  'relative h-16 overflow-hidden rounded-xl border-2 transition-all hover:scale-105 active:scale-95',
+                  isActive ? 'border-primary ring-2 ring-primary/30' : 'border-zinc-800',
+                )}
+                style={{ background: wp.previewGradient }}
+              >
+                <img src={src} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-black/25" />
+                {isActive && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <Check className="h-4 w-4 text-white drop-shadow" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 

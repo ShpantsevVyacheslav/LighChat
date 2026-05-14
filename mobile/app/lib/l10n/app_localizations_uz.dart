@@ -4573,6 +4573,10 @@ class AppLocalizationsUz extends AppLocalizations {
       'Galereyadan rasm tanlang yoki sozlang';
 
   @override
+  String get chat_settings_builtin_wallpapers_heading =>
+      'Brendli devor qogʻozlari';
+
+  @override
   String get chat_settings_emoji_effects => 'Emoji effektlari';
 
   @override

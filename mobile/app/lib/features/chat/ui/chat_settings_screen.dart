@@ -12,6 +12,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
 import '../data/bottom_nav_icon_settings.dart';
+import '../data/builtin_wallpapers.dart';
 import '../data/emoji_burst_animation_profile.dart';
 import '../data/new_chat_user_search.dart' show ruEnSubstringMatch;
 import '../../../l10n/app_localizations.dart';
@@ -385,6 +386,17 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
       return BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         image: DecorationImage(image: NetworkImage(value), fit: BoxFit.cover),
+      );
+    }
+    final builtin = resolveBuiltinWallpaper(value);
+    if (builtin != null) {
+      return BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: builtin.previewGradient,
+        image: DecorationImage(
+          image: AssetImage(builtin.assetFor(Theme.of(context).brightness)),
+          fit: BoxFit.cover,
+        ),
       );
     }
     final gradient = _wallpaperGradient(value);
@@ -1574,6 +1586,43 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                             },
                             onDelete: () =>
                                 _confirmRemoveCustomWallpaper(customUrl),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        l10n.chat_settings_builtin_wallpapers_heading,
+                        style: TextStyle(
+                          fontSize: _kBlockTitleSize,
+                          fontWeight: FontWeight.w600,
+                          color: textMain,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: kBuiltinWallpapers.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              mainAxisSpacing: 10,
+                              crossAxisSpacing: 10,
+                              childAspectRatio: 1.04,
+                            ),
+                        itemBuilder: (context, index) {
+                          final wp = kBuiltinWallpapers[index];
+                          final value = wp.value;
+                          final selected = s.chatWallpaper == value;
+                          return _WallpaperTile(
+                            selected: selected,
+                            decoration: _wallpaperDecoration(context, value),
+                            onTap: () {
+                              setState(() => s.chatWallpaper = value);
+                              _savePatch(<String, Object?>{
+                                'chatWallpaper': value,
+                              });
+                            },
                           );
                         },
                       ),
