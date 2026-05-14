@@ -3984,19 +3984,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     final from = detection.language;
     if (from.isEmpty || from == ui) return;
 
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetCtx) => MessageTranslationSheet(
-        messageId: m.id,
-        originalText: original,
-        from: from,
-        to: ui,
-      ),
+    await MessageTranslationSheet.show(
+      context,
+      messageId: m.id,
+      originalText: original,
+      from: from,
+      to: ui,
     );
   }
 
