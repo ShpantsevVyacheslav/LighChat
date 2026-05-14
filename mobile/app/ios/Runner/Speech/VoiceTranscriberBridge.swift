@@ -1,3 +1,4 @@
+import AVFoundation
 import Flutter
 import Foundation
 import NaturalLanguage
@@ -287,14 +288,35 @@ final class VoiceTranscriberBridge: NSObject {
     recognizer: SFSpeechRecognizer, url: URL,
     completion: @escaping (Result<RecognitionOutput, NSError>) -> Void
   ) {
+    // Apple on-device модель режет хвост на ~45-60 сек — пользователь
+    // увидит только начало. Для длинных файлов сразу идём на серверное
+    // распознавание, у которого лимит выше + лучше работает с не-
+    // разговорной речью (песни, лекции).
+    let durationSec = Self.audioDuration(url: url)
+    let isLong = durationSec > 30
     let canOnDevice: Bool = {
+      if isLong { return false } // принудительный server-side
       if #available(iOS 13.0, *) { return recognizer.supportsOnDeviceRecognition }
       return false
     }()
+    Self.log(
+      "performRecognition duration=\(String(format: "%.1f", durationSec))s "
+        + "onDevice=\(canOnDevice) (isLong=\(isLong))")
     performRecognitionPass(
       recognizer: recognizer, url: url,
       onDevice: canOnDevice, allowFallback: true,
       completion: completion)
+  }
+
+  /// Длительность audio-файла в секундах. `0` если не удалось прочитать.
+  private static func audioDuration(url: URL) -> Double {
+    let asset = AVURLAsset(url: url)
+    let t = asset.duration
+    if t.flags.contains(.valid) && !t.flags.contains(.indefinite) {
+      let s = CMTimeGetSeconds(t)
+      return s.isFinite ? s : 0
+    }
+    return 0
   }
 
   private func performRecognitionPass(
@@ -311,7 +333,10 @@ final class VoiceTranscriberBridge: NSObject {
     if #available(iOS 16.0, *) {
       request.addsPunctuation = true
     }
-    request.taskHint = .dictation
+    // `.unspecified` — самый гибкий режим, не предполагает формат
+    // диктовки/поиска. Лучше работает с песнями, длинными монологами,
+    // паузами в начале и музыкой на фоне (Apple парсит более терпимо).
+    request.taskHint = .unspecified
 
     recognizerQueue.async { [weak self] in
       var delivered = false
