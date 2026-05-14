@@ -8187,4 +8187,11 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get birthday_error_reminder => 'Hatırlatma ayarlanamadı';
+
+  @override
+  String get chat_empty_title => 'Сообщений пока нет';
+
+  @override
+  String get chat_empty_subtitle =>
+      'Напишите первое сообщение — хранитель маяка уже ждёт';
 }

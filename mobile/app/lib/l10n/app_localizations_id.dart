@@ -8188,4 +8188,11 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get birthday_error_reminder => 'Gagal mengatur pengingat';
+
+  @override
+  String get chat_empty_title => 'Сообщений пока нет';
+
+  @override
+  String get chat_empty_subtitle =>
+      'Напишите первое сообщение — хранитель маяка уже ждёт';
 }

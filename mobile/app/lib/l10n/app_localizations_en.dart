@@ -8156,4 +8156,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get birthday_error_reminder => 'Couldn\'t set the reminder';
+
+  @override
+  String get chat_empty_title => 'No messages yet';
+
+  @override
+  String get chat_empty_subtitle =>
+      'Say hi — the lighthouse keeper is already waving';
 }

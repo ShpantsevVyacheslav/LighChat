@@ -8250,6 +8250,13 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get birthday_error_reminder => 'No se pudo configurar el recordatorio';
+
+  @override
+  String get chat_empty_title => 'Сообщений пока нет';
+
+  @override
+  String get chat_empty_subtitle =>
+      'Напишите первое сообщение — хранитель маяка уже ждёт';
 }
 
 /// The translations for Spanish Castilian, as used in Mexico (`es_MX`).

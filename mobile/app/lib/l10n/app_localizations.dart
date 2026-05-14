@@ -14391,6 +14391,18 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Не удалось установить напоминание'**
   String get birthday_error_reminder;
+
+  /// No description provided for @chat_empty_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщений пока нет'**
+  String get chat_empty_title;
+
+  /// No description provided for @chat_empty_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Напишите первое сообщение — хранитель маяка уже ждёт'**
+  String get chat_empty_subtitle;
 }
 
 class _AppLocalizationsDelegate

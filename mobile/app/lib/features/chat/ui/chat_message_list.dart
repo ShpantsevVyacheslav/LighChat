@@ -13,6 +13,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../settings/data/energy_saving_preference.dart';
+import 'empty_messages_placeholder.dart';
 import '../data/chat_outbox_attachment_notifier.dart';
 import '../data/contact_display_name.dart';
 import '../data/sanitize_message_html.dart';
@@ -596,6 +597,18 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
 
     final slivers = <Widget>[];
     final unreadSeparatorId = widget.unreadSeparatorMessageId;
+
+    // Empty-state placeholder: карточка с хранителем маяка, машущим рукой.
+    // Появляется только когда сообщений физически нет (включая outbox);
+    // нужно ровно одно sliver, занимающее оставшийся viewport.
+    if (asc.isEmpty && widget.outgoingMediaFooter == null) {
+      slivers.add(
+        const SliverFillRemaining(
+          hasScrollBody: false,
+          child: EmptyMessagesPlaceholder(),
+        ),
+      );
+    }
 
     // For reversed chat lists (newest at bottom), the "outgoing footer" must be
     // inserted BEFORE message slivers so it appears near the composer.
