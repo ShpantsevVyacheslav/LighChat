@@ -187,13 +187,25 @@ class _EmptyMessagesPlaceholderState extends State<EmptyMessagesPlaceholder>
                                 children: [
                                   Positioned.fill(
                                     child: CustomPaint(
-                                      painter:
-                                          KeeperPainter(throwProgress: wave),
+                                      painter: KeeperPainter(
+                                        throwProgress: wave,
+                                        // Светлый силуэт, чтобы хранитель
+                                        // не сливался с тёмным frosted-glass
+                                        // фоном карточки.
+                                        bodyColor: dark
+                                            ? const Color(0xFFE6EDF7)
+                                            : const Color(0xFF1E3A5F),
+                                        accentColor: dark
+                                            ? const Color(0xFFB7C5DA)
+                                            : const Color(0xFF2C4A70),
+                                      ),
                                     ),
                                   ),
                                   Positioned.fill(
                                     child: CustomPaint(
-                                      painter: const _KeeperFacePainter(),
+                                      painter: _KeeperFacePainter(
+                                        eyeBgIsLight: dark,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -265,15 +277,24 @@ class _StaticBeamPainter extends CustomPainter {
 /// `KeeperPainter`). Координаты согласованы с головой: cx=0.50, cy=0.07,
 /// радиус ≈ w*0.08.
 class _KeeperFacePainter extends CustomPainter {
-  const _KeeperFacePainter();
+  const _KeeperFacePainter({this.eyeBgIsLight = true});
+
+  /// Подложка под глазами/улыбкой: тёмная (для светлой темы и тёмного
+  /// силуэта) или светлая (силуэт уже светлый — нужны тёмные глаза).
+  final bool eyeBgIsLight;
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
 
-    final eyeWhite = Paint()..color = Colors.white.withValues(alpha: 0.95);
-    final eyeDark = Paint()..color = const Color(0xFF0A1626);
+    final eyeWhite = Paint()
+      ..color = (eyeBgIsLight
+              ? const Color(0xFF0A1626)
+              : Colors.white)
+          .withValues(alpha: 0.95);
+    final eyeDark = Paint()
+      ..color = (eyeBgIsLight ? Colors.white : const Color(0xFF0A1626));
 
     final cy = h * 0.058;
     final eyeR = w * 0.018;
@@ -298,7 +319,10 @@ class _KeeperFacePainter extends CustomPainter {
       math.pi,
       false,
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.85)
+        ..color = (eyeBgIsLight
+                ? const Color(0xFF0A1626)
+                : Colors.white)
+            .withValues(alpha: 0.85)
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
         ..strokeWidth = 1.4,
@@ -306,5 +330,6 @@ class _KeeperFacePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _KeeperFacePainter old) => false;
+  bool shouldRepaint(covariant _KeeperFacePainter old) =>
+      old.eyeBgIsLight != eyeBgIsLight;
 }

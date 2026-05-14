@@ -355,16 +355,29 @@ class LighthouseBeamPainter extends CustomPainter {
 
 /// `throwProgress` 0..1 управляет правой рукой (замах назад → бросок вперёд).
 class KeeperPainter extends CustomPainter {
-  const KeeperPainter({required this.throwProgress});
+  const KeeperPainter({
+    required this.throwProgress,
+    this.bodyColor = const Color(0xFF0A1626),
+    this.accentColor = const Color(0xFF1B2A45),
+  });
   final double throwProgress;
+
+  /// Базовый цвет силуэта (пальто, ноги, голова, шляпа). По умолчанию —
+  /// тёмно-сине-чёрный из welcome-сцены. Empty-state карточки передают
+  /// более светлый оттенок, чтобы хранитель не сливался с frosted-glass
+  /// фоном.
+  final Color bodyColor;
+
+  /// Тёмный accent (балкон, складка пальто).
+  final Color accentColor;
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
     // координаты в долях; ноги внизу, голова вверху
-    final fill = Paint()..color = const Color(0xFF0A1626);
-    final accent = Paint()..color = const Color(0xFF1B2A45);
+    final fill = Paint()..color = bodyColor;
+    final accent = Paint()..color = accentColor;
 
     // Ноги
     final legL = Path()
@@ -400,7 +413,7 @@ class KeeperPainter extends CustomPainter {
       Offset(w * 0.50, h * 0.15),
       Offset(w * 0.50, h * 0.70),
       Paint()
-        ..color = const Color(0xFF1B2A45)
+        ..color = accentColor
         ..strokeWidth = 1.2,
     );
 
@@ -439,7 +452,7 @@ class KeeperPainter extends CustomPainter {
       lShoulder,
       lHand,
       Paint()
-        ..color = const Color(0xFF0A1626)
+        ..color = bodyColor
         ..strokeWidth = w * 0.06
         ..strokeCap = StrokeCap.round,
     );
@@ -450,7 +463,7 @@ class KeeperPainter extends CustomPainter {
       Offset(lantern.dx, lantern.dy - 6),
       Offset(lantern.dx, lantern.dy + 2),
       Paint()
-        ..color = const Color(0xFF0A1626)
+        ..color = bodyColor
         ..strokeWidth = 1.4,
     );
     canvas.drawRRect(
@@ -503,7 +516,7 @@ class KeeperPainter extends CustomPainter {
       rShoulder,
       hand,
       Paint()
-        ..color = const Color(0xFF0A1626)
+        ..color = bodyColor
         ..strokeWidth = w * 0.06
         ..strokeCap = StrokeCap.round,
     );
@@ -511,7 +524,9 @@ class KeeperPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant KeeperPainter oldDelegate) =>
-      oldDelegate.throwProgress != throwProgress;
+      oldDelegate.throwProgress != throwProgress ||
+      oldDelegate.bodyColor != bodyColor ||
+      oldDelegate.accentColor != accentColor;
 }
 
 // ============================================================================
