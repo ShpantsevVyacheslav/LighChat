@@ -2265,6 +2265,7 @@ export const messagesPtBr = {
       mountainsMist: 'Montanhas enevoadas',
       pineDeer: 'Cervo da floresta',
       fujiWave: 'Fuji e a onda',
+      fujiNatural: 'Monte Fuji ao amanhecer',
       sakuraBranch: 'Galho de sakura',
     },
     bubbleRadius: {

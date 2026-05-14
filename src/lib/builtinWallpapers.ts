@@ -23,6 +23,7 @@ export type BuiltinWallpaperSlug =
   | 'mountains-mist'
   | 'pine-deer'
   | 'fuji-wave'
+  | 'fuji-natural'
   | 'sakura-branch';
 
 export interface BuiltinWallpaper {
@@ -135,6 +136,13 @@ export const BUILTIN_WALLPAPERS: readonly BuiltinWallpaper[] = [
     light: '/wallpapers/fuji-wave-light.webp',
     dark: '/wallpapers/fuji-wave-dark.webp',
     previewGradient: 'linear-gradient(180deg, #FAE8C8 0%, #DAE8F4 100%)',
+  },
+  {
+    slug: 'fuji-natural',
+    labelKey: 'fujiNatural',
+    light: '/wallpapers/fuji-natural-light.webp',
+    dark: '/wallpapers/fuji-natural-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #FCD7C3 0%, #DCE8F0 100%)',
   },
   {
     slug: 'sakura-branch',
