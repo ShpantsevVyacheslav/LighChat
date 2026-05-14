@@ -2262,6 +2262,10 @@ export const messagesKk = {
       doodleMarine: 'Теңіз дудлдары',
       doodleStickers: 'Маскот стикерлер',
       doodleFormula: 'Навигация формулалары',
+      mountainsMist: 'Тұманды таулар',
+      pineDeer: 'Орман бұғысы',
+      fujiWave: 'Фудзи мен толқын',
+      sakuraBranch: 'Сакура бұтағы',
     },
     bubbleRadius: {
       rounded: 'Дөңгелектенген',

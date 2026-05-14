@@ -2262,6 +2262,10 @@ export const messagesId = {
       doodleMarine: 'Coretan Bahari',
       doodleStickers: 'Stiker Maskot',
       doodleFormula: 'Rumus Navigasi',
+      mountainsMist: 'Gunung Berkabut',
+      pineDeer: 'Rusa Hutan',
+      fujiWave: 'Fuji & Ombak',
+      sakuraBranch: 'Cabang Sakura',
     },
     bubbleRadius: {
       rounded: 'Membulat',

@@ -1021,6 +1021,473 @@ def concept_doodle_formula(theme):
     return bg.convert("RGB")
 
 
+# ---------------------------------------------------------------------------
+# Neutral landscape concepts
+# ---------------------------------------------------------------------------
+#
+# Эти концепты не привязаны к LighChat-маскотам — нейтральные пейзажи в
+# фирменной цветовой палитре, чтобы у пользователя был выбор атмосферы:
+# минималистичные горы, лесной рассвет, японский Хокусай, ветка сакуры.
+
+
+def mountain_layer(size, base_y, peaks, color, alpha=255, jitter=0, seed=0):
+    """Слой гор — массив треугольных пиков от левого до правого края."""
+    w, h = size
+    layer = Image.new("RGBA", size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    rng = random.Random(seed)
+    pts = [(0, h), (0, int(h * base_y))]
+    for x_frac, height in peaks:
+        x = int(w * x_frac)
+        y_peak = int(h * (base_y - height) + (rng.uniform(-jitter, jitter) if jitter else 0))
+        pts.append((x, y_peak))
+    pts.extend([(w, int(h * base_y)), (w, h)])
+    d.polygon(pts, fill=color + (alpha,))
+    return layer
+
+
+def draw_pine(d, cx, cy, size, color, alpha=255, layers=4):
+    """Сосна — несколько горизонтальных треугольников и тонкий ствол."""
+    rgba = color + (alpha,)
+    s = size / 2
+    d.rectangle([cx - s * 0.07, cy + s * 0.65, cx + s * 0.07, cy + s * 1.00],
+                fill=rgba)
+    for i in range(layers):
+        t = i / max(layers - 1, 1)
+        top_y = cy - s * (0.95 - t * 0.55)
+        bot_y = cy - s * (0.55 - t * 0.45) if i < layers - 1 else cy + s * 0.65
+        half = s * (0.18 + t * 0.45)
+        d.polygon([(cx - half, bot_y), (cx + half, bot_y), (cx, top_y)],
+                  fill=rgba)
+
+
+def draw_deer(d, cx, cy, size, color, alpha=255):
+    """Силуэт стоящего оленя в профиль (морда вправо), стиль иконки.
+
+    `cx, cy` — точка центра между копытами (где земля), `size` —
+    общая высота от копыт до кончиков рогов.
+    """
+    rgba = color + (alpha,)
+    H_total = size  # полная высота
+    # Анатомия по высоте:
+    # 0.00 .. 0.40   — ноги (40% высоты)
+    # 0.40 .. 0.55   — тело (15%)
+    # 0.55 .. 0.78   — шея (23%)
+    # 0.78 .. 0.88   — голова (10%)
+    # 0.88 .. 1.00   — рога (12%)
+    body_w = H_total * 0.55  # ширина тела
+    body_h = H_total * 0.18
+    body_top = cy - H_total * 0.60
+    body_bot = body_top + body_h
+    # Тело — закруглённый прямоугольник (rounded ellipse)
+    d.rounded_rectangle(
+        [cx - body_w / 2, body_top, cx + body_w / 2, body_bot],
+        radius=int(body_h / 3), fill=rgba,
+    )
+    # 4 ноги (передние ближе к голове = справа, задние слева)
+    leg_w = max(4, int(H_total * 0.035))
+    leg_bot = cy
+    for x_off in (-0.40, -0.22, 0.22, 0.40):
+        x = cx + body_w * x_off
+        d.rectangle([x - leg_w / 2, body_bot - body_h * 0.2,
+                     x + leg_w / 2, leg_bot], fill=rgba)
+    # Хвостик — короткий выступ слева
+    d.polygon([(cx - body_w / 2, body_top + body_h * 0.2),
+               (cx - body_w / 2 - H_total * 0.05, body_top - H_total * 0.02),
+               (cx - body_w / 2, body_top + body_h * 0.5)], fill=rgba)
+    # Шея — узкая наклонная трапеция вверх-вправо
+    neck_w_bot = body_w * 0.22
+    neck_w_top = body_w * 0.16
+    neck_bot_x = cx + body_w * 0.32  # выходит из переда тела
+    neck_top_x = cx + body_w * 0.42
+    neck_top_y = body_top - H_total * 0.20
+    d.polygon([
+        (neck_bot_x - neck_w_bot / 2, body_top + body_h * 0.1),
+        (neck_bot_x + neck_w_bot / 2, body_top + body_h * 0.1),
+        (neck_top_x + neck_w_top / 2, neck_top_y),
+        (neck_top_x - neck_w_top / 2, neck_top_y),
+    ], fill=rgba)
+    # Голова — удлинённый клин (морда вправо)
+    head_cx = neck_top_x + H_total * 0.06
+    head_cy = neck_top_y - H_total * 0.04
+    head_w = H_total * 0.20
+    head_h = H_total * 0.10
+    d.ellipse([head_cx - head_w / 2, head_cy - head_h / 2,
+               head_cx + head_w / 2, head_cy + head_h / 2], fill=rgba)
+    # Морда (заострённый кончик справа)
+    d.polygon([
+        (head_cx + head_w / 2 - 4, head_cy - head_h * 0.25),
+        (head_cx + head_w / 2 + H_total * 0.05, head_cy + head_h * 0.05),
+        (head_cx + head_w / 2 - 4, head_cy + head_h * 0.40),
+    ], fill=rgba)
+    # Уши — 2 заострённых уха на макушке
+    ear_h = H_total * 0.06
+    for ear_x_off in (-head_w * 0.20, head_w * 0.15):
+        ex = head_cx + ear_x_off
+        d.polygon([(ex - H_total * 0.015, head_cy - head_h * 0.30),
+                   (ex, head_cy - head_h * 0.30 - ear_h),
+                   (ex + H_total * 0.020, head_cy - head_h * 0.30)],
+                  fill=rgba)
+    # Рога — 2 V-образные ветвистые формы, более органичные
+    rack_w = max(4, int(H_total * 0.022))
+    rack_top_y = head_cy - H_total * 0.18
+    for side, base_x_off in [(-1, -head_w * 0.10), (1, head_w * 0.05)]:
+        base_x = head_cx + base_x_off
+        base_y = head_cy - head_h * 0.30
+        # Главный стержень — изогнут наружу
+        mid_x = base_x + side * H_total * 0.04
+        mid_y = base_y - H_total * 0.08
+        tip_x = base_x + side * H_total * 0.10
+        tip_y = rack_top_y
+        d.line([(base_x, base_y), (mid_x, mid_y), (tip_x, tip_y)],
+               fill=rgba, width=rack_w)
+        # Ответвление 1 (внутрь)
+        d.line([(mid_x, mid_y),
+                (mid_x - side * H_total * 0.025, mid_y - H_total * 0.06)],
+               fill=rgba, width=rack_w)
+        # Ответвление 2 (от верха наружу)
+        d.line([(tip_x, tip_y),
+                (tip_x + side * H_total * 0.04, tip_y - H_total * 0.02)],
+               fill=rgba, width=rack_w)
+
+
+def draw_fuji(size, snow=(245, 245, 250), body=(80, 95, 130), trim=(40, 55, 90)):
+    """Mount Fuji — крупный треугольник с волнистой снежной шапкой."""
+    w, h = size
+    layer = Image.new("RGBA", size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    d.polygon([(int(w * 0.15), h), (int(w * 0.50), int(h * 0.22)),
+               (int(w * 0.85), h)], fill=body + (255,))
+    snow_pts = [(int(w * 0.50), int(h * 0.22))]
+    for (x_frac, y_frac) in [
+        (0.40, 0.32), (0.36, 0.36), (0.32, 0.42), (0.28, 0.48),
+        (0.34, 0.50), (0.38, 0.55), (0.46, 0.50),
+        (0.50, 0.42), (0.54, 0.50), (0.62, 0.55), (0.66, 0.50),
+        (0.62, 0.42), (0.68, 0.48), (0.72, 0.42), (0.66, 0.36),
+        (0.60, 0.32),
+    ]:
+        snow_pts.append((int(w * x_frac), int(h * y_frac)))
+    snow_pts.append((int(w * 0.50), int(h * 0.22)))
+    d.polygon(snow_pts, fill=snow + (255,))
+    d.line([(int(w * 0.15), h), (int(w * 0.50), int(h * 0.22))],
+           fill=trim + (200,), width=max(3, int(w * 0.005)))
+    d.line([(int(w * 0.50), int(h * 0.22)), (int(w * 0.85), h)],
+           fill=trim + (200,), width=max(3, int(w * 0.005)))
+    return layer
+
+
+def draw_great_wave(size, deep=(40, 110, 175), foam=(245, 248, 255),
+                    spray=(220, 235, 250)):
+    """Стилизованная Хокусай-style волна.
+
+    Занимает нижнюю треть холста: основное тело-полигон поднимается слева
+    направо к гребню, гребень окантован пенной полосой, выше — облако
+    мелких брызг. Без крупных «лап-пузырей» (они читались как пузыри
+    мыла, а не пена).
+    """
+    w, h = size
+    layer = Image.new("RGBA", size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    # Профиль гребня — поднимается слева направо к большому горбу справа
+    crest = [
+        (-0.05, 0.78),
+        (0.12, 0.74),
+        (0.28, 0.70),
+        (0.42, 0.66),
+        (0.55, 0.62),
+        (0.66, 0.58),
+        (0.74, 0.54),
+        (0.80, 0.50),
+        (0.85, 0.48),
+        (0.90, 0.50),
+        (0.96, 0.55),
+        (1.05, 0.62),
+    ]
+    body_pts = [(int(w * x), int(h * y)) for x, y in crest]
+    body_pts.extend([(int(w * 1.05), int(h * 1.0)), (int(w * -0.05), int(h * 1.0))])
+    d.polygon(body_pts, fill=deep + (255,))
+    # Пенная полоса вдоль гребня — повторяет профиль
+    foam_w = max(8, int(w * 0.012))
+    for i in range(len(crest) - 1):
+        d.line([(int(w * crest[i][0]), int(h * crest[i][1])),
+                (int(w * crest[i + 1][0]), int(h * crest[i + 1][1]))],
+               fill=foam + (255,), width=foam_w)
+    # Внутренние эхо-волны (3 параллельные линии ниже гребня)
+    for off, alpha_inner in [(0.05, 180), (0.10, 130), (0.16, 90)]:
+        echo = [(int(w * x), int(h * (y + off))) for x, y in crest[1:-1]]
+        d.line(echo, fill=foam + (alpha_inner,), width=max(4, int(w * 0.005)))
+    # Брызги — концентрируются над пиком гребня (правая часть)
+    rng = random.Random(7)
+    for _ in range(120):
+        x_frac = rng.uniform(0.20, 1.0)
+        # Высота гребня в данной X (линейная аппроксимация)
+        if x_frac < 0.85:
+            crest_y = 0.78 - (x_frac - (-0.05)) / (0.85 - (-0.05)) * 0.30
+        else:
+            crest_y = 0.48 + (x_frac - 0.85) / 0.20 * 0.14
+        y_offset = rng.uniform(0.005, 0.18)
+        sx = int(w * x_frac)
+        sy = int(h * (crest_y - y_offset))
+        sr = rng.randint(int(w * 0.003), int(w * 0.010))
+        a = int(255 * (1.0 - y_offset / 0.20))
+        d.ellipse([sx - sr, sy - sr, sx + sr, sy + sr],
+                  fill=spray + (max(60, a),))
+    return layer
+
+
+def draw_sakura_branch(size, branch=(60, 35, 30), blossom=(255, 195, 215),
+                       petal_dark=(220, 130, 165)):
+    """Ветка сакуры — толстая ветвь с разветвлениями + 5-лепестковые цветы."""
+    w, h = size
+    layer = Image.new("RGBA", size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    main_pts = [
+        (int(w * -0.05), int(h * 1.0)),
+        (int(w * 0.05), int(h * 0.75)),
+        (int(w * 0.20), int(h * 0.55)),
+        (int(w * 0.40), int(h * 0.40)),
+        (int(w * 0.60), int(h * 0.32)),
+    ]
+    for i in range(len(main_pts) - 1):
+        d.line([main_pts[i], main_pts[i + 1]], fill=branch + (255,),
+               width=max(8, int(w * 0.012)))
+    sub_branches = [
+        [(0.20, 0.55), (0.10, 0.35)],
+        [(0.20, 0.55), (0.32, 0.32)],
+        [(0.40, 0.40), (0.58, 0.18)],
+        [(0.40, 0.40), (0.30, 0.20)],
+        [(0.60, 0.32), (0.80, 0.22)],
+        [(0.60, 0.32), (0.72, 0.10)],
+    ]
+    for branch_pts in sub_branches:
+        pts = [(int(w * x), int(h * y)) for x, y in branch_pts]
+        d.line(pts, fill=branch + (255,), width=max(5, int(w * 0.008)))
+    flower_centers = [
+        (0.05, 0.72), (0.10, 0.55), (0.18, 0.42), (0.22, 0.35),
+        (0.28, 0.28), (0.32, 0.32), (0.36, 0.20), (0.42, 0.32),
+        (0.48, 0.22), (0.55, 0.25), (0.58, 0.16), (0.65, 0.30),
+        (0.70, 0.18), (0.75, 0.12), (0.80, 0.22), (0.45, 0.42),
+        (0.52, 0.36), (0.62, 0.22), (0.30, 0.50),
+    ]
+    rng = random.Random(31)
+    for cx_frac, cy_frac in flower_centers:
+        cx = int(w * cx_frac) + rng.randint(-int(w * 0.015), int(w * 0.015))
+        cy = int(h * cy_frac) + rng.randint(-int(h * 0.008), int(h * 0.008))
+        r = int(w * (0.025 + rng.random() * 0.012))
+        for k in range(5):
+            ang = math.radians(k * 72 - 90)
+            px = cx + math.cos(ang) * r * 0.7
+            py = cy + math.sin(ang) * r * 0.7
+            d.ellipse([px - r * 0.7, py - r * 0.7, px + r * 0.7, py + r * 0.7],
+                      fill=blossom + (255,))
+        d.ellipse([cx - r * 0.4, cy - r * 0.4, cx + r * 0.4, cy + r * 0.4],
+                  fill=petal_dark + (255,))
+    return layer
+
+
+def falling_petals(size, color=(255, 195, 215), count=120, seed=42):
+    """Падающие лепестки — мягкие овальные пятнышки разного размера."""
+    layer = Image.new("RGBA", size, (0, 0, 0, 0))
+    rng = random.Random(seed)
+    w, h = size
+    for _ in range(count):
+        x = rng.randint(0, w)
+        y = rng.randint(0, h)
+        r = rng.randint(int(w * 0.005), int(w * 0.013))
+        a = rng.randint(140, 230)
+        sub = Image.new("RGBA", (r * 4, r * 4), (0, 0, 0, 0))
+        sd = ImageDraw.Draw(sub)
+        sd.ellipse([r, r * 1.5, r * 3, r * 2.5], fill=color + (a,))
+        sub = sub.rotate(rng.randint(0, 180), resample=Image.BICUBIC)
+        layer.paste(sub, (x - sub.width // 2, y - sub.height // 2), sub)
+    return layer
+
+
+def concept_mountains_mist(theme):
+    """Минималистичные горные хребты в дымке + солнце/луна.
+
+    Слои с разными базовыми линиями и пиками, охватывающими всю ширину
+    холста (без скукоживания в центр). Туман — узкая мягкая полоса между
+    дальними и ближними хребтами.
+    """
+    if theme == "light":
+        bg = vertical_gradient((W, H), (250, 218, 188), (220, 232, 244))
+        sun_color = (255, 195, 130)
+        layers = [
+            # Дальние горы (линия 0.66, низкие пики)
+            (0.66, [(0.05, 0.06), (0.18, 0.10), (0.35, 0.07),
+                    (0.52, 0.09), (0.68, 0.06), (0.84, 0.08), (0.97, 0.05)],
+             (175, 190, 210), 220),
+            # Средний хребет (линия 0.76, побольше)
+            (0.78, [(0.04, 0.10), (0.20, 0.14), (0.38, 0.10),
+                    (0.55, 0.16), (0.72, 0.11), (0.88, 0.13), (0.98, 0.09)],
+             (130, 150, 180), 240),
+            # Передний хребет (линия 0.92, чёткий рельеф)
+            (0.92, [(0.0, 0.10), (0.12, 0.18), (0.28, 0.12),
+                    (0.42, 0.20), (0.58, 0.14), (0.74, 0.22),
+                    (0.88, 0.15), (1.0, 0.18)],
+             (78, 100, 135), 255),
+        ]
+    else:
+        bg = vertical_gradient((W, H), (10, 16, 32), (26, 18, 48))
+        sun_color = (255, 215, 170)
+        layers = [
+            (0.66, [(0.05, 0.06), (0.18, 0.10), (0.35, 0.07),
+                    (0.52, 0.09), (0.68, 0.06), (0.84, 0.08), (0.97, 0.05)],
+             (40, 50, 80), 230),
+            (0.78, [(0.04, 0.10), (0.20, 0.14), (0.38, 0.10),
+                    (0.55, 0.16), (0.72, 0.11), (0.88, 0.13), (0.98, 0.09)],
+             (24, 32, 58), 245),
+            (0.92, [(0.0, 0.10), (0.12, 0.18), (0.28, 0.12),
+                    (0.42, 0.20), (0.58, 0.14), (0.74, 0.22),
+                    (0.88, 0.15), (1.0, 0.18)],
+             (10, 18, 38), 255),
+        ]
+    sun = radial_glow((W, H), (int(W * 0.72), int(H * 0.30)), int(H * 0.16),
+                      sun_color, alpha=200)
+    bg.paste(sun, (0, 0), sun)
+    if theme == "dark":
+        bg.paste(starfield((W, H), density=180, seed=88), (0, 0),
+                 starfield((W, H), density=180, seed=88))
+    for base_y, peaks, color, alpha in layers:
+        ml = mountain_layer((W, H), base_y, peaks, color, alpha=alpha, seed=1)
+        bg.paste(ml, (0, 0), ml)
+    # Только одна тонкая полоса дымки между дальними и средним хребтом
+    mist = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    md = ImageDraw.Draw(mist)
+    mc = (255, 255, 255) if theme == "light" else (90, 110, 150)
+    md.rectangle([0, int(H * 0.66), W, int(H * 0.71)], fill=mc + (90,))
+    mist = mist.filter(ImageFilter.GaussianBlur(radius=30))
+    bg.paste(mist, (0, 0), mist)
+    return bg.convert("RGB")
+
+
+def concept_pine_deer(theme):
+    """Сосновый лес: ряд силуэтных сосен + олень + рассветное небо."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (252, 215, 195), (215, 230, 240))
+        ground_color = (185, 165, 130)
+        forest_back = (90, 110, 95)
+        forest_front = (45, 65, 55)
+        deer_color = (50, 35, 30)
+    else:
+        bg = vertical_gradient((W, H), (10, 18, 38), (24, 30, 50))
+        ground_color = (28, 22, 38)
+        forest_back = (22, 36, 46)
+        forest_front = (8, 14, 22)
+        deer_color = (8, 14, 22)
+    sun = radial_glow((W, H), (int(W * 0.55), int(H * 0.55)), int(H * 0.16),
+                      (255, 200, 140) if theme == "light" else (220, 200, 240),
+                      alpha=200)
+    bg.paste(sun, (0, 0), sun)
+    if theme == "dark":
+        bg.paste(starfield((W, H), density=240, seed=51), (0, 0),
+                 starfield((W, H), density=240, seed=51))
+    ground = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(ground)
+    gd.rectangle([0, int(H * 0.78), W, H], fill=ground_color + (255,))
+    bg.paste(ground, (0, 0), ground)
+    rng = random.Random(91)
+    pine_back = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    pd = ImageDraw.Draw(pine_back)
+    for _ in range(14):
+        x = rng.randint(0, W)
+        y = int(H * 0.72) + rng.randint(-30, 30)
+        sz = rng.randint(int(W * 0.04), int(W * 0.08))
+        draw_pine(pd, x, y, sz * 2, forest_back, alpha=220, layers=4)
+    bg.paste(pine_back, (0, 0), pine_back)
+    pine_front = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    pfd = ImageDraw.Draw(pine_front)
+    for x_frac in (0.05, 0.12, 0.18, 0.78, 0.85, 0.95):
+        x = int(W * x_frac)
+        y = int(H * 0.78) + rng.randint(-15, 15)
+        sz = rng.randint(int(W * 0.10), int(W * 0.18))
+        draw_pine(pfd, x, y, sz * 2, forest_front, alpha=255, layers=5)
+    bg.paste(pine_front, (0, 0), pine_front)
+    deer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    dd = ImageDraw.Draw(deer)
+    # Олень стоит на земле (cy=0.80*H между копытами), высота 0.26*H —
+    # достаточно крупный, чтобы рога и пропорции читались
+    draw_deer(dd, int(W * 0.42), int(H * 0.80), int(H * 0.26), deer_color,
+              alpha=255)
+    bg.paste(deer, (0, 0), deer)
+    return bg.convert("RGB")
+
+
+def concept_fuji_wave(theme):
+    """Хокусай-style: Mt. Fuji вдалеке + бирюзовая волна на переднем плане.
+
+    Цвет волны намеренно контрастен Фудзи (морской бирюзовый vs серо-синяя
+    гора), чтобы не сливались. Волна в нижней трети, Фудзи в верхней
+    половине.
+    """
+    if theme == "light":
+        bg = vertical_gradient((W, H), (250, 232, 200), (218, 232, 244))
+        sky_color = (255, 190, 120)
+        fuji_body = (95, 110, 145)
+        fuji_snow = (248, 248, 252)
+        # Бирюзово-морской — отличается от серо-синей Фудзи
+        wave_deep = (38, 130, 170)
+        wave_foam = (248, 252, 255)
+        wave_spray = (220, 240, 250)
+    else:
+        bg = vertical_gradient((W, H), (14, 24, 46), (24, 38, 60))
+        sky_color = (255, 200, 130)
+        fuji_body = (50, 65, 100)
+        fuji_snow = (210, 220, 240)
+        wave_deep = (30, 105, 165)
+        wave_foam = (200, 230, 245)
+        wave_spray = (170, 210, 235)
+    sun = radial_glow((W, H), (int(W * 0.62), int(H * 0.32)), int(H * 0.16),
+                      sky_color, alpha=210)
+    bg.paste(sun, (0, 0), sun)
+    # Фудзи — повыше, поменьше, чтобы не залезала на волну
+    fuji_size = (int(W * 0.50), int(H * 0.30))
+    fuji_layer = draw_fuji(fuji_size, snow=fuji_snow, body=fuji_body,
+                           trim=(40, 55, 90))
+    bg.paste(fuji_layer,
+             (int(W * 0.50 - fuji_size[0] / 2), int(H * 0.20)),
+             fuji_layer)
+    # Дальние полосы тумана между Фудзи и горизонтом
+    for y_frac, alpha in [(0.42, 100), (0.54, 70)]:
+        mist = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        md = ImageDraw.Draw(mist)
+        mc = (255, 255, 255) if theme == "light" else (90, 110, 140)
+        md.rectangle([0, int(H * y_frac), W, int(H * (y_frac + 0.025))],
+                     fill=mc + (alpha,))
+        mist = mist.filter(ImageFilter.GaussianBlur(radius=30))
+        bg.paste(mist, (0, 0), mist)
+    # Большая волна на переднем плане
+    wave = draw_great_wave((W, H), deep=wave_deep, foam=wave_foam,
+                           spray=wave_spray)
+    bg.paste(wave, (0, 0), wave)
+    return bg.convert("RGB")
+
+
+def concept_sakura_branch(theme):
+    """Ветка сакуры с цветами и падающими лепестками."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (255, 235, 240), (235, 232, 250))
+        branch = (95, 50, 40)
+        blossom = (255, 195, 215)
+        petal_dark = (225, 130, 165)
+    else:
+        bg = vertical_gradient((W, H), (28, 14, 36), (50, 28, 58))
+        branch = (60, 40, 50)
+        blossom = (255, 175, 205)
+        petal_dark = (210, 110, 150)
+    moon = radial_glow((W, H), (int(W * 0.85), int(H * 0.15)), int(H * 0.12),
+                       (255, 235, 230) if theme == "light"
+                                       else (240, 210, 235), alpha=200)
+    bg.paste(moon, (0, 0), moon)
+    branch_layer = draw_sakura_branch((W, H), branch=branch, blossom=blossom,
+                                       petal_dark=petal_dark)
+    bg.paste(branch_layer, (0, 0), branch_layer)
+    petals = falling_petals((W, H), color=blossom, count=140, seed=42)
+    bg.paste(petals, (0, 0), petals)
+    return bg.convert("RGB")
+
+
 CONCEPTS = {
     "lighthouse-dawn": concept_lighthouse_dawn,
     "keeper-watch": concept_keeper_watch,
@@ -1033,6 +1500,10 @@ CONCEPTS = {
     "doodle-marine": concept_doodle_marine,
     "doodle-stickers": concept_doodle_stickers,
     "doodle-formula": concept_doodle_formula,
+    "mountains-mist": concept_mountains_mist,
+    "pine-deer": concept_pine_deer,
+    "fuji-wave": concept_fuji_wave,
+    "sakura-branch": concept_sakura_branch,
 }
 
 

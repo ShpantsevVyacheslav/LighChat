@@ -2262,6 +2262,10 @@ export const messagesEsMx = {
       doodleMarine: 'Garabatos marinos',
       doodleStickers: 'Stickers de mascotas',
       doodleFormula: 'Fórmulas náuticas',
+      mountainsMist: 'Montañas brumosas',
+      pineDeer: 'Ciervo del bosque',
+      fujiWave: 'Fuji y la ola',
+      sakuraBranch: 'Rama de sakura',
     },
     bubbleRadius: {
       rounded: 'Redondeadas',

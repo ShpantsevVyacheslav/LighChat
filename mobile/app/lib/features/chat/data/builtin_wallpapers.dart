@@ -138,6 +138,46 @@ const List<BuiltinWallpaper> kBuiltinWallpapers = <BuiltinWallpaper>[
       colors: [Color(0xFFDCE6F5), Color(0xFFC8DAEC)],
     ),
   ),
+  BuiltinWallpaper(
+    slug: 'mountains-mist',
+    lightAsset: 'assets/wallpapers/mountains-mist-light.webp',
+    darkAsset: 'assets/wallpapers/mountains-mist-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFADABC), Color(0xFFDCE8F0)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'pine-deer',
+    lightAsset: 'assets/wallpapers/pine-deer-light.webp',
+    darkAsset: 'assets/wallpapers/pine-deer-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFCD7C3), Color(0xFFD7E6F0)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'fuji-wave',
+    lightAsset: 'assets/wallpapers/fuji-wave-light.webp',
+    darkAsset: 'assets/wallpapers/fuji-wave-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFAE8C8), Color(0xFFDAE8F4)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'sakura-branch',
+    lightAsset: 'assets/wallpapers/sakura-branch-light.webp',
+    darkAsset: 'assets/wallpapers/sakura-branch-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFFEBF0), Color(0xFFEBE8FA)],
+    ),
+  ),
 ];
 
 bool isBuiltinWallpaperValue(String? value) =>

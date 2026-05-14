@@ -2262,6 +2262,10 @@ export const messagesPtBr = {
       doodleMarine: 'Rabiscos marinhos',
       doodleStickers: 'Adesivos de mascotes',
       doodleFormula: 'Fórmulas de navegação',
+      mountainsMist: 'Montanhas enevoadas',
+      pineDeer: 'Cervo da floresta',
+      fujiWave: 'Fuji e a onda',
+      sakuraBranch: 'Galho de sakura',
     },
     bubbleRadius: {
       rounded: 'Arredondados',

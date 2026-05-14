@@ -19,7 +19,11 @@ export type BuiltinWallpaperSlug =
   | 'ocean-waves'
   | 'doodle-marine'
   | 'doodle-stickers'
-  | 'doodle-formula';
+  | 'doodle-formula'
+  | 'mountains-mist'
+  | 'pine-deer'
+  | 'fuji-wave'
+  | 'sakura-branch';
 
 export interface BuiltinWallpaper {
   slug: BuiltinWallpaperSlug;
@@ -110,6 +114,34 @@ export const BUILTIN_WALLPAPERS: readonly BuiltinWallpaper[] = [
     light: '/wallpapers/doodle-formula-light.webp',
     dark: '/wallpapers/doodle-formula-dark.webp',
     previewGradient: 'linear-gradient(180deg, #DCE6F5 0%, #C8DAEC 100%)',
+  },
+  {
+    slug: 'mountains-mist',
+    labelKey: 'mountainsMist',
+    light: '/wallpapers/mountains-mist-light.webp',
+    dark: '/wallpapers/mountains-mist-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #FADABC 0%, #DCE8F0 100%)',
+  },
+  {
+    slug: 'pine-deer',
+    labelKey: 'pineDeer',
+    light: '/wallpapers/pine-deer-light.webp',
+    dark: '/wallpapers/pine-deer-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #FCD7C3 0%, #D7E6F0 100%)',
+  },
+  {
+    slug: 'fuji-wave',
+    labelKey: 'fujiWave',
+    light: '/wallpapers/fuji-wave-light.webp',
+    dark: '/wallpapers/fuji-wave-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #FAE8C8 0%, #DAE8F4 100%)',
+  },
+  {
+    slug: 'sakura-branch',
+    labelKey: 'sakuraBranch',
+    light: '/wallpapers/sakura-branch-light.webp',
+    dark: '/wallpapers/sakura-branch-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #FFEBF0 0%, #EBE8FA 100%)',
   },
 ] as const;
 

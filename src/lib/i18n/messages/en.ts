@@ -2277,6 +2277,10 @@ export const messagesEn = {
       doodleMarine: 'Marine Doodles',
       doodleStickers: 'Mascot Stickers',
       doodleFormula: 'Navigation Formulas',
+      mountainsMist: 'Misty Mountains',
+      pineDeer: 'Forest Deer',
+      fujiWave: 'Fuji & the Wave',
+      sakuraBranch: 'Sakura Branch',
     },
     bubbleRadius: {
       rounded: 'Rounded',

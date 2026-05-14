@@ -2262,6 +2262,10 @@ export const messagesTr = {
       doodleMarine: 'Denizci Karalamalar',
       doodleStickers: 'Maskot Çıkartmaları',
       doodleFormula: 'Seyir Formülleri',
+      mountainsMist: 'Sisli Dağlar',
+      pineDeer: 'Orman Geyiği',
+      fujiWave: 'Fuji ve Dalga',
+      sakuraBranch: 'Sakura Dalı',
     },
     bubbleRadius: {
       rounded: 'Yuvarlatılmış',

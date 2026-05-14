@@ -2279,6 +2279,10 @@ export const messagesRu = {
       doodleMarine: 'Морские дудлы',
       doodleStickers: 'Маскоты-стикеры',
       doodleFormula: 'Морские формулы',
+      mountainsMist: 'Туманные горы',
+      pineDeer: 'Олень в лесу',
+      fujiWave: 'Фудзи и волна',
+      sakuraBranch: 'Ветка сакуры',
     },
     bubbleRadius: {
       rounded: 'Скруглённые',

@@ -2262,6 +2262,10 @@ export const messagesUz = {
       doodleMarine: 'Dengiz dudlari',
       doodleStickers: 'Maskot stikerlar',
       doodleFormula: 'Navigatsiya formulalari',
+      mountainsMist: 'Tumanli togʻlar',
+      pineDeer: 'Oʻrmon bugʻusi',
+      fujiWave: 'Fuji va toʻlqin',
+      sakuraBranch: 'Sakura shoxi',
     },
     bubbleRadius: {
       rounded: 'Yumaloqlangan',
