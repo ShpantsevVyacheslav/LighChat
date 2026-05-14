@@ -20,6 +20,7 @@ import 'chat_glass_panel.dart';
 import 'message_video_attachment.dart';
 import 'message_video_circle_player.dart';
 import 'message_voice_attachment.dart';
+import '../data/voice_message_track.dart';
 
 /// Голосовые с веба: `audio/*` и файлы `audio_*.{webm,mp4,...}` (не путать с видео .webm).
 bool _isVoiceAttachment(ChatAttachment a) {
@@ -185,6 +186,7 @@ class MessageAttachments extends ConsumerStatefulWidget {
     this.voiceTranscript,
     this.senderName,
     this.senderAvatarUrl,
+    this.conversationVoiceTracks,
     this.videoCirclePlayingSlotId,
     this.onOpenGridGallery,
     this.onOpenFileAttachment,
@@ -208,6 +210,10 @@ class MessageAttachments extends ConsumerStatefulWidget {
   /// fullscreen-karaoke. Опционально, для karaoke fallback на «?».
   final String? senderName;
   final String? senderAvatarUrl;
+
+  /// Все голосовые сообщения в чате (отсортированы по времени) — для
+  /// prev/next-навигации в полноэкранном karaoke.
+  final List<VoiceMessageTrack>? conversationVoiceTracks;
   final ValueNotifier<String?>? videoCirclePlayingSlotId;
 
   /// Тап по фото/видео из сетки галереи — полноэкранный просмотр (паритет веба).
@@ -330,13 +336,18 @@ class _MessageAttachmentsState extends ConsumerState<MessageAttachments> {
         final isLandscape =
             vw != null && vh != null && vw > 0 && vh > 0 && vw >= vh * 1.02;
         final videoScale = onlyOneVideo && isLandscape ? 1.125 : 1.5;
+        final isVoiceOnly =
+            voices.isNotEmpty && videoLike.isEmpty && images.isEmpty;
         final width = _attachmentsColumnWidth(
           available: constraints.maxWidth,
-          // Видео в ленте хотим крупнее: поднимаем "cap" колонки, но только
-          // когда показываем именно видео (без сетки картинок).
-          gridMaxWidth: (videoLike.isNotEmpty && images.isEmpty)
-              ? (gridMaxWidth * videoScale)
-              : gridMaxWidth,
+          // Голосовое-только: поднимаем cap до ~360px, иначе при открытой
+          // транскрипции пузырь упирается в 208 (mediaGridMaxWidth) и текст
+          // wrap-ается в десяток строк. Видео — отдельный scale (1.5×).
+          gridMaxWidth: isVoiceOnly
+              ? (gridMaxWidth * 1.75)
+              : (videoLike.isNotEmpty && images.isEmpty)
+                  ? (gridMaxWidth * videoScale)
+                  : gridMaxWidth,
           images: images,
         );
         final inner = SizedBox(
@@ -378,6 +389,7 @@ class _MessageAttachmentsState extends ConsumerState<MessageAttachments> {
                       onRetryNorm: widget.onRetryMediaNorm,
                       senderName: widget.senderName,
                       senderAvatarUrl: widget.senderAvatarUrl,
+                      conversationVoiceTracks: widget.conversationVoiceTracks,
                     ),
                   ),
                 ),

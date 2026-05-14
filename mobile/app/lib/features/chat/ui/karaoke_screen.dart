@@ -7,6 +7,7 @@ import 'package:just_audio/just_audio.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../data/local_voice_transcriber.dart';
+import '../data/voice_message_track.dart';
 import 'chat_avatar.dart';
 
 /// Полноэкранный «караоке» режим воспроизведения голосового сообщения.
@@ -16,23 +17,21 @@ import 'chat_avatar.dart';
 class KaraokeScreen extends StatefulWidget {
   const KaraokeScreen({
     super.key,
-    required this.audioUrl,
-    required this.segments,
-    required this.senderName,
-    required this.senderAvatarUrl,
+    required this.tracks,
+    required this.initialIndex,
   });
 
-  final String audioUrl;
-  final List<TranscriptSegment> segments;
-  final String senderName;
-  final String? senderAvatarUrl;
+  /// Список голосовых сообщений в чате, между которыми пользователь
+  /// сможет переключаться через prev/next в karaoke-режиме.
+  final List<VoiceMessageTrack> tracks;
+
+  /// Индекс трека, с которого начинать.
+  final int initialIndex;
 
   static Future<void> push(
     BuildContext context, {
-    required String audioUrl,
-    required List<TranscriptSegment> segments,
-    required String senderName,
-    required String? senderAvatarUrl,
+    required List<VoiceMessageTrack> tracks,
+    required int initialIndex,
   }) {
     return Navigator.of(context).push(
       PageRouteBuilder<void>(
@@ -40,10 +39,8 @@ class KaraokeScreen extends StatefulWidget {
         barrierDismissible: false,
         transitionDuration: const Duration(milliseconds: 320),
         pageBuilder: (ctx, anim, secAnim) => KaraokeScreen(
-          audioUrl: audioUrl,
-          segments: segments,
-          senderName: senderName,
-          senderAvatarUrl: senderAvatarUrl,
+          tracks: tracks,
+          initialIndex: initialIndex,
         ),
         transitionsBuilder: (ctx, anim, _, child) {
           final curved = CurvedAnimation(
@@ -72,9 +69,12 @@ class KaraokeScreen extends StatefulWidget {
 class _KaraokeScreenState extends State<KaraokeScreen>
     with TickerProviderStateMixin {
   late final AudioPlayer _player;
-  late final List<List<TranscriptSegment>> _lines;
   late final AnimationController _bgController;
   late final AnimationController _eqController;
+
+  /// Текущий индекс трека в `widget.tracks`.
+  late int _index;
+  List<List<TranscriptSegment>> _lines = const [];
 
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
@@ -85,10 +85,14 @@ class _KaraokeScreenState extends State<KaraokeScreen>
   StreamSubscription<Duration?>? _durSub;
   StreamSubscription<PlayerState>? _stateSub;
 
+  VoiceMessageTrack get _track => widget.tracks[_index];
+  bool get _hasPrev => _index > 0;
+  bool get _hasNext => _index < widget.tracks.length - 1;
+
   @override
   void initState() {
     super.initState();
-    _lines = _groupIntoLines(widget.segments);
+    _index = widget.initialIndex.clamp(0, widget.tracks.length - 1);
     _player = AudioPlayer();
     _bgController =
         AnimationController(vsync: this, duration: const Duration(seconds: 18))
@@ -98,13 +102,31 @@ class _KaraokeScreenState extends State<KaraokeScreen>
       duration: const Duration(milliseconds: 900),
     )..repeat();
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
-    unawaited(_setup());
+    unawaited(_loadTrack(playAfterLoad: true));
   }
 
-  Future<void> _setup() async {
-    final uri = Uri.tryParse(widget.audioUrl);
+  /// Загружает текущий `_track` в плеер. Если у трека ещё нет сегментов —
+  /// пробует достать из кэша / запросить транскрипцию.
+  Future<void> _loadTrack({required bool playAfterLoad}) async {
+    final track = _track;
+    _lines = _groupIntoLines(track.segments ?? const []);
+    if ((track.segments == null || track.segments!.isEmpty) &&
+        track.messageId.isNotEmpty) {
+      // Попробуем тихо догрузить транскрипцию.
+      final cached = LocalVoiceTranscriber.instance.cachedFor(track.messageId);
+      if (cached != null && cached.segments.isNotEmpty) {
+        _lines = _groupIntoLines(cached.segments);
+      }
+    }
+    if (mounted) setState(() {});
+    await _setup(playAfterLoad: playAfterLoad);
+  }
+
+  Future<void> _setup({required bool playAfterLoad}) async {
+    final uri = Uri.tryParse(_track.audioUrl);
     if (uri == null) return;
     try {
+      await _player.stop();
       await _player.setAudioSource(AudioSource.uri(uri));
       _durSub = _player.durationStream.listen((d) {
         if (!mounted || d == null) return;
@@ -129,8 +151,30 @@ class _KaraokeScreenState extends State<KaraokeScreen>
         }
         setState(() => _playing = s.playing);
       });
-      await _player.play();
+      // Сбрасываем visual-стейт перед новым треком.
+      if (mounted) {
+        setState(() {
+          _position = Duration.zero;
+          _duration = Duration.zero;
+          _ready = false;
+        });
+      }
+      if (playAfterLoad) {
+        await _player.play();
+      }
     } catch (_) {/* fail silently */}
+  }
+
+  Future<void> _goPrev() async {
+    if (!_hasPrev) return;
+    setState(() => _index -= 1);
+    await _loadTrack(playAfterLoad: true);
+  }
+
+  Future<void> _goNext() async {
+    if (!_hasNext) return;
+    setState(() => _index += 1);
+    await _loadTrack(playAfterLoad: true);
   }
 
   @override
@@ -246,8 +290,8 @@ class _KaraokeScreenState extends State<KaraokeScreen>
                   ),
                   const SizedBox(height: 8),
                   _SenderCard(
-                    name: widget.senderName,
-                    avatarUrl: widget.senderAvatarUrl,
+                    name: _track.senderName,
+                    avatarUrl: _track.senderAvatarUrl,
                     subtitle: l10n.voice_attachment_title_voice_message,
                     eqController: _eqController,
                     playing: _playing,
@@ -276,6 +320,10 @@ class _KaraokeScreenState extends State<KaraokeScreen>
                   _Controls(
                     playing: _playing,
                     ready: _ready,
+                    hasPrev: _hasPrev,
+                    hasNext: _hasNext,
+                    onPrev: () => unawaited(_goPrev()),
+                    onNext: () => unawaited(_goNext()),
                     onSkipBack: () =>
                         unawaited(_skip(const Duration(seconds: -10))),
                     onSkipForward: () =>
@@ -798,6 +846,10 @@ class _Controls extends StatelessWidget {
   const _Controls({
     required this.playing,
     required this.ready,
+    required this.hasPrev,
+    required this.hasNext,
+    required this.onPrev,
+    required this.onNext,
     required this.onSkipBack,
     required this.onSkipForward,
     required this.onTogglePlay,
@@ -805,31 +857,59 @@ class _Controls extends StatelessWidget {
 
   final bool playing;
   final bool ready;
+  final bool hasPrev;
+  final bool hasNext;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
   final VoidCallback onSkipBack;
   final VoidCallback onSkipForward;
   final VoidCallback onTogglePlay;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _CircleIcon(
-          onTap: ready ? onSkipBack : null,
-          icon: Icons.replay_10_rounded,
-          size: 56,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _CircleIcon(
+              onTap: ready ? onSkipBack : null,
+              icon: Icons.replay_10_rounded,
+              size: 56,
+            ),
+            // Большой gradient play/pause с тенью и pulse-обводкой во время play.
+            _PlayPauseButton(
+              playing: playing,
+              ready: ready,
+              onTap: onTogglePlay,
+            ),
+            _CircleIcon(
+              onTap: ready ? onSkipForward : null,
+              icon: Icons.forward_10_rounded,
+              size: 56,
+            ),
+          ],
         ),
-        // Большой gradient play/pause с тенью и pulse-обводкой во время play.
-        _PlayPauseButton(
-          playing: playing,
-          ready: ready,
-          onTap: onTogglePlay,
-        ),
-        _CircleIcon(
-          onTap: ready ? onSkipForward : null,
-          icon: Icons.forward_10_rounded,
-          size: 56,
-        ),
+        if (hasPrev || hasNext) ...[
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _CircleIcon(
+                onTap: hasPrev ? onPrev : null,
+                icon: Icons.skip_previous_rounded,
+                size: 44,
+              ),
+              const SizedBox(width: 32),
+              _CircleIcon(
+                onTap: hasNext ? onNext : null,
+                icon: Icons.skip_next_rounded,
+                size: 44,
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

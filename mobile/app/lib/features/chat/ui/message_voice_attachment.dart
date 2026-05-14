@@ -15,6 +15,7 @@ import '../data/local_message_translator.dart';
 import '../data/local_text_language_detector.dart';
 import '../data/local_voice_transcriber.dart';
 import '../data/voice_live_activity.dart';
+import '../data/voice_message_track.dart';
 
 /// Один активный голосовой плеер (паритет с вебом: остальные ставятся на паузу).
 final class _VoicePlaybackExclusive {
@@ -57,6 +58,7 @@ class MessageVoiceAttachment extends StatelessWidget {
     this.onRetryNorm,
     this.senderName,
     this.senderAvatarUrl,
+    this.conversationVoiceTracks,
   });
 
   final ChatAttachment attachment;
@@ -74,6 +76,11 @@ class MessageVoiceAttachment extends StatelessWidget {
 
   /// URL аватара отправителя для karaoke-экрана.
   final String? senderAvatarUrl;
+
+  /// Все голосовые сообщения чата (отсортированы по времени) — для
+  /// prev/next-навигации в karaoke. Если `null` — кнопки prev/next не
+  /// показываются.
+  final List<VoiceMessageTrack>? conversationVoiceTracks;
 
   @override
   Widget build(BuildContext context) {
@@ -99,6 +106,7 @@ class MessageVoiceAttachment extends StatelessWidget {
       transcript: transcript,
       senderName: senderName,
       senderAvatarUrl: senderAvatarUrl,
+      conversationVoiceTracks: conversationVoiceTracks,
     );
   }
 }
@@ -996,6 +1004,7 @@ class _VoiceJustAudioBar extends StatefulWidget {
     this.transcript,
     this.senderName,
     this.senderAvatarUrl,
+    this.conversationVoiceTracks,
   });
 
   final ChatAttachment attachment;
@@ -1005,6 +1014,7 @@ class _VoiceJustAudioBar extends StatefulWidget {
   final String? transcript;
   final String? senderName;
   final String? senderAvatarUrl;
+  final List<VoiceMessageTrack>? conversationVoiceTracks;
 
   @override
   State<_VoiceJustAudioBar> createState() => _VoiceJustAudioBarState();
@@ -1242,14 +1252,30 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
       _VoicePlaybackExclusive.clear(this);
     }
 
+    // Собираем список треков: если родитель передал
+    // `conversationVoiceTracks`, используем его для prev/next, иначе
+    // запускаем karaoke в режиме одного трека (кнопки скрыты).
+    final senderName = (widget.senderName ?? '').trim().isNotEmpty
+        ? widget.senderName!.trim()
+        : '?';
+    final tracks = widget.conversationVoiceTracks?.isNotEmpty == true
+        ? widget.conversationVoiceTracks!
+        : <VoiceMessageTrack>[
+            VoiceMessageTrack(
+              conversationId: cid,
+              messageId: mid,
+              audioUrl: widget.attachment.url,
+              senderName: senderName,
+              senderAvatarUrl: widget.senderAvatarUrl,
+              segments: cached?.segments,
+            ),
+          ];
+    final initialIdx = tracks.indexWhere((t) => t.messageId == mid);
+
     await KaraokeScreen.push(
       context,
-      audioUrl: widget.attachment.url,
-      segments: cached?.segments ?? const <TranscriptSegment>[],
-      senderName: (widget.senderName ?? '').trim().isNotEmpty
-          ? widget.senderName!.trim()
-          : '?',
-      senderAvatarUrl: widget.senderAvatarUrl,
+      tracks: tracks,
+      initialIndex: initialIdx < 0 ? 0 : initialIdx,
     );
   }
 
