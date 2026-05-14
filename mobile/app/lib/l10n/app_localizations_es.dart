@@ -1801,6 +1801,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get voice_attachment_skip_silence => 'Saltar silencios';
 
   @override
+  String get voice_karaoke_title => 'Karaoke';
+
+  @override
+  String get voice_karaoke_prompt_title => 'Modo karaoke';
+
+  @override
+  String get voice_karaoke_prompt_body =>
+      '¿Abrir el mensaje de voz en pantalla completa con letras?';
+
+  @override
+  String get voice_karaoke_prompt_open => 'Abrir';
+
+  @override
   String get voice_transcript_loading => 'Transcribiendo…';
 
   @override
@@ -10116,6 +10129,19 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get voice_attachment_skip_silence => 'Saltar silencios';
+
+  @override
+  String get voice_karaoke_title => 'Karaoke';
+
+  @override
+  String get voice_karaoke_prompt_title => 'Modo karaoke';
+
+  @override
+  String get voice_karaoke_prompt_body =>
+      '¿Abrir el mensaje de voz en pantalla completa con letras?';
+
+  @override
+  String get voice_karaoke_prompt_open => 'Abrir';
 
   @override
   String get voice_transcript_loading => 'Transcribiendo…';

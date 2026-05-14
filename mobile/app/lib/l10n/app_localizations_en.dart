@@ -1772,6 +1772,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voice_attachment_skip_silence => 'Skip silence';
 
   @override
+  String get voice_karaoke_title => 'Karaoke';
+
+  @override
+  String get voice_karaoke_prompt_title => 'Karaoke mode';
+
+  @override
+  String get voice_karaoke_prompt_body =>
+      'Open the voice message in fullscreen lyrics view?';
+
+  @override
+  String get voice_karaoke_prompt_open => 'Open';
+
+  @override
   String get voice_transcript_loading => 'Transcribing…';
 
   @override

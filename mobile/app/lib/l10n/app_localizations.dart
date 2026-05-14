@@ -3178,6 +3178,30 @@ abstract class AppLocalizations {
   /// **'Пропускать тишину'**
   String get voice_attachment_skip_silence;
 
+  /// No description provided for @voice_karaoke_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Караоке'**
+  String get voice_karaoke_title;
+
+  /// No description provided for @voice_karaoke_prompt_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Режим караоке'**
+  String get voice_karaoke_prompt_title;
+
+  /// No description provided for @voice_karaoke_prompt_body.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть голосовое сообщение в полноэкранном режиме с подсветкой слов?'**
+  String get voice_karaoke_prompt_body;
+
+  /// No description provided for @voice_karaoke_prompt_open.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть'**
+  String get voice_karaoke_prompt_open;
+
   /// No description provided for @voice_transcript_loading.
   ///
   /// In ru, this message translates to:

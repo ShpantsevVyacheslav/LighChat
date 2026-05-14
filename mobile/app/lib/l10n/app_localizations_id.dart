@@ -1782,6 +1782,19 @@ class AppLocalizationsId extends AppLocalizations {
   String get voice_attachment_skip_silence => 'Lewati keheningan';
 
   @override
+  String get voice_karaoke_title => 'Karaoke';
+
+  @override
+  String get voice_karaoke_prompt_title => 'Mode karaoke';
+
+  @override
+  String get voice_karaoke_prompt_body =>
+      'Buka pesan suara dalam tampilan lirik layar penuh?';
+
+  @override
+  String get voice_karaoke_prompt_open => 'Buka';
+
+  @override
   String get voice_transcript_loading => 'Mentranskripsikan…';
 
   @override

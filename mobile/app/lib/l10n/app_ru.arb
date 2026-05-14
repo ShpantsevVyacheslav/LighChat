@@ -866,6 +866,10 @@
     }
   },
   "voice_attachment_skip_silence": "Пропускать тишину",
+  "voice_karaoke_title": "Караоке",
+  "voice_karaoke_prompt_title": "Режим караоке",
+  "voice_karaoke_prompt_body": "Открыть голосовое сообщение в полноэкранном режиме с подсветкой слов?",
+  "voice_karaoke_prompt_open": "Открыть",
   "voice_transcript_loading": "Транскрибация…",
   "voice_transcript_failed": "Не удалось получить текст.",
   "voice_attachment_media_kind_audio": "аудио",

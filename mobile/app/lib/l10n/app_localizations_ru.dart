@@ -1788,6 +1788,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get voice_attachment_skip_silence => 'Пропускать тишину';
 
   @override
+  String get voice_karaoke_title => 'Караоке';
+
+  @override
+  String get voice_karaoke_prompt_title => 'Режим караоке';
+
+  @override
+  String get voice_karaoke_prompt_body =>
+      'Открыть голосовое сообщение в полноэкранном режиме с подсветкой слов?';
+
+  @override
+  String get voice_karaoke_prompt_open => 'Открыть';
+
+  @override
   String get voice_transcript_loading => 'Транскрибация…';
 
   @override

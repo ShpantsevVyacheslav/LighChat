@@ -846,6 +846,10 @@
     }
   },
   "voice_attachment_skip_silence": "Sessizliği atla",
+  "voice_karaoke_title": "Karaoke",
+  "voice_karaoke_prompt_title": "Karaoke modu",
+  "voice_karaoke_prompt_body": "Sesli mesajı tam ekran sözlerle açılsın mı?",
+  "voice_karaoke_prompt_open": "Aç",
   "voice_transcript_loading": "Yazıya dökülüyor…",
   "voice_transcript_failed": "Metin alınamadı.",
   "voice_attachment_media_kind_audio": "ses",

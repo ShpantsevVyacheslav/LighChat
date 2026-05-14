@@ -183,6 +183,8 @@ class MessageAttachments extends ConsumerStatefulWidget {
     this.readAt,
     this.showTimestamps = true,
     this.voiceTranscript,
+    this.senderName,
+    this.senderAvatarUrl,
     this.videoCirclePlayingSlotId,
     this.onOpenGridGallery,
     this.onOpenFileAttachment,
@@ -201,6 +203,11 @@ class MessageAttachments extends ConsumerStatefulWidget {
   final DateTime? readAt;
   final bool showTimestamps;
   final String? voiceTranscript;
+
+  /// Имя отправителя — пробрасывается в `MessageVoiceAttachment` для
+  /// fullscreen-karaoke. Опционально, для karaoke fallback на «?».
+  final String? senderName;
+  final String? senderAvatarUrl;
   final ValueNotifier<String?>? videoCirclePlayingSlotId;
 
   /// Тап по фото/видео из сетки галереи — полноэкранный просмотр (паритет веба).
@@ -369,6 +376,8 @@ class _MessageAttachmentsState extends ConsumerState<MessageAttachments> {
                       transcript: widget.voiceTranscript,
                       mediaNorm: widget.mediaNorm,
                       onRetryNorm: widget.onRetryMediaNorm,
+                      senderName: widget.senderName,
+                      senderAvatarUrl: widget.senderAvatarUrl,
                     ),
                   ),
                 ),

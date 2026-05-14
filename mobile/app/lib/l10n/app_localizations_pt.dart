@@ -1791,6 +1791,19 @@ class AppLocalizationsPt extends AppLocalizations {
   String get voice_attachment_skip_silence => 'Pular silêncios';
 
   @override
+  String get voice_karaoke_title => 'Karaoke';
+
+  @override
+  String get voice_karaoke_prompt_title => 'Modo karaokê';
+
+  @override
+  String get voice_karaoke_prompt_body =>
+      'Abrir a mensagem de voz em tela cheia com letras?';
+
+  @override
+  String get voice_karaoke_prompt_open => 'Abrir';
+
+  @override
   String get voice_transcript_loading => 'Transcrevendo…';
 
   @override
@@ -10092,6 +10105,19 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get voice_attachment_skip_silence => 'Pular silêncios';
+
+  @override
+  String get voice_karaoke_title => 'Karaokê';
+
+  @override
+  String get voice_karaoke_prompt_title => 'Modo karaokê';
+
+  @override
+  String get voice_karaoke_prompt_body =>
+      'Abrir a mensagem de voz em tela cheia com letras?';
+
+  @override
+  String get voice_karaoke_prompt_open => 'Abrir';
 
   @override
   String get voice_transcript_loading => 'Transcrevendo…';

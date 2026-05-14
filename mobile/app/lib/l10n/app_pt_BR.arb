@@ -846,6 +846,10 @@
     }
   },
   "voice_attachment_skip_silence": "Pular silêncios",
+  "voice_karaoke_title": "Karaokê",
+  "voice_karaoke_prompt_title": "Modo karaokê",
+  "voice_karaoke_prompt_body": "Abrir a mensagem de voz em tela cheia com letras?",
+  "voice_karaoke_prompt_open": "Abrir",
   "voice_transcript_loading": "Transcrevendo…",
   "voice_transcript_failed": "Não foi possível obter o texto.",
   "voice_attachment_media_kind_audio": "áudio",

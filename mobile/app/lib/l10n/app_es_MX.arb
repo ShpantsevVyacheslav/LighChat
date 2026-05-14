@@ -846,6 +846,10 @@
     }
   },
   "voice_attachment_skip_silence": "Saltar silencios",
+  "voice_karaoke_title": "Karaoke",
+  "voice_karaoke_prompt_title": "Modo karaoke",
+  "voice_karaoke_prompt_body": "¿Abrir el mensaje de voz en pantalla completa con letras?",
+  "voice_karaoke_prompt_open": "Abrir",
   "voice_transcript_loading": "Transcribiendo…",
   "voice_transcript_failed": "No se pudo obtener el texto.",
   "voice_attachment_media_kind_audio": "audio",

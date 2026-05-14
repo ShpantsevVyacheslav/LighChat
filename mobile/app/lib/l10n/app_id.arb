@@ -846,6 +846,10 @@
     }
   },
   "voice_attachment_skip_silence": "Lewati keheningan",
+  "voice_karaoke_title": "Karaoke",
+  "voice_karaoke_prompt_title": "Mode karaoke",
+  "voice_karaoke_prompt_body": "Buka pesan suara dalam tampilan lirik layar penuh?",
+  "voice_karaoke_prompt_open": "Buka",
   "voice_transcript_loading": "Mentranskripsikan…",
   "voice_transcript_failed": "Couldn’t get  text.",
   "voice_attachment_media_kind_audio": "Audio",

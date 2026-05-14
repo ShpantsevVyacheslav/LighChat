@@ -1786,6 +1786,19 @@ class AppLocalizationsKk extends AppLocalizations {
   String get voice_attachment_skip_silence => 'Үнсіздікті өткізіп жіберу';
 
   @override
+  String get voice_karaoke_title => 'Караоке';
+
+  @override
+  String get voice_karaoke_prompt_title => 'Караоке режимі';
+
+  @override
+  String get voice_karaoke_prompt_body =>
+      'Дауыстық хабарламаны толық экранда мәтінмен ашу керек пе?';
+
+  @override
+  String get voice_karaoke_prompt_open => 'Ашу';
+
+  @override
   String get voice_transcript_loading => 'Транскрибация…';
 
   @override

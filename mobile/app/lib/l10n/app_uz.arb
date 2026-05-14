@@ -846,6 +846,10 @@
     }
   },
   "voice_attachment_skip_silence": "Sukunatni oʻtkazib yuborish",
+  "voice_karaoke_title": "Karaoke",
+  "voice_karaoke_prompt_title": "Karaoke rejimi",
+  "voice_karaoke_prompt_body": "Ovozli xabarni toʻliq ekran matn rejimida ochilsinmi?",
+  "voice_karaoke_prompt_open": "Ochish",
   "voice_transcript_loading": "Matnga aylantirilmoqda…",
   "voice_transcript_failed": "Matnni olib boʻlmadi.",
   "voice_attachment_media_kind_audio": "audio",

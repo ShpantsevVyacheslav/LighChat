@@ -846,6 +846,10 @@
     }
   },
   "voice_attachment_skip_silence": "Үнсіздікті өткізіп жіберу",
+  "voice_karaoke_title": "Караоке",
+  "voice_karaoke_prompt_title": "Караоке режимі",
+  "voice_karaoke_prompt_body": "Дауыстық хабарламаны толық экранда мәтінмен ашу керек пе?",
+  "voice_karaoke_prompt_open": "Ашу",
   "voice_transcript_loading": "Транскрибация…",
   "voice_transcript_failed": "Сәтсіз получить текст.",
   "voice_attachment_media_kind_audio": "аудио",

@@ -1793,6 +1793,19 @@ class AppLocalizationsUz extends AppLocalizations {
   String get voice_attachment_skip_silence => 'Sukunatni oʻtkazib yuborish';
 
   @override
+  String get voice_karaoke_title => 'Karaoke';
+
+  @override
+  String get voice_karaoke_prompt_title => 'Karaoke rejimi';
+
+  @override
+  String get voice_karaoke_prompt_body =>
+      'Ovozli xabarni toʻliq ekran matn rejimida ochilsinmi?';
+
+  @override
+  String get voice_karaoke_prompt_open => 'Ochish';
+
+  @override
   String get voice_transcript_loading => 'Matnga aylantirilmoqda…';
 
   @override

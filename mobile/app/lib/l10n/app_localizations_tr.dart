@@ -1787,6 +1787,19 @@ class AppLocalizationsTr extends AppLocalizations {
   String get voice_attachment_skip_silence => 'Sessizliği atla';
 
   @override
+  String get voice_karaoke_title => 'Karaoke';
+
+  @override
+  String get voice_karaoke_prompt_title => 'Karaoke modu';
+
+  @override
+  String get voice_karaoke_prompt_body =>
+      'Sesli mesajı tam ekran sözlerle açılsın mı?';
+
+  @override
+  String get voice_karaoke_prompt_open => 'Aç';
+
+  @override
   String get voice_transcript_loading => 'Yazıya dökülüyor…';
 
   @override

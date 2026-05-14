@@ -8,6 +8,7 @@ import 'package:lighchat_models/lighchat_models.dart';
 import 'message_audio_waveform.dart';
 import 'chat_glass_panel.dart';
 import 'chat_vlc_network_media.dart';
+import 'karaoke_screen.dart';
 import '../../../l10n/app_localizations.dart';
 import '../data/local_message_translator.dart';
 import '../data/local_voice_transcriber.dart';
@@ -51,6 +52,8 @@ class MessageVoiceAttachment extends StatelessWidget {
     this.transcript,
     this.mediaNorm,
     this.onRetryNorm,
+    this.senderName,
+    this.senderAvatarUrl,
   });
 
   final ChatAttachment attachment;
@@ -61,6 +64,13 @@ class MessageVoiceAttachment extends StatelessWidget {
   final String? transcript;
   final ChatMediaNorm? mediaNorm;
   final Future<void> Function()? onRetryNorm;
+
+  /// Имя отправителя — для karaoke-экрана и т.п. Если `null` —
+  /// karaoke использует «?» в качестве letter-аватара.
+  final String? senderName;
+
+  /// URL аватара отправителя для karaoke-экрана.
+  final String? senderAvatarUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +94,8 @@ class MessageVoiceAttachment extends StatelessWidget {
       conversationId: conversationId,
       messageId: messageId,
       transcript: transcript,
+      senderName: senderName,
+      senderAvatarUrl: senderAvatarUrl,
     );
   }
 }
@@ -106,6 +118,7 @@ class _WebStyleVoiceRow extends StatelessWidget {
     this.skipSilenceAvailable = false,
     this.skipSilenceEnabled = false,
     this.onToggleSkipSilence,
+    this.onLongPressPlay,
   });
 
   final bool isMine;
@@ -130,6 +143,9 @@ class _WebStyleVoiceRow extends StatelessWidget {
   final bool skipSilenceAvailable;
   final bool skipSilenceEnabled;
   final VoidCallback? onToggleSkipSilence;
+
+  /// Долгий тап по play-кнопке — для входа в режим karaoke.
+  final VoidCallback? onLongPressPlay;
 
   String _format(Duration d) {
     if (d.inMilliseconds <= 0) return '0:00';
@@ -173,6 +189,7 @@ class _WebStyleVoiceRow extends StatelessWidget {
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
                   onTap: failed || !ready ? null : onToggle,
+                  onLongPress: onLongPressPlay,
                   child: SizedBox(
                     width: 40,
                     height: 40,
@@ -889,6 +906,8 @@ class _VoiceJustAudioBar extends StatefulWidget {
     this.conversationId,
     this.messageId,
     this.transcript,
+    this.senderName,
+    this.senderAvatarUrl,
   });
 
   final ChatAttachment attachment;
@@ -896,6 +915,8 @@ class _VoiceJustAudioBar extends StatefulWidget {
   final String? conversationId;
   final String? messageId;
   final String? transcript;
+  final String? senderName;
+  final String? senderAvatarUrl;
 
   @override
   State<_VoiceJustAudioBar> createState() => _VoiceJustAudioBarState();
@@ -1031,6 +1052,63 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
     setState(() => _skipSilence = !_skipSilence);
   }
 
+  /// Long-press на кнопку play → подтверждение → fullscreen karaoke.
+  /// Если транскрипт ещё не получен — сначала пробуем достать его (тихо).
+  Future<void> _onLongPressPlay() async {
+    final cid = (widget.conversationId ?? '').trim();
+    final mid = (widget.messageId ?? '').trim();
+    if (cid.isEmpty || mid.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.voice_karaoke_prompt_title),
+        content: Text(l10n.voice_karaoke_prompt_body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.chat_list_action_close),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.voice_karaoke_prompt_open),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    var cached = LocalVoiceTranscriber.instance.cachedFor(mid);
+    if (cached == null || cached.segments.isEmpty) {
+      try {
+        final lang =
+            Localizations.localeOf(context).languageCode.toLowerCase();
+        cached = await LocalVoiceTranscriber.instance.transcribeAttachment(
+          messageId: mid,
+          audioUrl: widget.attachment.url,
+          languageHint: lang,
+        );
+      } catch (_) {/* всё равно открываем — экран сам покажет «—» */}
+    }
+    if (!mounted) return;
+
+    // Перед открытием — паузим текущий inline-плеер.
+    if (_playing) {
+      unawaited(_player.pause());
+      _VoicePlaybackExclusive.clear(this);
+    }
+
+    await KaraokeScreen.push(
+      context,
+      audioUrl: widget.attachment.url,
+      segments: cached?.segments ?? const <TranscriptSegment>[],
+      senderName: (widget.senderName ?? '').trim().isNotEmpty
+          ? widget.senderName!.trim()
+          : '?',
+      senderAvatarUrl: widget.senderAvatarUrl,
+    );
+  }
+
   void _cycleRate() {
     if (_failed || !_ready) return;
     setState(() {
@@ -1079,6 +1157,7 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
       skipSilenceAvailable: _silences.isNotEmpty,
       skipSilenceEnabled: _skipSilence,
       onToggleSkipSilence: _silences.isEmpty ? null : _toggleSkipSilence,
+      onLongPressPlay: hasIds ? () => unawaited(_onLongPressPlay()) : null,
       footer: hasIds
           ? _TranscriptControls(
               conversationId: cid,
