@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
@@ -47,12 +48,13 @@ class _EmptyMessagesPlaceholderState extends State<EmptyMessagesPlaceholder>
 
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
-    // Solid (а не полупрозрачный) фон, который не сливается с обоями чата.
-    final cardColor = dark
-        ? const Color(0xFF182338)
-        : Colors.white;
+    // Frosted glass, как у шторки стикеров: blur + полупрозрачная заливка.
+    // Это лучше сочетается с обоями чата, чем плотный фон.
+    final tintColor = dark
+        ? Colors.black.withValues(alpha: 0.42)
+        : Colors.white.withValues(alpha: 0.62);
     final cardBorder = dark
-        ? Colors.white.withValues(alpha: 0.06)
+        ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.06);
     final textColor = dark ? Colors.white : scheme.onSurface;
 
@@ -61,24 +63,25 @@ class _EmptyMessagesPlaceholderState extends State<EmptyMessagesPlaceholder>
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 320),
-          child: Material(
-            color: cardColor,
-            elevation: 0,
+          child: ClipRRect(
             borderRadius: BorderRadius.circular(22),
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: cardBorder, width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.18),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+                decoration: BoxDecoration(
+                  color: tintColor,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: cardBorder, width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.18),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
@@ -218,6 +221,7 @@ class _EmptyMessagesPlaceholderState extends State<EmptyMessagesPlaceholder>
                       ),
                     ),
                 ],
+              ),
               ),
             ),
           ),
