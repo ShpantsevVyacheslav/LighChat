@@ -499,6 +499,9 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
       pendingHideBottomBarWorkItem?.cancel()
       let work = DispatchWorkItem { [weak self] in
         guard let self = self, let bar = self.bottomBar else { return }
+        NavBarOverlayHost.log(
+          "[tab-anim] deferred hide FIRED (no visible:true within 80ms window)"
+        )
         bar.isHidden = true
         self.updateSafeAreaInsets()
       }
@@ -508,6 +511,7 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     }
 
     // Visible пришёл — отменяем pending hide (если был).
+    let hadPendingHide = pendingHideBottomBarWorkItem != nil
     pendingHideBottomBarWorkItem?.cancel()
     pendingHideBottomBarWorkItem = nil
     bar.isHidden = false
@@ -515,15 +519,35 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     if signature == lastBottomBarItemsSignature,
       let existingItems = bar.items, !existingItems.isEmpty {
       // Same set — только переключаем selectedItem с animation.
-      let newSelected = existingItems.first(where: { item in
-        tabItemsById[ObjectIdentifier(item)] == selectedId
-      })
-      if let sel = newSelected, bar.selectedItem !== sel {
-        bar.selectedItem = sel
+      // КРИТИЧНО: проверяем по ID, а не по reference. Если selectedId
+      // уже совпадает с тем, на чём стоит pill, НЕ трогаем selectedItem
+      // вообще — иначе ре-присвоение интерраптит in-flight pill
+      // animation после user-tap'а (system делает spring animation,
+      // пере-set роняет её обратно в start).
+      let currentId =
+        bar.selectedItem.flatMap { tabItemsById[ObjectIdentifier($0)] }
+      if currentId == selectedId {
+        NavBarOverlayHost.log(
+          "[tab-anim] applyBottomBar SKIP setSelectedItem (already=\(selectedId)) hadPendingHide=\(hadPendingHide)"
+        )
+      } else {
+        let newSelected = existingItems.first(where: { item in
+          tabItemsById[ObjectIdentifier(item)] == selectedId
+        })
+        NavBarOverlayHost.log(
+          "[tab-anim] applyBottomBar SET selectedItem '\(currentId ?? "<nil>")' → '\(selectedId)' hadPendingHide=\(hadPendingHide)"
+        )
+        if let sel = newSelected {
+          bar.selectedItem = sel
+        }
       }
       updateSafeAreaInsets()
       return
     }
+
+    NavBarOverlayHost.log(
+      "[tab-anim] applyBottomBar FULL REBUILD (signature changed). prev=\(lastBottomBarItemsSignature.prefix(60)) new=\(signature.prefix(60))"
+    )
 
     lastBottomBarItemsSignature = signature
     tabItemsById.removeAll(keepingCapacity: true)
@@ -1226,6 +1250,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
 
 extension NavBarOverlayHost: UITabBarDelegate {
   func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
+    let id = tabItemsById[ObjectIdentifier(item)] ?? "<unknown>"
+    NavBarOverlayHost.log(
+      "[tab-anim] USER TAP didSelect id=\(id) at=\(Date().timeIntervalSince1970)"
+    )
     if let id = tabItemsById[ObjectIdentifier(item)] {
       onEvent?("tabChange", ["id": id])
     }
