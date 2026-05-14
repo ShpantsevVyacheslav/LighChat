@@ -58,6 +58,12 @@ class LocalVoiceTranscriber {
   /// Получить кэшированный результат, если есть.
   VoiceTranscriptionResult? cachedFor(String messageId) => _cache[messageId];
 
+  /// Удалить кэш для конкретного сообщения. Используется при ручном
+  /// «Retry» — если пользователь считает, что в кэше неверный транскрипт.
+  void clearCache(String messageId) {
+    _cache.remove(messageId);
+  }
+
   /// Транскрибировать удалённый или локальный файл (`widget.attachment.url`).
   ///
   /// [audioUrl] может быть `http(s)://...` или `file://...`. Метод сам

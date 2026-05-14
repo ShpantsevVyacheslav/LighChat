@@ -1784,6 +1784,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get voice_transcript_copy => 'Copiar';
 
   @override
+  String get voice_transcript_retry => 'Reintentar transcripción';
+
+  @override
   String get voice_transcript_loading => 'Transcribiendo…';
 
   @override
@@ -10082,6 +10085,9 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get voice_transcript_copy => 'Copiar';
+
+  @override
+  String get voice_transcript_retry => 'Reintentar transcripción';
 
   @override
   String get voice_transcript_loading => 'Transcribiendo…';

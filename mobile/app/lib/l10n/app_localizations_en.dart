@@ -1755,6 +1755,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voice_transcript_copy => 'Copy';
 
   @override
+  String get voice_transcript_retry => 'Retry transcription';
+
+  @override
   String get voice_transcript_loading => 'Transcribing…';
 
   @override

@@ -1771,6 +1771,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get voice_transcript_copy => 'Копировать';
 
   @override
+  String get voice_transcript_retry => 'Повторить транскрибацию';
+
+  @override
   String get voice_transcript_loading => 'Транскрибация…';
 
   @override

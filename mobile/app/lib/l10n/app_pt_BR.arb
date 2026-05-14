@@ -835,6 +835,7 @@
   "voice_transcript_show": "Mostrar texto",
   "voice_transcript_hide": "Ocultar texto",
   "voice_transcript_copy": "Copiar",
+  "voice_transcript_retry": "Repetir transcrição",
   "voice_transcript_loading": "Transcrevendo…",
   "voice_transcript_failed": "Não foi possível obter o texto.",
   "voice_attachment_media_kind_audio": "áudio",

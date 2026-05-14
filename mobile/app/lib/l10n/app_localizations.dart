@@ -3148,6 +3148,12 @@ abstract class AppLocalizations {
   /// **'Копировать'**
   String get voice_transcript_copy;
 
+  /// No description provided for @voice_transcript_retry.
+  ///
+  /// In ru, this message translates to:
+  /// **'Повторить транскрибацию'**
+  String get voice_transcript_retry;
+
   /// No description provided for @voice_transcript_loading.
   ///
   /// In ru, this message translates to:

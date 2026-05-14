@@ -204,6 +204,26 @@ class LocalMessageTranslator {
     }
   }
 
+  /// Удалить все кэшированные переводы, чьи `cache_key` содержат указанную
+  /// подстроку. Используется при «Retry» транскрипции голосового — если
+  /// исходный текст пересчитался, старые переводы нерелевантны.
+  ///
+  /// [contains] — подстрока для поиска (обычно `messageId`). Безопасно
+  /// вызывать, ошибки игнорируются.
+  Future<void> invalidateContaining(String contains) async {
+    _resultCache.removeWhere((key, _) => key.contains(contains));
+    try {
+      final db = await _db();
+      await db.delete(
+        'translations',
+        where: 'cache_key LIKE ?',
+        whereArgs: ['%$contains%'],
+      );
+    } catch (_) {
+      // ignore
+    }
+  }
+
   /// Чистка устаревших записей (старше [olderThan]). Безопасно вызывать
   /// из housekeeping-тасков; не обязательно для штатной работы.
   Future<void> pruneOlderThan(Duration olderThan) async {

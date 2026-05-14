@@ -1765,6 +1765,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get voice_transcript_copy => 'Salin';
 
   @override
+  String get voice_transcript_retry => 'Ulangi transkripsi';
+
+  @override
   String get voice_transcript_loading => 'Mentranskripsikan…';
 
   @override

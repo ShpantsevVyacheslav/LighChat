@@ -855,6 +855,7 @@
   "voice_transcript_show": "Show text",
   "voice_transcript_hide": "Hide text",
   "voice_transcript_copy": "Copy",
+  "voice_transcript_retry": "Retry transcription",
   "voice_transcript_loading": "Transcribing…",
   "voice_transcript_failed": "Couldn’t get the text.",
   "voice_attachment_media_kind_audio": "audio",

@@ -1770,6 +1770,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get voice_transcript_copy => 'Kopyala';
 
   @override
+  String get voice_transcript_retry => 'Yeniden yazıya dök';
+
+  @override
   String get voice_transcript_loading => 'Yazıya dökülüyor…';
 
   @override

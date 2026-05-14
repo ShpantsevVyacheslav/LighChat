@@ -1774,6 +1774,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get voice_transcript_copy => 'Copiar';
 
   @override
+  String get voice_transcript_retry => 'Repetir transcrição';
+
+  @override
   String get voice_transcript_loading => 'Transcrevendo…';
 
   @override
@@ -10058,6 +10061,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get voice_transcript_copy => 'Copiar';
+
+  @override
+  String get voice_transcript_retry => 'Repetir transcrição';
 
   @override
   String get voice_transcript_loading => 'Transcrevendo…';

@@ -835,6 +835,7 @@
   "voice_transcript_show": "Matnni koʻrsatish",
   "voice_transcript_hide": "Matnni yashirish",
   "voice_transcript_copy": "Nusxalash",
+  "voice_transcript_retry": "Transkripsiyani qayta bajarish",
   "voice_transcript_loading": "Matnga aylantirilmoqda…",
   "voice_transcript_failed": "Matnni olib boʻlmadi.",
   "voice_attachment_media_kind_audio": "audio",

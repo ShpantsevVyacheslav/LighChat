@@ -835,6 +835,7 @@
   "voice_transcript_show": "Показать текст",
   "voice_transcript_hide": "Скрыть текст",
   "voice_transcript_copy": "Көшіру",
+  "voice_transcript_retry": "Транскрипцияны қайталау",
   "voice_transcript_loading": "Транскрибация…",
   "voice_transcript_failed": "Сәтсіз получить текст.",
   "voice_attachment_media_kind_audio": "аудио",

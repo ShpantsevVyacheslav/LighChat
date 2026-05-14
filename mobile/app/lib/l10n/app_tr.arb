@@ -835,6 +835,7 @@
   "voice_transcript_show": "Metni göster",
   "voice_transcript_hide": "Metni gizle",
   "voice_transcript_copy": "Kopyala",
+  "voice_transcript_retry": "Yeniden yazıya dök",
   "voice_transcript_loading": "Yazıya dökülüyor…",
   "voice_transcript_failed": "Metin alınamadı.",
   "voice_attachment_media_kind_audio": "ses",

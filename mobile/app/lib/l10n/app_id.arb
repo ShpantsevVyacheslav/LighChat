@@ -835,6 +835,7 @@
   "voice_transcript_show": "Tampilkan text",
   "voice_transcript_hide": "Sembunyikan text",
   "voice_transcript_copy": "Salin",
+  "voice_transcript_retry": "Ulangi transkripsi",
   "voice_transcript_loading": "Mentranskripsikan…",
   "voice_transcript_failed": "Couldn’t get  text.",
   "voice_attachment_media_kind_audio": "Audio",

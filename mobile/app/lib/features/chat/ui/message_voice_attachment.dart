@@ -359,6 +359,25 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
     }
   }
 
+  /// Полный сброс: чистим кэш транскрипции и перевода для этого сообщения,
+  /// сбрасываем локальный state и перезапрашиваем распознавание. Нужно на
+  /// случай, если в кэше «осело» что-то странное (старая модель, ошибочный
+  /// язык и т.п.).
+  Future<void> _retryTranscript() async {
+    if (_busy || _translating) return;
+    LocalVoiceTranscriber.instance.clearCache(widget.messageId);
+    unawaited(
+      LocalMessageTranslator.instance.invalidateContaining(widget.messageId),
+    );
+    setState(() {
+      _localResult = null;
+      _translation = null;
+      _showTranslation = false;
+      _errorText = null;
+    });
+    await _ensureTranscript();
+  }
+
   String _friendlyError(Object e) {
     final l10n = AppLocalizations.of(context);
     if (e is VoiceTranscriptionException && l10n != null) {
@@ -470,6 +489,7 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
     final showLabel = l10n.voice_transcript_show;
     final hideLabel = l10n.voice_transcript_hide;
     final copyLabel = l10n.voice_transcript_copy;
+    final retryLabel = l10n.voice_transcript_retry;
     final loadingLabel = l10n.voice_transcript_loading;
     final failedLabel = l10n.voice_transcript_failed;
     final translateLabel = l10n.voice_translate_action;
@@ -649,6 +669,23 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
                                           color: metaColor,
                                           icon: const Icon(
                                             Icons.copy_all_outlined,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          onPressed: _translating
+                                              ? null
+                                              : _retryTranscript,
+                                          tooltip: retryLabel,
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(
+                                            minWidth: 32,
+                                            minHeight: 30,
+                                          ),
+                                          visualDensity: VisualDensity.compact,
+                                          iconSize: 16,
+                                          color: metaColor,
+                                          icon: const Icon(
+                                            Icons.refresh_rounded,
                                           ),
                                         ),
                                       ],

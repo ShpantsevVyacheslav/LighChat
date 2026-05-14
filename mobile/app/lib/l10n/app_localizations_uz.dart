@@ -1776,6 +1776,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get voice_transcript_copy => 'Nusxalash';
 
   @override
+  String get voice_transcript_retry => 'Transkripsiyani qayta bajarish';
+
+  @override
   String get voice_transcript_loading => 'Matnga aylantirilmoqda…';
 
   @override

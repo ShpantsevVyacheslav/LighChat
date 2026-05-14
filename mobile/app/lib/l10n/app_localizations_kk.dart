@@ -1769,6 +1769,9 @@ class AppLocalizationsKk extends AppLocalizations {
   String get voice_transcript_copy => 'Көшіру';
 
   @override
+  String get voice_transcript_retry => 'Транскрипцияны қайталау';
+
+  @override
   String get voice_transcript_loading => 'Транскрибация…';
 
   @override
