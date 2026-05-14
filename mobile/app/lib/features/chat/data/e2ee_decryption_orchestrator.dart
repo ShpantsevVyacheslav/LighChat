@@ -26,6 +26,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ffmpeg_kit_min_gpl/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_min_gpl/return_code.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -551,10 +553,31 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
         await file.writeAsBytes(result.data, flush: true);
       }
       if (_disposed) return;
+
+      // Нормализация формата для аудио, отправленного с PWA (webm/opus/ogg) —
+      // iOS just_audio / AVFoundation такое не воспроизводит, мобиль показывает
+      // «не удалось загрузить». В обычных чатах за это отвечает Cloud Function
+      // `onchatmessagemediatranscode`, но в E2EE она не может расшифровать
+      // файл → нормализуем сами через ffmpeg_kit (уже в зависимостях).
+      var finalFile = file;
+      var finalMime = envelope.mime;
+      var finalExt = ext;
+      final transcoded = await _maybeTranscodeAudioForPlayback(
+        src: file,
+        kind: envelope.kind,
+        mime: envelope.mime,
+      );
+      if (transcoded != null) {
+        finalFile = transcoded;
+        finalMime = 'audio/mp4';
+        finalExt = '.m4a';
+      }
+      if (_disposed) return;
+
       final att = ChatAttachment(
-        url: Uri.file(file.path).toString(),
-        name: '${_prefixForKind(envelope.kind)}${envelope.fileId}$ext',
-        type: envelope.mime,
+        url: Uri.file(finalFile.path).toString(),
+        name: '${_prefixForKind(envelope.kind)}${envelope.fileId}$finalExt',
+        type: finalMime,
         size: envelope.size,
       );
       setState(() {
@@ -650,6 +673,63 @@ class _E2eeMessagesResolverState extends ConsumerState<E2eeMessagesResolver> {
   Widget build(BuildContext context) {
     final hydrated = _hydrateMessages();
     return widget.builder(context, hydrated, _decrypted, _failed);
+  }
+}
+
+/// Транскодирует расшифрованный аудио-файл в `audio/mp4` (AAC) если он
+/// в формате, который iOS / AVFoundation не воспроизводят нативно
+/// (webm/opus/ogg/vorbis — отправляются с PWA). Возвращает новый
+/// `File` или `null`, если транскод не нужен / не удался.
+///
+/// Применяется только к голосовым (`MediaKindV2.voice`). Видео/изображения/
+/// файлы не трогаем.
+Future<File?> _maybeTranscodeAudioForPlayback({
+  required File src,
+  required MediaKindV2 kind,
+  required String mime,
+}) async {
+  if (kind != MediaKindV2.voice) return null;
+  final m = mime.toLowerCase();
+  final needs = m.contains('webm') ||
+      m.contains('ogg') ||
+      m.contains('opus') ||
+      m.contains('vorbis');
+  if (!needs) return null;
+  if (!await src.exists()) return null;
+
+  // Целевой файл рядом с исходником; если уже есть — переиспользуем
+  // (на втором rebuild из persistent-cache).
+  final outPath = '${src.path}.m4a';
+  final outFile = File(outPath);
+  if (await outFile.exists() && (await outFile.length()) > 0) {
+    return outFile;
+  }
+
+  String quote(String p) => '"${p.replaceAll('"', r'\"')}"';
+  final cmd = [
+    '-y',
+    '-i',
+    quote(src.path),
+    '-vn',
+    '-c:a',
+    'aac',
+    '-b:a',
+    '96k',
+    '-movflags',
+    '+faststart',
+    quote(outPath),
+  ].join(' ');
+  try {
+    final session = await FFmpegKit.execute(cmd);
+    final rc = await session.getReturnCode();
+    if (!ReturnCode.isSuccess(rc) || !await outFile.exists()) return null;
+    // Исходный webm/ogg больше не нужен — экономим место в persistent-cache.
+    try {
+      await src.delete();
+    } catch (_) {/* ignore */}
+    return outFile;
+  } catch (_) {
+    return null;
   }
 }
 
