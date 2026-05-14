@@ -607,7 +607,7 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
                                           ),
                                           const SizedBox(width: 4),
                                         ],
-                                        TextButton.icon(
+                                        IconButton(
                                           onPressed: () async {
                                             final messenger =
                                                 ScaffoldMessenger.maybeOf(
@@ -622,28 +622,17 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
                                               ),
                                             );
                                           },
-                                          style: TextButton.styleFrom(
-                                            minimumSize: const Size(44, 30),
-                                            padding:
-                                                const EdgeInsets.symmetric(
-                                                    horizontal: 8),
-                                            tapTargetSize:
-                                                MaterialTapTargetSize
-                                                    .shrinkWrap,
-                                            foregroundColor: metaColor,
+                                          tooltip: copyLabel,
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(
+                                            minWidth: 32,
+                                            minHeight: 30,
                                           ),
-                                          icon: Icon(
+                                          visualDensity: VisualDensity.compact,
+                                          iconSize: 16,
+                                          color: metaColor,
+                                          icon: const Icon(
                                             Icons.copy_all_outlined,
-                                            size: 16,
-                                            color: metaColor,
-                                          ),
-                                          label: Text(
-                                            copyLabel,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                              color: metaColor,
-                                            ),
                                           ),
                                         ),
                                       ],
