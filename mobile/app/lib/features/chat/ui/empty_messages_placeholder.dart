@@ -211,36 +211,34 @@ class _Scene extends StatelessWidget {
             ),
           ),
           // ───── маяк (по центру островка) ─────
-          // Маяк больше хранителя — верхушка купола над фуражкой.
+          // Маяк заметно крупнее хранителя — доминанта сцены.
           const Positioned(
-            left: 100,
-            top: 0,
-            width: 64,
-            height: 116,
+            left: 96,
+            top: -2,
+            width: 74,
+            height: 128,
             child: CustomPaint(painter: LighthousePainter()),
           ),
           // ───── coral beam из лампы маяка ─────
-          // Лампа = верх башни (y ≈ 0.40h). В боксе 64×116 + Positioned(100,0)
-          // абсолютная точка лампы ≈ (132, 46).
+          // Лампа = верх башни (y ≈ 0.40h). В боксе 74×128 + Positioned(96,-2)
+          // абсолютная точка лампы ≈ (133, 49).
           Positioned(
-            left: 132,
-            top: 36,
-            width: 96,
+            left: 133,
+            top: 38,
+            width: 95,
             height: 24,
             child: IgnorePointer(
               child: CustomPaint(painter: _BeamPainter(intensity: beamI)),
             ),
           ),
           // ───── хранитель маяка ─────
-          // Использует KeeperPainter из welcome (длинное пальто, шарф,
-          // шляпа, фонарь в одной руке, машет другой) + лицо поверх
-          // головы. Высота специально меньше маяка, чтобы шляпа
-          // приходилась ниже фонарной комнаты.
+          // Маленькая фигура слева от маяка: шляпа сидит заметно ниже
+          // фонарной комнаты, силуэт явно компактнее башни.
           Positioned(
-            left: 30,
+            left: 36,
             bottom: 14,
-            width: 60,
-            height: 96,
+            width: 52,
+            height: 84,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
