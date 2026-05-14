@@ -271,6 +271,40 @@ final conversationsProvider =
       }
     });
 
+/// Сводка по секретным чатам для плашки на списке чатов:
+/// `hasSecretChats` — есть ли у юзера хотя бы один секретный чат (по объединению
+/// `userSecretChatIndexProvider` и fallback), `unreadCount` — сумма
+/// `unreadCounts[uid] + unreadThreadCounts[uid]` по их документам.
+final secretChatsSummaryProvider =
+    Provider.family<({bool hasSecretChats, int unreadCount}), String>((
+      ref,
+      userId,
+    ) {
+      final uid = userId.trim();
+      if (uid.isEmpty) return (hasSecretChats: false, unreadCount: 0);
+
+      final indexAsync = ref.watch(userSecretChatIndexProvider(uid));
+      final fallbackAsync = ref.watch(userSecretChatFallbackIdsProvider(uid));
+
+      final ids = <String>{
+        ...?indexAsync.asData?.value?.conversationIds,
+        ...?fallbackAsync.asData?.value,
+      }.where((id) => id.trim().isNotEmpty).toList(growable: false);
+
+      if (ids.isEmpty) return (hasSecretChats: false, unreadCount: 0);
+
+      final convAsync = ref.watch(
+        conversationsProvider((key: conversationIdsCacheKey(ids))),
+      );
+      final convs = convAsync.asData?.value ?? const <ConversationWithId>[];
+      var unread = 0;
+      for (final c in convs) {
+        unread += (c.data.unreadCounts?[uid] ?? 0) +
+            (c.data.unreadThreadCounts?[uid] ?? 0);
+      }
+      return (hasSecretChats: true, unreadCount: unread);
+    });
+
 typedef SecretChatAccessKey = ({String conversationId, String userId});
 
 final secretChatAccessActiveProvider =

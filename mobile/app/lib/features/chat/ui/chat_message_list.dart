@@ -39,7 +39,9 @@ import 'message_reactions_row.dart';
 import 'message_reply_preview.dart';
 import 'message_swipe_to_reply.dart';
 import 'outbox_job_media_bubble.dart';
+import '../data/chat_haptics.dart';
 import '../data/local_voice_transcriber.dart';
+import 'entity_chips_row.dart';
 import '../data/voice_message_track.dart';
 
 typedef ChatMessageVisibleCallback =
@@ -1534,6 +1536,9 @@ class _ChatMessageBubble extends StatelessWidget {
         textAlign: TextAlign.left,
         text: TextSpan(children: htmlSpans()),
       );
+      // Entity chips: ML Kit находит телефоны/email/адреса/даты в тексте —
+      // под сообщением появятся кликабельные чипы с quick-action.
+      final uiLang = Localizations.localeOf(context).languageCode.toLowerCase();
       return ConstrainedBox(
         constraints: BoxConstraints(maxWidth: innerMax),
         child: Column(
@@ -1541,6 +1546,11 @@ class _ChatMessageBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             textWidget,
+            EntityChipsRow(
+              text: displayPlain,
+              languageHint: uiLang,
+              isMine: isMine,
+            ),
             if (linkPreviewUrl != null) ...[
               const SizedBox(height: 10),
               MessageLinkPreviewCard(url: linkPreviewUrl, isMine: isMine),
@@ -2097,7 +2107,10 @@ class _ChatMessageBubble extends StatelessWidget {
                             !selectionMode &&
                                 !message.isDeleted &&
                                 onMessageLongPress != null
-                            ? () => onMessageLongPress!(message)
+                            ? () {
+                                unawaited(ChatHaptics.instance.longPress());
+                                onMessageLongPress!(message);
+                              }
                             : null,
                         // Desktop: правая кнопка мыши вызывает то же
                         // действие, что и long-press на мобилке (контекстное

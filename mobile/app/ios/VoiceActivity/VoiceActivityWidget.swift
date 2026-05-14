@@ -6,7 +6,7 @@ import WidgetKit
 ///
 /// Этот файл должен входить **только** в target VoiceActivity (Widget
 /// Extension), не в Runner.
-@available(iOS 16.1, *)
+@available(iOS 16.2, *)
 struct VoiceActivityWidget: Widget {
   var body: some WidgetConfiguration {
     ActivityConfiguration(for: VoiceActivityAttributes.self) { context in
@@ -78,7 +78,7 @@ struct VoiceActivityWidget: Widget {
   }
 }
 
-@available(iOS 16.1, *)
+@available(iOS 16.2, *)
 private struct LockScreenView: View {
   let senderName: String
   let position: Double
@@ -124,7 +124,7 @@ private struct LockScreenView: View {
   }
 }
 
-@available(iOS 16.1, *)
+@available(iOS 16.2, *)
 private struct ProgressBar: View {
   let progress: Double
   var body: some View {
@@ -149,7 +149,7 @@ private struct ProgressBar: View {
 }
 
 /// Entry point — должен быть в Widget Extension Bundle.
-@available(iOS 16.1, *)
+@available(iOS 16.2, *)
 @main
 struct VoiceActivityBundle: WidgetBundle {
   var body: some Widget {

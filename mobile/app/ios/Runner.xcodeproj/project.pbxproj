@@ -3,11 +3,15 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
+		225E587D2FB62E09006FACE0 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 225E587C2FB62E09006FACE0 /* WidgetKit.framework */; };
+		225E587F2FB62E09006FACE0 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 225E587E2FB62E09006FACE0 /* SwiftUI.framework */; };
+		225E588C2FB62E0B006FACE0 /* VoiceActivityExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 225E587B2FB62E09006FACE0 /* VoiceActivityExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		225E58982FB630F7006FACE0 /* VoiceActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B10D000000000013E0 /* VoiceActivityAttributes.swift */; };
 		2273FEB12F88DE5E0054E104 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 2273FEB02F88DE5E0054E104 /* GoogleService-Info.plist */; };
 		22B808C12F97703A008C1DCF /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A4226D422C18325703427045 /* Pods_Runner.framework */; };
 		22B808C22F97703A008C1DCF /* Pods_Runner.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A4226D422C18325703427045 /* Pods_Runner.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -28,9 +32,17 @@
 		B1B1B1B108000000000008E0 /* LiveTextBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B109000000000009E0 /* LiveTextBridge.swift */; };
 		B1B1B1B10A000000000010E0 /* VoiceActivityBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B10B000000000011E0 /* VoiceActivityBridge.swift */; };
 		B1B1B1B10C000000000012E0 /* VoiceActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B10D000000000013E0 /* VoiceActivityAttributes.swift */; };
+		B1B1B1B110000000000016E0 /* HapticsBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B111000000000017E0 /* HapticsBridge.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		225E588A2FB62E0B006FACE0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 225E587A2FB62E09006FACE0;
+			remoteInfo = VoiceActivityExtension;
+		};
 		331C8085294A63A400263BE5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
@@ -58,6 +70,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
+				225E588C2FB62E0B006FACE0 /* VoiceActivityExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -69,6 +82,9 @@
 		1087028DBD9D893199CEAA8D /* Pods_ShareExtension.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ShareExtension.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
+		225E587B2FB62E09006FACE0 /* VoiceActivityExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = VoiceActivityExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		225E587C2FB62E09006FACE0 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		225E587E2FB62E09006FACE0 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		2273FEB02F88DE5E0054E104 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "GoogleService-Info.plist"; path = "Runner/GoogleService-Info.plist"; sourceTree = "<group>"; };
 		2498E3A5AB9004EAF9A74307 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		27BB0A443CFA3E8BE0734FAD /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -104,6 +120,7 @@
 		B1B1B1B109000000000009E0 /* LiveTextBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveTextBridge.swift; sourceTree = "<group>"; };
 		B1B1B1B10B000000000011E0 /* VoiceActivityBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceActivityBridge.swift; sourceTree = "<group>"; };
 		B1B1B1B10D000000000013E0 /* VoiceActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceActivityAttributes.swift; sourceTree = "<group>"; };
+		B1B1B1B111000000000017E0 /* HapticsBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsBridge.swift; sourceTree = "<group>"; };
 		B2F8A9012ECF9000100A1D01 /* RunnerDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RunnerDebug.entitlements; sourceTree = "<group>"; };
 		B2F8A9012ECF9000100A1D02 /* RunnerRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RunnerRelease.entitlements; sourceTree = "<group>"; };
 		BCE89198E9E815BAC52B21AF /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
@@ -113,7 +130,41 @@
 		FCF8D261897E50055012040E /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		225E58902FB62E0B006FACE0 /* Exceptions for "VoiceActivity" folder in "VoiceActivityExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 225E587A2FB62E09006FACE0 /* VoiceActivityExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		225E58802FB62E09006FACE0 /* VoiceActivity */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				225E58902FB62E0B006FACE0 /* Exceptions for "VoiceActivity" folder in "VoiceActivityExtension" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = VoiceActivity;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
+		225E58782FB62E09006FACE0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				225E587F2FB62E09006FACE0 /* SwiftUI.framework in Frameworks */,
+				225E587D2FB62E09006FACE0 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7A5D56A62D9E1342361FB66A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -183,6 +234,7 @@
 				2273FEB02F88DE5E0054E104 /* GoogleService-Info.plist */,
 				9740EEB11CF90186004384FC /* Flutter */,
 				97C146F01CF9000F007C117D /* Runner */,
+				225E58802FB62E09006FACE0 /* VoiceActivity */,
 				97C146EF1CF9000F007C117D /* Products */,
 				331C8082294A63A400263BE5 /* RunnerTests */,
 				7490AA3AFCA738194A72C562 /* Pods */,
@@ -196,6 +248,7 @@
 			children = (
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
+				225E587B2FB62E09006FACE0 /* VoiceActivityExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -238,7 +291,6 @@
 				F7914BA38DD273536BA5BD72 /* ShareExtension.entitlements */,
 				F87DC5A2C7FB7B305C800AF3 /* MainInterface.storyboard */,
 			);
-			name = ShareExtension;
 			path = ShareExtension;
 			sourceTree = "<group>";
 		};
@@ -251,6 +303,7 @@
 				B1B1B1B109000000000009E0 /* LiveTextBridge.swift */,
 				B1B1B1B10B000000000011E0 /* VoiceActivityBridge.swift */,
 				B1B1B1B10D000000000013E0 /* VoiceActivityAttributes.swift */,
+				B1B1B1B111000000000017E0 /* HapticsBridge.swift */,
 			);
 			path = Speech;
 			sourceTree = "<group>";
@@ -262,6 +315,8 @@
 				27BB0A443CFA3E8BE0734FAD /* Pods_RunnerTests.framework */,
 				2968076215AC0D01F13D7E10 /* iOS */,
 				1087028DBD9D893199CEAA8D /* Pods_ShareExtension.framework */,
+				225E587C2FB62E09006FACE0 /* WidgetKit.framework */,
+				225E587E2FB62E09006FACE0 /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -269,6 +324,26 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		225E587A2FB62E09006FACE0 /* VoiceActivityExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 225E58912FB62E0B006FACE0 /* Build configuration list for PBXNativeTarget "VoiceActivityExtension" */;
+			buildPhases = (
+				225E58772FB62E09006FACE0 /* Sources */,
+				225E58782FB62E09006FACE0 /* Frameworks */,
+				225E58792FB62E09006FACE0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				225E58802FB62E09006FACE0 /* VoiceActivity */,
+			);
+			name = VoiceActivityExtension;
+			productName = VoiceActivityExtension;
+			productReference = 225E587B2FB62E09006FACE0 /* VoiceActivityExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		331C8080294A63A400263BE5 /* RunnerTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 331C8087294A63A400263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */;
@@ -307,6 +382,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				225E588B2FB62E0B006FACE0 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			productName = Runner;
@@ -320,9 +396,13 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
+				LastSwiftUpdateCheck = 2640;
 				LastUpgradeCheck = 1510;
 				ORGANIZATIONNAME = "";
 				TargetAttributes = {
+					225E587A2FB62E09006FACE0 = {
+						CreatedOnToolsVersion = 26.4;
+					};
 					331C8080294A63A400263BE5 = {
 						CreatedOnToolsVersion = 14.0;
 						TestTargetID = 97C146ED1CF9000F007C117D;
@@ -348,11 +428,19 @@
 			targets = (
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
+				225E587A2FB62E09006FACE0 /* VoiceActivityExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		225E58792FB62E09006FACE0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		331C807F294A63A400263BE5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -505,6 +593,14 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		225E58772FB62E09006FACE0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				225E58982FB630F7006FACE0 /* VoiceActivityAttributes.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		331C807D294A63A400263BE5 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -529,12 +625,18 @@
 				B1B1B1B108000000000008E0 /* LiveTextBridge.swift in Sources */,
 				B1B1B1B10A000000000010E0 /* VoiceActivityBridge.swift in Sources */,
 				B1B1B1B10C000000000012E0 /* VoiceActivityAttributes.swift in Sources */,
+				B1B1B1B110000000000016E0 /* HapticsBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		225E588B2FB62E0B006FACE0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 225E587A2FB62E09006FACE0 /* VoiceActivityExtension */;
+			targetProxy = 225E588A2FB62E0B006FACE0 /* PBXContainerItemProxy */;
+		};
 		331C8086294A63A400263BE5 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 97C146ED1CF9000F007C117D /* Runner */;
@@ -562,6 +664,132 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		225E588D2FB62E0B006FACE0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T896C2B2FW;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VoiceActivity/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = VoiceActivity;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lighchat.lighchatMobile.VoiceActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		225E588E2FB62E0B006FACE0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T896C2B2FW;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VoiceActivity/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = VoiceActivity;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lighchat.lighchatMobile.VoiceActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		225E588F2FB62E0B006FACE0 /* Profile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = T896C2B2FW;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VoiceActivity/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = VoiceActivity;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.lighchat.lighchatMobile.VoiceActivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Profile;
+		};
 		249021D3217E4FDB00AE95B9 /* Profile */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -881,6 +1109,16 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		225E58912FB62E0B006FACE0 /* Build configuration list for PBXNativeTarget "VoiceActivityExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				225E588D2FB62E0B006FACE0 /* Debug */,
+				225E588E2FB62E0B006FACE0 /* Release */,
+				225E588F2FB62E0B006FACE0 /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		331C8087294A63A400263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

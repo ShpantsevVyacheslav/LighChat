@@ -14,6 +14,7 @@ import '../../../l10n/app_localizations.dart';
 import '../data/apple_intelligence.dart';
 import '../data/local_message_translator.dart';
 import '../data/local_text_language_detector.dart';
+import '../data/chat_haptics.dart';
 import '../data/local_voice_transcriber.dart';
 import '../data/voice_live_activity.dart';
 import '../data/voice_message_track.dart';
@@ -1105,6 +1106,7 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
 
   Future<void> _toggle() async {
     if (_failed || !_ready) return;
+    unawaited(ChatHaptics.instance.tick());
     try {
       if (_playing) {
         await _player.pause();
@@ -1213,8 +1215,10 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
     final cid = (widget.conversationId ?? '').trim();
     final mid = (widget.messageId ?? '').trim();
     if (cid.isEmpty || mid.isEmpty) return;
+    unawaited(ChatHaptics.instance.longPress());
     final confirmed = await KaraokePromptDialog.show(context);
     if (!confirmed || !mounted) return;
+    unawaited(ChatHaptics.instance.success());
 
     var cached = LocalVoiceTranscriber.instance.cachedFor(mid);
     if (cached == null || cached.segments.isEmpty) {

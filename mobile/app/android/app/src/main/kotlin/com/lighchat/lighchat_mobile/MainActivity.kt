@@ -96,5 +96,7 @@ class MainActivity : FlutterActivity() {
             .register(flutterEngine.dartExecutor.binaryMessenger)
         TextToSpeechBridge(applicationContext)
             .register(flutterEngine.dartExecutor.binaryMessenger)
+        HapticsBridge(applicationContext)
+            .register(flutterEngine.dartExecutor.binaryMessenger)
     }
 }

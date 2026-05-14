@@ -76,7 +76,7 @@ final class VoiceActivityBridge: NSObject {
   /// и включил ли пользователь Activities для приложения.
   static func isSupported() -> Bool {
     #if canImport(ActivityKit)
-      if #available(iOS 16.1, *) {
+      if #available(iOS 16.2, *) {
         return ActivityAuthorizationInfo().areActivitiesEnabled
       }
     #endif
@@ -88,7 +88,7 @@ final class VoiceActivityBridge: NSObject {
   private func start(
     senderName: String, total: Double, position: Double, isPlaying: Bool
   ) -> String? {
-    if #available(iOS 16.1, *) {
+    if #available(iOS 16.2, *) {
       let attrs = VoiceActivityAttributes(
         senderName: senderName, totalSeconds: total)
       let state = VoiceActivityContentState(
@@ -109,7 +109,7 @@ final class VoiceActivityBridge: NSObject {
   }
 
   private func update(id: String, position: Double, isPlaying: Bool) async {
-    if #available(iOS 16.1, *) {
+    if #available(iOS 16.2, *) {
       guard let activity = activities[id] as? Activity<VoiceActivityAttributes>
       else { return }
       let state = VoiceActivityContentState(
@@ -119,7 +119,7 @@ final class VoiceActivityBridge: NSObject {
   }
 
   private func end(id: String) async {
-    if #available(iOS 16.1, *) {
+    if #available(iOS 16.2, *) {
       guard let activity = activities[id] as? Activity<VoiceActivityAttributes>
       else { return }
       await activity.end(nil, dismissalPolicy: .immediate)

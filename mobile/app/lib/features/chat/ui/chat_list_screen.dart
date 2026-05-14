@@ -1390,6 +1390,16 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       userContactsIndexProvider(widget.currentUserId),
     );
     final contactProfiles = contactsAsync.value?.contactProfiles ?? const {};
+    final secretSummary = ref.watch(
+      secretChatsSummaryProvider(widget.currentUserId),
+    );
+    if (_showSecretChatsRow && !secretSummary.hasSecretChats) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _showSecretChatsRow && !secretSummary.hasSecretChats) {
+          setState(() => _showSecretChatsRow = false);
+        }
+      });
+    }
 
     final folder = widget.folders.firstWhere(
       (f) => f.id == _activeFolderId,
@@ -1762,6 +1772,30 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                         ),
                                       ),
                                     ),
+                                    if (secretSummary.unreadCount > 0) ...[
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF2A79FF),
+                                          borderRadius:
+                                              BorderRadius.circular(999),
+                                        ),
+                                        child: Text(
+                                          secretSummary.unreadCount > 99
+                                              ? '99+'
+                                              : '${secretSummary.unreadCount}',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w900,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
                                     Icon(
                                       Icons.chevron_right_rounded,
                                       color: theme.colorScheme.onSurface
@@ -1789,12 +1823,14 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                             notification.overscroll < 0 &&
                             notification.metrics.pixels <= 0) {
                           if (!_showSecretChatsRow &&
+                              secretSummary.hasSecretChats &&
                               notification.metrics.pixels < -10) {
                             setState(() => _showSecretChatsRow = true);
                           }
                         } else if (notification is ScrollUpdateNotification &&
                             notification.metrics.pixels < -10) {
-                          if (!_showSecretChatsRow) {
+                          if (!_showSecretChatsRow &&
+                              secretSummary.hasSecretChats) {
                             setState(() => _showSecretChatsRow = true);
                           }
                         } else if (notification is ScrollStartNotification ||

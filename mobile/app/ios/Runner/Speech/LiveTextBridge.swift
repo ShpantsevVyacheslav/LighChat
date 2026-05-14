@@ -159,18 +159,29 @@ private final class LiveTextViewerController: UIViewController {
     scroll.addSubview(imageView)
     imageView.addInteraction(interaction)
 
-    // Анализируем изображение в фоне.
+    // Анализируем изображение в фоне. `.visualLookUp` добавляет
+    // распознавание объектов/растений/животных/достопримечательностей
+    // (iOS показывает значок ✨ на распознанных объектах — тап → системная
+    // карточка Wikipedia/PetID/etc.).
     Task.detached { [weak self] in
       guard let self = self else { return }
       do {
+        var configTypes: ImageAnalyzer.AnalysisTypes = [
+          .text, .machineReadableCode,
+        ]
+        if #available(iOS 17.0, *) {
+          configTypes.insert(.visualLookUp)
+        }
         let analysis = try await self.analyzer.analyze(
-          self.image, configuration: ImageAnalyzer.Configuration([.text, .machineReadableCode])
+          self.image,
+          configuration: ImageAnalyzer.Configuration(configTypes)
         )
         await MainActor.run {
           self.interaction.analysis = analysis
-          self.interaction.preferredInteractionTypes = [
-            .textSelection, .dataDetectors,
-          ]
+          // `.automatic` включает text selection + data detectors +
+          // visual look up в одном переключателе — Apple сам решает что
+          // показать пользователю.
+          self.interaction.preferredInteractionTypes = .automatic
         }
       } catch {
         NSLog("%@ analysis failed: %@", "[LiveText]", "\(error)")

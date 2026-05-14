@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../../platform/native_nav_bar/nav_bar_config.dart';
 import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 import '../data/features_data.dart';
@@ -13,6 +14,7 @@ class FeaturesIndexScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final content = featuresContentFor(Localizations.localeOf(context));
+    final l10n = AppLocalizations.of(context)!;
     final highlights = kFeatureTopics.where((m) => m.highlight).toList();
     final others = kFeatureTopics.where((m) => !m.highlight).toList();
 
@@ -79,7 +81,7 @@ class FeaturesIndexScreen extends StatelessWidget {
                   minimumSize: const Size.fromHeight(48),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: const Text('К чатам'),
+                child: Text(l10n.meeting_back_to_chats),
               ),
             ),
         ],

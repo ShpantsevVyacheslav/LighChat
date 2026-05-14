@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
@@ -234,14 +235,26 @@ class _MyAppState extends ConsumerState<MyApp> {
 
     final languagePref = ref.watch(appLanguagePreferenceProvider);
 
-    return MaterialApp.router(
-      title: 'LighChat',
-      theme: buildAppTheme(brightness: Brightness.light, seedColor: _seedColor),
-      darkTheme: buildAppTheme(
-        brightness: Brightness.dark,
-        seedColor: _seedColor,
-      ),
-      themeMode: _themeMode,
+    return DynamicColorBuilder(
+      builder: (lightDynamic, darkDynamic) {
+        // Material You: на Android 12+ берём primary из системных обоев
+        // как seed. Только если пользователь не настроил свой цвет —
+        // мы не хотим перетирать выбранную палитру юзера.
+        final atDefault = _seedColor == kDefaultAppThemeSeed;
+        final effectiveSeed = (atDefault && lightDynamic != null)
+            ? lightDynamic.primary
+            : _seedColor;
+        return MaterialApp.router(
+          title: 'LighChat',
+          theme: buildAppTheme(
+            brightness: Brightness.light,
+            seedColor: effectiveSeed,
+          ),
+          darkTheme: buildAppTheme(
+            brightness: Brightness.dark,
+            seedColor: effectiveSeed,
+          ),
+          themeMode: _themeMode,
       locale: languagePref.toLocaleOrNull(),
       localeResolutionCallback: (locale, supportedLocales) {
         if (locale == null) return const Locale('ru');
@@ -284,6 +297,8 @@ class _MyAppState extends ConsumerState<MyApp> {
         ),
       ),
       ),
+    );
+      },
     );
   }
 }

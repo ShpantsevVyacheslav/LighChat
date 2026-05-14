@@ -1,8 +1,11 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../shared/ui/platform_keyboard_dismiss_behavior.dart';
 
 /// Категории жалобы — значения совпадают со строками ReportReason на бэкенде.
 enum _ReportReason {
@@ -35,6 +38,7 @@ Future<void> showReportSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: 0.45),
     builder: (_) => _ReportSheet(
       reportedUserId: reportedUserId,
       conversationId: conversationId,
@@ -70,6 +74,14 @@ class _ReportSheetState extends State<_ReportSheet> {
   _ReportReason? _selected;
   final _commentController = TextEditingController();
   bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _commentController.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   void dispose() {
@@ -130,105 +142,169 @@ class _ReportSheetState extends State<_ReportSheet> {
     final scheme = Theme.of(context).colorScheme;
     final isMessage = widget.messageId != null;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: scheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
         ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // ── drag handle ──
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.only(top: 12, bottom: 4),
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: scheme.onSurface.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(2),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Material(
+              color: scheme.surface.withValues(alpha: 0.92),
+              child: SafeArea(
+                top: false,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.sizeOf(context).height * 0.92,
                   ),
-                ),
-              ),
-              // ── заголовок ──
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-                child: Text(
-                  l10n.report_title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: Text(
-                  isMessage
-                      ? l10n.report_subtitle_message
-                      : l10n.report_subtitle_user,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurface.withValues(alpha: 0.55),
-                      ),
-                ),
-              ),
-              const Divider(height: 1),
-              // ── список причин ──
-              RadioGroup<_ReportReason>(
-                groupValue: _selected,
-                onChanged: (v) {
-                  if (!_loading) setState(() => _selected = v);
-                },
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: _ReportReason.values
-                      .map(
-                        (r) => RadioListTile<_ReportReason>(
-                          value: r,
-                          dense: true,
-                          title: Text(_reasonLabel(r, l10n)),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 10, 8, 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    l10n.report_title,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    isMessage
+                                        ? l10n.report_subtitle_message
+                                        : l10n.report_subtitle_user,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: scheme.onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: _loading
+                                  ? null
+                                  : () => Navigator.pop(context),
+                              icon: const Icon(Icons.close_rounded),
+                            ),
+                          ],
                         ),
-                      )
-                      .toList(),
-                ),
-              ),
-              // ── поле комментария ──
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: TextField(
-                  controller: _commentController,
-                  enabled: !_loading,
-                  maxLines: 3,
-                  maxLength: 500,
-                  decoration: InputDecoration(
-                    hintText: l10n.report_comment_hint,
-                    border: const OutlineInputBorder(),
-                    isDense: true,
+                      ),
+                      Flexible(
+                        child: ListView(
+                          keyboardDismissBehavior:
+                              platformScrollKeyboardDismissBehavior(),
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                          shrinkWrap: true,
+                          children: [
+                            for (final r in _ReportReason.values)
+                              _ReasonTile(
+                                label: _reasonLabel(r, l10n),
+                                selected: _selected == r,
+                                enabled: !_loading,
+                                onTap: () => setState(() => _selected = r),
+                              ),
+                            const SizedBox(height: 10),
+                            TextField(
+                              controller: _commentController,
+                              enabled: !_loading,
+                              maxLines: 3,
+                              minLines: 2,
+                              maxLength: 500,
+                              textCapitalization: TextCapitalization.sentences,
+                              scrollPadding:
+                                  const EdgeInsets.only(bottom: 240),
+                              decoration: InputDecoration(
+                                labelText: l10n.report_comment_hint,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 14,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              height: 54,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                    colors: (_selected == null || _loading)
+                                        ? [
+                                            scheme.onSurface
+                                                .withValues(alpha: 0.12),
+                                            scheme.onSurface
+                                                .withValues(alpha: 0.12),
+                                          ]
+                                        : const [
+                                            Color(0xFF2E86FF),
+                                            Color(0xFF5F90FF),
+                                            Color(0xFF9A18FF),
+                                          ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: TextButton(
+                                  onPressed:
+                                      (_selected == null || _loading)
+                                          ? null
+                                          : _submit,
+                                  style: TextButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    foregroundColor: Colors.white,
+                                    disabledForegroundColor: scheme.onSurface
+                                        .withValues(alpha: 0.45),
+                                  ),
+                                  child: _loading
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                          ),
+                                        )
+                                      : Text(
+                                          l10n.report_submit,
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              // ── кнопка отправки ──
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                child: FilledButton(
-                  onPressed: (_selected == null || _loading) ? null : _submit,
-                  child: _loading
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(l10n.report_submit),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -248,5 +324,108 @@ class _ReportSheetState extends State<_ReportSheet> {
       case _ReportReason.other:
         return l10n.report_reason_other;
     }
+  }
+}
+
+class _ReasonTile extends StatelessWidget {
+  const _ReasonTile({
+    required this.label,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final accent = const Color(0xFF2F86FF);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(14),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: selected
+                  ? accent.withValues(alpha: 0.14)
+                  : scheme.onSurface.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: selected
+                    ? accent.withValues(alpha: 0.6)
+                    : scheme.onSurface.withValues(alpha: 0.08),
+              ),
+            ),
+            child: Row(
+              children: [
+                _RadioDot(selected: selected, accent: accent),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight:
+                          selected ? FontWeight.w700 : FontWeight.w500,
+                      color: scheme.onSurface
+                          .withValues(alpha: enabled ? 1.0 : 0.5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RadioDot extends StatelessWidget {
+  const _RadioDot({required this.selected, required this.accent});
+
+  final bool selected;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: 20,
+      height: 20,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: selected
+                ? accent
+                : scheme.onSurface.withValues(alpha: 0.35),
+            width: 2,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: selected
+            ? Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accent,
+                ),
+              )
+            : null,
+      ),
+    );
   }
 }

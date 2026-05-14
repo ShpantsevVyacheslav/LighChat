@@ -8,6 +8,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   battery_plus
   cloud_firestore
   desktop_drop
+  dynamic_color
   emoji_picker_flutter
   file_selector_windows
   firebase_auth

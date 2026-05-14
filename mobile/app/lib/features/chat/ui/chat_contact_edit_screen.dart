@@ -10,6 +10,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/contact_display_name.dart';
 import '../data/user_profile.dart';
+import 'chat_avatar.dart';
 
 class ChatContactEditScreen extends ConsumerStatefulWidget {
   const ChatContactEditScreen({super.key, required this.userId});
@@ -161,21 +162,11 @@ class _ChatContactEditScreenState extends ConsumerState<ChatContactEditScreen> {
                         padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
                         children: [
                           Center(
-                            child: CircleAvatar(
+                            child: ChatAvatar(
+                              title: displayName,
                               radius: 42,
-                              foregroundImage:
-                                  (profile?.avatarThumb ?? profile?.avatar) ==
-                                      null
-                                  ? null
-                                  : NetworkImage(
-                                      (profile?.avatarThumb ??
-                                          profile?.avatar)!,
-                                    ),
-                              child: Text(
-                                displayName.isNotEmpty
-                                    ? displayName.substring(0, 1)
-                                    : '?',
-                              ),
+                              avatarUrl:
+                                  profile?.avatarThumb ?? profile?.avatar,
                             ),
                           ),
                           const SizedBox(height: 14),

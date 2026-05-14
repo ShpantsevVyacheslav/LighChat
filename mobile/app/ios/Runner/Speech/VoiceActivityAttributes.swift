@@ -10,7 +10,7 @@ import Foundation
 /// Этот файл должен входить в **оба** target-а: Runner (для запуска
 /// из приложения) и VoiceActivity (для рендеринга Widget-ом). В Xcode
 /// поставь Target Membership на обоих.
-@available(iOS 16.1, *)
+@available(iOS 16.2, *)
 public struct VoiceActivityAttributes: ActivityAttributes {
   public typealias ContentState = VoiceActivityContentState
 
@@ -23,7 +23,7 @@ public struct VoiceActivityAttributes: ActivityAttributes {
   }
 }
 
-@available(iOS 16.1, *)
+@available(iOS 16.2, *)
 public struct VoiceActivityContentState: Codable, Hashable {
   public var positionSeconds: Double
   public var isPlaying: Bool
