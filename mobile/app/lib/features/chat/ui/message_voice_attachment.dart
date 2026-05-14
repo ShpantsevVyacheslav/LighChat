@@ -8,6 +8,7 @@ import 'package:lighchat_models/lighchat_models.dart';
 import 'message_audio_waveform.dart';
 import 'chat_glass_panel.dart';
 import 'chat_vlc_network_media.dart';
+import 'karaoke_prompt_dialog.dart';
 import 'karaoke_screen.dart';
 import '../../../l10n/app_localizations.dart';
 import '../data/apple_intelligence.dart';
@@ -1212,25 +1213,8 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
     final cid = (widget.conversationId ?? '').trim();
     final mid = (widget.messageId ?? '').trim();
     if (cid.isEmpty || mid.isEmpty) return;
-    final l10n = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.voice_karaoke_prompt_title),
-        content: Text(l10n.voice_karaoke_prompt_body),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.chat_list_action_close),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.voice_karaoke_prompt_open),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
+    final confirmed = await KaraokePromptDialog.show(context);
+    if (!confirmed || !mounted) return;
 
     var cached = LocalVoiceTranscriber.instance.cachedFor(mid);
     if (cached == null || cached.segments.isEmpty) {
