@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
+import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 import 'package:flutter/material.dart';
 
 import '../../../brand_colors.dart';
@@ -31,6 +32,9 @@ class _EmptyMessagesPlaceholderState extends State<EmptyMessagesPlaceholder>
       vsync: this,
       duration: const Duration(milliseconds: 1600),
     )..repeat();
+    if (kDebugMode) {
+      debugPrint('[empty-placeholder] mounted');
+    }
   }
 
   @override
@@ -174,41 +178,59 @@ class _EmptyMessagesPlaceholderState extends State<EmptyMessagesPlaceholder>
                                 ),
                               ),
                             ),
-                            // Хранитель по центру. Positioned.fill даёт
-                            // CustomPaint реальные размеры, иначе без child
-                            // он берёт Size.zero и ничего не рисует.
+                            // Хранитель по центру. LayoutBuilder + debug-
+                            // border + явные debug-логи, чтобы можно было
+                            // отследить, какие size/colors прилетают.
                             Positioned(
                               left: 70,
                               top: 6,
                               width: 90,
                               height: 152,
-                              child: Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  Positioned.fill(
-                                    child: CustomPaint(
-                                      painter: KeeperPainter(
-                                        throwProgress: wave,
-                                        // Светлый силуэт, чтобы хранитель
-                                        // не сливался с тёмным frosted-glass
-                                        // фоном карточки.
-                                        bodyColor: dark
-                                            ? const Color(0xFFE6EDF7)
-                                            : const Color(0xFF1E3A5F),
-                                        accentColor: dark
-                                            ? const Color(0xFFB7C5DA)
-                                            : const Color(0xFF2C4A70),
+                              child: LayoutBuilder(
+                                builder: (context, c) {
+                                  if (kDebugMode) {
+                                    debugPrint(
+                                      '[empty-placeholder] keeper box=${c.maxWidth.toStringAsFixed(1)}x${c.maxHeight.toStringAsFixed(1)} dark=$dark',
+                                    );
+                                  }
+                                  // Принудительный coral (с alpha 0.95),
+                                  // чтобы исключить сценарий «сливается с
+                                  // фоном». Если хранитель видим — значит
+                                  // size/painter работают и можно вернуть
+                                  // палитру.
+                                  return DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: Colors.red
+                                            .withValues(alpha: 0.6),
+                                        width: 1,
                                       ),
                                     ),
-                                  ),
-                                  Positioned.fill(
-                                    child: CustomPaint(
-                                      painter: _KeeperFacePainter(
-                                        eyeBgIsLight: dark,
-                                      ),
+                                    child: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        Positioned.fill(
+                                          child: CustomPaint(
+                                            painter: KeeperPainter(
+                                              throwProgress: wave,
+                                              bodyColor: kBrandOrange,
+                                              accentColor: const Color(
+                                                0xFFCB7A1F,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Positioned.fill(
+                                          child: CustomPaint(
+                                            painter: _KeeperFacePainter(
+                                              eyeBgIsLight: false,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ],
+                                  );
+                                },
                               ),
                             ),
                           ],
