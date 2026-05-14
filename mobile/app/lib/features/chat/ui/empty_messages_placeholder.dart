@@ -167,14 +167,19 @@ class _Scene extends StatelessWidget {
     final crabL = -12 + 10 * math.sin(t * 2 * math.pi + 0.4);
     final crabR = 12 - 10 * math.sin(t * 2 * math.pi + 0.9);
     final beamI = 0.65 + 0.20 * (0.5 + 0.5 * math.sin(t * 2 * math.pi * 0.6));
-    // Силуэт хранителя — светло-голубоватый на dark, navy на light, чтобы
-    // контрастировал с frosted-glass фоном и не выглядел как тёмное пятно.
-    final silhouette = isDark
-        ? const Color(0xFFD6E0EE)
+    // Пальто хранителя — насыщенный морской teal: контрастирует и с
+    // тёмным frosted-glass, и с синими/светлыми обоями, не уходит ни в
+    // белый, ни в чёрный, и хорошо сочетается с coral-шарфом.
+    final coatBody = isDark
+        ? const Color(0xFF2C5F6E)
         : const Color(0xFF1E3A5F);
-    final silhouetteAccent = isDark
-        ? const Color(0xFFA9B8CC)
-        : const Color(0xFF2C4A70);
+    final coatAccent = isDark
+        ? const Color(0xFF1A454F)
+        : const Color(0xFF0F2438);
+    // Лицо рисуется контрастным к телу: светлый face на тёмном пальто.
+    final faceColor = isDark
+        ? const Color(0xFFE6EDF7)
+        : const Color(0xFFEDF2F8);
 
     return SizedBox(
       width: _w,
@@ -197,7 +202,7 @@ class _Scene extends StatelessWidget {
             bottom: 0,
             height: 26,
             child: CustomPaint(
-              painter: _IslandPainter(color: silhouetteAccent),
+              painter: _IslandPainter(color: coatAccent),
             ),
           ),
           // ───── маяк (по центру островка) ─────
@@ -237,16 +242,14 @@ class _Scene extends StatelessWidget {
                   child: CustomPaint(
                     painter: KeeperPainter(
                       throwProgress: wave,
-                      bodyColor: silhouette,
-                      accentColor: silhouetteAccent,
+                      bodyColor: coatBody,
+                      accentColor: coatAccent,
                     ),
                   ),
                 ),
                 Positioned.fill(
                   child: CustomPaint(
-                    painter: _KeeperFacePainter(
-                      strokeColor: silhouetteAccent,
-                    ),
+                    painter: _KeeperFacePainter(strokeColor: faceColor),
                   ),
                 ),
               ],
