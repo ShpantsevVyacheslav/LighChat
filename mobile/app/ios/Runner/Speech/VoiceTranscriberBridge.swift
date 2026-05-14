@@ -40,9 +40,12 @@ final class VoiceTranscriberBridge: NSObject {
       let filePath = args["filePath"] as? String ?? ""
       let languageTag = args["languageTag"] as? String ?? "en-US"
       let autoDetect = (args["autoDetect"] as? Bool) ?? true
+      let fallbackLocales = (args["fallbackLocales"] as? [String]) ?? []
       transcribe(
         filePath: filePath, languageTag: languageTag,
-        autoDetect: autoDetect, result: result)
+        autoDetect: autoDetect,
+        fallbackLocales: fallbackLocales,
+        result: result)
 
     default:
       result(FlutterMethodNotImplemented)
@@ -51,7 +54,8 @@ final class VoiceTranscriberBridge: NSObject {
 
   private func transcribe(
     filePath: String, languageTag: String,
-    autoDetect: Bool, result: @escaping FlutterResult
+    autoDetect: Bool, fallbackLocales: [String],
+    result: @escaping FlutterResult
   ) {
     if filePath.isEmpty {
       result(
@@ -71,7 +75,8 @@ final class VoiceTranscriberBridge: NSObject {
       case .authorized:
         self.runRecognitionFlow(
           url: url, languageTag: languageTag,
-          autoDetect: autoDetect, result: result)
+          autoDetect: autoDetect, fallbackLocales: fallbackLocales,
+          result: result)
       case .denied:
         result(
           FlutterError(
@@ -117,36 +122,68 @@ final class VoiceTranscriberBridge: NSObject {
 
   private func runRecognitionFlow(
     url: URL, languageTag: String,
-    autoDetect: Bool, result: @escaping FlutterResult
+    autoDetect: Bool, fallbackLocales: [String],
+    result: @escaping FlutterResult
   ) {
-    let locale = Locale(
+    let primary = Locale(
       identifier: languageTag.replacingOccurrences(of: "-", with: "_"))
-    guard let recognizer = makeRecognizer(locale: locale) else {
-      result(
-        FlutterError(
-          code: "unsupported_lang",
-          message: "Recognizer not available for \(languageTag)",
-          details: nil))
-      return
+    let candidates: [Locale] = [primary] + fallbackLocales.map {
+      Locale(identifier: $0.replacingOccurrences(of: "-", with: "_"))
     }
-    performRecognition(recognizer: recognizer, url: url) { [weak self] outcome in
-      switch outcome {
-      case .failure(let error):
+    attemptRecognitionCandidates(
+      url: url, candidates: candidates, autoDetect: autoDetect,
+      index: 0, lastError: nil, result: result)
+  }
+
+  /// Перебираем локали-кандидаты по порядку. Берём первый непустой
+  /// результат; пустые/ошибки скипают локаль. Если всё опустошилось —
+  /// возвращаем пусто (или ошибку, если ни одна локаль не дала результата
+  /// даже на ошибку).
+  private func attemptRecognitionCandidates(
+    url: URL, candidates: [Locale], autoDetect: Bool,
+    index: Int, lastError: NSError?, result: @escaping FlutterResult
+  ) {
+    guard index < candidates.count else {
+      if let err = lastError, candidates.count == 1 {
         result(
           FlutterError(
             code: "recognition_failed",
-            message: error.localizedDescription,
+            message: err.localizedDescription,
             details: nil))
+      } else {
+        result(["text": ""])
+      }
+      return
+    }
+    let locale = candidates[index]
+    guard let recognizer = makeRecognizer(locale: locale) else {
+      attemptRecognitionCandidates(
+        url: url, candidates: candidates, autoDetect: autoDetect,
+        index: index + 1, lastError: lastError, result: result)
+      return
+    }
+    performRecognition(recognizer: recognizer, url: url) {
+      [weak self] outcome in
+      switch outcome {
+      case .failure(let error):
+        self?.attemptRecognitionCandidates(
+          url: url, candidates: candidates, autoDetect: autoDetect,
+          index: index + 1, lastError: error, result: result)
       case .success(let text):
-        if !autoDetect || text.isEmpty {
-          result(["text": text])
+        if !text.isEmpty {
+          if autoDetect {
+            self?.maybeReRunWithDetectedLanguage(
+              originalLocale: locale, originalText: text,
+              url: url, result: result)
+          } else {
+            result(["text": text])
+          }
           return
         }
-        self?.maybeReRunWithDetectedLanguage(
-          originalLocale: locale,
-          originalText: text,
-          url: url,
-          result: result)
+        // Пустой результат — пробуем следующего кандидата.
+        self?.attemptRecognitionCandidates(
+          url: url, candidates: candidates, autoDetect: autoDetect,
+          index: index + 1, lastError: lastError, result: result)
       }
     }
   }

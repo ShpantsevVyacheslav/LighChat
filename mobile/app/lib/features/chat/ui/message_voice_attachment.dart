@@ -101,6 +101,7 @@ class _WebStyleVoiceRow extends StatelessWidget {
     required this.onToggle,
     required this.onCycleRate,
     this.onWaveformSeekFromLocal,
+    this.footer,
   });
 
   final bool isMine;
@@ -116,6 +117,9 @@ class _WebStyleVoiceRow extends StatelessWidget {
   final VoidCallback onCycleRate;
   /// `localX` — по ширине волны; `width` — maxWidth из [LayoutBuilder].
   final void Function(double localX, double width)? onWaveformSeekFromLocal;
+  /// Опциональный блок внутри того же стеклянного пузыря (под плеером) —
+  /// например, контролы транскрипта.
+  final Widget? footer;
 
   String _format(Duration d) {
     if (d.inMilliseconds <= 0) return '0:00';
@@ -142,19 +146,16 @@ class _WebStyleVoiceRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
+    // Метатекст внутри стеклянного пузыря на ярких обоях должен оставаться
+    // читаемым — поднимаем alpha до уровня, на котором цвет уверенно выигрывает
+    // у фона. 0.55/0.7 раньше «сливались» с цветными обоями.
     final metaColor = isMine
-        ? scheme.onPrimary.withValues(alpha: 0.7)
-        : scheme.onSurface.withValues(alpha: 0.55);
+        ? scheme.onPrimary.withValues(alpha: 0.92)
+        : scheme.onSurface.withValues(alpha: 0.85);
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 300),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-        child: ChatGlassPanel(
-          padding: EdgeInsets.zero,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+    final playerRow = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
               const SizedBox(width: 10),
               Material(
                 color: scheme.primary,
@@ -248,12 +249,41 @@ class _WebStyleVoiceRow extends StatelessWidget {
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: isMine
-                        ? scheme.onPrimary.withValues(alpha: 0.85)
+                        ? scheme.onPrimary
                         : scheme.primary,
                   ),
                 ),
               ),
               const SizedBox(width: 6),
+            ],
+          );
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 300),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+        child: ChatGlassPanel(
+          padding: EdgeInsets.zero,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              playerRow,
+              if (footer != null) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Divider(
+                    height: 1,
+                    thickness: 0.5,
+                    color: (isMine ? scheme.onPrimary : scheme.onSurface)
+                        .withValues(alpha: 0.18),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+                  child: footer!,
+                ),
+              ],
             ],
           ),
         ),
@@ -659,7 +689,11 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
         : 0.0;
     final displayTime = _playing ? _position : _duration;
 
-    final row = _WebStyleVoiceRow(
+    final cid = (widget.conversationId ?? '').trim();
+    final mid = (widget.messageId ?? '').trim();
+    final hasIds = cid.isNotEmpty && mid.isNotEmpty;
+
+    return _WebStyleVoiceRow(
       isMine: mine,
       failed: _failed,
       ready: _ready,
@@ -674,24 +708,15 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
       },
       onCycleRate: _cycleRate,
       onWaveformSeekFromLocal: _seekFromWaveformLocal,
-    );
-
-    final cid = (widget.conversationId ?? '').trim();
-    final mid = (widget.messageId ?? '').trim();
-    if (cid.isEmpty || mid.isEmpty) return row;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        row,
-        _TranscriptControls(
-          conversationId: cid,
-          messageId: mid,
-          audioUrl: widget.attachment.url,
-          isMine: mine,
-          transcript: widget.transcript,
-        ),
-      ],
+      footer: hasIds
+          ? _TranscriptControls(
+              conversationId: cid,
+              messageId: mid,
+              audioUrl: widget.attachment.url,
+              isMine: mine,
+              transcript: widget.transcript,
+            )
+          : null,
     );
   }
 }

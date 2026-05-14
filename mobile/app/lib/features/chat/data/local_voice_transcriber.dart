@@ -74,6 +74,9 @@ class LocalVoiceTranscriber {
 
     final localPath = await _resolveToLocalFile(audioUrl);
     final languageTag = await _pickLanguageTag(languageHint);
+    final fallbackLocales = autoDetect
+        ? await _fallbackLocales(primary: languageTag)
+        : const <String>[];
     File? tempFile;
     if (localPath.tempPath != null) tempFile = File(localPath.tempPath!);
     try {
@@ -83,6 +86,7 @@ class LocalVoiceTranscriber {
           'filePath': localPath.filePath,
           'languageTag': languageTag,
           'autoDetect': autoDetect,
+          'fallbackLocales': fallbackLocales,
         },
       );
       final text = (raw?['text'] ?? '').toString().trim();
@@ -139,6 +143,41 @@ class LocalVoiceTranscriber {
       code: 'unsupported_scheme',
       message: 'Unsupported audio URL scheme: ${uri.scheme}',
     );
+  }
+
+  /// Список локалей-кандидатов для повторного прогона, если основной язык
+  /// вернул пустой результат. Это покрывает кейс «UI на en, а голосовое
+  /// записали на русском» — английский рекогнайзер Apple возвращает
+  /// пустоту, и NLLanguageRecognizer уже не может ничего детектировать.
+  ///
+  /// На iOS Swift-сторона по очереди пытается распознать с этими локалями
+  /// и берёт первый непустой результат, далее уточняя через
+  /// `NLLanguageRecognizer`.
+  Future<List<String>> _fallbackLocales({required String primary}) async {
+    final supported = await supportedLocales();
+    final primaryLang = primary.split('-').first.toLowerCase();
+    final candidates = <String>[];
+    void addIf(String tag) {
+      final lang = tag.split('-').first.toLowerCase();
+      if (lang == primaryLang) return;
+      if (candidates.contains(tag)) return;
+      if (supported.isNotEmpty &&
+          !supported.any((s) => s.toLowerCase() == tag.toLowerCase())) {
+        return;
+      }
+      candidates.add(tag);
+    }
+
+    // Эвристика «двух главных языков аудитории» — русско-английская пара.
+    if (primaryLang == 'en') {
+      addIf('ru-RU');
+    } else if (primaryLang == 'ru') {
+      addIf('en-US');
+    } else {
+      addIf('en-US');
+      addIf('ru-RU');
+    }
+    return candidates;
   }
 
   /// Карта коротких кодов l10n → BCP-47, с проверкой по supportedLocales().
