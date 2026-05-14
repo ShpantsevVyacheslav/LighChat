@@ -1802,7 +1802,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                               child: Column(
                                 children: [
                                   SizedBox(height: belowHeaderGap),
-                                  if (conv != null)
+                                  // На iOS native bar — overlay поверх
+                                  // Column'а, и DmGameLobbyBanner
+                                  // уезжал к status bar'у. Telegram-style:
+                                  // на iOS рендерим banner как Positioned
+                                  // ниже native bar pill'а (см. блок
+                                  // Positioned ниже в Stack'е). На
+                                  // Android/Win/Linux оставляем inline.
+                                  if (conv != null && !usesNativeBar)
                                     DmGameLobbyBanner(
                                       conversationId: conversationId,
                                       isGroup: conv.data.isGroup,
@@ -2889,51 +2896,59 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                 ],
                               ),
                             ),
-                            // iOS-only: Telegram-style pinned pill, рендерим
-                            // как floating overlay чтобы он сидел ровно под
-                            // native nav bar'ом и messages могли свободно
-                            // скроллиться под ним.
-                            // В режиме поиска / при открытой стикер-шторке
-                            // прячем — модальная UX зона.
+                            // iOS-only: DmGameLobbyBanner + Pinned-pill
+                            // оба под native bar'ом. Оборачиваем в один
+                            // Positioned+Column — если оба активны,
+                            // лобби сверху, pinned ниже без визуального
+                            // overlap'а. Inline-вариант (внутри Column'а
+                            // body) уезжал бы под status bar, потому что
+                            // на iOS-native Column начинается с y=0
+                            // (belowHeaderGap=0).
                             if (usesNativeBar &&
-                                topPin != null &&
                                 conv != null &&
                                 !_inChatSearch &&
                                 !_stickersPanelOpen)
                               Positioned(
-                                // Прибиваем pinned pill ВПЛОТНУЮ к bar'у
-                                // (раньше +6pt gap, теперь -8pt, чтобы
-                                // визуально pill'ы слипались как у
-                                // Telegram).
                                 top: nativeBarBottom - 8,
-                                // 20pt на iOS = совпадает с iOS 26
-                                // PlatterView system margin'ом у
-                                // nav bar pill'ов (см. layoutSubviews
-                                // log: HostedViewWrapper x=20..420 на
-                                // 440pt bar). Без этого pinned-pill
-                                // выглядел шире, чем шапка.
                                 left: 20,
                                 right: 20,
-                                child: ChatPinnedStrip(
-                                  pin: topPin,
-                                  totalPins: sortedPins.length,
-                                  pill: true,
-                                  onUnpin: () =>
-                                      _unpinMessage(topPin, conv.data),
-                                  onOpenPinned: () {
-                                    final n = sortedPins.length;
-                                    if (n == 0) return;
-                                    final i = displayPinIdx;
-                                    final target = sortedPins[i];
-                                    _scrollToMessageId(target.messageId);
-                                    setState(() {
-                                      _pinnedBarSkipSyncUntilMs =
-                                          DateTime.now()
-                                              .millisecondsSinceEpoch +
-                                          900;
-                                      _barPinIndex = (i - 1 + n) % n;
-                                    });
-                                  },
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    DmGameLobbyBanner(
+                                      conversationId: conversationId,
+                                      isGroup: conv.data.isGroup,
+                                    ),
+                                    if (topPin != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: ChatPinnedStrip(
+                                          pin: topPin,
+                                          totalPins: sortedPins.length,
+                                          pill: true,
+                                          onUnpin: () => _unpinMessage(
+                                            topPin,
+                                            conv.data,
+                                          ),
+                                          onOpenPinned: () {
+                                            final n = sortedPins.length;
+                                            if (n == 0) return;
+                                            final i = displayPinIdx;
+                                            final target = sortedPins[i];
+                                            _scrollToMessageId(
+                                              target.messageId,
+                                            );
+                                            setState(() {
+                                              _pinnedBarSkipSyncUntilMs =
+                                                  DateTime.now()
+                                                      .millisecondsSinceEpoch +
+                                                  900;
+                                              _barPinIndex = (i - 1 + n) % n;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                             if (showCalls &&
