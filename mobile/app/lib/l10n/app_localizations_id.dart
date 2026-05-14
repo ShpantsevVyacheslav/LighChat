@@ -6911,13 +6911,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get video_editor_caption_hint => 'Tambah caption...';
 
   @override
-  String get video_effects_speed => 'Скорость';
+  String get video_effects_speed => 'Kecepatan';
 
   @override
-  String get video_filter_none => 'Оригинал';
+  String get video_filter_none => 'Asli';
 
   @override
-  String get video_filter_enhance => 'Улучшить';
+  String get video_filter_enhance => 'Tingkatkan';
 
   @override
   String get share_location_title => 'Bagikan Lokasi';
@@ -7089,28 +7089,28 @@ class AppLocalizationsId extends AppLocalizations {
   String get meeting_chat_edited_mark => '• diedit';
 
   @override
-  String get meeting_chat_reply => 'Ответить';
+  String get meeting_chat_reply => 'Balas';
 
   @override
-  String get meeting_chat_react => 'Реакция';
+  String get meeting_chat_react => 'Reaksi';
 
   @override
-  String get meeting_chat_copied => 'Скопировано';
+  String get meeting_chat_copied => 'Disalin';
 
   @override
-  String get meeting_chat_editing => 'Редактирование';
+  String get meeting_chat_editing => 'Mengedit';
 
   @override
   String meeting_chat_reply_to(Object name) {
-    return 'Ответ $name';
+    return 'Balas ke $name';
   }
 
   @override
-  String get meeting_chat_attachment_placeholder => 'Вложение';
+  String get meeting_chat_attachment_placeholder => 'Lampiran';
 
   @override
   String meeting_timer_remaining(Object time) {
-    return 'Осталось $time';
+    return 'Sisa $time';
   }
 
   @override
@@ -7119,22 +7119,22 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get meeting_back_to_chats => 'К чатам';
+  String get meeting_back_to_chats => 'Kembali ke chat';
 
   @override
-  String get meeting_open_chats => 'Открыть чаты';
+  String get meeting_open_chats => 'Buka chat';
 
   @override
-  String get meeting_in_call_chat => 'Чат конференции';
+  String get meeting_in_call_chat => 'Chat saat panggilan';
 
   @override
-  String get meeting_lobby_open_settings => 'Открыть настройки';
+  String get meeting_lobby_open_settings => 'Buka pengaturan';
 
   @override
-  String get meeting_lobby_retry => 'Повторить';
+  String get meeting_lobby_retry => 'Coba lagi';
 
   @override
-  String get meeting_minimized_resume => 'Нажмите, чтобы вернуться';
+  String get meeting_minimized_resume => 'Ketuk untuk kembali ke panggilan';
 
   @override
   String get e2ee_decrypt_image_failed => 'Gagal to decrypt Gambar';
@@ -8223,12 +8223,12 @@ class AppLocalizationsId extends AppLocalizations {
   String get birthday_error_reminder => 'Gagal mengatur pengingat';
 
   @override
-  String get chat_empty_title => 'Сообщений пока нет';
+  String get chat_empty_title => 'Belum ada pesan';
 
   @override
   String get chat_empty_subtitle =>
-      'Напишите первое сообщение — хранитель маяка уже ждёт';
+      'Sapa dulu — penjaga mercusuar sudah melambai';
 
   @override
-  String get chat_empty_quick_greet => 'Поздороваться 👋';
+  String get chat_empty_quick_greet => 'Sapa 👋';
 }

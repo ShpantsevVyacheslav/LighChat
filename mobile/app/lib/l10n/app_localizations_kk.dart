@@ -6917,13 +6917,13 @@ class AppLocalizationsKk extends AppLocalizations {
   String get video_editor_caption_hint => 'Қосу подпись...';
 
   @override
-  String get video_effects_speed => 'Скорость';
+  String get video_effects_speed => 'Жылдамдық';
 
   @override
-  String get video_filter_none => 'Оригинал';
+  String get video_filter_none => 'Бастапқы';
 
   @override
-  String get video_filter_enhance => 'Улучшить';
+  String get video_filter_enhance => 'Жақсарту';
 
   @override
   String get share_location_title => 'Бөлісу геолокацией';
@@ -7095,28 +7095,28 @@ class AppLocalizationsKk extends AppLocalizations {
   String get meeting_chat_edited_mark => '• изм.';
 
   @override
-  String get meeting_chat_reply => 'Ответить';
+  String get meeting_chat_reply => 'Жауап беру';
 
   @override
   String get meeting_chat_react => 'Реакция';
 
   @override
-  String get meeting_chat_copied => 'Скопировано';
+  String get meeting_chat_copied => 'Көшірілді';
 
   @override
-  String get meeting_chat_editing => 'Редактирование';
+  String get meeting_chat_editing => 'Өңделуде';
 
   @override
   String meeting_chat_reply_to(Object name) {
-    return 'Ответ $name';
+    return '$name деген хабарға жауап';
   }
 
   @override
-  String get meeting_chat_attachment_placeholder => 'Вложение';
+  String get meeting_chat_attachment_placeholder => 'Қосымша';
 
   @override
   String meeting_timer_remaining(Object time) {
-    return 'Осталось $time';
+    return '$time қалды';
   }
 
   @override
@@ -7125,22 +7125,22 @@ class AppLocalizationsKk extends AppLocalizations {
   }
 
   @override
-  String get meeting_back_to_chats => 'К чатам';
+  String get meeting_back_to_chats => 'Чаттарға оралу';
 
   @override
-  String get meeting_open_chats => 'Открыть чаты';
+  String get meeting_open_chats => 'Чаттарды ашу';
 
   @override
-  String get meeting_in_call_chat => 'Чат конференции';
+  String get meeting_in_call_chat => 'Қоңырау ішіндегі чат';
 
   @override
-  String get meeting_lobby_open_settings => 'Открыть настройки';
+  String get meeting_lobby_open_settings => 'Параметрлерді ашу';
 
   @override
-  String get meeting_lobby_retry => 'Повторить';
+  String get meeting_lobby_retry => 'Қайталау';
 
   @override
-  String get meeting_minimized_resume => 'Нажмите, чтобы вернуться';
+  String get meeting_minimized_resume => 'Қоңырауға оралу үшін түртіңіз';
 
   @override
   String get e2ee_decrypt_image_failed => 'Сәтсіз шифрды ашу сурет';
@@ -7411,10 +7411,10 @@ class AppLocalizationsKk extends AppLocalizations {
   String get call_status_ended => 'Завершен';
 
   @override
-  String get presence_offline => 'Не в сети';
+  String get presence_offline => 'Желіде емес';
 
   @override
-  String get presence_online => 'В сети';
+  String get presence_online => 'Желіде';
 
   @override
   String get dm_title_fallback => 'Чат';
@@ -7486,10 +7486,10 @@ class AppLocalizationsKk extends AppLocalizations {
       'Слишком большой общий өлшем вложений: ең көп 96 МБ для одного зашифрованного хабарламалар.';
 
   @override
-  String get presence_last_seen_prefix => 'Болды(а) ';
+  String get presence_last_seen_prefix => 'Соңғы рет ';
 
   @override
-  String get presence_less_than_minute_ago => 'менее минут назад';
+  String get presence_less_than_minute_ago => 'бір минуттан аз бұрын';
 
   @override
   String get presence_yesterday => 'кеше';
@@ -7558,10 +7558,10 @@ class AppLocalizationsKk extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count минут назад',
-      many: '$count минут назад',
-      few: '$count минут назад',
-      one: '$count минут назад',
+      other: '$count минут бұрын',
+      many: '$count минут бұрын',
+      few: '$count минут бұрын',
+      one: '$count минут бұрын',
     );
     return '$_temp0';
   }
@@ -7571,10 +7571,10 @@ class AppLocalizationsKk extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count сағат назад',
-      many: '$count сағат назад',
-      few: '$count сағат назад',
-      one: '$count сағат назад',
+      other: '$count сағат бұрын',
+      many: '$count сағат бұрын',
+      few: '$count сағат бұрын',
+      one: '$count сағат бұрын',
     );
     return '$_temp0';
   }
@@ -7584,10 +7584,10 @@ class AppLocalizationsKk extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count күн назад',
-      many: '$count күн назад',
-      few: '$count күн назад',
-      one: '$count күн назад',
+      other: '$count күн бұрын',
+      many: '$count күн бұрын',
+      few: '$count күн бұрын',
+      one: '$count күн бұрын',
     );
     return '$_temp0';
   }
@@ -7597,10 +7597,10 @@ class AppLocalizationsKk extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count ай назад',
-      many: '$count ай назад',
-      few: '$count ай назад',
-      one: '$count ай назад',
+      other: '$count ай бұрын',
+      many: '$count ай бұрын',
+      few: '$count ай бұрын',
+      one: '$count ай бұрын',
     );
     return '$_temp0';
   }
@@ -7618,10 +7618,10 @@ class AppLocalizationsKk extends AppLocalizations {
     String _temp1 = intl.Intl.pluralLogic(
       months,
       locale: localeName,
-      other: '$months ай назад',
-      many: '$months ай назад',
-      few: '$months ай назад',
-      one: '$months ай назад',
+      other: '$months ай бұрын',
+      many: '$months ай бұрын',
+      few: '$months ай бұрын',
+      one: '$months ай бұрын',
     );
     return '$_temp0 $_temp1';
   }
@@ -7631,10 +7631,10 @@ class AppLocalizationsKk extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count жыл назад',
-      many: '$count жыл назад',
-      few: '$count жыл назад',
-      one: '$count жыл назад',
+      other: '$count жыл бұрын',
+      many: '$count жыл бұрын',
+      few: '$count жыл бұрын',
+      one: '$count жыл бұрын',
     );
     return '$_temp0';
   }
@@ -8243,12 +8243,12 @@ class AppLocalizationsKk extends AppLocalizations {
   String get birthday_error_reminder => 'Еске салғыш орнатылмады';
 
   @override
-  String get chat_empty_title => 'Сообщений пока нет';
+  String get chat_empty_title => 'Әзірге хабарлар жоқ';
 
   @override
   String get chat_empty_subtitle =>
-      'Напишите первое сообщение — хранитель маяка уже ждёт';
+      'Сәлемдесіңіз — маяк күзетшісі қол бұлғап тұр';
 
   @override
-  String get chat_empty_quick_greet => 'Поздороваться 👋';
+  String get chat_empty_quick_greet => 'Сәлем айту 👋';
 }

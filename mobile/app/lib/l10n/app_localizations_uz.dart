@@ -6949,13 +6949,13 @@ class AppLocalizationsUz extends AppLocalizations {
   String get video_editor_caption_hint => 'Izoh qoʻshing...';
 
   @override
-  String get video_effects_speed => 'Скорость';
+  String get video_effects_speed => 'Tezlik';
 
   @override
-  String get video_filter_none => 'Оригинал';
+  String get video_filter_none => 'Asl';
 
   @override
-  String get video_filter_enhance => 'Улучшить';
+  String get video_filter_enhance => 'Yaxshilash';
 
   @override
   String get share_location_title => 'Joylashuvni ulashish';
@@ -7128,28 +7128,28 @@ class AppLocalizationsUz extends AppLocalizations {
   String get meeting_chat_edited_mark => '• tahrirlangan';
 
   @override
-  String get meeting_chat_reply => 'Ответить';
+  String get meeting_chat_reply => 'Javob berish';
 
   @override
-  String get meeting_chat_react => 'Реакция';
+  String get meeting_chat_react => 'Reaksiya';
 
   @override
-  String get meeting_chat_copied => 'Скопировано';
+  String get meeting_chat_copied => 'Nusxalandi';
 
   @override
-  String get meeting_chat_editing => 'Редактирование';
+  String get meeting_chat_editing => 'Tahrirlanmoqda';
 
   @override
   String meeting_chat_reply_to(Object name) {
-    return 'Ответ $name';
+    return '${name}ga javob';
   }
 
   @override
-  String get meeting_chat_attachment_placeholder => 'Вложение';
+  String get meeting_chat_attachment_placeholder => 'Ilova';
 
   @override
   String meeting_timer_remaining(Object time) {
-    return 'Осталось $time';
+    return '$time qoldi';
   }
 
   @override
@@ -7158,22 +7158,22 @@ class AppLocalizationsUz extends AppLocalizations {
   }
 
   @override
-  String get meeting_back_to_chats => 'К чатам';
+  String get meeting_back_to_chats => 'Chatlarga qaytish';
 
   @override
-  String get meeting_open_chats => 'Открыть чаты';
+  String get meeting_open_chats => 'Chatlarni ochish';
 
   @override
-  String get meeting_in_call_chat => 'Чат конференции';
+  String get meeting_in_call_chat => 'Qo\'ng\'iroq chati';
 
   @override
-  String get meeting_lobby_open_settings => 'Открыть настройки';
+  String get meeting_lobby_open_settings => 'Sozlamalarni ochish';
 
   @override
-  String get meeting_lobby_retry => 'Повторить';
+  String get meeting_lobby_retry => 'Qayta urinish';
 
   @override
-  String get meeting_minimized_resume => 'Нажмите, чтобы вернуться';
+  String get meeting_minimized_resume => 'Qo\'ng\'iroqqa qaytish uchun bosing';
 
   @override
   String get e2ee_decrypt_image_failed => 'Rasmni shifrini ochib boʻlmadi';
@@ -8264,12 +8264,12 @@ class AppLocalizationsUz extends AppLocalizations {
   String get birthday_error_reminder => 'Eslatma o\'rnatilmadi';
 
   @override
-  String get chat_empty_title => 'Сообщений пока нет';
+  String get chat_empty_title => 'Hozircha xabarlar yo\'q';
 
   @override
   String get chat_empty_subtitle =>
-      'Напишите первое сообщение — хранитель маяка уже ждёт';
+      'Salom ayting — mayoq qorovuli allaqachon qo\'l silkitmoqda';
 
   @override
-  String get chat_empty_quick_greet => 'Поздороваться 👋';
+  String get chat_empty_quick_greet => 'Salom 👋';
 }

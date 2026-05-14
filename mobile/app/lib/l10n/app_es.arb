@@ -4245,5 +4245,40 @@
   "birthday_empty": "Hoy no hay cumpleaños entre tus contactos",
   "birthday_error_self": "No se pudo cargar tu perfil",
   "birthday_error_send": "No se pudo enviar el mensaje. Inténtalo de nuevo.",
-  "birthday_error_reminder": "No se pudo configurar el recordatorio"
+  "birthday_error_reminder": "No se pudo configurar el recordatorio",
+  "video_effects_speed": "Velocidad",
+  "video_filter_none": "Original",
+  "video_filter_enhance": "Realzar",
+  "meeting_chat_reply": "Responder",
+  "meeting_chat_react": "Reaccionar",
+  "meeting_chat_copied": "Copiado",
+  "meeting_chat_editing": "Editando",
+  "meeting_chat_reply_to": "Responder a {name}",
+  "@meeting_chat_reply_to": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "meeting_chat_attachment_placeholder": "Archivo adjunto",
+  "meeting_timer_remaining": "Quedan {time}",
+  "@meeting_timer_remaining": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "meeting_timer_elapsed": "{time}",
+  "@meeting_timer_elapsed": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "meeting_back_to_chats": "Volver a los chats",
+  "meeting_open_chats": "Abrir chats",
+  "meeting_in_call_chat": "Chat en la llamada",
+  "meeting_lobby_open_settings": "Abrir ajustes",
+  "meeting_lobby_retry": "Reintentar",
+  "meeting_minimized_resume": "Toca para volver a la llamada",
+  "chat_empty_title": "Aún no hay mensajes",
+  "chat_empty_subtitle": "Saluda — el farero ya te está saludando con la mano",
+  "chat_empty_quick_greet": "Saludar 👋"
 }

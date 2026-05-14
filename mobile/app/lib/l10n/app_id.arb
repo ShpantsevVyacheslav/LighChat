@@ -4245,5 +4245,40 @@
   "birthday_empty": "Tidak ada ulang tahun kontak hari ini",
   "birthday_error_self": "Tidak bisa memuat profilmu",
   "birthday_error_send": "Gagal mengirim ucapan. Coba lagi.",
-  "birthday_error_reminder": "Gagal mengatur pengingat"
+  "birthday_error_reminder": "Gagal mengatur pengingat",
+  "video_effects_speed": "Kecepatan",
+  "video_filter_none": "Asli",
+  "video_filter_enhance": "Tingkatkan",
+  "meeting_chat_reply": "Balas",
+  "meeting_chat_react": "Reaksi",
+  "meeting_chat_copied": "Disalin",
+  "meeting_chat_editing": "Mengedit",
+  "meeting_chat_reply_to": "Balas ke {name}",
+  "@meeting_chat_reply_to": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "meeting_chat_attachment_placeholder": "Lampiran",
+  "meeting_timer_remaining": "Sisa {time}",
+  "@meeting_timer_remaining": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "meeting_timer_elapsed": "{time}",
+  "@meeting_timer_elapsed": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "meeting_back_to_chats": "Kembali ke chat",
+  "meeting_open_chats": "Buka chat",
+  "meeting_in_call_chat": "Chat saat panggilan",
+  "meeting_lobby_open_settings": "Buka pengaturan",
+  "meeting_lobby_retry": "Coba lagi",
+  "meeting_minimized_resume": "Ketuk untuk kembali ke panggilan",
+  "chat_empty_title": "Belum ada pesan",
+  "chat_empty_subtitle": "Sapa dulu — penjaga mercusuar sudah melambai",
+  "chat_empty_quick_greet": "Sapa 👋"
 }

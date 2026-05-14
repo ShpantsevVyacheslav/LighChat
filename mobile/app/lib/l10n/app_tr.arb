@@ -4245,5 +4245,40 @@
   "birthday_empty": "Bugün kişilerinde doğum günü yok",
   "birthday_error_self": "Profilin yüklenemedi",
   "birthday_error_send": "Mesaj gönderilemedi. Lütfen tekrar dene.",
-  "birthday_error_reminder": "Hatırlatma ayarlanamadı"
+  "birthday_error_reminder": "Hatırlatma ayarlanamadı",
+  "video_effects_speed": "Hız",
+  "video_filter_none": "Orijinal",
+  "video_filter_enhance": "İyileştir",
+  "meeting_chat_reply": "Yanıtla",
+  "meeting_chat_react": "Tepki ver",
+  "meeting_chat_copied": "Kopyalandı",
+  "meeting_chat_editing": "Düzenleniyor",
+  "meeting_chat_reply_to": "{name} kişisine yanıt",
+  "@meeting_chat_reply_to": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "meeting_chat_attachment_placeholder": "Ek",
+  "meeting_timer_remaining": "{time} kaldı",
+  "@meeting_timer_remaining": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "meeting_timer_elapsed": "{time}",
+  "@meeting_timer_elapsed": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "meeting_back_to_chats": "Sohbetlere dön",
+  "meeting_open_chats": "Sohbetleri aç",
+  "meeting_in_call_chat": "Görüşme sohbeti",
+  "meeting_lobby_open_settings": "Ayarları aç",
+  "meeting_lobby_retry": "Yeniden dene",
+  "meeting_minimized_resume": "Görüşmeye dönmek için dokunun",
+  "chat_empty_title": "Henüz mesaj yok",
+  "chat_empty_subtitle": "Selam ver — deniz feneri bekçisi sana el sallıyor",
+  "chat_empty_quick_greet": "Selam 👋"
 }

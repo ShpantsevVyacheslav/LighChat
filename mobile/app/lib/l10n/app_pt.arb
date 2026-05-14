@@ -4245,5 +4245,40 @@
   "birthday_empty": "Nenhum aniversário entre seus contatos hoje",
   "birthday_error_self": "Não foi possível carregar seu perfil",
   "birthday_error_send": "Não foi possível enviar. Tente novamente.",
-  "birthday_error_reminder": "Não foi possível definir o lembrete"
+  "birthday_error_reminder": "Não foi possível definir o lembrete",
+  "video_effects_speed": "Velocidade",
+  "video_filter_none": "Original",
+  "video_filter_enhance": "Realçar",
+  "meeting_chat_reply": "Responder",
+  "meeting_chat_react": "Reagir",
+  "meeting_chat_copied": "Copiado",
+  "meeting_chat_editing": "A editar",
+  "meeting_chat_reply_to": "Responder a {name}",
+  "@meeting_chat_reply_to": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "meeting_chat_attachment_placeholder": "Anexo",
+  "meeting_timer_remaining": "Faltam {time}",
+  "@meeting_timer_remaining": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "meeting_timer_elapsed": "{time}",
+  "@meeting_timer_elapsed": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "meeting_back_to_chats": "Voltar aos chats",
+  "meeting_open_chats": "Abrir chats",
+  "meeting_in_call_chat": "Chat na chamada",
+  "meeting_lobby_open_settings": "Abrir definições",
+  "meeting_lobby_retry": "Tentar novamente",
+  "meeting_minimized_resume": "Toque para voltar à chamada",
+  "chat_empty_title": "Ainda sem mensagens",
+  "chat_empty_subtitle": "Cumprimente — o faroleiro já está a acenar",
+  "chat_empty_quick_greet": "Olá 👋"
 }

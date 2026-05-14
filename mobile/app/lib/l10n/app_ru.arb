@@ -3887,7 +3887,7 @@
       "error": {}
     }
   },
-  "presence_minutes_ago": "{count,plural, =1{минуту назад} one{{count} минуту назад} few{{count} минуты назад} many{{count} минут назад} other{{count} минут назад}}",
+  "presence_minutes_ago": "{count,plural, one{{count} минуту назад} few{{count} минуты назад} many{{count} минут назад} other{{count} минут назад}}",
   "@presence_minutes_ago": {
     "placeholders": {
       "count": {
@@ -3895,7 +3895,7 @@
       }
     }
   },
-  "presence_hours_ago": "{count,plural, =1{час назад} one{{count} час назад} few{{count} часа назад} many{{count} часов назад} other{{count} часов назад}}",
+  "presence_hours_ago": "{count,plural, one{{count} час назад} few{{count} часа назад} many{{count} часов назад} other{{count} часов назад}}",
   "@presence_hours_ago": {
     "placeholders": {
       "count": {
@@ -3911,7 +3911,7 @@
       }
     }
   },
-  "presence_months_ago": "{count,plural, =1{1 месяц назад} one{{count} месяц назад} few{{count} месяца назад} many{{count} месяцев назад} other{{count} месяцев назад}}",
+  "presence_months_ago": "{count,plural, one{{count} месяц назад} few{{count} месяца назад} many{{count} месяцев назад} other{{count} месяцев назад}}",
   "@presence_months_ago": {
     "placeholders": {
       "count": {
@@ -3919,7 +3919,7 @@
       }
     }
   },
-  "presence_years_months_ago": "{years,plural, =1{1 год} one{{years} год} few{{years} года} many{{years} лет} other{{years} лет}} {months,plural, =1{1 месяц назад} one{{months} месяц назад} few{{months} месяца назад} many{{months} месяцев назад} other{{months} месяцев назад}}",
+  "presence_years_months_ago": "{years,plural, one{{years} год} few{{years} года} many{{years} лет} other{{years} лет}} {months,plural, one{{months} месяц назад} few{{months} месяца назад} many{{months} месяцев назад} other{{months} месяцев назад}}",
   "@presence_years_months_ago": {
     "placeholders": {
       "years": {
@@ -3930,7 +3930,7 @@
       }
     }
   },
-  "presence_years_ago": "{count,plural, =1{1 год назад} one{{count} год назад} few{{count} года назад} many{{count} лет назад} other{{count} лет назад}}",
+  "presence_years_ago": "{count,plural, one{{count} год назад} few{{count} года назад} many{{count} лет назад} other{{count} лет назад}}",
   "@presence_years_ago": {
     "placeholders": {
       "count": {

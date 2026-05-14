@@ -3473,8 +3473,8 @@
   "call_status_missed": "Пропущен",
   "call_status_cancelled": "Отменен",
   "call_status_ended": "Завершен",
-  "presence_offline": "Не в сети",
-  "presence_online": "В сети",
+  "presence_offline": "Желіде емес",
+  "presence_online": "Желіде",
   "dm_title_fallback": "Чат",
   "dm_title_partner_fallback": "Собеседник",
   "group_title_fallback": "Групповой чат",
@@ -3496,8 +3496,8 @@
   "live_location_forever": "Наәрқашан (әзірге не отключу)",
   "e2ee_send_too_many_files": "Слишком көп вложений для зашифрованной отправки: ең көп 5 файлов за хабарлама.",
   "e2ee_send_too_large": "Слишком большой общий өлшем вложений: ең көп 96 МБ для одного зашифрованного хабарламалар.",
-  "presence_last_seen_prefix": "Болды(а) ",
-  "presence_less_than_minute_ago": "менее минут назад",
+  "presence_last_seen_prefix": "Соңғы рет ",
+  "presence_less_than_minute_ago": "бір минуттан аз бұрын",
   "presence_yesterday": "кеше",
   "dm_fallback_title": "Чат",
   "dm_fallback_partner": "Собеседник",
@@ -3530,7 +3530,7 @@
       "error": {}
     }
   },
-  "presence_minutes_ago": "{count,plural, =1{минуту назад} one{{count} минут назад} few{{count} минут назад} many{{count} минут назад} other{{count} минут назад}}",
+  "presence_minutes_ago": "{count,plural, one{{count} минут бұрын} few{{count} минут бұрын} many{{count} минут бұрын} other{{count} минут бұрын}}",
   "@presence_minutes_ago": {
     "placeholders": {
       "count": {
@@ -3538,7 +3538,7 @@
       }
     }
   },
-  "presence_hours_ago": "{count,plural, =1{час назад} one{{count} сағат назад} few{{count} сағат назад} many{{count} сағат назад} other{{count} сағат назад}}",
+  "presence_hours_ago": "{count,plural, one{{count} сағат бұрын} few{{count} сағат бұрын} many{{count} сағат бұрын} other{{count} сағат бұрын}}",
   "@presence_hours_ago": {
     "placeholders": {
       "count": {
@@ -3546,7 +3546,7 @@
       }
     }
   },
-  "presence_days_ago": "{count,plural, one{{count} күн назад} few{{count} күн назад} many{{count} күн назад} other{{count} күн назад}}",
+  "presence_days_ago": "{count,plural, one{{count} күн бұрын} few{{count} күн бұрын} many{{count} күн бұрын} other{{count} күн бұрын}}",
   "@presence_days_ago": {
     "placeholders": {
       "count": {
@@ -3554,7 +3554,7 @@
       }
     }
   },
-  "presence_months_ago": "{count,plural, =1{1 месяц назад} one{{count} ай назад} few{{count} ай назад} many{{count} ай назад} other{{count} ай назад}}",
+  "presence_months_ago": "{count,plural, one{{count} ай бұрын} few{{count} ай бұрын} many{{count} ай бұрын} other{{count} ай бұрын}}",
   "@presence_months_ago": {
     "placeholders": {
       "count": {
@@ -3562,7 +3562,7 @@
       }
     }
   },
-  "presence_years_months_ago": "{years,plural, =1{1 год} one{{years} жыл} few{{years} жыл} many{{years} жыл} other{{years} жыл}} {months,plural, =1{1 месяц назад} one{{months} ай назад} few{{months} ай назад} many{{months} ай назад} other{{months} ай назад}}",
+  "presence_years_months_ago": "{years,plural, one{{years} жыл} few{{years} жыл} many{{years} жыл} other{{years} жыл}} {months,plural, one{{months} ай бұрын} few{{months} ай бұрын} many{{months} ай бұрын} other{{months} ай бұрын}}",
   "@presence_years_months_ago": {
     "placeholders": {
       "years": {
@@ -3573,7 +3573,7 @@
       }
     }
   },
-  "presence_years_ago": "{count,plural, =1{1 год назад} one{{count} жыл назад} few{{count} жыл назад} many{{count} жыл назад} other{{count} жыл назад}}",
+  "presence_years_ago": "{count,plural, one{{count} жыл бұрын} few{{count} жыл бұрын} many{{count} жыл бұрын} other{{count} жыл бұрын}}",
   "@presence_years_ago": {
     "placeholders": {
       "count": {
@@ -4245,5 +4245,40 @@
   "birthday_empty": "Бүгін контактілерде туған күн жоқ",
   "birthday_error_self": "Профиль жүктелмеді",
   "birthday_error_send": "Хабар жіберілмеді. Қайтадан көріңіз.",
-  "birthday_error_reminder": "Еске салғыш орнатылмады"
+  "birthday_error_reminder": "Еске салғыш орнатылмады",
+  "video_effects_speed": "Жылдамдық",
+  "video_filter_none": "Бастапқы",
+  "video_filter_enhance": "Жақсарту",
+  "meeting_chat_reply": "Жауап беру",
+  "meeting_chat_react": "Реакция",
+  "meeting_chat_copied": "Көшірілді",
+  "meeting_chat_editing": "Өңделуде",
+  "meeting_chat_reply_to": "{name} деген хабарға жауап",
+  "@meeting_chat_reply_to": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "meeting_chat_attachment_placeholder": "Қосымша",
+  "meeting_timer_remaining": "{time} қалды",
+  "@meeting_timer_remaining": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "meeting_timer_elapsed": "{time}",
+  "@meeting_timer_elapsed": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "meeting_back_to_chats": "Чаттарға оралу",
+  "meeting_open_chats": "Чаттарды ашу",
+  "meeting_in_call_chat": "Қоңырау ішіндегі чат",
+  "meeting_lobby_open_settings": "Параметрлерді ашу",
+  "meeting_lobby_retry": "Қайталау",
+  "meeting_minimized_resume": "Қоңырауға оралу үшін түртіңіз",
+  "chat_empty_title": "Әзірге хабарлар жоқ",
+  "chat_empty_subtitle": "Сәлемдесіңіз — маяк күзетшісі қол бұлғап тұр",
+  "chat_empty_quick_greet": "Сәлем айту 👋"
 }

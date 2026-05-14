@@ -13351,13 +13351,13 @@ abstract class AppLocalizations {
   /// No description provided for @presence_minutes_ago.
   ///
   /// In ru, this message translates to:
-  /// **'{count,plural, =1{минуту назад} one{{count} минуту назад} few{{count} минуты назад} many{{count} минут назад} other{{count} минут назад}}'**
+  /// **'{count,plural, one{{count} минуту назад} few{{count} минуты назад} many{{count} минут назад} other{{count} минут назад}}'**
   String presence_minutes_ago(int count);
 
   /// No description provided for @presence_hours_ago.
   ///
   /// In ru, this message translates to:
-  /// **'{count,plural, =1{час назад} one{{count} час назад} few{{count} часа назад} many{{count} часов назад} other{{count} часов назад}}'**
+  /// **'{count,plural, one{{count} час назад} few{{count} часа назад} many{{count} часов назад} other{{count} часов назад}}'**
   String presence_hours_ago(int count);
 
   /// No description provided for @presence_days_ago.
@@ -13369,19 +13369,19 @@ abstract class AppLocalizations {
   /// No description provided for @presence_months_ago.
   ///
   /// In ru, this message translates to:
-  /// **'{count,plural, =1{1 месяц назад} one{{count} месяц назад} few{{count} месяца назад} many{{count} месяцев назад} other{{count} месяцев назад}}'**
+  /// **'{count,plural, one{{count} месяц назад} few{{count} месяца назад} many{{count} месяцев назад} other{{count} месяцев назад}}'**
   String presence_months_ago(int count);
 
   /// No description provided for @presence_years_months_ago.
   ///
   /// In ru, this message translates to:
-  /// **'{years,plural, =1{1 год} one{{years} год} few{{years} года} many{{years} лет} other{{years} лет}} {months,plural, =1{1 месяц назад} one{{months} месяц назад} few{{months} месяца назад} many{{months} месяцев назад} other{{months} месяцев назад}}'**
+  /// **'{years,plural, one{{years} год} few{{years} года} many{{years} лет} other{{years} лет}} {months,plural, one{{months} месяц назад} few{{months} месяца назад} many{{months} месяцев назад} other{{months} месяцев назад}}'**
   String presence_years_months_ago(int years, int months);
 
   /// No description provided for @presence_years_ago.
   ///
   /// In ru, this message translates to:
-  /// **'{count,plural, =1{1 год назад} one{{count} год назад} few{{count} года назад} many{{count} лет назад} other{{count} лет назад}}'**
+  /// **'{count,plural, one{{count} год назад} few{{count} года назад} many{{count} лет назад} other{{count} лет назад}}'**
   String presence_years_ago(int count);
 
   /// No description provided for @wallpaper_gradient_purple.

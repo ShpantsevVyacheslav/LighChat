@@ -6950,13 +6950,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get video_editor_caption_hint => 'Adicionar caption...';
 
   @override
-  String get video_effects_speed => 'Скорость';
+  String get video_effects_speed => 'Velocidade';
 
   @override
-  String get video_filter_none => 'Оригинал';
+  String get video_filter_none => 'Original';
 
   @override
-  String get video_filter_enhance => 'Улучшить';
+  String get video_filter_enhance => 'Realçar';
 
   @override
   String get share_location_title => 'Compartilhar localização';
@@ -7129,28 +7129,28 @@ class AppLocalizationsPt extends AppLocalizations {
   String get meeting_chat_edited_mark => '• editado';
 
   @override
-  String get meeting_chat_reply => 'Ответить';
+  String get meeting_chat_reply => 'Responder';
 
   @override
-  String get meeting_chat_react => 'Реакция';
+  String get meeting_chat_react => 'Reagir';
 
   @override
-  String get meeting_chat_copied => 'Скопировано';
+  String get meeting_chat_copied => 'Copiado';
 
   @override
-  String get meeting_chat_editing => 'Редактирование';
+  String get meeting_chat_editing => 'A editar';
 
   @override
   String meeting_chat_reply_to(Object name) {
-    return 'Ответ $name';
+    return 'Responder a $name';
   }
 
   @override
-  String get meeting_chat_attachment_placeholder => 'Вложение';
+  String get meeting_chat_attachment_placeholder => 'Anexo';
 
   @override
   String meeting_timer_remaining(Object time) {
-    return 'Осталось $time';
+    return 'Faltam $time';
   }
 
   @override
@@ -7159,22 +7159,22 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get meeting_back_to_chats => 'К чатам';
+  String get meeting_back_to_chats => 'Voltar aos chats';
 
   @override
-  String get meeting_open_chats => 'Открыть чаты';
+  String get meeting_open_chats => 'Abrir chats';
 
   @override
-  String get meeting_in_call_chat => 'Чат конференции';
+  String get meeting_in_call_chat => 'Chat na chamada';
 
   @override
-  String get meeting_lobby_open_settings => 'Открыть настройки';
+  String get meeting_lobby_open_settings => 'Abrir definições';
 
   @override
-  String get meeting_lobby_retry => 'Повторить';
+  String get meeting_lobby_retry => 'Tentar novamente';
 
   @override
-  String get meeting_minimized_resume => 'Нажмите, чтобы вернуться';
+  String get meeting_minimized_resume => 'Toque para voltar à chamada';
 
   @override
   String get e2ee_decrypt_image_failed => 'Falha ao descriptografar a imagem';
@@ -8271,14 +8271,14 @@ class AppLocalizationsPt extends AppLocalizations {
   String get birthday_error_reminder => 'Não foi possível definir o lembrete';
 
   @override
-  String get chat_empty_title => 'Сообщений пока нет';
+  String get chat_empty_title => 'Ainda sem mensagens';
 
   @override
   String get chat_empty_subtitle =>
-      'Напишите первое сообщение — хранитель маяка уже ждёт';
+      'Cumprimente — o faroleiro já está a acenar';
 
   @override
-  String get chat_empty_quick_greet => 'Поздороваться 👋';
+  String get chat_empty_quick_greet => 'Olá 👋';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -15227,6 +15227,15 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get video_editor_caption_hint => 'Adicionar caption...';
 
   @override
+  String get video_effects_speed => 'Velocidade';
+
+  @override
+  String get video_filter_none => 'Original';
+
+  @override
+  String get video_filter_enhance => 'Realçar';
+
+  @override
   String get share_location_title => 'Compartilhar localização';
 
   @override
@@ -15395,6 +15404,54 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get meeting_chat_edited_mark => '• editado';
+
+  @override
+  String get meeting_chat_reply => 'Responder';
+
+  @override
+  String get meeting_chat_react => 'Reagir';
+
+  @override
+  String get meeting_chat_copied => 'Copiado';
+
+  @override
+  String get meeting_chat_editing => 'Editando';
+
+  @override
+  String meeting_chat_reply_to(Object name) {
+    return 'Responder a $name';
+  }
+
+  @override
+  String get meeting_chat_attachment_placeholder => 'Anexo';
+
+  @override
+  String meeting_timer_remaining(Object time) {
+    return 'Faltam $time';
+  }
+
+  @override
+  String meeting_timer_elapsed(Object time) {
+    return '$time';
+  }
+
+  @override
+  String get meeting_back_to_chats => 'Voltar aos chats';
+
+  @override
+  String get meeting_open_chats => 'Abrir chats';
+
+  @override
+  String get meeting_in_call_chat => 'Chat na chamada';
+
+  @override
+  String get meeting_lobby_open_settings => 'Abrir configurações';
+
+  @override
+  String get meeting_lobby_retry => 'Tentar novamente';
+
+  @override
+  String get meeting_minimized_resume => 'Toque para voltar à chamada';
 
   @override
   String get e2ee_decrypt_image_failed => 'Falha ao descriptografar a imagem';
@@ -16489,4 +16546,13 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get birthday_error_reminder => 'Não foi possível definir o lembrete';
+
+  @override
+  String get chat_empty_title => 'Ainda sem mensagens';
+
+  @override
+  String get chat_empty_subtitle => 'Diga oi — o faroleiro já está acenando';
+
+  @override
+  String get chat_empty_quick_greet => 'Oi 👋';
 }

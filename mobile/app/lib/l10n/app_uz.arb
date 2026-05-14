@@ -4245,5 +4245,40 @@
   "birthday_empty": "Bugun kontaktlaringizda tug'ilgan kun yo'q",
   "birthday_error_self": "Profilingiz yuklanmadi",
   "birthday_error_send": "Xabar yuborilmadi. Yana urinib ko'ring.",
-  "birthday_error_reminder": "Eslatma o'rnatilmadi"
+  "birthday_error_reminder": "Eslatma o'rnatilmadi",
+  "video_effects_speed": "Tezlik",
+  "video_filter_none": "Asl",
+  "video_filter_enhance": "Yaxshilash",
+  "meeting_chat_reply": "Javob berish",
+  "meeting_chat_react": "Reaksiya",
+  "meeting_chat_copied": "Nusxalandi",
+  "meeting_chat_editing": "Tahrirlanmoqda",
+  "meeting_chat_reply_to": "{name}ga javob",
+  "@meeting_chat_reply_to": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "meeting_chat_attachment_placeholder": "Ilova",
+  "meeting_timer_remaining": "{time} qoldi",
+  "@meeting_timer_remaining": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "meeting_timer_elapsed": "{time}",
+  "@meeting_timer_elapsed": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "meeting_back_to_chats": "Chatlarga qaytish",
+  "meeting_open_chats": "Chatlarni ochish",
+  "meeting_in_call_chat": "Qo'ng'iroq chati",
+  "meeting_lobby_open_settings": "Sozlamalarni ochish",
+  "meeting_lobby_retry": "Qayta urinish",
+  "meeting_minimized_resume": "Qo'ng'iroqqa qaytish uchun bosing",
+  "chat_empty_title": "Hozircha xabarlar yo'q",
+  "chat_empty_subtitle": "Salom ayting — mayoq qorovuli allaqachon qo'l silkitmoqda",
+  "chat_empty_quick_greet": "Salom 👋"
 }

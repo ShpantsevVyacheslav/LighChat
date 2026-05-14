@@ -6967,13 +6967,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get video_editor_caption_hint => 'Agregar descripción...';
 
   @override
-  String get video_effects_speed => 'Скорость';
+  String get video_effects_speed => 'Velocidad';
 
   @override
-  String get video_filter_none => 'Оригинал';
+  String get video_filter_none => 'Original';
 
   @override
-  String get video_filter_enhance => 'Улучшить';
+  String get video_filter_enhance => 'Realzar';
 
   @override
   String get share_location_title => 'Compartir ubicación';
@@ -7146,28 +7146,28 @@ class AppLocalizationsEs extends AppLocalizations {
   String get meeting_chat_edited_mark => '• editado';
 
   @override
-  String get meeting_chat_reply => 'Ответить';
+  String get meeting_chat_reply => 'Responder';
 
   @override
-  String get meeting_chat_react => 'Реакция';
+  String get meeting_chat_react => 'Reaccionar';
 
   @override
-  String get meeting_chat_copied => 'Скопировано';
+  String get meeting_chat_copied => 'Copiado';
 
   @override
-  String get meeting_chat_editing => 'Редактирование';
+  String get meeting_chat_editing => 'Editando';
 
   @override
   String meeting_chat_reply_to(Object name) {
-    return 'Ответ $name';
+    return 'Responder a $name';
   }
 
   @override
-  String get meeting_chat_attachment_placeholder => 'Вложение';
+  String get meeting_chat_attachment_placeholder => 'Archivo adjunto';
 
   @override
   String meeting_timer_remaining(Object time) {
-    return 'Осталось $time';
+    return 'Quedan $time';
   }
 
   @override
@@ -7176,22 +7176,22 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get meeting_back_to_chats => 'К чатам';
+  String get meeting_back_to_chats => 'Volver a los chats';
 
   @override
-  String get meeting_open_chats => 'Открыть чаты';
+  String get meeting_open_chats => 'Abrir chats';
 
   @override
-  String get meeting_in_call_chat => 'Чат конференции';
+  String get meeting_in_call_chat => 'Chat en la llamada';
 
   @override
-  String get meeting_lobby_open_settings => 'Открыть настройки';
+  String get meeting_lobby_open_settings => 'Abrir ajustes';
 
   @override
-  String get meeting_lobby_retry => 'Повторить';
+  String get meeting_lobby_retry => 'Reintentar';
 
   @override
-  String get meeting_minimized_resume => 'Нажмите, чтобы вернуться';
+  String get meeting_minimized_resume => 'Toca para volver a la llamada';
 
   @override
   String get e2ee_decrypt_image_failed => 'Error al descifrar imagen';
@@ -8285,14 +8285,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get birthday_error_reminder => 'No se pudo configurar el recordatorio';
 
   @override
-  String get chat_empty_title => 'Сообщений пока нет';
+  String get chat_empty_title => 'Aún no hay mensajes';
 
   @override
   String get chat_empty_subtitle =>
-      'Напишите первое сообщение — хранитель маяка уже ждёт';
+      'Saluda — el farero ya te está saludando con la mano';
 
   @override
-  String get chat_empty_quick_greet => 'Поздороваться 👋';
+  String get chat_empty_quick_greet => 'Saludar 👋';
 }
 
 /// The translations for Spanish Castilian, as used in Mexico (`es_MX`).
@@ -15258,6 +15258,15 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get video_editor_caption_hint => 'Agregar descripción...';
 
   @override
+  String get video_effects_speed => 'Velocidad';
+
+  @override
+  String get video_filter_none => 'Original';
+
+  @override
+  String get video_filter_enhance => 'Realzar';
+
+  @override
   String get share_location_title => 'Compartir ubicación';
 
   @override
@@ -15426,6 +15435,54 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get meeting_chat_edited_mark => '• editado';
+
+  @override
+  String get meeting_chat_reply => 'Responder';
+
+  @override
+  String get meeting_chat_react => 'Reaccionar';
+
+  @override
+  String get meeting_chat_copied => 'Copiado';
+
+  @override
+  String get meeting_chat_editing => 'Editando';
+
+  @override
+  String meeting_chat_reply_to(Object name) {
+    return 'Responder a $name';
+  }
+
+  @override
+  String get meeting_chat_attachment_placeholder => 'Adjunto';
+
+  @override
+  String meeting_timer_remaining(Object time) {
+    return 'Quedan $time';
+  }
+
+  @override
+  String meeting_timer_elapsed(Object time) {
+    return '$time';
+  }
+
+  @override
+  String get meeting_back_to_chats => 'Regresar a los chats';
+
+  @override
+  String get meeting_open_chats => 'Abrir chats';
+
+  @override
+  String get meeting_in_call_chat => 'Chat en la llamada';
+
+  @override
+  String get meeting_lobby_open_settings => 'Abrir ajustes';
+
+  @override
+  String get meeting_lobby_retry => 'Reintentar';
+
+  @override
+  String get meeting_minimized_resume => 'Toca para regresar a la llamada';
 
   @override
   String get e2ee_decrypt_image_failed => 'Error al descifrar imagen';
@@ -16400,4 +16457,130 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get chat_preview_forwarded => 'Mensaje reenviado';
+
+  @override
+  String get birthday_banner_celebrates => 'está de cumpleaños!';
+
+  @override
+  String get birthday_banner_action => 'Felicitar →';
+
+  @override
+  String get birthday_screen_title_today => 'Cumpleaños hoy';
+
+  @override
+  String birthday_screen_age(int age) {
+    return 'Cumple $age';
+  }
+
+  @override
+  String get birthday_section_actions => 'FELICITAR';
+
+  @override
+  String get birthday_action_template => 'Mensaje rápido';
+
+  @override
+  String get birthday_action_cake => 'Soplar la vela';
+
+  @override
+  String get birthday_action_confetti => 'Confeti';
+
+  @override
+  String get birthday_action_serpentine => 'Serpentinas';
+
+  @override
+  String get birthday_action_voice => 'Grabar saludo de voz';
+
+  @override
+  String get birthday_action_remind_next_year => 'Recordarme el año que viene';
+
+  @override
+  String get birthday_action_open_chat => 'Escribir tu propio mensaje';
+
+  @override
+  String get birthday_cake_prompt => 'Toca la vela para apagarla';
+
+  @override
+  String birthday_cake_wish_placeholder(Object name) {
+    return '¿Qué deseas para $name?';
+  }
+
+  @override
+  String get birthday_cake_wish_hint =>
+      'Por ejemplo: que se cumplan todos tus sueños…';
+
+  @override
+  String get birthday_cake_send => 'Enviar';
+
+  @override
+  String birthday_cake_message(Object name, Object wish) {
+    return '🎂 ¡Feliz cumpleaños, $name! Mi deseo para ti: «$wish»';
+  }
+
+  @override
+  String birthday_confetti_message(Object name) {
+    return '🎉 ¡Feliz cumpleaños, $name! 🎉';
+  }
+
+  @override
+  String birthday_template_1(Object name) {
+    return '¡Feliz cumpleaños, $name! ¡Que este año sea el mejor!';
+  }
+
+  @override
+  String birthday_template_2(Object name) {
+    return '$name, ¡felicidades! Te deseo alegría, cariño y que se cumplan tus sueños 🎉';
+  }
+
+  @override
+  String birthday_template_3(Object name) {
+    return '¡Feliz día, $name! Salud, suerte y muchos momentos felices 🎂';
+  }
+
+  @override
+  String birthday_template_4(Object name) {
+    return '$name, ¡feliz cumple! Que todos tus planes se cumplan fácilmente ✨';
+  }
+
+  @override
+  String birthday_template_5(Object name) {
+    return '¡Felicidades, $name! Gracias por existir. ¡Feliz cumpleaños! 🎁';
+  }
+
+  @override
+  String get birthday_toast_sent => 'Felicitación enviada';
+
+  @override
+  String birthday_reminder_set(Object name) {
+    return 'Te recordaremos un día antes del cumpleaños de $name';
+  }
+
+  @override
+  String get birthday_reminder_notif_title => 'Mañana es cumpleaños 🎂';
+
+  @override
+  String birthday_reminder_notif_body(Object name) {
+    return 'No olvides felicitar a $name mañana';
+  }
+
+  @override
+  String get birthday_empty => 'Hoy no hay cumpleaños entre tus contactos';
+
+  @override
+  String get birthday_error_self => 'No se pudo cargar tu perfil';
+
+  @override
+  String get birthday_error_send =>
+      'No se pudo enviar el mensaje. Inténtalo de nuevo.';
+
+  @override
+  String get birthday_error_reminder => 'No se pudo configurar el recordatorio';
+
+  @override
+  String get chat_empty_title => 'Aún no hay mensajes';
+
+  @override
+  String get chat_empty_subtitle => 'Saluda — el farero ya te está saludando';
+
+  @override
+  String get chat_empty_quick_greet => 'Saludar 👋';
 }
