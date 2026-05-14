@@ -379,21 +379,40 @@ class KeeperPainter extends CustomPainter {
     final fill = Paint()..color = bodyColor;
     final accent = Paint()..color = accentColor;
 
-    // Ноги
+    // Ноги (заканчиваются на h * 0.96, чтобы оставить место под ботинки)
     final legL = Path()
-      ..moveTo(w * 0.40, h)
+      ..moveTo(w * 0.40, h * 0.96)
       ..lineTo(w * 0.36, h * 0.66)
       ..lineTo(w * 0.46, h * 0.66)
-      ..lineTo(w * 0.48, h)
+      ..lineTo(w * 0.48, h * 0.96)
       ..close();
     canvas.drawPath(legL, fill);
     final legR = Path()
-      ..moveTo(w * 0.52, h)
+      ..moveTo(w * 0.52, h * 0.96)
       ..lineTo(w * 0.54, h * 0.66)
       ..lineTo(w * 0.64, h * 0.66)
-      ..lineTo(w * 0.60, h)
+      ..lineTo(w * 0.60, h * 0.96)
       ..close();
     canvas.drawPath(legR, fill);
+
+    // Ботинки — приплюснутые овалы у основания ног.
+    final bootPaint = Paint()..color = accentColor;
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(w * 0.42, h * 0.98),
+        width: w * 0.16,
+        height: h * 0.045,
+      ),
+      bootPaint,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(w * 0.58, h * 0.98),
+        width: w * 0.16,
+        height: h * 0.045,
+      ),
+      bootPaint,
+    );
 
     // Пальто (длинное, расширяется к низу)
     final coat = Path()
@@ -456,6 +475,8 @@ class KeeperPainter extends CustomPainter {
         ..strokeWidth = w * 0.06
         ..strokeCap = StrokeCap.round,
     );
+    // Видимая ладошка на конце руки (держит фонарь).
+    canvas.drawCircle(lHand, w * 0.045, fill);
 
     // Фонарь
     final lantern = lHand;
@@ -520,6 +541,8 @@ class KeeperPainter extends CustomPainter {
         ..strokeWidth = w * 0.06
         ..strokeCap = StrokeCap.round,
     );
+    // Видимая ладошка на конце машущей руки.
+    canvas.drawCircle(hand, w * 0.048, fill);
   }
 
   @override

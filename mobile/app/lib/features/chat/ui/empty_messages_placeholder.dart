@@ -176,6 +176,11 @@ class _Scene extends StatelessWidget {
     final coatAccent = isDark
         ? const Color(0xFF1A454F)
         : const Color(0xFF0F2438);
+    // Островок — отдельный тёмно-синевато-серый, чтобы хранитель и грунт
+    // не сливались в один силуэт.
+    final islandColor = isDark
+        ? const Color(0xFF34465B)
+        : const Color(0xFF6B7A8E);
     // Лицо рисуется контрастным к телу: светлый face на тёмном пальто.
     final faceColor = isDark
         ? const Color(0xFFE6EDF7)
@@ -202,25 +207,25 @@ class _Scene extends StatelessWidget {
             bottom: 0,
             height: 26,
             child: CustomPaint(
-              painter: _IslandPainter(color: coatAccent),
+              painter: _IslandPainter(color: islandColor),
             ),
           ),
           // ───── маяк (по центру островка) ─────
+          // Маяк больше хранителя — верхушка купола над фуражкой.
           const Positioned(
-            left: 110,
-            top: 10,
-            width: 56,
-            height: 100,
+            left: 100,
+            top: 0,
+            width: 64,
+            height: 116,
             child: CustomPaint(painter: LighthousePainter()),
           ),
           // ───── coral beam из лампы маяка ─────
-          // В LighthousePainter лампа — верх башни (y ≈ 0.40 от высоты,
-          // x = центр). В нашем боксе 56×100 + смещение Positioned(110,10)
-          // абсолютная точка лампы ≈ (138, 50).
+          // Лампа = верх башни (y ≈ 0.40h). В боксе 64×116 + Positioned(100,0)
+          // абсолютная точка лампы ≈ (132, 46).
           Positioned(
-            left: 138,
-            top: 40,
-            width: 92,
+            left: 132,
+            top: 36,
+            width: 96,
             height: 24,
             child: IgnorePointer(
               child: CustomPaint(painter: _BeamPainter(intensity: beamI)),
@@ -229,12 +234,13 @@ class _Scene extends StatelessWidget {
           // ───── хранитель маяка ─────
           // Использует KeeperPainter из welcome (длинное пальто, шарф,
           // шляпа, фонарь в одной руке, машет другой) + лицо поверх
-          // головы.
+          // головы. Высота специально меньше маяка, чтобы шляпа
+          // приходилась ниже фонарной комнаты.
           Positioned(
-            left: 22,
+            left: 30,
             bottom: 14,
-            width: 78,
-            height: 124,
+            width: 60,
+            height: 96,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
