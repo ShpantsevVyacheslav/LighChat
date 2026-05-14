@@ -156,21 +156,21 @@ class _Scene extends StatelessWidget {
   final bool isDark;
 
   static const double _w = 240;
-  static const double _h = 130;
+  static const double _h = 140;
 
   @override
   Widget build(BuildContext context) {
-    final wavePhase = math.sin(t * 2 * math.pi);
-    // Махание рукой капитана: -10°..+45° по синусу
-    final keeperWave = 18 + 28 * wavePhase;
-    // Клешни краба
+    // Махание рукой хранителя — 0.30..0.95 (как в welcome), цикл по
+    // синусу, без полного броска: рука то поднимается вверх, то
+    // опускается обратно.
+    final wave = 0.30 + 0.65 * (0.5 + 0.5 * math.sin(t * 2 * math.pi));
     final crabL = -12 + 10 * math.sin(t * 2 * math.pi + 0.4);
     final crabR = 12 - 10 * math.sin(t * 2 * math.pi + 0.9);
-    // Beam intensity — лёгкая пульсация
     final beamI = 0.65 + 0.20 * (0.5 + 0.5 * math.sin(t * 2 * math.pi * 0.6));
-    // Цвет силуэтов — должен контрастировать с frosted-glass фоном.
+    // Силуэт хранителя — светло-голубоватый на dark, navy на light, чтобы
+    // контрастировал с frosted-glass фоном и не выглядел как тёмное пятно.
     final silhouette = isDark
-        ? const Color(0xFFD6E0EE) // чуть тёплый светло-серый-голубой
+        ? const Color(0xFFD6E0EE)
         : const Color(0xFF1E3A5F);
     final silhouetteAccent = isDark
         ? const Color(0xFFA9B8CC)
@@ -182,7 +182,7 @@ class _Scene extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // ───── звёзды (фон) ─────
+          // ───── звёзды ─────
           Positioned.fill(
             child: IgnorePointer(
               child: CustomPaint(
@@ -200,48 +200,61 @@ class _Scene extends StatelessWidget {
               painter: _IslandPainter(color: silhouetteAccent),
             ),
           ),
-          // ───── маяк ─────
-          // По центру островка. Лампа маяка приходится на верх башни →
-          // beam стартует именно оттуда.
+          // ───── маяк (по центру островка) ─────
           const Positioned(
-            left: 102,
-            top: 8,
+            left: 110,
+            top: 10,
             width: 56,
             height: 100,
             child: CustomPaint(painter: LighthousePainter()),
           ),
           // ───── coral beam из лампы маяка ─────
-          // В LighthousePainter лампа = верх башни, y~0.40 от высоты,
-          // x = центр (0.50). Для нашего бокса 56×100 это (28, 40),
-          // плюс смещение Positioned(102, 8) → (130, 48) в координатах сцены.
+          // В LighthousePainter лампа — верх башни (y ≈ 0.40 от высоты,
+          // x = центр). В нашем боксе 56×100 + смещение Positioned(110,10)
+          // абсолютная точка лампы ≈ (138, 50).
           Positioned(
-            left: 130,
-            top: 38,
-            width: 100,
+            left: 138,
+            top: 40,
+            width: 92,
             height: 24,
             child: IgnorePointer(
-              child: CustomPaint(
-                painter: _BeamPainter(intensity: beamI),
-              ),
+              child: CustomPaint(painter: _BeamPainter(intensity: beamI)),
             ),
           ),
-          // ───── капитан-хранитель ─────
+          // ───── хранитель маяка ─────
+          // Использует KeeperPainter из welcome (длинное пальто, шарф,
+          // шляпа, фонарь в одной руке, машет другой) + лицо поверх
+          // головы.
           Positioned(
-            left: 38,
-            bottom: 12,
-            width: 56,
-            height: 92,
-            child: CustomPaint(
-              painter: _CaptainPainter(
-                bodyColor: silhouette,
-                accentColor: silhouetteAccent,
-                waveDeg: keeperWave,
-              ),
+            left: 22,
+            bottom: 14,
+            width: 78,
+            height: 124,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: KeeperPainter(
+                      throwProgress: wave,
+                      bodyColor: silhouette,
+                      accentColor: silhouetteAccent,
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _KeeperFacePainter(
+                      strokeColor: silhouetteAccent,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           // ───── краб ─────
           Positioned(
-            left: 170,
+            left: 174,
             bottom: 6,
             width: 48,
             height: 30,
@@ -257,6 +270,51 @@ class _Scene extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Лицо хранителя — рисуется поверх головы KeeperPainter в тех же
+/// координатах (cx ≈ 0.50, cy ≈ 0.07, r ≈ 0.08). Глаза и улыбка цвета
+/// `strokeColor`, чтобы читались на любом фоне силуэта.
+class _KeeperFacePainter extends CustomPainter {
+  const _KeeperFacePainter({required this.strokeColor});
+  final Color strokeColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    // Центр головы из KeeperPainter
+    final headCx = w * 0.50;
+    final headCy = h * 0.07;
+    final headR = w * 0.08;
+
+    final eyePaint = Paint()..color = strokeColor;
+    final eyeR = headR * 0.20;
+    canvas.drawCircle(Offset(headCx - headR * 0.42, headCy - 0.06 * headR), eyeR, eyePaint);
+    canvas.drawCircle(Offset(headCx + headR * 0.42, headCy - 0.06 * headR), eyeR, eyePaint);
+
+    // Улыбка — маленькая дуга
+    final smileRect = Rect.fromCenter(
+      center: Offset(headCx, headCy + headR * 0.30),
+      width: headR * 0.85,
+      height: headR * 0.55,
+    );
+    canvas.drawArc(
+      smileRect,
+      0.25,
+      math.pi - 0.5,
+      false,
+      Paint()
+        ..color = strokeColor
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = 1.2,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _KeeperFacePainter old) =>
+      old.strokeColor != strokeColor;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -372,158 +430,3 @@ class _StarsBgPainter extends CustomPainter {
   bool shouldRepaint(covariant _StarsBgPainter old) => old.t != t;
 }
 
-/// Компактный «капитан» — голова в фуражке с coral околышем, торс,
-/// одна рука вниз (статичная), вторая поднята и махает (угол управляется
-/// `waveDeg`).
-class _CaptainPainter extends CustomPainter {
-  const _CaptainPainter({
-    required this.bodyColor,
-    required this.accentColor,
-    required this.waveDeg,
-  });
-  final Color bodyColor;
-  final Color accentColor;
-  final double waveDeg;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    final fill = Paint()..color = bodyColor;
-    final accent = Paint()..color = accentColor;
-
-    // ── Торс — закруглённая трапеция-капля ──
-    final torso = Path()
-      ..moveTo(w * 0.30, h * 0.46)
-      ..quadraticBezierTo(w * 0.50, h * 0.40, w * 0.70, h * 0.46)
-      ..lineTo(w * 0.78, h * 0.90)
-      ..quadraticBezierTo(w * 0.50, h * 0.96, w * 0.22, h * 0.90)
-      ..close();
-    canvas.drawPath(torso, fill);
-
-    // ── Воротник (тёмный accent) ──
-    canvas.drawPath(
-      Path()
-        ..moveTo(w * 0.36, h * 0.46)
-        ..lineTo(w * 0.50, h * 0.56)
-        ..lineTo(w * 0.64, h * 0.46)
-        ..close(),
-      accent,
-    );
-
-    // ── Coral шарф/галстук ──
-    final scarfRect = Rect.fromCenter(
-      center: Offset(w * 0.50, h * 0.58),
-      width: w * 0.10,
-      height: h * 0.10,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(scarfRect, const Radius.circular(2)),
-      Paint()..color = kBrandOrange,
-    );
-
-    // ── Левая рука (статичная, вниз) ──
-    canvas.drawLine(
-      Offset(w * 0.30, h * 0.50),
-      Offset(w * 0.22, h * 0.78),
-      Paint()
-        ..color = bodyColor
-        ..strokeWidth = w * 0.10
-        ..strokeCap = StrokeCap.round,
-    );
-
-    // ── Правая рука (машет) ──
-    canvas.save();
-    final shoulder = Offset(w * 0.70, h * 0.50);
-    canvas.translate(shoulder.dx, shoulder.dy);
-    canvas.rotate(-waveDeg * math.pi / 180);
-    canvas.drawLine(
-      Offset.zero,
-      Offset(0, h * 0.28),
-      Paint()
-        ..color = bodyColor
-        ..strokeWidth = w * 0.10
-        ..strokeCap = StrokeCap.round,
-    );
-    // Маленькая «ладошка»
-    canvas.drawCircle(Offset(0, h * 0.30), w * 0.07, fill);
-    canvas.restore();
-
-    // ── Голова (круг) ──
-    final headCenter = Offset(w * 0.50, h * 0.28);
-    canvas.drawCircle(headCenter, h * 0.13, fill);
-
-    // ── Лицо: глаза + улыбка ──
-    final faceColor = accentColor;
-    canvas.drawCircle(
-      Offset(w * 0.43, h * 0.27),
-      h * 0.018,
-      Paint()..color = faceColor,
-    );
-    canvas.drawCircle(
-      Offset(w * 0.57, h * 0.27),
-      h * 0.018,
-      Paint()..color = faceColor,
-    );
-    final smileRect = Rect.fromCenter(
-      center: Offset(w * 0.50, h * 0.33),
-      width: w * 0.18,
-      height: h * 0.05,
-    );
-    canvas.drawArc(
-      smileRect,
-      0.2,
-      math.pi - 0.4,
-      false,
-      Paint()
-        ..color = faceColor
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = 1.3,
-    );
-
-    // ── Капитанская фуражка: околыш + поля + макушка + кокарда ──
-    // Поля
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(w * 0.50, h * 0.16),
-        width: w * 0.40,
-        height: h * 0.045,
-      ),
-      fill,
-    );
-    // Coral околыш
-    canvas.drawRect(
-      Rect.fromCenter(
-        center: Offset(w * 0.50, h * 0.14),
-        width: w * 0.30,
-        height: h * 0.035,
-      ),
-      Paint()..color = kBrandOrange,
-    );
-    // Макушка
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(
-          center: Offset(w * 0.50, h * 0.08),
-          width: w * 0.30,
-          height: h * 0.10,
-        ),
-        const Radius.circular(3),
-      ),
-      fill,
-    );
-    // Кокарда — маленький coral круг
-    canvas.drawCircle(
-      Offset(w * 0.50, h * 0.07),
-      h * 0.022,
-      Paint()..color = kBrandOrange,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _CaptainPainter old) =>
-      old.waveDeg != waveDeg ||
-      old.bodyColor != bodyColor ||
-      old.accentColor != accentColor;
-}
