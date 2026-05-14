@@ -12,7 +12,11 @@ import 'package:lighchat_mobile/core/app_logger.dart';
 /// проверили и контакт либо скрыл ДР, либо не задал — это валидный негативный
 /// результат, его тоже кэшируем, чтобы не долбить Firestore.
 const _kBirthdayCacheKeyPrefix = 'mobile_contact_birthday_cache_v1_';
-const Duration kBirthdayCacheTtl = Duration(hours: 24);
+// 2h — компромисс между биллингом и временем подхвата изменения ДР контакта.
+// Дополнительно при каждом cold-start делаем один force-refresh всех записей,
+// см. ContactBirthdaysNotifier — это покрывает сценарий «контакт только что
+// поменял дату, открой и посмотри сегодня».
+const Duration kBirthdayCacheTtl = Duration(hours: 2);
 
 String birthdayCacheKey(String ownerUserId) =>
     '$_kBirthdayCacheKeyPrefix$ownerUserId';

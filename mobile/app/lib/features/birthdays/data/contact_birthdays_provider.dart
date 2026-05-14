@@ -48,6 +48,12 @@ class ContactBirthdaysNotifier extends Notifier<BirthdayCacheState> {
   bool _fetching = false;
   bool _bootstrapped = false;
 
+  /// Один раз за время жизни провайдера (фактически — за cold-start) делаем
+  /// force-refresh **всех** контактов: игнорируем `isFresh` и перечитываем
+  /// users/{id}. Это закрывает сценарий «контакт только что поменял dob» —
+  /// без него до конца TTL клиент держал бы старое значение в кэше.
+  bool _coldStartRefreshDone = false;
+
   @override
   BirthdayCacheState build() {
     if (!_bootstrapped) {
@@ -67,17 +73,25 @@ class ContactBirthdaysNotifier extends Notifier<BirthdayCacheState> {
   /// дедупликация по `isFresh`.
   Future<void> ensureFreshFor(List<String> contactIds) async {
     if (!state.loaded || _fetching) return;
+    final forceAll = !_coldStartRefreshDone;
     final stale = <String>[];
     for (final id in contactIds) {
       final trimmed = id.trim();
       if (trimmed.isEmpty) continue;
       final entry = state.entries[trimmed];
-      // Refetch если запись либо устарела, либо записана старой схемой
-      // (без денормализованного name) — иначе у уже-установивших юзеров
-      // плашка останется без аватара до конца TTL.
-      if (entry == null || !entry.isFresh || entry.name == null) {
+      // Refetch если: первый вызов после cold-start (force-all), либо запись
+      // отсутствует/устарела/записана старой схемой (без денормализованного
+      // name). Force-all нужен, чтобы оперативно подхватить смену dob у
+      // контакта — иначе клиент держит старое значение до конца TTL.
+      if (forceAll ||
+          entry == null ||
+          !entry.isFresh ||
+          entry.name == null) {
         stale.add(trimmed);
       }
+    }
+    if (forceAll) {
+      _coldStartRefreshDone = true;
     }
     if (stale.isEmpty) return;
     final repo = ref.read(userProfilesRepositoryProvider);
