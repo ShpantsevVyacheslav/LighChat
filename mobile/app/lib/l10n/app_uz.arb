@@ -846,6 +846,9 @@
       "error": {}
     }
   },
+  "voice_transcript_permission_denied": "Nutqni aniqlash ruxsat etilmagan. Tizim sozlamalarida yoqing.",
+  "voice_transcript_unsupported_lang": "Bu til qurilmadagi transkripsiya uchun qoʻllab-quvvatlanmaydi.",
+  "voice_transcript_no_model": "Tizim sozlamalarida oflayn nutqni aniqlash til paketini oʻrnating.",
   "chat_messages_title": "Xabarlar",
   "chat_call_decline": "Rad etish",
   "chat_call_open": "Ochish",

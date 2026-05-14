@@ -1785,6 +1785,18 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
+  String get voice_transcript_permission_denied =>
+      'Pengenalan suara tidak diizinkan. Aktifkan di pengaturan sistem.';
+
+  @override
+  String get voice_transcript_unsupported_lang =>
+      'Bahasa ini tidak didukung untuk transkripsi di perangkat.';
+
+  @override
+  String get voice_transcript_no_model =>
+      'Pasang paket bahasa pengenalan suara offline di pengaturan sistem.';
+
+  @override
   String get chat_messages_title => 'Pesan';
 
   @override

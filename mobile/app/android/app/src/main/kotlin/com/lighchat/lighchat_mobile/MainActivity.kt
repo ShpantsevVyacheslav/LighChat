@@ -91,5 +91,8 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        VoiceTranscriberBridge(applicationContext)
+            .register(flutterEngine.dartExecutor.binaryMessenger)
     }
 }

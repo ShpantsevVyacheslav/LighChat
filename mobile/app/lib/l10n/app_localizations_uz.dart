@@ -1796,6 +1796,18 @@ class AppLocalizationsUz extends AppLocalizations {
   }
 
   @override
+  String get voice_transcript_permission_denied =>
+      'Nutqni aniqlash ruxsat etilmagan. Tizim sozlamalarida yoqing.';
+
+  @override
+  String get voice_transcript_unsupported_lang =>
+      'Bu til qurilmadagi transkripsiya uchun qoʻllab-quvvatlanmaydi.';
+
+  @override
+  String get voice_transcript_no_model =>
+      'Tizim sozlamalarida oflayn nutqni aniqlash til paketini oʻrnating.';
+
+  @override
   String get chat_messages_title => 'Xabarlar';
 
   @override

@@ -1789,6 +1789,18 @@ class AppLocalizationsKk extends AppLocalizations {
   }
 
   @override
+  String get voice_transcript_permission_denied =>
+      'Сөйлеуді тану рұқсат етілмеген. Жүйелік параметрлерде қосыңыз.';
+
+  @override
+  String get voice_transcript_unsupported_lang =>
+      'Бұл тіл құрылғыдағы транскрипцияда қолданылмайды.';
+
+  @override
+  String get voice_transcript_no_model =>
+      'Жүйелік параметрлерден офлайн сөйлеуді тану тілдік пакетін орнатыңыз.';
+
+  @override
   String get chat_messages_title => 'Хабарламалар';
 
   @override

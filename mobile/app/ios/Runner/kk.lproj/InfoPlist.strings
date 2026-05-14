@@ -7,3 +7,4 @@
 "NSMicrophoneUsageDescription" = "Чатта бейнені дыбыспен жазу үшін";
 "NSPhotoLibraryAddUsageDescription" = "Чаттан фото мен бейнелерді галереяға сақтау";
 "NSPhotoLibraryUsageDescription" = "Галереядан фото мен бейне тіркеу үшін";
+"NSSpeechRecognitionUsageDescription" = "Дауыстық хабарламаларды құрылғыда жергілікті транскрипциялау үшін — дыбыс сыртқы серверлерге жіберілмейді";

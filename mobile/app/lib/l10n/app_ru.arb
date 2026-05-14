@@ -866,6 +866,9 @@
       "error": {}
     }
   },
+  "voice_transcript_permission_denied": "Распознавание речи запрещено. Включите его в системных настройках.",
+  "voice_transcript_unsupported_lang": "Этот язык не поддерживается локальным распознаванием на устройстве.",
+  "voice_transcript_no_model": "Установите офлайн-пакет распознавания речи в системных настройках.",
   "chat_messages_title": "Сообщения",
   "chat_call_decline": "Отклонить",
   "chat_call_open": "Открыть",

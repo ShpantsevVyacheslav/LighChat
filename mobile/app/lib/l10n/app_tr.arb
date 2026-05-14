@@ -846,6 +846,9 @@
       "error": {}
     }
   },
+  "voice_transcript_permission_denied": "Konuşma tanıma izni yok. Sistem ayarlarından etkinleştirin.",
+  "voice_transcript_unsupported_lang": "Bu dil cihaz üzerinde transkripsiyon için desteklenmiyor.",
+  "voice_transcript_no_model": "Sistem ayarlarından çevrimdışı konuşma tanıma dil paketini yükleyin.",
   "chat_messages_title": "Mesajlar",
   "chat_call_decline": "Reddet",
   "chat_call_open": "Aç",

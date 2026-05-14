@@ -3184,6 +3184,24 @@ abstract class AppLocalizations {
   /// **'Не удалось сделать транскрибацию: {error}'**
   String voice_transcript_error(Object error);
 
+  /// No description provided for @voice_transcript_permission_denied.
+  ///
+  /// In ru, this message translates to:
+  /// **'Распознавание речи запрещено. Включите его в системных настройках.'**
+  String get voice_transcript_permission_denied;
+
+  /// No description provided for @voice_transcript_unsupported_lang.
+  ///
+  /// In ru, this message translates to:
+  /// **'Этот язык не поддерживается локальным распознаванием на устройстве.'**
+  String get voice_transcript_unsupported_lang;
+
+  /// No description provided for @voice_transcript_no_model.
+  ///
+  /// In ru, this message translates to:
+  /// **'Установите офлайн-пакет распознавания речи в системных настройках.'**
+  String get voice_transcript_no_model;
+
   /// No description provided for @chat_messages_title.
   ///
   /// In ru, this message translates to:

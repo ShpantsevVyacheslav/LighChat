@@ -7,3 +7,4 @@
 "NSMicrophoneUsageDescription" = "Chatda video va ovozni yozish uchun";
 "NSPhotoLibraryAddUsageDescription" = "Chatdan foto va videolarni galereyaga saqlash uchun";
 "NSPhotoLibraryUsageDescription" = "Galereyadan foto va video qo'shish uchun";
+"NSSpeechRecognitionUsageDescription" = "Ovozli xabarlarni qurilmada mahalliy transkripsiya qilish uchun — audio tashqi serverlarga yuborilmaydi";

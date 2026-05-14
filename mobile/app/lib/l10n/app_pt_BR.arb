@@ -846,6 +846,9 @@
       "error": {}
     }
   },
+  "voice_transcript_permission_denied": "O reconhecimento de voz não é permitido. Ative-o nas configurações do sistema.",
+  "voice_transcript_unsupported_lang": "Este idioma não é compatível com a transcrição no dispositivo.",
+  "voice_transcript_no_model": "Instale um pacote de reconhecimento de voz offline nas configurações do sistema.",
   "chat_messages_title": "Mensagens",
   "chat_call_decline": "Recusar",
   "chat_call_open": "Abrir",

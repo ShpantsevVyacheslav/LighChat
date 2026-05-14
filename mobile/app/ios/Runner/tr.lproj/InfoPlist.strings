@@ -7,3 +7,4 @@
 "NSMicrophoneUsageDescription" = "Sohbette sesli video kaydetmek için";
 "NSPhotoLibraryAddUsageDescription" = "Sohbetten fotoğraf ve videoları galeriye kaydetmek için";
 "NSPhotoLibraryUsageDescription" = "Galeriden fotoğraf ve video eklemek için";
+"NSSpeechRecognitionUsageDescription" = "Sesli mesajları cihazda yerel olarak yazıya dökmek için — ses harici sunuculara gönderilmez";

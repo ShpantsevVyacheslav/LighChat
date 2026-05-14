@@ -1794,6 +1794,18 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get voice_transcript_permission_denied =>
+      'O reconhecimento de voz não é permitido. Ative-o nas configurações do sistema.';
+
+  @override
+  String get voice_transcript_unsupported_lang =>
+      'Este idioma não é compatível com a transcrição no dispositivo.';
+
+  @override
+  String get voice_transcript_no_model =>
+      'Instale um pacote de reconhecimento de voz offline nas configurações do sistema.';
+
+  @override
   String get chat_messages_title => 'Mensagens';
 
   @override
@@ -10033,6 +10045,18 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String voice_transcript_error(Object error) {
     return 'Não foi possível transcrever: $error';
   }
+
+  @override
+  String get voice_transcript_permission_denied =>
+      'O reconhecimento de voz não é permitido. Ative-o nas configurações do sistema.';
+
+  @override
+  String get voice_transcript_unsupported_lang =>
+      'Este idioma não é compatível com a transcrição no dispositivo.';
+
+  @override
+  String get voice_transcript_no_model =>
+      'Instale um pacote de reconhecimento de voz offline nas configurações do sistema.';
 
   @override
   String get chat_messages_title => 'Mensagens';

@@ -1775,6 +1775,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get voice_transcript_permission_denied =>
+      'Speech recognition is not allowed. Enable it in system settings.';
+
+  @override
+  String get voice_transcript_unsupported_lang =>
+      'This language isn’t supported by on-device transcription.';
+
+  @override
+  String get voice_transcript_no_model =>
+      'Install an offline speech recognition language pack in system settings.';
+
+  @override
   String get chat_messages_title => 'Messages';
 
   @override

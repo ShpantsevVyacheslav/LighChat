@@ -7,3 +7,4 @@
 "NSMicrophoneUsageDescription" = "Для записи видео со звуком в чате";
 "NSPhotoLibraryAddUsageDescription" = "Чтобы сохранять фото и видео из чата в галерею";
 "NSPhotoLibraryUsageDescription" = "Чтобы прикреплять фото и видео из галереи";
+"NSSpeechRecognitionUsageDescription" = "Для локальной транскрибации голосовых сообщений на устройстве — без отправки аудио на внешние серверы";

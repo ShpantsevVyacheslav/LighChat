@@ -846,6 +846,9 @@
       "error": {}
     }
   },
+  "voice_transcript_permission_denied": "El reconocimiento de voz no está permitido. Actívalo en los ajustes del sistema.",
+  "voice_transcript_unsupported_lang": "Este idioma no es compatible con la transcripción en el dispositivo.",
+  "voice_transcript_no_model": "Instala un paquete de reconocimiento de voz sin conexión en los ajustes del sistema.",
   "chat_messages_title": "Mensajes",
   "chat_call_decline": "Rechazar",
   "chat_call_open": "Abrir",

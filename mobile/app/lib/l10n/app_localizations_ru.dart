@@ -1791,6 +1791,18 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get voice_transcript_permission_denied =>
+      'Распознавание речи запрещено. Включите его в системных настройках.';
+
+  @override
+  String get voice_transcript_unsupported_lang =>
+      'Этот язык не поддерживается локальным распознаванием на устройстве.';
+
+  @override
+  String get voice_transcript_no_model =>
+      'Установите офлайн-пакет распознавания речи в системных настройках.';
+
+  @override
   String get chat_messages_title => 'Сообщения';
 
   @override

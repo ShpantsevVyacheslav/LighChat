@@ -846,6 +846,9 @@
       "error": {}
     }
   },
+  "voice_transcript_permission_denied": "Сөйлеуді тану рұқсат етілмеген. Жүйелік параметрлерде қосыңыз.",
+  "voice_transcript_unsupported_lang": "Бұл тіл құрылғыдағы транскрипцияда қолданылмайды.",
+  "voice_transcript_no_model": "Жүйелік параметрлерден офлайн сөйлеуді тану тілдік пакетін орнатыңыз.",
   "chat_messages_title": "Хабарламалар",
   "chat_call_decline": "Қабылдамау",
   "chat_call_open": "Ашу",

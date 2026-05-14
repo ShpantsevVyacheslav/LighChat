@@ -22,6 +22,7 @@
 		A1A1A1A102000000000002E0 /* NavBarOverlayHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A105000000000005E0 /* NavBarOverlayHost.swift */; };
 		A1A1A1A103000000000003E0 /* NavBarBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1A1A1A106000000000006E0 /* NavBarBridge.swift */; };
 		AA3414DD5B5E87BE9AC06AAA /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 27BB0A443CFA3E8BE0734FAD /* Pods_RunnerTests.framework */; };
+		B1B1B1B101000000000001E0 /* VoiceTranscriberBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B102000000000002E0 /* VoiceTranscriberBridge.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,6 +93,7 @@
 		A4226D422C18325703427045 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		AD5F0EDA447FBA728F3B5568 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B02731D98C27EF00A286881F /* Pods-ShareExtension.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ShareExtension.profile.xcconfig"; path = "Target Support Files/Pods-ShareExtension/Pods-ShareExtension.profile.xcconfig"; sourceTree = "<group>"; };
+		B1B1B1B102000000000002E0 /* VoiceTranscriberBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceTranscriberBridge.swift; sourceTree = "<group>"; };
 		B2F8A9012ECF9000100A1D01 /* RunnerDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RunnerDebug.entitlements; sourceTree = "<group>"; };
 		B2F8A9012ECF9000100A1D02 /* RunnerRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RunnerRelease.entitlements; sourceTree = "<group>"; };
 		BCE89198E9E815BAC52B21AF /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
@@ -203,6 +205,7 @@
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				A1A1A1A107000000000007E0 /* NavBarOverlay */,
+				B1B1B1B103000000000003E0 /* Speech */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -227,6 +230,14 @@
 			);
 			name = ShareExtension;
 			path = ShareExtension;
+			sourceTree = "<group>";
+		};
+		B1B1B1B103000000000003E0 /* Speech */ = {
+			isa = PBXGroup;
+			children = (
+				B1B1B1B102000000000002E0 /* VoiceTranscriberBridge.swift */,
+			);
+			path = Speech;
 			sourceTree = "<group>";
 		};
 		C5F1AA4F47654BCDB6FE7B1F /* Frameworks */ = {
@@ -497,6 +508,7 @@
 				A1A1A1A101000000000001E0 /* LiquidGlassAppearance.swift in Sources */,
 				A1A1A1A102000000000002E0 /* NavBarOverlayHost.swift in Sources */,
 				A1A1A1A103000000000003E0 /* NavBarBridge.swift in Sources */,
+				B1B1B1B101000000000001E0 /* VoiceTranscriberBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -9,9 +9,14 @@ class VoiceTranscriptionResult {
   final String transcript;
 }
 
-/// On-demand voice transcription.
+/// On-demand voice transcription via Cloud Function (OpenAI Whisper).
 ///
 /// Region matches CF deployment: `us-central1`.
+///
+/// Не используется mobile-клиентом начиная с локальной on-device
+/// транскрибации (`LocalVoiceTranscriber`). Оставлено для возможного
+/// будущего web/desktop клиента.
+@Deprecated('Use LocalVoiceTranscriber for on-device transcription')
 class VoiceTranscriptionCallables {
   VoiceTranscriptionCallables({String region = 'us-central1'})
       : _functions = FirebaseFunctions.instanceFor(

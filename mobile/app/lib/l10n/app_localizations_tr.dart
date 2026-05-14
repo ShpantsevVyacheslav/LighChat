@@ -1790,6 +1790,18 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get voice_transcript_permission_denied =>
+      'Konuşma tanıma izni yok. Sistem ayarlarından etkinleştirin.';
+
+  @override
+  String get voice_transcript_unsupported_lang =>
+      'Bu dil cihaz üzerinde transkripsiyon için desteklenmiyor.';
+
+  @override
+  String get voice_transcript_no_model =>
+      'Sistem ayarlarından çevrimdışı konuşma tanıma dil paketini yükleyin.';
+
+  @override
   String get chat_messages_title => 'Mesajlar';
 
   @override

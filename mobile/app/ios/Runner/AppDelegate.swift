@@ -207,6 +207,8 @@ private final class LighChatIosPipBridge: NSObject, AVPictureInPictureController
     }
     NavBarBridge.shared.register(
       messenger: engineBridge.applicationRegistrar.messenger())
+    VoiceTranscriberBridge.shared.register(
+      messenger: engineBridge.applicationRegistrar.messenger())
   }
 
   private func setupVoipRegistry() {

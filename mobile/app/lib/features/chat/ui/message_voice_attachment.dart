@@ -9,7 +9,7 @@ import 'message_audio_waveform.dart';
 import 'chat_glass_panel.dart';
 import 'chat_vlc_network_media.dart';
 import '../../../l10n/app_localizations.dart';
-import '../data/voice_transcription_callables.dart';
+import '../data/local_voice_transcriber.dart';
 
 /// Один активный голосовой плеер (паритет с вебом: остальные ставятся на паузу).
 final class _VoicePlaybackExclusive {
@@ -266,12 +266,14 @@ class _TranscriptControls extends StatefulWidget {
   const _TranscriptControls({
     required this.conversationId,
     required this.messageId,
+    required this.audioUrl,
     required this.isMine,
     required this.transcript,
   });
 
   final String conversationId;
   final String messageId;
+  final String audioUrl;
   final bool isMine;
   final String? transcript;
 
@@ -285,6 +287,13 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
   String? _localTranscript;
   String? _errorText;
 
+  @override
+  void initState() {
+    super.initState();
+    _localTranscript =
+        LocalVoiceTranscriber.instance.cachedFor(widget.messageId);
+  }
+
   Future<void> _ensureTranscript() async {
     if (_busy) return;
     final existing = (widget.transcript ?? _localTranscript ?? '').trim();
@@ -295,24 +304,24 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
     });
     try {
       final lang = Localizations.localeOf(context).languageCode.toLowerCase();
-      final res = await VoiceTranscriptionCallables().transcribeVoiceMessage(
-        conversationId: widget.conversationId,
+      final text = await LocalVoiceTranscriber.instance.transcribeAttachment(
         messageId: widget.messageId,
-        languageCode: (lang == 'en' || lang == 'ru') ? lang : 'ru',
+        audioUrl: widget.audioUrl,
+        languageHint: lang,
       );
       if (!mounted) return;
-      setState(() => _localTranscript = res.transcript);
+      setState(() => _localTranscript = text);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _errorText = e.toString());
+      final friendly = _friendlyError(e);
+      setState(() => _errorText = friendly);
 
-      // Don't crash if we're rendered without a ScaffoldMessenger/Localizations.
       final l10nErr = AppLocalizations.of(context);
       final messenger = ScaffoldMessenger.maybeOf(context);
       if (l10nErr != null && messenger != null) {
         try {
           messenger.showSnackBar(
-            SnackBar(content: Text(l10nErr.voice_transcript_error(e))),
+            SnackBar(content: Text(l10nErr.voice_transcript_error(friendly))),
           );
         } catch (_) {
           // If the messenger is in an invalid state, fall back to inline UI.
@@ -321,6 +330,23 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  String _friendlyError(Object e) {
+    final l10n = AppLocalizations.of(context);
+    if (e is VoiceTranscriptionException && l10n != null) {
+      switch (e.code) {
+        case 'permission_denied':
+        case 'permission_restricted':
+          return l10n.voice_transcript_permission_denied;
+        case 'no_model':
+        case 'unsupported_os':
+          return l10n.voice_transcript_no_model;
+        case 'unsupported_lang':
+          return l10n.voice_transcript_unsupported_lang;
+      }
+    }
+    return e.toString();
   }
 
   @override
@@ -607,6 +633,7 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
         _TranscriptControls(
           conversationId: cid,
           messageId: mid,
+          audioUrl: widget.attachment.url,
           isMine: mine,
           transcript: widget.transcript,
         ),

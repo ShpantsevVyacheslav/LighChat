@@ -7,3 +7,4 @@
 "NSMicrophoneUsageDescription" = "To record video with sound in chat";
 "NSPhotoLibraryAddUsageDescription" = "To save photos and videos from chat to your gallery";
 "NSPhotoLibraryUsageDescription" = "To attach photos and videos from your gallery";
+"NSSpeechRecognitionUsageDescription" = "To transcribe voice messages on-device — no audio is sent to external servers";

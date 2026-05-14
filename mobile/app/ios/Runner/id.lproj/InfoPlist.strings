@@ -7,3 +7,4 @@
 "NSMicrophoneUsageDescription" = "Untuk merekam video dengan suara di obrolan";
 "NSPhotoLibraryAddUsageDescription" = "Untuk menyimpan foto dan video dari obrolan ke galeri";
 "NSPhotoLibraryUsageDescription" = "Untuk melampirkan foto dan video dari galeri";
+"NSSpeechRecognitionUsageDescription" = "Untuk menyalin pesan suara secara lokal di perangkat — audio tidak dikirim ke server eksternal";
