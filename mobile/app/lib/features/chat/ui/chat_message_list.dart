@@ -415,23 +415,28 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
           );
     }
 
-    // КРИТИЧНО: stickyLineY должен совпадать с Y-координатой капсулы
-    // в viewport'е. Иначе логика «какой день под капсулой» расходится
-    // с visual position. Раньше было 28 hardcoded; на iOS с native nav
-    // bar + pinned pill реальная капсула рендерится на y=topOverlayOffset
-    // (см. chat_screen вычисление). Используем тот же offset + небольшую
-    // дельту (≈ половина высоты капсулы), чтобы линия попадала в
-    // визуальный центр капсулы.
+    // stickyLineY — позиция «капсулы» в viewport. Двухступенчатая
+    // логика выбора дня:
+    //
+    // 1. Сначала ищем маркер, чей y НИЖЕ линии в окне `nearBelowBuffer`
+    //    (== день начинается СРАЗУ под капсулой). Если найден — берём
+    //    его: bulk видимого контента ниже маркера это уже новый день.
+    //    Это фиксит баг «капсула застряла на вчерашнем дне, когда
+    //    под капсулой 95% сегодняшних сообщений».
+    // 2. Иначе fallback — маркер с МАКСИМАЛЬНЫМ y среди прошедших
+    //    линию вверх (классическая «day at sticky line» логика).
     final stickyLineY = widget.topOverlayOffset + 16;
-    double pickedY = -double.infinity;
-    String? picked;
-    DateTime? pickedDate;
-    // Подробный лог для отладки бага: пишем y каждого header'а и
-    // выбранный matchкий для текущего scroll. ID сообщения-якоря тоже
-    // (helps trace stale-anchor / wrong-position issues).
+    const double nearBelowBuffer = 240.0; // ≈ 3-4 строки сообщений
+    double aboveLineMaxY = -double.infinity;
+    String? aboveLineLabel;
+    DateTime? aboveLineDate;
+    double belowLineMinY = double.infinity;
+    String? belowLineLabel;
+    DateTime? belowLineDate;
+
     final l10n = AppLocalizations.of(context)!;
     final logBuf = StringBuffer(
-      '[sticky-day-compute] line=$stickyLineY reversed=${widget.reversed} groups=${groups.length} headers=',
+      '[sticky-day-compute] line=$stickyLineY buf=$nearBelowBuffer reversed=${widget.reversed} groups=${groups.length} headers=',
     );
     for (final g in groups) {
       final dk = ChatMessageList.dayKey(g.first.createdAt);
@@ -447,14 +452,30 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
       }
       final y = ro.localToGlobal(Offset.zero, ancestor: vp).dy;
       logBuf.write(' $dk@${y.toStringAsFixed(0)}');
-      if (y <= stickyLineY && y > pickedY) {
-        pickedY = y;
-        pickedDate = g.first.createdAt;
-        picked = formatChatDayLabel(g.first.createdAt.toLocal(), l10n);
+      if (y > stickyLineY && y - stickyLineY < nearBelowBuffer) {
+        // Маркер ниже линии и в пределах буфера → день начинается
+        // прямо под капсулой, его и берём.
+        if (y < belowLineMinY) {
+          belowLineMinY = y;
+          belowLineDate = g.first.createdAt;
+          belowLineLabel =
+              formatChatDayLabel(g.first.createdAt.toLocal(), l10n);
+        }
+      } else if (y <= stickyLineY && y > aboveLineMaxY) {
+        aboveLineMaxY = y;
+        aboveLineDate = g.first.createdAt;
+        aboveLineLabel =
+            formatChatDayLabel(g.first.createdAt.toLocal(), l10n);
       }
     }
+
+    final picked = belowLineLabel ?? aboveLineLabel;
+    final pickedY = belowLineLabel != null ? belowLineMinY : aboveLineMaxY;
+    final pickedDate = belowLineDate ?? aboveLineDate;
+    final pickedFrom = belowLineLabel != null ? "below" : "above";
     logBuf.write(
-      ' → picked=${picked ?? "null"}@${pickedY == -double.infinity ? "none" : pickedY.toStringAsFixed(0)}'
+      ' → picked=${picked ?? "null"}@${(pickedY == -double.infinity || pickedY == double.infinity) ? "none" : pickedY.toStringAsFixed(0)}'
+      ' from=$pickedFrom'
       ' pickedDate=${pickedDate?.toLocal().toIso8601String() ?? "null"}',
     );
     final logMsg = logBuf.toString();
