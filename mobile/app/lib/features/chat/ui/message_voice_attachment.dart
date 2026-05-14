@@ -311,6 +311,7 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
   bool _translating = false;
   bool _showTranslation = false;
   String? _translation;
+  TranslationPhase? _translatePhase;
 
   @override
   void initState() {
@@ -405,6 +406,7 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
     final ui = Localizations.localeOf(context).languageCode.toLowerCase();
     setState(() {
       _translating = true;
+      _translatePhase = TranslationPhase.translating;
       _errorText = null;
     });
     try {
@@ -413,6 +415,10 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
         text: original,
         from: detected,
         to: ui,
+        onPhase: (phase) {
+          if (!mounted) return;
+          setState(() => _translatePhase = phase);
+        },
       );
       if (!mounted) return;
       setState(() {
@@ -435,7 +441,12 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
         ),
       );
     } finally {
-      if (mounted) setState(() => _translating = false);
+      if (mounted) {
+        setState(() {
+          _translating = false;
+          _translatePhase = null;
+        });
+      }
     }
   }
 
@@ -464,7 +475,12 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
     final translateLabel = l10n.voice_translate_action;
     final showOriginalLabel = l10n.voice_translate_show_original;
     final translatingLabel = l10n.voice_translate_in_progress;
+    final downloadingLabel = l10n.voice_translate_downloading_model;
     final inlineError = _errorText;
+
+    final translateActiveLabel = _translatePhase == TranslationPhase.downloading
+        ? downloadingLabel
+        : translatingLabel;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -594,7 +610,7 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
                                                   ),
                                             label: Text(
                                               _translating
-                                                  ? translatingLabel
+                                                  ? translateActiveLabel
                                                   : (_showTranslation
                                                       ? showOriginalLabel
                                                       : translateLabel),

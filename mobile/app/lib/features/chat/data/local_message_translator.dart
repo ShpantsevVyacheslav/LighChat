@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:google_mlkit_translation/google_mlkit_translation.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart';
 
 /// On-device перевод через Google ML Kit Translation.
 ///
@@ -23,6 +26,10 @@ class LocalMessageTranslator {
   /// Кэш результатов перевода по композитному ключу — экономит CPU/батарею
   /// при повторных открытиях одной и той же транскрипции.
   final Map<String, String> _resultCache = <String, String>{};
+
+  /// Персистентный SQLite-кэш переводов: при рестарте приложения переводы
+  /// уже не нужно пересчитывать. Лениво открывается при первом обращении.
+  Future<Database>? _dbFuture;
 
   /// Проверяет, поддерживает ли ML Kit указанный язык.
   ///
@@ -63,11 +70,17 @@ class LocalMessageTranslator {
   /// [from] / [to] — короткие ISO-коды. Если хоть один не поддерживается
   /// — бросаем [UnsupportedTranslationException]. Если модель не скачана —
   /// автоматически качаем её перед переводом.
+  ///
+  /// [onPhase] — необязательный колбэк для UI: вызывается с фазой работы
+  /// (`downloading` / `translating`). ML Kit не даёт реальный progress
+  /// в процентах, но фаза «качаем модель» даёт пользователю понять, почему
+  /// первое нажатие занимает ~10–15 сек.
   Future<String> translate({
     required String cacheKey,
     required String text,
     required String from,
     required String to,
+    void Function(TranslationPhase phase)? onPhase,
   }) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return '';
@@ -76,20 +89,36 @@ class LocalMessageTranslator {
     final cached = _resultCache[cacheKey];
     if (cached != null) return cached;
 
+    // Персистентный кэш — переживает рестарт приложения, чтобы не качать
+    // модель и не пересчитывать перевод при повторном открытии чата.
+    final persisted = await _readPersistedTranslation(cacheKey);
+    if (persisted != null) {
+      _resultCache[cacheKey] = persisted;
+      return persisted;
+    }
+
     final src = _toMlKitLanguage(from);
     final dst = _toMlKitLanguage(to);
     if (src == null || dst == null) {
       throw UnsupportedTranslationException(from: from, to: to);
     }
 
-    // Гарантируем загрузку обеих моделей.
-    if (!await _modelManager.isModelDownloaded(src.bcpCode)) {
-      await _modelManager.downloadModel(src.bcpCode, isWifiRequired: false);
-    }
-    if (!await _modelManager.isModelDownloaded(dst.bcpCode)) {
-      await _modelManager.downloadModel(dst.bcpCode, isWifiRequired: false);
+    // Гарантируем загрузку обеих моделей. ML Kit сам не отдаёт прогресс
+    // скачивания, но мы хотя бы сигналим UI о фазе «качаем», чтобы пользователь
+    // понимал, что 5–15 сек ожидания — это разовая загрузка ~30 МБ.
+    final needSrc = !await _modelManager.isModelDownloaded(src.bcpCode);
+    final needDst = !await _modelManager.isModelDownloaded(dst.bcpCode);
+    if (needSrc || needDst) {
+      onPhase?.call(TranslationPhase.downloading);
+      if (needSrc) {
+        await _modelManager.downloadModel(src.bcpCode, isWifiRequired: false);
+      }
+      if (needDst) {
+        await _modelManager.downloadModel(dst.bcpCode, isWifiRequired: false);
+      }
     }
 
+    onPhase?.call(TranslationPhase.translating);
     final key = '${src.bcpCode}->${dst.bcpCode}';
     final translator = _instances.putIfAbsent(
       key,
@@ -97,7 +126,99 @@ class LocalMessageTranslator {
     );
     final translated = await translator.translateText(trimmed);
     _resultCache[cacheKey] = translated;
+    unawaited(_writePersistedTranslation(
+      cacheKey: cacheKey,
+      from: from,
+      to: to,
+      text: translated,
+    ));
     return translated;
+  }
+
+  // ---------------------- SQLite persistence ----------------------
+
+  Future<Database> _db() {
+    return _dbFuture ??= () async {
+      final dir = await getApplicationSupportDirectory();
+      final path = p.join(dir.path, 'lighchat_translations.db');
+      return openDatabase(
+        path,
+        version: 1,
+        onCreate: (db, _) async {
+          await db.execute('''
+            CREATE TABLE translations (
+              cache_key TEXT PRIMARY KEY,
+              from_lang TEXT NOT NULL,
+              to_lang TEXT NOT NULL,
+              translated_text TEXT NOT NULL,
+              created_at INTEGER NOT NULL
+            )
+          ''');
+          await db.execute(
+            'CREATE INDEX idx_translations_created_at ON translations(created_at)',
+          );
+        },
+      );
+    }();
+  }
+
+  Future<String?> _readPersistedTranslation(String cacheKey) async {
+    try {
+      final db = await _db();
+      final rows = await db.query(
+        'translations',
+        columns: const ['translated_text'],
+        where: 'cache_key = ?',
+        whereArgs: [cacheKey],
+        limit: 1,
+      );
+      if (rows.isEmpty) return null;
+      final text = rows.first['translated_text'];
+      return text is String ? text : null;
+    } catch (_) {
+      return null; // не валим перевод из-за проблем с кэшем
+    }
+  }
+
+  Future<void> _writePersistedTranslation({
+    required String cacheKey,
+    required String from,
+    required String to,
+    required String text,
+  }) async {
+    try {
+      final db = await _db();
+      await db.insert(
+        'translations',
+        <String, Object?>{
+          'cache_key': cacheKey,
+          'from_lang': from,
+          'to_lang': to,
+          'translated_text': text,
+          'created_at': DateTime.now().millisecondsSinceEpoch,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (_) {
+      // silently ignore — это всего лишь кэш
+    }
+  }
+
+  /// Чистка устаревших записей (старше [olderThan]). Безопасно вызывать
+  /// из housekeeping-тасков; не обязательно для штатной работы.
+  Future<void> pruneOlderThan(Duration olderThan) async {
+    try {
+      final db = await _db();
+      final cutoff =
+          DateTime.now().subtract(olderThan).millisecondsSinceEpoch;
+      await db.delete(
+        'translations',
+        where: 'created_at < ?',
+        whereArgs: [cutoff],
+      );
+    } catch (_) {
+      // ignore
+    }
   }
 
   /// Очищаем кэш переводов и закрываем все живые инстансы.
@@ -206,4 +327,13 @@ class UnsupportedTranslationException implements Exception {
 
   @override
   String toString() => 'Translation not available for $from → $to';
+}
+
+/// Фаза работы переводчика — для информирования UI.
+enum TranslationPhase {
+  /// Скачивается языковая модель ML Kit (~30 МБ, одноразово).
+  downloading,
+
+  /// Модель есть, идёт само распознавание/перевод.
+  translating,
 }

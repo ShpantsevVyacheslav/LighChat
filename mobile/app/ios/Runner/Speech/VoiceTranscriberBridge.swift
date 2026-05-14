@@ -41,6 +41,28 @@ final class VoiceTranscriberBridge: NSObject {
         .sorted()
       result(tags)
 
+    case "detectLanguage":
+      // Определение языка по строке через NLLanguageRecognizer (быстро, на
+      // устройстве, без моделей). Используется для текстовых сообщений в чате,
+      // чтобы решить, показывать ли кнопку «Translate».
+      let args = call.arguments as? [String: Any] ?? [:]
+      let text = args["text"] as? String ?? ""
+      if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        result(["language": "", "confidence": 0.0])
+        return
+      }
+      let recognizer = NLLanguageRecognizer()
+      recognizer.processString(text)
+      let hypotheses = recognizer.languageHypotheses(withMaximum: 1)
+      if let top = hypotheses.max(by: { $0.value < $1.value }) {
+        result([
+          "language": top.key.rawValue.lowercased(),
+          "confidence": top.value,
+        ])
+      } else {
+        result(["language": "", "confidence": 0.0])
+      }
+
     case "transcribeFile":
       let args = call.arguments as? [String: Any] ?? [:]
       let filePath = args["filePath"] as? String ?? ""

@@ -852,6 +852,7 @@
   "voice_translate_action": "Tarjima qilish",
   "voice_translate_show_original": "Asl",
   "voice_translate_in_progress": "Tarjima qilinmoqda…",
+  "voice_translate_downloading_model": "Model yuklanmoqda…",
   "voice_translate_unsupported": "Bu til juftligi uchun tarjima mavjud emas.",
   "voice_translate_failed": "Tarjima muvaffaqiyatsiz: {error}",
   "@voice_translate_failed": {
@@ -1426,6 +1427,8 @@
   "message_menu_action_reply": "Javob",
   "message_menu_action_thread": "Mavzu",
   "message_menu_action_copy": "Nusxalash",
+  "message_menu_action_translate": "Tarjima qilish",
+  "message_menu_action_show_original": "Asl matnni koʻrsatish",
   "message_menu_action_edit": "Tahrirlash",
   "message_menu_action_pin": "Qadash",
   "message_menu_action_star_add": "Sevimlilarga qoʻshish",

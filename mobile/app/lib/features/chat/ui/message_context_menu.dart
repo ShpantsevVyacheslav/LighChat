@@ -45,6 +45,7 @@ enum MessageMenuActionType {
   outboxRetry,
   outboxCancel,
   report,
+  translate,
 }
 
 class MessageMenuResult {
@@ -119,6 +120,7 @@ Future<MessageMenuResult?> showMessageContextMenu(
   bool showStarAction = false,
   bool isStarred = false,
   bool showThreadAction = true,
+  bool canTranslate = false,
   String? e2eeDecryptedText,
   bool e2eeDecryptionFailed = false,
   String chatFontSize = 'medium',
@@ -144,6 +146,7 @@ Future<MessageMenuResult?> showMessageContextMenu(
         showStarAction: showStarAction,
         isStarred: isStarred,
         showThreadAction: showThreadAction,
+        canTranslate: canTranslate,
         e2eeDecryptedText: e2eeDecryptedText,
         e2eeDecryptionFailed: e2eeDecryptionFailed,
         initiatorPureEmojiSize: initiatorPureEmojiSize,
@@ -178,6 +181,7 @@ class _MessageContextMenuPage extends StatelessWidget {
     required this.showStarAction,
     required this.isStarred,
     required this.showThreadAction,
+    required this.canTranslate,
     required this.e2eeDecryptedText,
     required this.e2eeDecryptionFailed,
     required this.initiatorPureEmojiSize,
@@ -195,6 +199,7 @@ class _MessageContextMenuPage extends StatelessWidget {
   final bool showStarAction;
   final bool isStarred;
   final bool showThreadAction;
+  final bool canTranslate;
   final String? e2eeDecryptedText;
   final bool e2eeDecryptionFailed;
   final double initiatorPureEmojiSize;
@@ -344,6 +349,17 @@ class _MessageContextMenuPage extends StatelessWidget {
                                               ),
                                             ),
                                           ),
+                                      if (canTranslate)
+                                        _MenuTile(
+                                          icon: Icons.translate_rounded,
+                                          label: l10n.message_menu_action_translate,
+                                          onTap: () => _pop(
+                                            context,
+                                            const MessageMenuResult(
+                                              MessageMenuActionType.translate,
+                                            ),
+                                          ),
+                                        ),
                                       if (canEdit)
                                         _MenuTile(
                                           icon: Icons.edit_rounded,

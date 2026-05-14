@@ -3220,6 +3220,12 @@ abstract class AppLocalizations {
   /// **'Перевожу…'**
   String get voice_translate_in_progress;
 
+  /// No description provided for @voice_translate_downloading_model.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скачиваю модель…'**
+  String get voice_translate_downloading_model;
+
   /// No description provided for @voice_translate_unsupported.
   ///
   /// In ru, this message translates to:
@@ -4755,6 +4761,18 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Копировать'**
   String get message_menu_action_copy;
+
+  /// No description provided for @message_menu_action_translate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Перевести'**
+  String get message_menu_action_translate;
+
+  /// No description provided for @message_menu_action_show_original.
+  ///
+  /// In ru, this message translates to:
+  /// **'Показать оригинал'**
+  String get message_menu_action_show_original;
 
   /// No description provided for @message_menu_action_edit.
   ///

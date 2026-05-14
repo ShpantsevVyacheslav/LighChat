@@ -1825,6 +1825,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get voice_translate_in_progress => 'Traduciendo…';
 
   @override
+  String get voice_translate_downloading_model => 'Descargando modelo…';
+
+  @override
   String get voice_translate_unsupported =>
       'La traducción no está disponible para este par de idiomas.';
 
@@ -2765,6 +2768,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get message_menu_action_copy => 'Copiar';
+
+  @override
+  String get message_menu_action_translate => 'Traducir';
+
+  @override
+  String get message_menu_action_show_original => 'Mostrar original';
 
   @override
   String get message_menu_action_edit => 'Editar';
@@ -10116,6 +10125,9 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get voice_translate_in_progress => 'Traduciendo…';
 
   @override
+  String get voice_translate_downloading_model => 'Descargando modelo…';
+
+  @override
   String get voice_translate_unsupported =>
       'La traducción no está disponible para este par de idiomas.';
 
@@ -11056,6 +11068,12 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get message_menu_action_copy => 'Copiar';
+
+  @override
+  String get message_menu_action_translate => 'Traducir';
+
+  @override
+  String get message_menu_action_show_original => 'Mostrar original';
 
   @override
   String get message_menu_action_edit => 'Editar';

@@ -97,6 +97,9 @@ import 'secret_chat_secure_scope.dart';
 import 'secret_chat_unlock_sheet.dart';
 import 'sticker_pack_menu_actions.dart';
 import '../data/secret_chat_media_open_service.dart';
+import '../data/local_message_translator.dart';
+import '../data/local_text_language_detector.dart';
+import 'message_translation_sheet.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({
@@ -3944,6 +3947,59 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     });
   }
 
+  /// Можно ли показать пункт «Translate» в context-меню сообщения.
+  /// Считает, что да, если:
+  /// - в тексте есть что переводить (> 1 буква),
+  /// - определённый язык надёжен и отличается от UI-локали,
+  /// - ML Kit поддерживает пару.
+  Future<bool> _canTranslateMessage(String rawText) async {
+    final stripped = rawText.contains('<')
+        ? messageHtmlToPlainText(rawText)
+        : rawText;
+    final clean = stripped.trim();
+    if (clean.length < 2) return false;
+    final detection =
+        await LocalTextLanguageDetector.instance.detect(clean);
+    if (!detection.isReliable) return false;
+    if (!mounted) return false;
+    final ui = Localizations.localeOf(context).languageCode.toLowerCase();
+    if (detection.language == ui) return false;
+    return LocalMessageTranslator.instance
+        .supportsPair(from: detection.language, to: ui);
+  }
+
+  /// Показывает bottom-sheet с переводом сообщения и кнопкой «Copy».
+  /// Перевод on-device через ML Kit; результат кэшируется в SQLite, поэтому
+  /// повторный «Перевести» того же сообщения мгновенный.
+  Future<void> _translateMessage(ChatMessage m, String rawText) async {
+    final stripped = rawText.contains('<')
+        ? messageHtmlToPlainText(rawText)
+        : rawText;
+    final original = stripped.trim();
+    if (original.isEmpty) return;
+    final detection =
+        await LocalTextLanguageDetector.instance.detect(original);
+    if (!mounted) return;
+    final ui = Localizations.localeOf(context).languageCode.toLowerCase();
+    final from = detection.language;
+    if (from.isEmpty || from == ui) return;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) => MessageTranslationSheet(
+        messageId: m.id,
+        originalText: original,
+        from: from,
+        to: ui,
+      ),
+    );
+  }
+
   Future<void> _pinMessage(
     ChatMessage m,
     User user,
@@ -4096,6 +4152,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     final secretRestrictions = convWrap?.data.secretChat?.restrictions;
     final allowCopy = !(secretRestrictions?.noCopy == true);
     final allowForward = !(secretRestrictions?.noForward == true);
+
+    // Можно ли предложить перевод: язык текста ≠ UI-локали и ML Kit
+    // поддерживает пару. Детектим заранее (на момент показа меню), чтобы
+    // сразу отрисовать пункт «Translate» — без задержки.
+    final canTranslate = await _canTranslateMessage(menuTextSource);
+    if (!mounted) return;
+
     final result = await showMessageContextMenu(
       context,
       message: m,
@@ -4107,6 +4170,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       allowForward: allowForward,
       showStarAction: !m.isDeleted,
       isStarred: starredMessageIds.contains(m.id),
+      canTranslate: canTranslate,
       e2eeDecryptedText: e2eeDecryptedText,
       e2eeDecryptionFailed: e2eeDecryptionFailed,
       chatFontSize: fontSize,
@@ -4155,6 +4219,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         }
         await copyMessageTextToClipboard(m);
         if (mounted) _toast(AppLocalizations.of(context)!.chat_text_copied);
+      case MessageMenuActionType.translate:
+        await _translateMessage(m, menuTextSource);
       case MessageMenuActionType.edit:
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;

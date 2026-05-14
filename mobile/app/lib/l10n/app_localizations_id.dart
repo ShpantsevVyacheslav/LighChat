@@ -1806,6 +1806,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get voice_translate_in_progress => 'Menerjemahkan…';
 
   @override
+  String get voice_translate_downloading_model => 'Mengunduh model…';
+
+  @override
   String get voice_translate_unsupported =>
       'Terjemahan tidak tersedia untuk pasangan bahasa ini.';
 
@@ -2739,6 +2742,12 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get message_menu_action_copy => 'Salin';
+
+  @override
+  String get message_menu_action_translate => 'Terjemahkan';
+
+  @override
+  String get message_menu_action_show_original => 'Tampilkan asli';
 
   @override
   String get message_menu_action_edit => 'Sunting';

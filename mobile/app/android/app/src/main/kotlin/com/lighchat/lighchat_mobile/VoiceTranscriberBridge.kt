@@ -50,6 +50,7 @@ class VoiceTranscriberBridge(private val context: Context) {
             when (call.method) {
                 "supportedLocales" -> handleSupportedLocales(result)
                 "transcribeFile" -> handleTranscribeFile(call, result)
+                "detectLanguage" -> handleDetectLanguage(call, result)
                 else -> result.notImplemented()
             }
         }
@@ -313,6 +314,61 @@ class VoiceTranscriberBridge(private val context: Context) {
                 recognizer.destroy()
             }
         }
+    }
+
+    /**
+     * Грубая эвристика определения языка по тексту — по Unicode-блокам.
+     * Нужна для решения «показывать ли кнопку Translate» под текстовым
+     * сообщением. Без зависимости от ML Kit Language ID (~3 МБ).
+     *
+     * Покрывает основные пары проекта (ru ↔ en + базовые скрипты).
+     * Точность ниже NLLanguageRecognizer на iOS, но достаточно для UX
+     * решения «другой ли это язык» — а перевод дальше делает ML Kit с
+     * фиксированным `from`, который мы передаём от детектора.
+     */
+    private fun handleDetectLanguage(call: MethodCall, result: MethodChannel.Result) {
+        val text = (call.argument<String>("text") ?: "").trim()
+        if (text.isEmpty()) {
+            result.success(mapOf("language" to "", "confidence" to 0.0))
+            return
+        }
+        val counts = HashMap<String, Int>()
+        var letters = 0
+        for (ch in text) {
+            if (!ch.isLetter()) continue
+            letters += 1
+            val block = Character.UnicodeBlock.of(ch) ?: continue
+            val lang = when (block) {
+                Character.UnicodeBlock.CYRILLIC,
+                Character.UnicodeBlock.CYRILLIC_SUPPLEMENTARY -> "ru"
+                Character.UnicodeBlock.ARABIC -> "ar"
+                Character.UnicodeBlock.HEBREW -> "he"
+                Character.UnicodeBlock.GREEK -> "el"
+                Character.UnicodeBlock.HIRAGANA,
+                Character.UnicodeBlock.KATAKANA,
+                Character.UnicodeBlock.KATAKANA_PHONETIC_EXTENSIONS -> "ja"
+                Character.UnicodeBlock.HANGUL_SYLLABLES,
+                Character.UnicodeBlock.HANGUL_JAMO -> "ko"
+                Character.UnicodeBlock.THAI -> "th"
+                Character.UnicodeBlock.DEVANAGARI -> "hi"
+                Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS,
+                Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A,
+                Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_B -> "zh"
+                Character.UnicodeBlock.BASIC_LATIN,
+                Character.UnicodeBlock.LATIN_1_SUPPLEMENT,
+                Character.UnicodeBlock.LATIN_EXTENDED_A,
+                Character.UnicodeBlock.LATIN_EXTENDED_B -> "en"
+                else -> null
+            }
+            if (lang != null) counts[lang] = (counts[lang] ?: 0) + 1
+        }
+        if (letters == 0 || counts.isEmpty()) {
+            result.success(mapOf("language" to "", "confidence" to 0.0))
+            return
+        }
+        val (topLang, topCount) = counts.maxByOrNull { it.value }!!
+        val confidence = topCount.toDouble() / letters.toDouble()
+        result.success(mapOf("language" to topLang, "confidence" to confidence))
     }
 
     private fun errorToString(code: Int): String = when (code) {

@@ -1817,6 +1817,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get voice_translate_in_progress => 'Tarjima qilinmoqda…';
 
   @override
+  String get voice_translate_downloading_model => 'Model yuklanmoqda…';
+
+  @override
   String get voice_translate_unsupported =>
       'Bu til juftligi uchun tarjima mavjud emas.';
 
@@ -2755,6 +2758,12 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get message_menu_action_copy => 'Nusxalash';
+
+  @override
+  String get message_menu_action_translate => 'Tarjima qilish';
+
+  @override
+  String get message_menu_action_show_original => 'Asl matnni koʻrsatish';
 
   @override
   String get message_menu_action_edit => 'Tahrirlash';

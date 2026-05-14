@@ -852,6 +852,7 @@
   "voice_translate_action": "Çevir",
   "voice_translate_show_original": "Orijinal",
   "voice_translate_in_progress": "Çevriliyor…",
+  "voice_translate_downloading_model": "Model indiriliyor…",
   "voice_translate_unsupported": "Bu dil çifti için çeviri kullanılamıyor.",
   "voice_translate_failed": "Çeviri başarısız: {error}",
   "@voice_translate_failed": {
@@ -1426,6 +1427,8 @@
   "message_menu_action_reply": "Yanıtla",
   "message_menu_action_thread": "Konu",
   "message_menu_action_copy": "Kopyala",
+  "message_menu_action_translate": "Çevir",
+  "message_menu_action_show_original": "Orijinali göster",
   "message_menu_action_edit": "Düzenle",
   "message_menu_action_pin": "Sabitle",
   "message_menu_action_star_add": "Yıldızlılara ekle",

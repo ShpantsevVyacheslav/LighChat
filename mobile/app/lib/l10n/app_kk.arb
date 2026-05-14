@@ -852,6 +852,7 @@
   "voice_translate_action": "Аудару",
   "voice_translate_show_original": "Түпнұсқа",
   "voice_translate_in_progress": "Аударылуда…",
+  "voice_translate_downloading_model": "Модель жүктелуде…",
   "voice_translate_unsupported": "Бұл тіл жұбы үшін аударма қолжетімсіз.",
   "voice_translate_failed": "Аудару сәтсіз: {error}",
   "@voice_translate_failed": {
@@ -1426,6 +1427,8 @@
   "message_menu_action_reply": "Ответить",
   "message_menu_action_thread": "Обсудить",
   "message_menu_action_copy": "Көшіру",
+  "message_menu_action_translate": "Аудару",
+  "message_menu_action_show_original": "Түпнұсқаны көрсету",
   "message_menu_action_edit": "Өзгерту",
   "message_menu_action_pin": "Бекіту",
   "message_menu_action_star_add": "Қосу в таңдаулылар",

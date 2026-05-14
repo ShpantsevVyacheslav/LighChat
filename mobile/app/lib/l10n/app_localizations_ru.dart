@@ -1812,6 +1812,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get voice_translate_in_progress => 'Перевожу…';
 
   @override
+  String get voice_translate_downloading_model => 'Скачиваю модель…';
+
+  @override
   String get voice_translate_unsupported =>
       'Перевод недоступен для этой языковой пары.';
 
@@ -2744,6 +2747,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get message_menu_action_copy => 'Копировать';
+
+  @override
+  String get message_menu_action_translate => 'Перевести';
+
+  @override
+  String get message_menu_action_show_original => 'Показать оригинал';
 
   @override
   String get message_menu_action_edit => 'Изменить';

@@ -1810,6 +1810,9 @@ class AppLocalizationsKk extends AppLocalizations {
   String get voice_translate_in_progress => 'Аударылуда…';
 
   @override
+  String get voice_translate_downloading_model => 'Модель жүктелуде…';
+
+  @override
   String get voice_translate_unsupported =>
       'Бұл тіл жұбы үшін аударма қолжетімсіз.';
 
@@ -2744,6 +2747,12 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get message_menu_action_copy => 'Көшіру';
+
+  @override
+  String get message_menu_action_translate => 'Аудару';
+
+  @override
+  String get message_menu_action_show_original => 'Түпнұсқаны көрсету';
 
   @override
   String get message_menu_action_edit => 'Өзгерту';

@@ -852,6 +852,7 @@
   "voice_translate_action": "Traducir",
   "voice_translate_show_original": "Original",
   "voice_translate_in_progress": "Traduciendo…",
+  "voice_translate_downloading_model": "Descargando modelo…",
   "voice_translate_unsupported": "La traducción no está disponible para este par de idiomas.",
   "voice_translate_failed": "No se pudo traducir: {error}",
   "@voice_translate_failed": {
@@ -1426,6 +1427,8 @@
   "message_menu_action_reply": "Responder",
   "message_menu_action_thread": "Hilo",
   "message_menu_action_copy": "Copiar",
+  "message_menu_action_translate": "Traducir",
+  "message_menu_action_show_original": "Mostrar original",
   "message_menu_action_edit": "Editar",
   "message_menu_action_pin": "Fijar",
   "message_menu_action_star_add": "Agregar a Destacados",

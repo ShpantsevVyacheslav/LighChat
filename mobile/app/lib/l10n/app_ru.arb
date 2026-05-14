@@ -872,6 +872,7 @@
   "voice_translate_action": "Перевести",
   "voice_translate_show_original": "Оригинал",
   "voice_translate_in_progress": "Перевожу…",
+  "voice_translate_downloading_model": "Скачиваю модель…",
   "voice_translate_unsupported": "Перевод недоступен для этой языковой пары.",
   "voice_translate_failed": "Не удалось перевести: {error}",
   "@voice_translate_failed": {
@@ -1446,6 +1447,8 @@
   "message_menu_action_reply": "Ответить",
   "message_menu_action_thread": "Обсудить",
   "message_menu_action_copy": "Копировать",
+  "message_menu_action_translate": "Перевести",
+  "message_menu_action_show_original": "Показать оригинал",
   "message_menu_action_edit": "Изменить",
   "message_menu_action_pin": "Закрепить",
   "message_menu_action_star_add": "Добавить в избранное",

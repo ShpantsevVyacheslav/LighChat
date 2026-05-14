@@ -1753,6 +1753,10 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
         }
         await copyMessageTextToClipboard(message);
         if (mounted) _toast(AppLocalizations.of(context)!.chat_text_copied);
+      case MessageMenuActionType.translate:
+        // В тред-скрине Translate пока не предлагается (canTranslate=false),
+        // но кейс должен быть в свитче, иначе non-exhaustive_switch_statement.
+        return;
       case MessageMenuActionType.edit:
         _toast(AppLocalizations.of(context)!.common_soon);
       case MessageMenuActionType.pin:

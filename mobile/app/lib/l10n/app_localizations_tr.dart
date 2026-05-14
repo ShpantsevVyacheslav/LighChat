@@ -1811,6 +1811,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get voice_translate_in_progress => 'Çevriliyor…';
 
   @override
+  String get voice_translate_downloading_model => 'Model indiriliyor…';
+
+  @override
   String get voice_translate_unsupported =>
       'Bu dil çifti için çeviri kullanılamıyor.';
 
@@ -2746,6 +2749,12 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get message_menu_action_copy => 'Kopyala';
+
+  @override
+  String get message_menu_action_translate => 'Çevir';
+
+  @override
+  String get message_menu_action_show_original => 'Orijinali göster';
 
   @override
   String get message_menu_action_edit => 'Düzenle';

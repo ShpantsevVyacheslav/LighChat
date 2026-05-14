@@ -1796,6 +1796,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voice_translate_in_progress => 'Translating…';
 
   @override
+  String get voice_translate_downloading_model => 'Downloading model…';
+
+  @override
   String get voice_translate_unsupported =>
       'Translation is not available for this language pair.';
 
@@ -2725,6 +2728,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get message_menu_action_copy => 'Copy';
+
+  @override
+  String get message_menu_action_translate => 'Translate';
+
+  @override
+  String get message_menu_action_show_original => 'Show original';
 
   @override
   String get message_menu_action_edit => 'Edit';
