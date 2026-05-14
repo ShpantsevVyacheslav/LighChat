@@ -1,11 +1,18 @@
 import Flutter
 import Foundation
+import NaturalLanguage
 import Speech
 
 /// On-device транскрибация голосовых сообщений через Apple Speech Framework.
 ///
 /// Channel: `lighchat/voice_transcribe`. Контракт см. в
 /// `mobile/app/lib/features/chat/data/local_voice_transcriber.dart`.
+///
+/// Поддерживается двухпроходный авто-детект языка: после первого прогона
+/// результат пропускается через `NLLanguageRecognizer`; если язык текста
+/// расходится с локалью распознавателя — делаем повторный прогон с
+/// определённой локалью. Это покрывает кейс «UI на en, голосовое на ru»,
+/// где английский распознаватель Apple возвращает мусор/empty.
 final class VoiceTranscriberBridge: NSObject {
   static let shared = VoiceTranscriberBridge()
 
@@ -32,7 +39,10 @@ final class VoiceTranscriberBridge: NSObject {
       let args = call.arguments as? [String: Any] ?? [:]
       let filePath = args["filePath"] as? String ?? ""
       let languageTag = args["languageTag"] as? String ?? "en-US"
-      transcribe(filePath: filePath, languageTag: languageTag, result: result)
+      let autoDetect = (args["autoDetect"] as? Bool) ?? true
+      transcribe(
+        filePath: filePath, languageTag: languageTag,
+        autoDetect: autoDetect, result: result)
 
     default:
       result(FlutterMethodNotImplemented)
@@ -40,7 +50,8 @@ final class VoiceTranscriberBridge: NSObject {
   }
 
   private func transcribe(
-    filePath: String, languageTag: String, result: @escaping FlutterResult
+    filePath: String, languageTag: String,
+    autoDetect: Bool, result: @escaping FlutterResult
   ) {
     if filePath.isEmpty {
       result(
@@ -58,7 +69,9 @@ final class VoiceTranscriberBridge: NSObject {
       guard let self = self else { return }
       switch status {
       case .authorized:
-        self.runRecognition(url: url, languageTag: languageTag, result: result)
+        self.runRecognitionFlow(
+          url: url, languageTag: languageTag,
+          autoDetect: autoDetect, result: result)
       case .denied:
         result(
           FlutterError(
@@ -100,11 +113,15 @@ final class VoiceTranscriberBridge: NSObject {
     }
   }
 
-  private func runRecognition(
-    url: URL, languageTag: String, result: @escaping FlutterResult
+  // MARK: - Recognition flow
+
+  private func runRecognitionFlow(
+    url: URL, languageTag: String,
+    autoDetect: Bool, result: @escaping FlutterResult
   ) {
-    let locale = Locale(identifier: languageTag.replacingOccurrences(of: "-", with: "_"))
-    guard let recognizer = SFSpeechRecognizer(locale: locale) else {
+    let locale = Locale(
+      identifier: languageTag.replacingOccurrences(of: "-", with: "_"))
+    guard let recognizer = makeRecognizer(locale: locale) else {
       result(
         FlutterError(
           code: "unsupported_lang",
@@ -112,31 +129,59 @@ final class VoiceTranscriberBridge: NSObject {
           details: nil))
       return
     }
-    if !recognizer.isAvailable {
-      result(
-        FlutterError(
-          code: "recognizer_unavailable",
-          message: "Recognizer is currently unavailable",
-          details: nil))
-      return
+    performRecognition(recognizer: recognizer, url: url) { [weak self] outcome in
+      switch outcome {
+      case .failure(let error):
+        result(
+          FlutterError(
+            code: "recognition_failed",
+            message: error.localizedDescription,
+            details: nil))
+      case .success(let text):
+        if !autoDetect || text.isEmpty {
+          result(["text": text])
+          return
+        }
+        self?.maybeReRunWithDetectedLanguage(
+          originalLocale: locale,
+          originalText: text,
+          url: url,
+          result: result)
+      }
     }
+  }
 
-    // Tier 1: on-device (если доступно). Fallback на серверное Apple-распознавание
-    // — оно работает в РФ и часто точнее на коротких сообщениях.
+  private func makeRecognizer(locale: Locale) -> SFSpeechRecognizer? {
+    guard let recognizer = SFSpeechRecognizer(locale: locale) else {
+      return nil
+    }
+    if !recognizer.isAvailable { return nil }
+    return recognizer
+  }
+
+  /// Запуск распознавания с fallback'ом on-device → серверное Apple-распознавание.
+  /// Возвращает `Result<String, NSError>`:
+  /// - `.success("")` — речь не распознана (no-speech ошибки трактуем как пустоту);
+  /// - `.success("…")` — финальный текст;
+  /// - `.failure(err)` — неустранимая ошибка.
+  private func performRecognition(
+    recognizer: SFSpeechRecognizer, url: URL,
+    completion: @escaping (Result<String, NSError>) -> Void
+  ) {
     let canOnDevice: Bool = {
       if #available(iOS 13.0, *) { return recognizer.supportsOnDeviceRecognition }
       return false
     }()
-    performRecognition(
+    performRecognitionPass(
       recognizer: recognizer, url: url,
-      onDevice: canOnDevice,
-      allowFallback: true,
-      result: result)
+      onDevice: canOnDevice, allowFallback: true,
+      completion: completion)
   }
 
-  private func performRecognition(
+  private func performRecognitionPass(
     recognizer: SFSpeechRecognizer, url: URL,
-    onDevice: Bool, allowFallback: Bool, result: @escaping FlutterResult
+    onDevice: Bool, allowFallback: Bool,
+    completion: @escaping (Result<String, NSError>) -> Void
   ) {
     let request = SFSpeechURLRecognitionRequest(url: url)
     request.shouldReportPartialResults = false
@@ -148,60 +193,39 @@ final class VoiceTranscriberBridge: NSObject {
     recognizerQueue.async { [weak self] in
       var delivered = false
       let lock = NSLock()
-      func deliver(_ value: Any?) {
-        lock.lock()
-        defer { lock.unlock() }
+      func deliver(_ value: Result<String, NSError>) {
+        lock.lock(); defer { lock.unlock() }
         if delivered { return }
         delivered = true
-        DispatchQueue.main.async { result(value) }
+        DispatchQueue.main.async { completion(value) }
+      }
+      func tryFallback() -> Bool {
+        lock.lock()
+        if delivered { lock.unlock(); return false }
+        delivered = true
+        lock.unlock()
+        self?.performRecognitionPass(
+          recognizer: recognizer, url: url,
+          onDevice: false, allowFallback: false,
+          completion: completion)
+        return true
       }
 
       _ = recognizer.recognitionTask(with: request) { recognitionResult, error in
         if let error = error as NSError? {
           if Self.isNoSpeechError(error) {
-            if onDevice && allowFallback {
-              // On-device не нашёл речь — это часто означает не «реально нет
-              // речи», а «модели не хватило». Пробуем серверный путь Apple.
-              lock.lock()
-              if !delivered {
-                delivered = true
-                lock.unlock()
-                self?.performRecognition(
-                  recognizer: recognizer, url: url,
-                  onDevice: false, allowFallback: false, result: result)
-              } else {
-                lock.unlock()
-              }
-              return
-            }
-            deliver(["text": ""])
+            if onDevice && allowFallback, tryFallback() { return }
+            deliver(.success(""))
             return
           }
-          if onDevice && allowFallback {
-            // Любая иная ошибка on-device — пробуем сервер.
-            lock.lock()
-            if !delivered {
-              delivered = true
-              lock.unlock()
-              self?.performRecognition(
-                recognizer: recognizer, url: url,
-                onDevice: false, allowFallback: false, result: result)
-            } else {
-              lock.unlock()
-            }
-            return
-          }
-          deliver(
-            FlutterError(
-              code: "recognition_failed",
-              message: error.localizedDescription,
-              details: nil))
+          if onDevice && allowFallback, tryFallback() { return }
+          deliver(.failure(error))
           return
         }
         guard let recognitionResult = recognitionResult else { return }
         if recognitionResult.isFinal {
           let text = recognitionResult.bestTranscription.formattedString
-          deliver(["text": text])
+          deliver(.success(text))
         }
       }
     }
@@ -214,5 +238,103 @@ final class VoiceTranscriberBridge: NSObject {
       return true
     }
     return error.localizedDescription.lowercased().contains("no speech")
+  }
+
+  // MARK: - Auto language detection
+
+  /// После первого прогона определяем язык по тексту. Если он отличается от
+  /// локали распознавателя с уверенностью ≥ 0.75 — повторяем распознавание
+  /// с правильной локалью и возвращаем новый результат. Иначе — оставляем
+  /// первичный текст.
+  private func maybeReRunWithDetectedLanguage(
+    originalLocale: Locale,
+    originalText: String,
+    url: URL,
+    result: @escaping FlutterResult
+  ) {
+    let langRecognizer = NLLanguageRecognizer()
+    langRecognizer.processString(originalText)
+    let hypotheses = langRecognizer.languageHypotheses(withMaximum: 1)
+    guard let (topLang, confidence) = hypotheses.max(by: { $0.value < $1.value })
+    else {
+      result(["text": originalText])
+      return
+    }
+    let detectedCode = topLang.rawValue.lowercased()
+    let originalCode = (originalLocale.languageCode ?? "").lowercased()
+    if detectedCode == originalCode || confidence < 0.75 {
+      result(["text": originalText])
+      return
+    }
+    // Подбираем поддерживаемую локаль распознавания для определённого языка.
+    guard let newLocale = bestRecognitionLocale(for: detectedCode) else {
+      result(["text": originalText])
+      return
+    }
+    guard let newRecognizer = makeRecognizer(locale: newLocale) else {
+      result(["text": originalText])
+      return
+    }
+    performRecognition(recognizer: newRecognizer, url: url) { outcome in
+      switch outcome {
+      case .success(let secondaryText):
+        let finalText = secondaryText.isEmpty ? originalText : secondaryText
+        result(["text": finalText])
+      case .failure:
+        result(["text": originalText])
+      }
+    }
+  }
+
+  /// Из множества поддерживаемых локалей Apple Speech выбираем ту, которая
+  /// соответствует языку (BCP-47 prefix). Приоритет — каноничные регионы
+  /// (`ru_RU`, `en_US`, `pt_BR`, `es_ES` и т. п.).
+  private func bestRecognitionLocale(for languageCode: String) -> Locale? {
+    let lang = languageCode.lowercased()
+    let supported = SFSpeechRecognizer.supportedLocales()
+    let candidates = supported.filter {
+      ($0.languageCode ?? "").lowercased() == lang
+    }
+    if candidates.isEmpty { return nil }
+    let preferredRegion = Self.preferredRegion(for: lang)
+    if let exact = candidates.first(where: { $0.regionCode == preferredRegion }) {
+      return exact
+    }
+    return candidates.first
+  }
+
+  private static func preferredRegion(for languageCode: String) -> String {
+    switch languageCode {
+    case "ru": return "RU"
+    case "en": return "US"
+    case "es": return "ES"
+    case "pt": return "BR"
+    case "tr": return "TR"
+    case "id": return "ID"
+    case "kk": return "KZ"
+    case "uz": return "UZ"
+    case "de": return "DE"
+    case "fr": return "FR"
+    case "it": return "IT"
+    case "ja": return "JP"
+    case "ko": return "KR"
+    case "zh": return "CN"
+    case "ar": return "SA"
+    case "uk": return "UA"
+    case "be": return "BY"
+    case "pl": return "PL"
+    case "cs": return "CZ"
+    case "nl": return "NL"
+    case "sv": return "SE"
+    case "no", "nb": return "NO"
+    case "fi": return "FI"
+    case "da": return "DK"
+    case "el": return "GR"
+    case "he": return "IL"
+    case "th": return "TH"
+    case "vi": return "VN"
+    case "hi": return "IN"
+    default: return languageCode.uppercased()
+    }
   }
 }

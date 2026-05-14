@@ -59,10 +59,15 @@ class LocalVoiceTranscriber {
   ///
   /// [languageHint] — короткий код локали пользователя из l10n
   /// (например `'ru'`, `'es'`). Маппится в BCP-47.
+  ///
+  /// [autoDetect] — на iOS включает двухпроходный авто-детект языка через
+  /// `NLLanguageRecognizer`. Покрывает кейс «UI на en, голосовое на ru».
+  /// На Android параметр игнорируется (нет нативного аналога без ML Kit).
   Future<String> transcribeAttachment({
     required String messageId,
     required String audioUrl,
     required String languageHint,
+    bool autoDetect = true,
   }) async {
     final cached = _cache[messageId];
     if (cached != null && cached.isNotEmpty) return cached;
@@ -77,6 +82,7 @@ class LocalVoiceTranscriber {
         <String, dynamic>{
           'filePath': localPath.filePath,
           'languageTag': languageTag,
+          'autoDetect': autoDetect,
         },
       );
       final text = (raw?['text'] ?? '').toString().trim();
