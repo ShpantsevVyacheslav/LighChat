@@ -147,12 +147,12 @@ class _WebStyleVoiceRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
-    // Метатекст внутри стеклянного пузыря на ярких обоях должен оставаться
-    // читаемым — поднимаем alpha до уровня, на котором цвет уверенно выигрывает
-    // у фона. 0.55/0.7 раньше «сливались» с цветными обоями.
-    final metaColor = isMine
-        ? scheme.onPrimary.withValues(alpha: 0.92)
-        : scheme.onSurface.withValues(alpha: 0.85);
+    // ChatGlassPanel принудительно делает фон тёмным стеклом и оверрайдит
+    // onSurface → белый. Цвета mine/onPrimary не подходят: на тёмном стекле
+    // они сливаются. Используем светлые цвета всегда — это адаптивно к
+    // любым обоям и темам, потому что подложка под текстом известная (стекло).
+    final metaColor = Colors.white.withValues(alpha: 0.88);
+    final rateColor = Colors.white;
 
     final playerRow = Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -182,7 +182,9 @@ class _WebStyleVoiceRow extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  // Низ оставляем минимальным, чтобы кнопка «Show text» под
+                  // плеером прижалась почти вплотную к меткам времени/размера.
+                  padding: const EdgeInsets.only(top: 10, bottom: 2),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
@@ -248,10 +250,8 @@ class _WebStyleVoiceRow extends StatelessWidget {
                   _rateButtonLabel(playbackRate),
                   style: TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isMine
-                        ? scheme.onPrimary
-                        : scheme.primary,
+                    fontWeight: FontWeight.w700,
+                    color: rateColor,
                   ),
                 ),
               ),
@@ -270,21 +270,11 @@ class _WebStyleVoiceRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               playerRow,
-              if (footer != null) ...[
+              if (footer != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Divider(
-                    height: 1,
-                    thickness: 0.5,
-                    color: (isMine ? scheme.onPrimary : scheme.onSurface)
-                        .withValues(alpha: 0.18),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
                   child: footer!,
                 ),
-              ],
             ],
           ),
         ),
@@ -452,16 +442,11 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final isMine = widget.isMine;
-    // Адаптивные цвета: на «моих» пузырях фон = primary, текст = onPrimary.
-    // На входящих и в media-tab фон — surface-glass, текст = onSurface.
-    final metaColor = isMine
-        ? scheme.onPrimary.withValues(alpha: 0.82)
-        : scheme.onSurface.withValues(alpha: 0.72);
-    final textColor = isMine
-        ? scheme.onPrimary
-        : scheme.onSurface;
+    // _TranscriptControls всегда рендерится внутри ChatGlassPanel
+    // (фон = тёмное стекло). Цвет текста — белый с разной альфой; так он
+    // адаптивен ко всем обоям и темам, потому что подложка фиксирована.
+    final metaColor = Colors.white.withValues(alpha: 0.78);
+    final textColor = Colors.white.withValues(alpha: 0.96);
 
     final original =
         (widget.transcript ?? _localResult?.text ?? '').trim();
@@ -482,43 +467,42 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
     final translatingLabel = l10n.voice_translate_in_progress;
     final inlineError = _errorText;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 6, left: 2, right: 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: () async {
-                setState(() => _open = !_open);
-                if (_open) {
-                  await _ensureTranscript();
-                }
-              },
-              style: TextButton.styleFrom(
-                minimumSize: const Size(44, 32),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                foregroundColor: metaColor,
-              ),
-              icon: Icon(
-                _open
-                    ? Icons.keyboard_arrow_up_rounded
-                    : Icons.keyboard_arrow_down_rounded,
-                size: 18,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: () async {
+              setState(() => _open = !_open);
+              if (_open) {
+                await _ensureTranscript();
+              }
+            },
+            style: TextButton.styleFrom(
+              minimumSize: const Size(44, 28),
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              foregroundColor: metaColor,
+            ),
+            icon: Icon(
+              _open
+                  ? Icons.keyboard_arrow_up_rounded
+                  : Icons.keyboard_arrow_down_rounded,
+              size: 18,
+              color: metaColor,
+            ),
+            label: Text(
+              _open ? hideLabel : showLabel,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
                 color: metaColor,
-              ),
-              label: Text(
-                _open ? hideLabel : showLabel,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: metaColor,
-                ),
               ),
             ),
           ),
+        ),
           AnimatedSize(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOutCubic,
@@ -685,8 +669,7 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
                               ),
                   ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }
