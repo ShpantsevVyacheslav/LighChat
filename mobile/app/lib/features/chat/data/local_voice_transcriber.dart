@@ -1,9 +1,15 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+
+void _log(String message) {
+  // dev.log виден в Xcode console и в `flutter run`, не отфильтрован релизом.
+  developer.log(message, name: 'VoiceTranscribe');
+}
 
 /// Локальная on-device транскрибация голосовых сообщений.
 ///
@@ -70,14 +76,28 @@ class LocalVoiceTranscriber {
     required String languageHint,
     bool autoDetect = true,
   }) async {
+    _log(
+      'transcribeAttachment mid=$messageId hint=$languageHint '
+      'auto=$autoDetect urlScheme=${Uri.tryParse(audioUrl)?.scheme}',
+    );
     final cached = _cache[messageId];
-    if (cached != null && cached.text.isNotEmpty) return cached;
+    if (cached != null && cached.text.isNotEmpty) {
+      _log(
+        '→ cache hit mid=$messageId len=${cached.text.length} '
+        'detected=${cached.detectedLanguage}',
+      );
+      return cached;
+    }
 
     final localPath = await _resolveToLocalFile(audioUrl);
     final languageTag = await _pickLanguageTag(languageHint);
     final fallbackLocales = autoDetect
         ? await _fallbackLocales(primary: languageTag)
         : const <String>[];
+    _log(
+      'resolved file=${localPath.filePath} (temp=${localPath.tempPath != null}) '
+      'picked tag=$languageTag fallbacks=$fallbackLocales',
+    );
     File? tempFile;
     if (localPath.tempPath != null) tempFile = File(localPath.tempPath!);
     try {
@@ -93,6 +113,10 @@ class LocalVoiceTranscriber {
       final text = (raw?['text'] ?? '').toString().trim();
       final detected =
           (raw?['detectedLanguage'] ?? '').toString().trim().toLowerCase();
+      _log(
+        '← bridge returned len=${text.length} detected=$detected '
+        'preview="${text.length > 60 ? '${text.substring(0, 60)}...' : text}"',
+      );
       final result = VoiceTranscriptionResult(
         text: text,
         detectedLanguage: detected.isEmpty ? null : detected,
@@ -100,11 +124,13 @@ class LocalVoiceTranscriber {
       _cache[messageId] = result;
       return result;
     } on PlatformException catch (e) {
+      _log('PlatformException code=${e.code} message=${e.message}');
       throw VoiceTranscriptionException(
         code: e.code,
         message: e.message ?? e.code,
       );
     } on MissingPluginException {
+      _log('MissingPluginException — native handler not registered');
       throw const VoiceTranscriptionException(
         code: 'unavailable',
         message: 'Native transcriber is not registered on this platform.',

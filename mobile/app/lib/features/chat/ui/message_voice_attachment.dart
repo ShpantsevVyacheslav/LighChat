@@ -195,7 +195,6 @@ class _WebStyleVoiceRow extends StatelessWidget {
                             final seek = onWaveformSeekFromLocal;
                             final wave = AudioMessageWaveformBars(
                               progressPercent: progressPercent.clamp(0.0, 100.0),
-                              isMine: isMine,
                               seedUrl: seedUrl,
                             );
                             if (seek == null) return wave;

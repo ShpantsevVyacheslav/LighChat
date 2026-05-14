@@ -15,9 +15,15 @@ import Speech
 /// где английский распознаватель Apple возвращает мусор/empty.
 final class VoiceTranscriberBridge: NSObject {
   static let shared = VoiceTranscriberBridge()
+  private static let logTag = "[VoiceTranscribe]"
 
   private let recognizerQueue = DispatchQueue(
     label: "lighchat.voice-transcriber", qos: .userInitiated)
+
+  /// Лог в `os_log`/`NSLog` — видно в Xcode console и `flutter run`.
+  private static func log(_ message: @autoclosure () -> String) {
+    NSLog("%@ %@", logTag, message())
+  }
 
   func register(messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
@@ -41,6 +47,9 @@ final class VoiceTranscriberBridge: NSObject {
       let languageTag = args["languageTag"] as? String ?? "en-US"
       let autoDetect = (args["autoDetect"] as? Bool) ?? true
       let fallbackLocales = (args["fallbackLocales"] as? [String]) ?? []
+      Self.log(
+        "transcribeFile path=\(filePath) primary=\(languageTag) "
+          + "auto=\(autoDetect) fallbacks=\(fallbackLocales)")
       transcribe(
         filePath: filePath, languageTag: languageTag,
         autoDetect: autoDetect,
@@ -144,6 +153,7 @@ final class VoiceTranscriberBridge: NSObject {
     index: Int, lastError: NSError?, result: @escaping FlutterResult
   ) {
     guard index < candidates.count else {
+      Self.log("all candidates exhausted, returning empty")
       if let err = lastError, candidates.count == 1 {
         result(
           FlutterError(
@@ -156,7 +166,10 @@ final class VoiceTranscriberBridge: NSObject {
       return
     }
     let locale = candidates[index]
+    Self.log("attempt #\(index) locale=\(locale.identifier)")
     guard let recognizer = makeRecognizer(locale: locale) else {
+      Self.log(
+        "→ recognizer unavailable for \(locale.identifier), trying next")
       attemptRecognitionCandidates(
         url: url, candidates: candidates, autoDetect: autoDetect,
         index: index + 1, lastError: lastError, result: result)
@@ -166,10 +179,16 @@ final class VoiceTranscriberBridge: NSObject {
       [weak self] outcome in
       switch outcome {
       case .failure(let error):
+        Self.log(
+          "→ failure on \(locale.identifier): "
+            + "[\(error.domain) \(error.code)] \(error.localizedDescription)")
         self?.attemptRecognitionCandidates(
           url: url, candidates: candidates, autoDetect: autoDetect,
           index: index + 1, lastError: error, result: result)
       case .success(let text):
+        Self.log(
+          "→ success on \(locale.identifier), textLen=\(text.count) "
+            + "preview=\"\(text.prefix(60))\"")
         if !text.isEmpty {
           if autoDetect {
             self?.maybeReRunWithDetectedLanguage(
@@ -184,6 +203,7 @@ final class VoiceTranscriberBridge: NSObject {
           return
         }
         // Пустой результат — пробуем следующего кандидата.
+        Self.log("→ empty text, trying next candidate")
         self?.attemptRecognitionCandidates(
           url: url, candidates: candidates, autoDetect: autoDetect,
           index: index + 1, lastError: lastError, result: result)
@@ -295,38 +315,62 @@ final class VoiceTranscriberBridge: NSObject {
     let originalCode = (originalLocale.languageCode ?? "").lowercased()
     let langRecognizer = NLLanguageRecognizer()
     langRecognizer.processString(originalText)
-    let hypotheses = langRecognizer.languageHypotheses(withMaximum: 1)
-    guard let (topLang, confidence) = hypotheses.max(by: { $0.value < $1.value })
-    else {
+    let hypotheses = langRecognizer.languageHypotheses(withMaximum: 3)
+    let sorted = hypotheses.sorted { $0.value > $1.value }
+    Self.log(
+      "NLLanguageRecognizer top hypotheses: "
+        + sorted.prefix(3)
+        .map { "\($0.key.rawValue)=\(String(format: "%.2f", $0.value))" }
+        .joined(separator: ", "))
+    guard let (topLang, confidence) = sorted.first else {
+      Self.log("→ no hypotheses, keeping original (\(originalCode))")
       result(["text": originalText, "detectedLanguage": originalCode])
       return
     }
     let detectedCode = topLang.rawValue.lowercased()
     if detectedCode == originalCode || confidence < 0.75 {
+      Self.log(
+        "→ detected=\(detectedCode) same as original or low conf, "
+          + "keeping original (\(originalCode))")
       result(["text": originalText, "detectedLanguage": originalCode])
       return
     }
     // Подбираем поддерживаемую локаль распознавания для определённого языка.
     guard let newLocale = bestRecognitionLocale(for: detectedCode) else {
+      Self.log("→ no SFSpeech locale for \(detectedCode), keeping original")
       result(["text": originalText, "detectedLanguage": originalCode])
       return
     }
     guard let newRecognizer = makeRecognizer(locale: newLocale) else {
+      Self.log(
+        "→ recognizer unavailable for \(newLocale.identifier), keeping original")
       result(["text": originalText, "detectedLanguage": originalCode])
       return
     }
+    Self.log(
+      "→ re-running with detected locale=\(newLocale.identifier) "
+        + "(conf=\(String(format: "%.2f", confidence)))")
     performRecognition(recognizer: newRecognizer, url: url) { outcome in
       switch outcome {
       case .success(let secondaryText):
         if secondaryText.isEmpty {
+          Self.log(
+            "→ rerun returned empty, falling back to original (\(originalCode))")
           result(["text": originalText, "detectedLanguage": originalCode])
         } else {
+          let finalLang = newLocale.languageCode ?? detectedCode
+          Self.log(
+            "→ rerun success, final lang=\(finalLang) "
+              + "textLen=\(secondaryText.count)")
           result([
             "text": secondaryText,
-            "detectedLanguage": newLocale.languageCode ?? detectedCode,
+            "detectedLanguage": finalLang,
           ])
         }
-      case .failure:
+      case .failure(let err):
+        Self.log(
+          "→ rerun failed [\(err.domain) \(err.code)] \(err.localizedDescription), "
+            + "keeping original")
         result(["text": originalText, "detectedLanguage": originalCode])
       }
     }

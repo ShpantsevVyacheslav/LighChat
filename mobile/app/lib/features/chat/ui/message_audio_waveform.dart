@@ -25,17 +25,15 @@ List<double> audioMessageWaveformBarFactors(String seed) {
   });
 }
 
-/// Волна: прогресс 0…100, цвета как на вебе (исходящие / входящие).
+/// Волна: прогресс 0…100, цвет = `scheme.primary` (как у play-кнопки).
 class AudioMessageWaveformBars extends StatelessWidget {
   const AudioMessageWaveformBars({
     super.key,
     required this.progressPercent,
-    required this.isMine,
     required this.seedUrl,
   });
 
   final double progressPercent;
-  final bool isMine;
   final String seedUrl;
 
   @override
@@ -66,16 +64,13 @@ class AudioMessageWaveformBars extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: List<Widget>.generate(bars.length, (i) {
                   final isPlayed = (i / bars.length) * 100 < progressPercent;
-                  final Color barColor;
-                  if (isMine) {
-                    barColor = isPlayed
-                        ? scheme.onPrimary
-                        : scheme.onPrimary.withValues(alpha: 0.4);
-                  } else {
-                    barColor = isPlayed
-                        ? scheme.primary
-                        : scheme.primary.withValues(alpha: 0.3);
-                  }
+                  // Цвет таймлайна = цвет play-кнопки (scheme.primary) одинаково
+                  // для своих и входящих — единая визуальная связка «кнопка ↔
+                  // таймлайн». Непроигранная часть — та же primary с меньшей
+                  // альфой.
+                  final barColor = isPlayed
+                      ? scheme.primary
+                      : scheme.primary.withValues(alpha: 0.35);
                   final hFrac = bars[i];
                   final cellW = barW + (i < bars.length - 1 ? gap : 0);
                   return SizedBox(
