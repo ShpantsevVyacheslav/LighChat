@@ -174,7 +174,9 @@ class _EmptyMessagesPlaceholderState extends State<EmptyMessagesPlaceholder>
                                 ),
                               ),
                             ),
-                            // Хранитель по центру
+                            // Хранитель по центру. Positioned.fill даёт
+                            // CustomPaint реальные размеры, иначе без child
+                            // он берёт Size.zero и ничего не рисует.
                             Positioned(
                               left: 70,
                               top: 6,
@@ -183,12 +185,16 @@ class _EmptyMessagesPlaceholderState extends State<EmptyMessagesPlaceholder>
                               child: Stack(
                                 clipBehavior: Clip.none,
                                 children: [
-                                  CustomPaint(
-                                    painter: KeeperPainter(throwProgress: wave),
+                                  Positioned.fill(
+                                    child: CustomPaint(
+                                      painter:
+                                          KeeperPainter(throwProgress: wave),
+                                    ),
                                   ),
-                                  // Лицо поверх головы хранителя
-                                  CustomPaint(
-                                    painter: const _KeeperFacePainter(),
+                                  Positioned.fill(
+                                    child: CustomPaint(
+                                      painter: const _KeeperFacePainter(),
+                                    ),
                                   ),
                                 ],
                               ),
