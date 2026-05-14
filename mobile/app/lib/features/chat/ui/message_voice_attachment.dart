@@ -103,6 +103,9 @@ class _WebStyleVoiceRow extends StatelessWidget {
     required this.onCycleRate,
     this.onWaveformSeekFromLocal,
     this.footer,
+    this.skipSilenceAvailable = false,
+    this.skipSilenceEnabled = false,
+    this.onToggleSkipSilence,
   });
 
   final bool isMine;
@@ -121,6 +124,12 @@ class _WebStyleVoiceRow extends StatelessWidget {
   /// Опциональный блок внутри того же стеклянного пузыря (под плеером) —
   /// например, контролы транскрипта.
   final Widget? footer;
+
+  /// Доступен ли skip-silence (есть ли распознанные silence-интервалы).
+  /// Если `false`, кнопка не рисуется.
+  final bool skipSilenceAvailable;
+  final bool skipSilenceEnabled;
+  final VoidCallback? onToggleSkipSilence;
 
   String _format(Duration d) {
     if (d.inMilliseconds <= 0) return '0:00';
@@ -238,6 +247,26 @@ class _WebStyleVoiceRow extends StatelessWidget {
                   ),
                 ),
               ),
+              if (skipSilenceAvailable && onToggleSkipSilence != null)
+                IconButton(
+                  onPressed: onToggleSkipSilence,
+                  tooltip: l10n.voice_attachment_skip_silence,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  iconSize: 16,
+                  color: skipSilenceEnabled
+                      ? rateColor
+                      : metaColor,
+                  icon: Icon(
+                    skipSilenceEnabled
+                        ? Icons.fast_forward_rounded
+                        : Icons.fast_forward_outlined,
+                  ),
+                ),
               TextButton(
                 onPressed: failed || !ready ? null : onCycleRate,
                 style: TextButton.styleFrom(
@@ -289,6 +318,10 @@ class _TranscriptControls extends StatefulWidget {
     required this.audioUrl,
     required this.isMine,
     required this.transcript,
+    required this.audioDuration,
+    this.positionStream,
+    this.onSeek,
+    this.onSegmentsLoaded,
   });
 
   final String conversationId;
@@ -296,6 +329,17 @@ class _TranscriptControls extends StatefulWidget {
   final String audioUrl;
   final bool isMine;
   final String? transcript;
+  final Duration audioDuration;
+
+  /// Stream позиции плеера — для karaoke-подсветки текущего слова.
+  final Stream<Duration>? positionStream;
+
+  /// Callback при тапе на слово в karaoke-режиме.
+  final void Function(Duration target)? onSeek;
+
+  /// Callback после первого получения сегментов транскрипта — родитель
+  /// (player) использует их для skip-silence.
+  final void Function(List<TranscriptSegment> segments)? onSegmentsLoaded;
 
   @override
   State<_TranscriptControls> createState() => _TranscriptControlsState();
@@ -313,11 +357,24 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
   String? _translation;
   TranslationPhase? _translatePhase;
 
+  // TL;DR state.
+  bool _showSummary = false;
+  String? _summary;
+
   @override
   void initState() {
     super.initState();
     _localResult =
         LocalVoiceTranscriber.instance.cachedFor(widget.messageId);
+    if (_localResult != null) {
+      // Если транскрипт уже в кэше — сразу прокинуть сегменты родителю
+      // (для skip-silence).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _localResult != null) {
+          widget.onSegmentsLoaded?.call(_localResult!.segments);
+        }
+      });
+    }
   }
 
   Future<void> _ensureTranscript() async {
@@ -338,6 +395,7 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
       );
       if (!mounted) return;
       setState(() => _localResult = res);
+      widget.onSegmentsLoaded?.call(res.segments);
     } catch (e) {
       if (!mounted) return;
       final friendly = _friendlyError(e);
@@ -373,9 +431,43 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
       _localResult = null;
       _translation = null;
       _showTranslation = false;
+      _summary = null;
+      _showSummary = false;
       _errorText = null;
     });
     await _ensureTranscript();
+  }
+
+  /// Эвристическая сводка: первое предложение + предложение с наибольшей
+  /// плотностью «редких» слов (отфильтровав короткие стоп-слова). Работает
+  /// на любом языке без LLM.
+  String _generateSummary(String text) {
+    final sentences = _splitSentences(text);
+    if (sentences.length <= 2) return text.trim();
+    final first = sentences.first;
+    final scored = <MapEntry<String, double>>[];
+    for (var i = 1; i < sentences.length; i++) {
+      final words = sentences[i]
+          .toLowerCase()
+          .split(RegExp(r'[\s,.;:!?…—-]+'))
+          .where((w) => w.length >= 4)
+          .toList();
+      if (words.isEmpty) continue;
+      final density = words.length / sentences[i].length;
+      scored.add(MapEntry(sentences[i], density * words.length));
+    }
+    scored.sort((a, b) => b.value.compareTo(a.value));
+    final picks = <String>[first];
+    for (final e in scored) {
+      if (picks.length >= 3) break;
+      if (!picks.contains(e.key)) picks.add(e.key);
+    }
+    return picks.join(' ');
+  }
+
+  List<String> _splitSentences(String text) {
+    final parts = text.split(RegExp(r'(?<=[.!?…])\s+'));
+    return parts.map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
   }
 
   String _friendlyError(Object e) {
@@ -481,9 +573,25 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
         (widget.transcript ?? _localResult?.text ?? '').trim();
     final hasTranscript = original.isNotEmpty;
     final canTranslate = _canOfferTranslation(original);
-    final displayed = (_showTranslation && _translation != null)
-        ? _translation!
-        : original;
+    final segments = _localResult?.segments ?? const <TranscriptSegment>[];
+    final canKaraoke = segments.isNotEmpty &&
+        !_showTranslation &&
+        !_showSummary &&
+        widget.positionStream != null;
+    final wordsCount = segments.isEmpty
+        ? original.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length
+        : segments.length;
+    final durationSec = widget.audioDuration.inMilliseconds / 1000.0;
+    final wpm = (durationSec > 0.5 && wordsCount > 0)
+        ? (wordsCount / durationSec * 60).round()
+        : null;
+    // TL;DR имеет смысл только для достаточно длинных голосовых.
+    final canSummarize = original.length > 180 && wordsCount >= 25;
+    final displayed = _showSummary && _summary != null
+        ? _summary!
+        : (_showTranslation && _translation != null
+            ? _translation!
+            : original);
 
     final l10n = AppLocalizations.of(context)!;
     final showLabel = l10n.voice_transcript_show;
@@ -580,20 +688,78 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    SelectableText(
-                                      displayed,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        height: 1.32,
-                                        fontWeight: FontWeight.w500,
-                                        color: textColor,
+                                    if (canKaraoke)
+                                      _KaraokeTranscript(
+                                        segments: segments,
+                                        positionStream:
+                                            widget.positionStream!,
+                                        onSeek: widget.onSeek,
+                                        baseColor: textColor,
+                                        highlightColor: textColor,
+                                        highlightBg: Colors.white
+                                            .withValues(alpha: 0.16),
+                                      )
+                                    else
+                                      SelectableText(
+                                        displayed,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          height: 1.32,
+                                          fontWeight: FontWeight.w500,
+                                          color: textColor,
+                                        ),
                                       ),
-                                    ),
+                                    if (wpm != null) ...[
+                                      const SizedBox(height: 6),
+                                      _TranscriptStatsChip(
+                                        wpm: wpm,
+                                        wordsCount: wordsCount,
+                                        color: metaColor,
+                                        label: l10n.voice_transcript_stats(
+                                          wordsCount,
+                                          wpm,
+                                        ),
+                                      ),
+                                    ],
                                     const SizedBox(height: 2),
                                     Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.end,
                                       children: [
+                                        if (canSummarize) ...[
+                                          IconButton(
+                                            onPressed: () {
+                                              setState(() {
+                                                if (_showSummary) {
+                                                  _showSummary = false;
+                                                } else {
+                                                  _summary ??=
+                                                      _generateSummary(original);
+                                                  _showSummary = true;
+                                                  _showTranslation = false;
+                                                }
+                                              });
+                                            },
+                                            tooltip: _showSummary
+                                                ? l10n.voice_transcript_summary_hide
+                                                : l10n.voice_transcript_summary_show,
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(
+                                              minWidth: 32,
+                                              minHeight: 30,
+                                            ),
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            iconSize: 16,
+                                            color: metaColor,
+                                            icon: Icon(
+                                              _showSummary
+                                                  ? Icons.subject_rounded
+                                                  : Icons
+                                                      .short_text_rounded,
+                                            ),
+                                          ),
+                                        ],
                                         if (canTranslate) ...[
                                           TextButton.icon(
                                             onPressed: _translating
@@ -747,6 +913,13 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
   bool _playing = false;
   int _rateIndex = 0;
 
+  // Skip-silence: лист silence-интервалов (пары [start, end]) и тогл.
+  // Минимальная пауза для пропуска — 600 мс, иначе UX рваный.
+  static const Duration _kMinSilenceGap = Duration(milliseconds: 600);
+  List<({Duration start, Duration end})> _silences =
+      const <({Duration start, Duration end})>[];
+  bool _skipSilence = false;
+
   @override
   void initState() {
     super.initState();
@@ -773,6 +946,16 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
       _posSub = _player.positionStream.listen((p) {
         if (!mounted) return;
         setState(() => _position = p);
+        // Skip-silence: если плеер играет и попал в silence-интервал —
+        // прыгаем в конец паузы. Сразу проверяем что плеер именно играет,
+        // чтобы не мешать ручному seek/паузе.
+        if (!_skipSilence || !_playing || _silences.isEmpty) return;
+        for (final gap in _silences) {
+          if (p >= gap.start && p < gap.end) {
+            unawaited(_player.seek(gap.end));
+            return;
+          }
+        }
       });
       _stateSub = _player.playerStateStream.listen((s) {
         if (!mounted) return;
@@ -820,6 +1003,34 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
     unawaited(_player.seek(Duration(milliseconds: ms)));
   }
 
+  /// Принимаем сегменты от `_TranscriptControls` после успешной транскрипции
+  /// и считаем silence-интервалы — паузы > 600 мс между концом одного слова
+  /// и началом следующего, плюс паузы в начале и конце записи.
+  void _onSegmentsLoaded(List<TranscriptSegment> segments) {
+    if (segments.isEmpty) {
+      if (mounted) setState(() => _silences = const []);
+      return;
+    }
+    final gaps = <({Duration start, Duration end})>[];
+    if (segments.first.start > _kMinSilenceGap) {
+      gaps.add((start: Duration.zero, end: segments.first.start));
+    }
+    for (var i = 0; i < segments.length - 1; i++) {
+      final endOfCurrent = segments[i].end;
+      final startOfNext = segments[i + 1].start;
+      final gap = startOfNext - endOfCurrent;
+      if (gap >= _kMinSilenceGap) {
+        gaps.add((start: endOfCurrent, end: startOfNext));
+      }
+    }
+    if (mounted) setState(() => _silences = gaps);
+  }
+
+  void _toggleSkipSilence() {
+    if (_silences.isEmpty) return;
+    setState(() => _skipSilence = !_skipSilence);
+  }
+
   void _cycleRate() {
     if (_failed || !_ready) return;
     setState(() {
@@ -865,6 +1076,9 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
       },
       onCycleRate: _cycleRate,
       onWaveformSeekFromLocal: _seekFromWaveformLocal,
+      skipSilenceAvailable: _silences.isNotEmpty,
+      skipSilenceEnabled: _skipSilence,
+      onToggleSkipSilence: _silences.isEmpty ? null : _toggleSkipSilence,
       footer: hasIds
           ? _TranscriptControls(
               conversationId: cid,
@@ -872,8 +1086,129 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
               audioUrl: widget.attachment.url,
               isMine: mine,
               transcript: widget.transcript,
+              audioDuration: _duration,
+              positionStream: _player.positionStream,
+              onSeek: (target) => unawaited(_player.seek(target)),
+              onSegmentsLoaded: _onSegmentsLoaded,
             )
           : null,
     );
   }
 }
+
+/// Karaoke-рендер транскрипта: каждое слово — `WidgetSpan` с подсветкой
+/// текущего по позиции плеера. Тап по слову → seek.
+class _KaraokeTranscript extends StatelessWidget {
+  const _KaraokeTranscript({
+    required this.segments,
+    required this.positionStream,
+    required this.baseColor,
+    required this.highlightColor,
+    required this.highlightBg,
+    this.onSeek,
+  });
+
+  final List<TranscriptSegment> segments;
+  final Stream<Duration> positionStream;
+  final Color baseColor;
+  final Color highlightColor;
+  final Color highlightBg;
+  final void Function(Duration target)? onSeek;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<Duration>(
+      stream: positionStream,
+      initialData: Duration.zero,
+      builder: (context, snapshot) {
+        final pos = snapshot.data ?? Duration.zero;
+        var activeIdx = -1;
+        for (var i = 0; i < segments.length; i++) {
+          if (pos >= segments[i].start && pos < segments[i].end) {
+            activeIdx = i;
+            break;
+          }
+          if (pos < segments[i].start) break;
+        }
+        return Wrap(
+          spacing: 0,
+          runSpacing: 2,
+          children: List<Widget>.generate(segments.length, (i) {
+            final seg = segments[i];
+            final isActive = i == activeIdx;
+            final hasTrailingSpace = i < segments.length - 1;
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onSeek == null ? null : () => onSeek!(seg.start),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 2, vertical: 1),
+                decoration: BoxDecoration(
+                  color: isActive ? highlightBg : Colors.transparent,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  hasTrailingSpace ? '${seg.text} ' : seg.text,
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.32,
+                    fontWeight:
+                        isActive ? FontWeight.w700 : FontWeight.w500,
+                    color: isActive ? highlightColor : baseColor,
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
+}
+
+/// Маленький чип со статистикой транскрипта — словам/мин и общее число
+/// слов. Сейчас показываем под текстом, после строки с действиями.
+class _TranscriptStatsChip extends StatelessWidget {
+  const _TranscriptStatsChip({
+    required this.wpm,
+    required this.wordsCount,
+    required this.color,
+    required this.label,
+  });
+
+  final int wpm;
+  final int wordsCount;
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.speed_rounded, size: 12, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

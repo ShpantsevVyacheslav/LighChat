@@ -1773,6 +1773,20 @@ class AppLocalizationsTr extends AppLocalizations {
   String get voice_transcript_retry => 'Yeniden yazıya dök';
 
   @override
+  String get voice_transcript_summary_show => 'Özeti göster';
+
+  @override
+  String get voice_transcript_summary_hide => 'Tam metni göster';
+
+  @override
+  String voice_transcript_stats(int words, int wpm) {
+    return '$words sözcük · $wpm sözcük/dk';
+  }
+
+  @override
+  String get voice_attachment_skip_silence => 'Sessizliği atla';
+
+  @override
   String get voice_transcript_loading => 'Yazıya dökülüyor…';
 
   @override

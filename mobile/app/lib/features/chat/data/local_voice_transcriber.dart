@@ -119,13 +119,34 @@ class LocalVoiceTranscriber {
       final text = (raw?['text'] ?? '').toString().trim();
       final detected =
           (raw?['detectedLanguage'] ?? '').toString().trim().toLowerCase();
+      final segmentsRaw = raw?['segments'];
+      final segments = <TranscriptSegment>[];
+      if (segmentsRaw is List) {
+        for (final e in segmentsRaw) {
+          if (e is! Map) continue;
+          final s = TranscriptSegment(
+            text: (e['text'] ?? '').toString(),
+            start: Duration(
+              microseconds:
+                  (((e['start'] as num?)?.toDouble() ?? 0) * 1e6).round(),
+            ),
+            duration: Duration(
+              microseconds:
+                  (((e['duration'] as num?)?.toDouble() ?? 0) * 1e6).round(),
+            ),
+          );
+          if (s.text.isNotEmpty) segments.add(s);
+        }
+      }
       _log(
         '← bridge returned len=${text.length} detected=$detected '
+        'segs=${segments.length} '
         'preview="${text.length > 60 ? '${text.substring(0, 60)}...' : text}"',
       );
       final result = VoiceTranscriptionResult(
         text: text,
         detectedLanguage: detected.isEmpty ? null : detected,
+        segments: segments,
       );
       _cache[messageId] = result;
       return result;
@@ -290,11 +311,33 @@ class VoiceTranscriptionException implements Exception {
 /// [detectedLanguage] — короткий ISO-код (`'ru'`, `'en'` и т.п.) языка,
 /// на котором финально распозналось. `null`, если язык не определён
 /// (например, результат пустой или старый кэш без этого поля).
+///
+/// [segments] — word-level разбиение с таймкодами. Используется для
+/// karaoke-подсветки текущего слова, tap-to-jump на конкретное слово,
+/// расчёта speaking rate и определения silence-интервалов для
+/// skip-silence. Пустой список — значит native bridge не отдал
+/// сегменты (старая iOS / fallback / Android).
 class VoiceTranscriptionResult {
   const VoiceTranscriptionResult({
     required this.text,
     required this.detectedLanguage,
+    this.segments = const <TranscriptSegment>[],
   });
   final String text;
   final String? detectedLanguage;
+  final List<TranscriptSegment> segments;
+}
+
+/// Одно слово (или фрагмент) из transcript с таймкодом начала и
+/// длительностью относительно начала аудио.
+class TranscriptSegment {
+  const TranscriptSegment({
+    required this.text,
+    required this.start,
+    required this.duration,
+  });
+  final String text;
+  final Duration start;
+  final Duration duration;
+  Duration get end => start + duration;
 }

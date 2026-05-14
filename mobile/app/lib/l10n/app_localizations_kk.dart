@@ -1772,6 +1772,20 @@ class AppLocalizationsKk extends AppLocalizations {
   String get voice_transcript_retry => 'Транскрипцияны қайталау';
 
   @override
+  String get voice_transcript_summary_show => 'Қысқаша мазмұнды көрсету';
+
+  @override
+  String get voice_transcript_summary_hide => 'Толық мәтінді көрсету';
+
+  @override
+  String voice_transcript_stats(int words, int wpm) {
+    return '$words сөз · $wpm сөз/мин';
+  }
+
+  @override
+  String get voice_attachment_skip_silence => 'Үнсіздікті өткізіп жіберу';
+
+  @override
   String get voice_transcript_loading => 'Транскрибация…';
 
   @override

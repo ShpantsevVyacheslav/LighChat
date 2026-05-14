@@ -1779,6 +1779,20 @@ class AppLocalizationsUz extends AppLocalizations {
   String get voice_transcript_retry => 'Transkripsiyani qayta bajarish';
 
   @override
+  String get voice_transcript_summary_show => 'Qisqacha mazmunni koʻrsatish';
+
+  @override
+  String get voice_transcript_summary_hide => 'Toʻliq matnni koʻrsatish';
+
+  @override
+  String voice_transcript_stats(int words, int wpm) {
+    return '$words soʻz · $wpm soʻz/daq';
+  }
+
+  @override
+  String get voice_attachment_skip_silence => 'Sukunatni oʻtkazib yuborish';
+
+  @override
   String get voice_transcript_loading => 'Matnga aylantirilmoqda…';
 
   @override

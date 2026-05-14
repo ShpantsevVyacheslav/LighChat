@@ -856,6 +856,16 @@
   "voice_transcript_hide": "Hide text",
   "voice_transcript_copy": "Copy",
   "voice_transcript_retry": "Retry transcription",
+  "voice_transcript_summary_show": "Show summary",
+  "voice_transcript_summary_hide": "Show full text",
+  "voice_transcript_stats": "{words} words · {wpm} wpm",
+  "@voice_transcript_stats": {
+    "placeholders": {
+      "words": { "type": "int" },
+      "wpm": { "type": "int" }
+    }
+  },
+  "voice_attachment_skip_silence": "Skip silence",
   "voice_transcript_loading": "Transcribing…",
   "voice_transcript_failed": "Couldn’t get the text.",
   "voice_attachment_media_kind_audio": "audio",

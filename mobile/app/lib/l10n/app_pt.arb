@@ -836,6 +836,16 @@
   "voice_transcript_hide": "Ocultar texto",
   "voice_transcript_copy": "Copiar",
   "voice_transcript_retry": "Repetir transcrição",
+  "voice_transcript_summary_show": "Mostrar resumo",
+  "voice_transcript_summary_hide": "Mostrar texto completo",
+  "voice_transcript_stats": "{words} palavras · {wpm} ppm",
+  "@voice_transcript_stats": {
+    "placeholders": {
+      "words": { "type": "int" },
+      "wpm": { "type": "int" }
+    }
+  },
+  "voice_attachment_skip_silence": "Pular silêncios",
   "voice_transcript_loading": "Transcrevendo…",
   "voice_transcript_failed": "Não foi possível obter o texto.",
   "voice_attachment_media_kind_audio": "áudio",

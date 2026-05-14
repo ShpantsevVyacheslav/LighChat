@@ -1768,6 +1768,20 @@ class AppLocalizationsId extends AppLocalizations {
   String get voice_transcript_retry => 'Ulangi transkripsi';
 
   @override
+  String get voice_transcript_summary_show => 'Tampilkan ringkasan';
+
+  @override
+  String get voice_transcript_summary_hide => 'Tampilkan teks lengkap';
+
+  @override
+  String voice_transcript_stats(int words, int wpm) {
+    return '$words kata · $wpm kpm';
+  }
+
+  @override
+  String get voice_attachment_skip_silence => 'Lewati keheningan';
+
+  @override
   String get voice_transcript_loading => 'Mentranskripsikan…';
 
   @override

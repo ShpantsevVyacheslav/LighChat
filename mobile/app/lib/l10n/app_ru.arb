@@ -856,6 +856,16 @@
   "voice_transcript_hide": "Скрыть текст",
   "voice_transcript_copy": "Копировать",
   "voice_transcript_retry": "Повторить транскрибацию",
+  "voice_transcript_summary_show": "Показать резюме",
+  "voice_transcript_summary_hide": "Показать полный текст",
+  "voice_transcript_stats": "{words} слов · {wpm} сл/мин",
+  "@voice_transcript_stats": {
+    "placeholders": {
+      "words": { "type": "int" },
+      "wpm": { "type": "int" }
+    }
+  },
+  "voice_attachment_skip_silence": "Пропускать тишину",
   "voice_transcript_loading": "Транскрибация…",
   "voice_transcript_failed": "Не удалось получить текст.",
   "voice_attachment_media_kind_audio": "аудио",

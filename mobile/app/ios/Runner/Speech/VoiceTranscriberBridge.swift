@@ -183,7 +183,11 @@ final class VoiceTranscriberBridge: NSObject {
             message: err.localizedDescription,
             details: nil))
       } else {
-        result(["text": "", "detectedLanguage": ""])
+        result([
+          "text": "",
+          "detectedLanguage": "",
+          "segments": [],
+        ])
       }
       return
     }
@@ -207,19 +211,21 @@ final class VoiceTranscriberBridge: NSObject {
         self?.attemptRecognitionCandidates(
           url: url, candidates: candidates, autoDetect: autoDetect,
           index: index + 1, lastError: error, result: result)
-      case .success(let text):
+      case .success(let output):
         Self.log(
-          "→ success on \(locale.identifier), textLen=\(text.count) "
-            + "preview=\"\(text.prefix(60))\"")
-        if !text.isEmpty {
+          "→ success on \(locale.identifier), textLen=\(output.text.count) "
+            + "segs=\(output.segments.count) "
+            + "preview=\"\(output.text.prefix(60))\"")
+        if !output.text.isEmpty {
           if autoDetect {
             self?.maybeReRunWithDetectedLanguage(
-              originalLocale: locale, originalText: text,
+              originalLocale: locale, originalOutput: output,
               url: url, result: result)
           } else {
             result([
-              "text": text,
+              "text": output.text,
               "detectedLanguage": locale.languageCode ?? "",
+              "segments": output.segments,
             ])
           }
           return
@@ -241,14 +247,21 @@ final class VoiceTranscriberBridge: NSObject {
     return recognizer
   }
 
+  /// Результат одного прогона распознавания: финальный текст + word-level
+  /// сегменты с таймкодами для karaoke-подсветки и skip-silence.
+  struct RecognitionOutput {
+    let text: String
+    let segments: [[String: Any]] // {text, start, duration, confidence}
+  }
+
   /// Запуск распознавания с fallback'ом on-device → серверное Apple-распознавание.
-  /// Возвращает `Result<String, NSError>`:
-  /// - `.success("")` — речь не распознана (no-speech ошибки трактуем как пустоту);
-  /// - `.success("…")` — финальный текст;
+  /// Возвращает `Result<RecognitionOutput, NSError>`:
+  /// - `.success(empty)` — речь не распознана (no-speech ошибки трактуем как пустоту);
+  /// - `.success(filled)` — финальный текст + сегменты;
   /// - `.failure(err)` — неустранимая ошибка.
   private func performRecognition(
     recognizer: SFSpeechRecognizer, url: URL,
-    completion: @escaping (Result<String, NSError>) -> Void
+    completion: @escaping (Result<RecognitionOutput, NSError>) -> Void
   ) {
     let canOnDevice: Bool = {
       if #available(iOS 13.0, *) { return recognizer.supportsOnDeviceRecognition }
@@ -263,7 +276,7 @@ final class VoiceTranscriberBridge: NSObject {
   private func performRecognitionPass(
     recognizer: SFSpeechRecognizer, url: URL,
     onDevice: Bool, allowFallback: Bool,
-    completion: @escaping (Result<String, NSError>) -> Void
+    completion: @escaping (Result<RecognitionOutput, NSError>) -> Void
   ) {
     let request = SFSpeechURLRecognitionRequest(url: url)
     request.shouldReportPartialResults = false
@@ -279,7 +292,7 @@ final class VoiceTranscriberBridge: NSObject {
     recognizerQueue.async { [weak self] in
       var delivered = false
       let lock = NSLock()
-      func deliver(_ value: Result<String, NSError>) {
+      func deliver(_ value: Result<RecognitionOutput, NSError>) {
         lock.lock(); defer { lock.unlock() }
         if delivered { return }
         delivered = true
@@ -301,7 +314,7 @@ final class VoiceTranscriberBridge: NSObject {
         if let error = error as NSError? {
           if Self.isNoSpeechError(error) {
             if onDevice && allowFallback, tryFallback() { return }
-            deliver(.success(""))
+            deliver(.success(RecognitionOutput(text: "", segments: [])))
             return
           }
           if onDevice && allowFallback, tryFallback() { return }
@@ -310,8 +323,18 @@ final class VoiceTranscriberBridge: NSObject {
         }
         guard let recognitionResult = recognitionResult else { return }
         if recognitionResult.isFinal {
-          let text = recognitionResult.bestTranscription.formattedString
-          deliver(.success(text))
+          let transcription = recognitionResult.bestTranscription
+          let text = transcription.formattedString
+          let segments: [[String: Any]] = transcription.segments.map {
+            seg in
+            [
+              "text": seg.substring,
+              "start": seg.timestamp,
+              "duration": seg.duration,
+              "confidence": seg.confidence,
+            ]
+          }
+          deliver(.success(RecognitionOutput(text: text, segments: segments)))
         }
       }
     }
@@ -334,11 +357,13 @@ final class VoiceTranscriberBridge: NSObject {
   /// первичный текст.
   private func maybeReRunWithDetectedLanguage(
     originalLocale: Locale,
-    originalText: String,
+    originalOutput: RecognitionOutput,
     url: URL,
     result: @escaping FlutterResult
   ) {
     let originalCode = (originalLocale.languageCode ?? "").lowercased()
+    let originalText = originalOutput.text
+    let originalSegs = originalOutput.segments
     let langRecognizer = NLLanguageRecognizer()
     langRecognizer.processString(originalText)
     let hypotheses = langRecognizer.languageHypotheses(withMaximum: 3)
@@ -348,9 +373,16 @@ final class VoiceTranscriberBridge: NSObject {
         + sorted.prefix(3)
         .map { "\($0.key.rawValue)=\(String(format: "%.2f", $0.value))" }
         .joined(separator: ", "))
+    func keepOriginal() {
+      result([
+        "text": originalText,
+        "detectedLanguage": originalCode,
+        "segments": originalSegs,
+      ])
+    }
     guard let (topLang, confidence) = sorted.first else {
       Self.log("→ no hypotheses, keeping original (\(originalCode))")
-      result(["text": originalText, "detectedLanguage": originalCode])
+      keepOriginal()
       return
     }
     let detectedCode = topLang.rawValue.lowercased()
@@ -358,19 +390,19 @@ final class VoiceTranscriberBridge: NSObject {
       Self.log(
         "→ detected=\(detectedCode) same as original or low conf, "
           + "keeping original (\(originalCode))")
-      result(["text": originalText, "detectedLanguage": originalCode])
+      keepOriginal()
       return
     }
     // Подбираем поддерживаемую локаль распознавания для определённого языка.
     guard let newLocale = bestRecognitionLocale(for: detectedCode) else {
       Self.log("→ no SFSpeech locale for \(detectedCode), keeping original")
-      result(["text": originalText, "detectedLanguage": originalCode])
+      keepOriginal()
       return
     }
     guard let newRecognizer = makeRecognizer(locale: newLocale) else {
       Self.log(
         "→ recognizer unavailable for \(newLocale.identifier), keeping original")
-      result(["text": originalText, "detectedLanguage": originalCode])
+      keepOriginal()
       return
     }
     Self.log(
@@ -378,26 +410,27 @@ final class VoiceTranscriberBridge: NSObject {
         + "(conf=\(String(format: "%.2f", confidence)))")
     performRecognition(recognizer: newRecognizer, url: url) { outcome in
       switch outcome {
-      case .success(let secondaryText):
-        if secondaryText.isEmpty {
+      case .success(let secondary):
+        if secondary.text.isEmpty {
           Self.log(
             "→ rerun returned empty, falling back to original (\(originalCode))")
-          result(["text": originalText, "detectedLanguage": originalCode])
+          keepOriginal()
         } else {
           let finalLang = newLocale.languageCode ?? detectedCode
           Self.log(
             "→ rerun success, final lang=\(finalLang) "
-              + "textLen=\(secondaryText.count)")
+              + "textLen=\(secondary.text.count) segs=\(secondary.segments.count)")
           result([
-            "text": secondaryText,
+            "text": secondary.text,
             "detectedLanguage": finalLang,
+            "segments": secondary.segments,
           ])
         }
       case .failure(let err):
         Self.log(
           "→ rerun failed [\(err.domain) \(err.code)] \(err.localizedDescription), "
             + "keeping original")
-        result(["text": originalText, "detectedLanguage": originalCode])
+        keepOriginal()
       }
     }
   }

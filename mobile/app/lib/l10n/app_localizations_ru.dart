@@ -1774,6 +1774,20 @@ class AppLocalizationsRu extends AppLocalizations {
   String get voice_transcript_retry => 'Повторить транскрибацию';
 
   @override
+  String get voice_transcript_summary_show => 'Показать резюме';
+
+  @override
+  String get voice_transcript_summary_hide => 'Показать полный текст';
+
+  @override
+  String voice_transcript_stats(int words, int wpm) {
+    return '$words слов · $wpm сл/мин';
+  }
+
+  @override
+  String get voice_attachment_skip_silence => 'Пропускать тишину';
+
+  @override
   String get voice_transcript_loading => 'Транскрибация…';
 
   @override

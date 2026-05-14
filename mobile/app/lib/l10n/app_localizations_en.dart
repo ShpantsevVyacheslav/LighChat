@@ -1758,6 +1758,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voice_transcript_retry => 'Retry transcription';
 
   @override
+  String get voice_transcript_summary_show => 'Show summary';
+
+  @override
+  String get voice_transcript_summary_hide => 'Show full text';
+
+  @override
+  String voice_transcript_stats(int words, int wpm) {
+    return '$words words · $wpm wpm';
+  }
+
+  @override
+  String get voice_attachment_skip_silence => 'Skip silence';
+
+  @override
   String get voice_transcript_loading => 'Transcribing…';
 
   @override

@@ -3154,6 +3154,30 @@ abstract class AppLocalizations {
   /// **'Повторить транскрибацию'**
   String get voice_transcript_retry;
 
+  /// No description provided for @voice_transcript_summary_show.
+  ///
+  /// In ru, this message translates to:
+  /// **'Показать резюме'**
+  String get voice_transcript_summary_show;
+
+  /// No description provided for @voice_transcript_summary_hide.
+  ///
+  /// In ru, this message translates to:
+  /// **'Показать полный текст'**
+  String get voice_transcript_summary_hide;
+
+  /// No description provided for @voice_transcript_stats.
+  ///
+  /// In ru, this message translates to:
+  /// **'{words} слов · {wpm} сл/мин'**
+  String voice_transcript_stats(int words, int wpm);
+
+  /// No description provided for @voice_attachment_skip_silence.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пропускать тишину'**
+  String get voice_attachment_skip_silence;
+
   /// No description provided for @voice_transcript_loading.
   ///
   /// In ru, this message translates to:

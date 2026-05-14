@@ -836,6 +836,16 @@
   "voice_transcript_hide": "Metni gizle",
   "voice_transcript_copy": "Kopyala",
   "voice_transcript_retry": "Yeniden yazıya dök",
+  "voice_transcript_summary_show": "Özeti göster",
+  "voice_transcript_summary_hide": "Tam metni göster",
+  "voice_transcript_stats": "{words} sözcük · {wpm} sözcük/dk",
+  "@voice_transcript_stats": {
+    "placeholders": {
+      "words": { "type": "int" },
+      "wpm": { "type": "int" }
+    }
+  },
+  "voice_attachment_skip_silence": "Sessizliği atla",
   "voice_transcript_loading": "Yazıya dökülüyor…",
   "voice_transcript_failed": "Metin alınamadı.",
   "voice_attachment_media_kind_audio": "ses",

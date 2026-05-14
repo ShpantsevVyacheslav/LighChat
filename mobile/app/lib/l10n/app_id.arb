@@ -836,6 +836,16 @@
   "voice_transcript_hide": "Sembunyikan text",
   "voice_transcript_copy": "Salin",
   "voice_transcript_retry": "Ulangi transkripsi",
+  "voice_transcript_summary_show": "Tampilkan ringkasan",
+  "voice_transcript_summary_hide": "Tampilkan teks lengkap",
+  "voice_transcript_stats": "{words} kata · {wpm} kpm",
+  "@voice_transcript_stats": {
+    "placeholders": {
+      "words": { "type": "int" },
+      "wpm": { "type": "int" }
+    }
+  },
+  "voice_attachment_skip_silence": "Lewati keheningan",
   "voice_transcript_loading": "Mentranskripsikan…",
   "voice_transcript_failed": "Couldn’t get  text.",
   "voice_attachment_media_kind_audio": "Audio",

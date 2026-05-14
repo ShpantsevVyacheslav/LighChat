@@ -1787,6 +1787,20 @@ class AppLocalizationsEs extends AppLocalizations {
   String get voice_transcript_retry => 'Reintentar transcripción';
 
   @override
+  String get voice_transcript_summary_show => 'Mostrar resumen';
+
+  @override
+  String get voice_transcript_summary_hide => 'Mostrar texto completo';
+
+  @override
+  String voice_transcript_stats(int words, int wpm) {
+    return '$words palabras · $wpm ppm';
+  }
+
+  @override
+  String get voice_attachment_skip_silence => 'Saltar silencios';
+
+  @override
   String get voice_transcript_loading => 'Transcribiendo…';
 
   @override
@@ -10088,6 +10102,20 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get voice_transcript_retry => 'Reintentar transcripción';
+
+  @override
+  String get voice_transcript_summary_show => 'Mostrar resumen';
+
+  @override
+  String get voice_transcript_summary_hide => 'Mostrar texto completo';
+
+  @override
+  String voice_transcript_stats(int words, int wpm) {
+    return '$words palabras · $wpm ppm';
+  }
+
+  @override
+  String get voice_attachment_skip_silence => 'Saltar silencios';
 
   @override
   String get voice_transcript_loading => 'Transcribiendo…';

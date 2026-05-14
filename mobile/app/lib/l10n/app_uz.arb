@@ -836,6 +836,16 @@
   "voice_transcript_hide": "Matnni yashirish",
   "voice_transcript_copy": "Nusxalash",
   "voice_transcript_retry": "Transkripsiyani qayta bajarish",
+  "voice_transcript_summary_show": "Qisqacha mazmunni koʻrsatish",
+  "voice_transcript_summary_hide": "Toʻliq matnni koʻrsatish",
+  "voice_transcript_stats": "{words} soʻz · {wpm} soʻz/daq",
+  "@voice_transcript_stats": {
+    "placeholders": {
+      "words": { "type": "int" },
+      "wpm": { "type": "int" }
+    }
+  },
+  "voice_attachment_skip_silence": "Sukunatni oʻtkazib yuborish",
   "voice_transcript_loading": "Matnga aylantirilmoqda…",
   "voice_transcript_failed": "Matnni olib boʻlmadi.",
   "voice_attachment_media_kind_audio": "audio",
