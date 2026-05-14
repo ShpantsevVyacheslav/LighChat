@@ -250,6 +250,15 @@ class VoiceTranscriberBridge(private val context: Context) {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageTag)
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
                 putExtra("android.speech.extra.PREFER_OFFLINE", true)
+                // Авто-пунктуация и форматирование — Android 13+ (API 33).
+                // Строковое значение "optimize_quality" соответствует константе
+                // RecognizerIntent.FORMATTING_OPTIMIZE_QUALITY.
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    putExtra(
+                        "android.speech.extra.ENABLE_FORMATTING",
+                        "optimize_quality"
+                    )
+                }
             }
 
             try {

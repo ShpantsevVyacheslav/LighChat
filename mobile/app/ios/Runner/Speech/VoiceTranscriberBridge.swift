@@ -270,6 +270,10 @@ final class VoiceTranscriberBridge: NSObject {
     if #available(iOS 13.0, *) {
       request.requiresOnDeviceRecognition = onDevice
     }
+    // Авто-пунктуация (точки, запятые, ?, !) — iOS 16+.
+    if #available(iOS 16.0, *) {
+      request.addsPunctuation = true
+    }
     request.taskHint = .dictation
 
     recognizerQueue.async { [weak self] in
