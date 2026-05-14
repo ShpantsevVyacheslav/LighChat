@@ -2865,8 +2865,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                 // визуально pill'ы слипались как у
                                 // Telegram).
                                 top: nativeBarBottom - 8,
-                                left: 8,
-                                right: 8,
+                                // 20pt на iOS = совпадает с iOS 26
+                                // PlatterView system margin'ом у
+                                // nav bar pill'ов (см. layoutSubviews
+                                // log: HostedViewWrapper x=20..420 на
+                                // 440pt bar). Без этого pinned-pill
+                                // выглядел шире, чем шапка.
+                                left: 20,
+                                right: 20,
                                 child: ChatPinnedStrip(
                                   pin: topPin,
                                   totalPins: sortedPins.length,

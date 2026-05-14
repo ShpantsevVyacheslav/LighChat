@@ -65,6 +65,14 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// когда observer hide/show циклит между табами-экранами.
   private var lastBottomBarItemsSignature: String = ""
 
+  /// Pending-hide токен: applyBottomBar(visible:false) откладывает
+  /// фактический hide на 80 ms. Если за это окно прилетит
+  /// applyBottomBar(visible:true) — отменяем pending hide, bar остаётся
+  /// видимым, а selectedItem меняется с system pill animation'ом.
+  /// Без этого: hide → show в 1 frame ломал animation context UITabBar'а,
+  /// pill «прыгал» вместо плавного перехода.
+  private var pendingHideBottomBarWorkItem: DispatchWorkItem?
+
   /// Ref на top constraint top bar'а — динамически обновляется в
   /// updateSafeAreaInsets() для компенсации circular feedback:
   /// `additionalSafeAreaInsets.top` РАСШИРЯЕТ safeAreaLayoutGuide.topAnchor,
@@ -106,9 +114,12 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// ~15-20pt от низа экрана). UITabBar по-стандарту сидит над safe
   /// area (gap 34pt — большой). Положительный overlap двигает
   /// bar.frame ниже screen edge.
-  /// 12pt overlap → gap items-bottom до screen-bottom ≈ 22pt
-  /// (ещё чуть выше — больше воздуха над home indicator).
-  private static let tabBarBottomOverlap: CGFloat = 12
+  /// -8pt overlap (negative): bar.bottom РАНЬШЕ screen-bottom на 8pt
+  /// → items оказываются ещё выше, gap до home-indicator-top ≈ 42pt.
+  /// Раньше 12pt не давало визуально-заметного подъёма (items сидели
+  /// на ~22pt от низа); пользователь просил «поднять выше», -8pt
+  /// убирает overlap полностью + добавляет 8pt доп воздуха.
+  private static let tabBarBottomOverlap: CGFloat = -8
   /// Отступ bar.top от safeArea.top. ОТРИЦАТЕЛЬНЫЙ — поднимаем bar в
   /// system-reserved area под Dynamic Island. -6pt — pill'ы чуть-чуть
   /// заходят в DI clearance, но не прижимаются к status bar items.
@@ -480,14 +491,26 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     Self.log("applyBottomBar visible=\(visible) itemsCount=\(configs.count) selectedId=\(selectedId) signatureEq=\(signature == lastBottomBarItemsSignature)")
 
     if !visible {
-      // ВАЖНО: НЕ очищаем bar.items при hide — это рвало бы pill-анимацию,
-      // когда сразу следом приходит show с тем же набором (наш typical
-      // tab-switch flow: observer hide → новый экран show).
-      bar.isHidden = true
-      updateSafeAreaInsets()
+      // Откладываем hide на 80 ms — если за это окно прилетит
+      // visible:true (типичный tab-switch flow: observer.didPush →
+      // hideAll → новый экран setBottomBar), отменим pending hide и
+      // bar останется видимым. UITabBar анимирует pill smoothly при
+      // смене selectedItem; hide → show в 1 frame ломал контекст
+      // animation'а.
+      pendingHideBottomBarWorkItem?.cancel()
+      let work = DispatchWorkItem { [weak self] in
+        guard let self = self, let bar = self.bottomBar else { return }
+        bar.isHidden = true
+        self.updateSafeAreaInsets()
+      }
+      pendingHideBottomBarWorkItem = work
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.08, execute: work)
       return
     }
 
+    // Visible пришёл — отменяем pending hide (если был).
+    pendingHideBottomBarWorkItem?.cancel()
+    pendingHideBottomBarWorkItem = nil
     bar.isHidden = false
 
     if signature == lastBottomBarItemsSignature,
@@ -1263,22 +1286,9 @@ final class GradientMaskedEffectView: UIVisualEffectView {
 final class EdgeHuggingNavigationBar: UINavigationBar {
   override var safeAreaInsets: UIEdgeInsets { .zero }
 
-  /// Логируем фактические frames items'ов после каждого layout pass.
-  /// Помогает понять, какой именно subview iOS 26 ставит на N pt от
-  /// edge: мой customView или system wrapper ItemWrapperView.
-  override func layoutSubviews() {
-    super.layoutSubviews()
-    var report = "[layoutSubviews] bar.bounds=\(bounds)"
-    func describe(_ v: UIView, depth: Int) {
-      let pad = String(repeating: "  ", count: depth)
-      report += "\n\(pad)\(type(of: v)) frame=\(v.frame)"
-      for sub in v.subviews {
-        describe(sub, depth: depth + 1)
-      }
-    }
-    for sub in subviews {
-      describe(sub, depth: 1)
-    }
-    NavBarOverlayHost.log(report)
-  }
+  // layoutSubviews verbose-лог удалён — отладочный helper показал, что
+  // iOS 26 оборачивает bar items в `PlatterView` с захардкоженным
+  // 20pt edge-margin'ом (см. коммит на эту тему). Дальнейшая отладка
+  // через лог не нужна — оставлять log spam в production
+  // нецелесообразно.
 }
