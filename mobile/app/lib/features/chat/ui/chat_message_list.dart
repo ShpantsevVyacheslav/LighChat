@@ -612,6 +612,9 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
     final hasUserMessages = asc.any(
       (m) => !(m.senderId == '__system__' && m.systemEvent != null),
     );
+    debugPrint(
+      '[lighchat.empty] list-build asc=${asc.length} hasUserMessages=$hasUserMessages footer=${widget.outgoingMediaFooter != null}',
+    );
     if (!hasUserMessages && widget.outgoingMediaFooter == null) {
       slivers.add(
         SliverFillRemaining(

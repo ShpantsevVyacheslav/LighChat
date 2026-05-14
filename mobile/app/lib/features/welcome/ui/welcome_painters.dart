@@ -1,6 +1,6 @@
-import 'dart:developer' as developer;
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart';
 
 import '../../../brand_colors.dart';
@@ -376,10 +376,9 @@ class KeeperPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    // `developer.log` → os_log; видно в Xcode Console и в release-сборке.
-    developer.log(
-      'paint size=${w.toStringAsFixed(1)}x${h.toStringAsFixed(1)} body=0x${bodyColor.toARGB32().toRadixString(16)}',
-      name: 'lighchat.keeper',
+    // `debugPrint` идёт в stdout — видно в Xcode Console (release тоже).
+    debugPrint(
+      '[lighchat.keeper] paint size=${w.toStringAsFixed(1)}x${h.toStringAsFixed(1)} body=0x${bodyColor.toARGB32().toRadixString(16)}',
     );
     // координаты в долях; ноги внизу, голова вверху
     final fill = Paint()..color = bodyColor;

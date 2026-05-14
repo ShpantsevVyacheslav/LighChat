@@ -1,7 +1,7 @@
-import 'dart:developer' as developer;
 import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart';
 
 import '../../../brand_colors.dart';
@@ -32,9 +32,9 @@ class _EmptyMessagesPlaceholderState extends State<EmptyMessagesPlaceholder>
       vsync: this,
       duration: const Duration(milliseconds: 1600),
     )..repeat();
-    // Логи через dart:developer → os_log → видны в Xcode Console даже в
-    // release-сборке (subsystem = `lighchat.empty`).
-    developer.log('mounted', name: 'lighchat.empty');
+    // `debugPrint` пишет через stdout (видно в Xcode Console с префиксом
+    // `flutter:`, включая release).
+    debugPrint('[lighchat.empty] mounted');
   }
 
   @override
@@ -188,9 +188,8 @@ class _EmptyMessagesPlaceholderState extends State<EmptyMessagesPlaceholder>
                               height: 152,
                               child: LayoutBuilder(
                                 builder: (context, c) {
-                                  developer.log(
-                                    'keeper box=${c.maxWidth.toStringAsFixed(1)}x${c.maxHeight.toStringAsFixed(1)} dark=$dark',
-                                    name: 'lighchat.empty',
+                                  debugPrint(
+                                    '[lighchat.empty] keeper box=${c.maxWidth.toStringAsFixed(1)}x${c.maxHeight.toStringAsFixed(1)} dark=$dark',
                                   );
                                   // Принудительный coral (с alpha 0.95),
                                   // чтобы исключить сценарий «сливается с
