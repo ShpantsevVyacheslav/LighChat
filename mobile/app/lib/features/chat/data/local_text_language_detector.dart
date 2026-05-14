@@ -67,3 +67,52 @@ class LanguageDetectionResult {
 
   bool get isReliable => language.isNotEmpty && confidence >= 0.6;
 }
+
+/// Сентимент-анализ строки на устройстве.
+///
+/// iOS: `NLTagger` + `.sentimentScore` (`-1…+1`). Android: эвристика по
+/// словарям маркеров на основных языках + знаки усиления.
+class LocalTextSentimentDetector {
+  LocalTextSentimentDetector._();
+  static final LocalTextSentimentDetector instance =
+      LocalTextSentimentDetector._();
+
+  static const MethodChannel _channel =
+      MethodChannel('lighchat/voice_transcribe');
+
+  final Map<String, double> _cache = <String, double>{};
+
+  /// Возвращает `score` в `-1.0…+1.0`. `0` — нейтрально / не определено.
+  Future<double> score(String text) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return 0;
+    final key = '${trimmed.length}|${trimmed.hashCode}';
+    final cached = _cache[key];
+    if (cached != null) return cached;
+    try {
+      final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
+        'detectSentiment',
+        <String, dynamic>{'text': trimmed},
+      );
+      final s = (raw?['score'] is num)
+          ? (raw!['score'] as num).toDouble()
+          : 0.0;
+      _cache[key] = s;
+      return s;
+    } on MissingPluginException {
+      return 0;
+    } on PlatformException {
+      return 0;
+    }
+  }
+}
+
+/// Какой эмодзи показать рядом с сообщением. `null` — слишком слабый сигнал,
+/// ничего не показываем.
+String? sentimentEmojiFor(double score) {
+  if (score >= 0.45) return '😊';
+  if (score >= 0.25) return '🙂';
+  if (score <= -0.45) return '😞';
+  if (score <= -0.25) return '😕';
+  return null;
+}

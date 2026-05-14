@@ -1464,6 +1464,7 @@
   "message_menu_action_copy": "Copy",
   "message_menu_action_translate": "Translate",
   "message_menu_action_show_original": "Show original",
+  "message_menu_action_read_aloud": "Read aloud",
   "message_menu_action_edit": "Edit",
   "message_menu_action_pin": "Pin",
   "message_menu_action_star_add": "Add to Starred",

@@ -2806,6 +2806,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get message_menu_action_show_original => 'Mostrar original';
 
   @override
+  String get message_menu_action_read_aloud => 'Leer en voz alta';
+
+  @override
   String get message_menu_action_edit => 'Editar';
 
   @override
@@ -11134,6 +11137,9 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get message_menu_action_show_original => 'Mostrar original';
+
+  @override
+  String get message_menu_action_read_aloud => 'Leer en voz alta';
 
   @override
   String get message_menu_action_edit => 'Editar';

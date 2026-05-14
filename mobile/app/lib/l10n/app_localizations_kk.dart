@@ -2785,6 +2785,9 @@ class AppLocalizationsKk extends AppLocalizations {
   String get message_menu_action_show_original => 'Түпнұсқаны көрсету';
 
   @override
+  String get message_menu_action_read_aloud => 'Дауыстап оқу';
+
+  @override
   String get message_menu_action_edit => 'Өзгерту';
 
   @override

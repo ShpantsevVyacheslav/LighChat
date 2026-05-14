@@ -46,6 +46,7 @@ enum MessageMenuActionType {
   outboxCancel,
   report,
   translate,
+  readAloud,
 }
 
 class MessageMenuResult {
@@ -357,6 +358,18 @@ class _MessageContextMenuPage extends StatelessWidget {
                                             context,
                                             const MessageMenuResult(
                                               MessageMenuActionType.translate,
+                                            ),
+                                          ),
+                                        ),
+                                      if (hasText)
+                                        _MenuTile(
+                                          icon: Icons.record_voice_over_rounded,
+                                          label: l10n
+                                              .message_menu_action_read_aloud,
+                                          onTap: () => _pop(
+                                            context,
+                                            const MessageMenuResult(
+                                              MessageMenuActionType.readAloud,
                                             ),
                                           ),
                                         ),

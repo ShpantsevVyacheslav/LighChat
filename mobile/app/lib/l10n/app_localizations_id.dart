@@ -2780,6 +2780,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get message_menu_action_show_original => 'Tampilkan asli';
 
   @override
+  String get message_menu_action_read_aloud => 'Baca dengan suara';
+
+  @override
   String get message_menu_action_edit => 'Sunting';
 
   @override

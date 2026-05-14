@@ -2787,6 +2787,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get message_menu_action_show_original => 'Orijinali göster';
 
   @override
+  String get message_menu_action_read_aloud => 'Sesli oku';
+
+  @override
   String get message_menu_action_edit => 'Düzenle';
 
   @override

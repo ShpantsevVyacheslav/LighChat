@@ -51,6 +51,7 @@ class VoiceTranscriberBridge(private val context: Context) {
                 "supportedLocales" -> handleSupportedLocales(result)
                 "transcribeFile" -> handleTranscribeFile(call, result)
                 "detectLanguage" -> handleDetectLanguage(call, result)
+                "detectSentiment" -> handleDetectSentiment(call, result)
                 else -> result.notImplemented()
             }
         }
@@ -378,6 +379,70 @@ class VoiceTranscriberBridge(private val context: Context) {
         val (topLang, topCount) = counts.maxByOrNull { it.value }!!
         val confidence = topCount.toDouble() / letters.toDouble()
         result.success(mapOf("language" to topLang, "confidence" to confidence))
+    }
+
+    /**
+     * Грубый сентимент-анализ через словарь маркеров (+/-) и эмодзи. На Android
+     * нет встроенного NLTagger-аналога без ML Kit Language ID + кастомной модели,
+     * поэтому используем эвристику: считаем «весовые» слова из двух мини-словарей
+     * по основным языкам + знаки восклицания/вопроса.
+     *
+     * Возвращает `score` в диапазоне `-1.0…+1.0`. UI-чип показывается, только
+     * если |score| ≥ 0.25 — иначе нейтрально.
+     */
+    private fun handleDetectSentiment(call: MethodCall, result: MethodChannel.Result) {
+        val text = (call.argument<String>("text") ?: "").trim().lowercase()
+        if (text.isEmpty()) {
+            result.success(mapOf("score" to 0.0))
+            return
+        }
+        val positiveMarkers = setOf(
+            // en
+            "good", "great", "love", "amazing", "awesome", "thanks", "thank",
+            "perfect", "happy", "yes", "cool", "nice", "excellent",
+            // ru
+            "хорошо", "круто", "люблю", "класс", "спасибо", "благодарю",
+            "отлично", "супер", "молодец", "молодцы", "да", "нравится",
+            // es
+            "bueno", "gracias", "perfecto", "feliz", "increíble",
+            // pt
+            "obrigado", "ótimo", "perfeito",
+            // tr
+            "iyi", "harika", "teşekkür",
+            // emoji-like
+            "😊", "🥰", "😍", "❤️", "🥳", "👍", "🔥",
+        )
+        val negativeMarkers = setOf(
+            // en
+            "bad", "hate", "terrible", "awful", "sad", "angry", "worst",
+            "stupid", "no", "never",
+            // ru
+            "плохо", "ужас", "ненавижу", "бесит", "грустно", "злюсь",
+            "отвратительно", "никогда", "нет",
+            // es
+            "malo", "terrible", "odio", "triste",
+            // pt
+            "ruim", "terrível", "odeio", "triste",
+            // tr
+            "kötü", "berbat", "nefret",
+            // emoji-like
+            "😢", "😭", "😡", "😞", "👎", "💔",
+        )
+        val tokens = text.split(Regex("[\\s,.;:!?…—\\-\"'()]+"))
+            .filter { it.isNotEmpty() }
+        var score = 0
+        var matched = 0
+        for (tok in tokens) {
+            if (positiveMarkers.contains(tok)) { score += 1; matched += 1 }
+            else if (negativeMarkers.contains(tok)) { score -= 1; matched += 1 }
+        }
+        // Знаки усиления.
+        val exclamCount = text.count { it == '!' }
+        if (score != 0) score += exclamCount.coerceAtMost(2) *
+            (if (score > 0) 1 else -1)
+        val denom = (matched + 2).toDouble() // мягкая нормализация
+        val normalized = (score.toDouble() / denom).coerceIn(-1.0, 1.0)
+        result.success(mapOf("score" to normalized))
     }
 
     private fun errorToString(code: Int): String = when (code) {

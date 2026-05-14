@@ -2793,6 +2793,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get message_menu_action_show_original => 'Mostrar original';
 
   @override
+  String get message_menu_action_read_aloud => 'Ler em voz alta';
+
+  @override
   String get message_menu_action_edit => 'Editar';
 
   @override
@@ -11107,6 +11110,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get message_menu_action_show_original => 'Mostrar original';
+
+  @override
+  String get message_menu_action_read_aloud => 'Ler em voz alta';
 
   @override
   String get message_menu_action_edit => 'Editar';

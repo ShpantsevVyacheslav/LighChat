@@ -10,7 +10,9 @@ import 'chat_glass_panel.dart';
 import 'chat_vlc_network_media.dart';
 import 'karaoke_screen.dart';
 import '../../../l10n/app_localizations.dart';
+import '../data/apple_intelligence.dart';
 import '../data/local_message_translator.dart';
+import '../data/local_text_language_detector.dart';
 import '../data/local_voice_transcriber.dart';
 
 /// Один активный голосовой плеер (паритет с вебом: остальные ставятся на паузу).
@@ -377,6 +379,10 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
   // TL;DR state.
   bool _showSummary = false;
   String? _summary;
+  bool _summarizing = false;
+
+  // Сентимент (NLTagger / Android-эвристика): эмодзи 😊/😕/etc или null.
+  String? _sentimentEmoji;
 
   @override
   void initState() {
@@ -413,6 +419,11 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
       if (!mounted) return;
       setState(() => _localResult = res);
       widget.onSegmentsLoaded?.call(res.segments);
+      // Сентимент считаем после транскрипции — короткая операция, можно
+      // не блокировать UI.
+      if (res.text.trim().isNotEmpty) {
+        unawaited(_resolveSentiment(res.text));
+      }
     } catch (e) {
       if (!mounted) return;
       final friendly = _friendlyError(e);
@@ -449,16 +460,26 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
       _translation = null;
       _showTranslation = false;
       _summary = null;
+      _summarizing = false;
       _showSummary = false;
+      _sentimentEmoji = null;
       _errorText = null;
     });
     await _ensureTranscript();
   }
 
+  /// Запрашивает резюме. Сначала пробует Apple Intelligence Foundation
+  /// Models (iOS 18.1+/26+). Если недоступно — heuristic-fallback.
+  Future<String> _computeSummary(String text) async {
+    final fromLlm = await AppleIntelligence.instance.summarize(text);
+    if (fromLlm != null && fromLlm.trim().isNotEmpty) return fromLlm.trim();
+    return _generateHeuristicSummary(text);
+  }
+
   /// Эвристическая сводка: первое предложение + предложение с наибольшей
   /// плотностью «редких» слов (отфильтровав короткие стоп-слова). Работает
   /// на любом языке без LLM.
-  String _generateSummary(String text) {
+  String _generateHeuristicSummary(String text) {
     final sentences = _splitSentences(text);
     if (sentences.length <= 2) return text.trim();
     final first = sentences.first;
@@ -485,6 +506,12 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
   List<String> _splitSentences(String text) {
     final parts = text.split(RegExp(r'(?<=[.!?…])\s+'));
     return parts.map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+  }
+
+  Future<void> _resolveSentiment(String text) async {
+    final s = await LocalTextSentimentDetector.instance.score(text);
+    if (!mounted) return;
+    setState(() => _sentimentEmoji = sentimentEmojiFor(s));
   }
 
   String _friendlyError(Object e) {
@@ -726,16 +753,31 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
                                           color: textColor,
                                         ),
                                       ),
-                                    if (wpm != null) ...[
+                                    if (wpm != null ||
+                                        _sentimentEmoji != null) ...[
                                       const SizedBox(height: 6),
-                                      _TranscriptStatsChip(
-                                        wpm: wpm,
-                                        wordsCount: wordsCount,
-                                        color: metaColor,
-                                        label: l10n.voice_transcript_stats(
-                                          wordsCount,
-                                          wpm,
-                                        ),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (wpm != null) ...[
+                                            _TranscriptStatsChip(
+                                              wpm: wpm,
+                                              wordsCount: wordsCount,
+                                              color: metaColor,
+                                              label: l10n
+                                                  .voice_transcript_stats(
+                                                wordsCount,
+                                                wpm,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                          ],
+                                          if (_sentimentEmoji != null)
+                                            _SentimentChip(
+                                              emoji: _sentimentEmoji!,
+                                              color: metaColor,
+                                            ),
+                                        ],
                                       ),
                                     ],
                                     const SizedBox(height: 2),
@@ -745,18 +787,36 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
                                       children: [
                                         if (canSummarize) ...[
                                           IconButton(
-                                            onPressed: () {
-                                              setState(() {
-                                                if (_showSummary) {
-                                                  _showSummary = false;
-                                                } else {
-                                                  _summary ??=
-                                                      _generateSummary(original);
-                                                  _showSummary = true;
-                                                  _showTranslation = false;
-                                                }
-                                              });
-                                            },
+                                            onPressed: _summarizing
+                                                ? null
+                                                : () async {
+                                                    if (_showSummary) {
+                                                      setState(() =>
+                                                          _showSummary = false);
+                                                      return;
+                                                    }
+                                                    if (_summary == null) {
+                                                      setState(() =>
+                                                          _summarizing = true);
+                                                      final r =
+                                                          await _computeSummary(
+                                                              original);
+                                                      if (!mounted) return;
+                                                      setState(() {
+                                                        _summary = r;
+                                                        _summarizing = false;
+                                                        _showSummary = true;
+                                                        _showTranslation =
+                                                            false;
+                                                      });
+                                                    } else {
+                                                      setState(() {
+                                                        _showSummary = true;
+                                                        _showTranslation =
+                                                            false;
+                                                      });
+                                                    }
+                                                  },
                                             tooltip: _showSummary
                                                 ? l10n.voice_transcript_summary_hide
                                                 : l10n.voice_transcript_summary_show,
@@ -769,12 +829,23 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
                                                 VisualDensity.compact,
                                             iconSize: 16,
                                             color: metaColor,
-                                            icon: Icon(
-                                              _showSummary
-                                                  ? Icons.subject_rounded
-                                                  : Icons
-                                                      .short_text_rounded,
-                                            ),
+                                            icon: _summarizing
+                                                ? SizedBox(
+                                                    width: 14,
+                                                    height: 14,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: metaColor,
+                                                    ),
+                                                  )
+                                                : Icon(
+                                                    _showSummary
+                                                        ? Icons
+                                                            .subject_rounded
+                                                        : Icons
+                                                            .short_text_rounded,
+                                                  ),
                                           ),
                                         ],
                                         if (canTranslate) ...[
@@ -1242,6 +1313,29 @@ class _KaraokeTranscript extends StatelessWidget {
           }),
         );
       },
+    );
+  }
+}
+
+/// Эмодзи-чип сентимента (NLTagger / Android-эвристика). Показывается
+/// только если сигнал достаточно сильный (см. `sentimentEmojiFor`).
+class _SentimentChip extends StatelessWidget {
+  const _SentimentChip({required this.emoji, required this.color});
+  final String emoji;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        emoji,
+        style: const TextStyle(fontSize: 13, height: 1),
+      ),
     );
   }
 }

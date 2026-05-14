@@ -2785,6 +2785,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get message_menu_action_show_original => 'Показать оригинал';
 
   @override
+  String get message_menu_action_read_aloud => 'Прочитать вслух';
+
+  @override
   String get message_menu_action_edit => 'Изменить';
 
   @override

@@ -2766,6 +2766,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get message_menu_action_show_original => 'Show original';
 
   @override
+  String get message_menu_action_read_aloud => 'Read aloud';
+
+  @override
   String get message_menu_action_edit => 'Edit';
 
   @override

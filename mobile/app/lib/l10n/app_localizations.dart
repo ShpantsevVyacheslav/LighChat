@@ -4828,6 +4828,12 @@ abstract class AppLocalizations {
   /// **'Показать оригинал'**
   String get message_menu_action_show_original;
 
+  /// No description provided for @message_menu_action_read_aloud.
+  ///
+  /// In ru, this message translates to:
+  /// **'Прочитать вслух'**
+  String get message_menu_action_read_aloud;
+
   /// No description provided for @message_menu_action_edit.
   ///
   /// In ru, this message translates to:

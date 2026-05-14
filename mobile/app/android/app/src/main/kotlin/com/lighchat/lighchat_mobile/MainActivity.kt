@@ -94,5 +94,7 @@ class MainActivity : FlutterActivity() {
 
         VoiceTranscriberBridge(applicationContext)
             .register(flutterEngine.dartExecutor.binaryMessenger)
+        TextToSpeechBridge(applicationContext)
+            .register(flutterEngine.dartExecutor.binaryMessenger)
     }
 }

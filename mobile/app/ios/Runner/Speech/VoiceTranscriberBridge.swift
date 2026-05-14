@@ -63,6 +63,30 @@ final class VoiceTranscriberBridge: NSObject {
         result(["language": "", "confidence": 0.0])
       }
 
+    case "detectSentiment":
+      // Сентимент-анализ строки через NLTagger.sentimentScore — `-1.0` … `+1.0`.
+      // На iOS 13+ работает офлайн, без отдельных моделей. Хорошо ловит сильную
+      // тональность («ты молодец», «бесит»); на нейтральных коротких фразах
+      // вернёт ~0.0 — это нормально, UI должен интерпретировать как «нейтрально».
+      let args = call.arguments as? [String: Any] ?? [:]
+      let text = args["text"] as? String ?? ""
+      if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        result(["score": 0.0])
+        return
+      }
+      if #available(iOS 13.0, *) {
+        let tagger = NLTagger(tagSchemes: [.sentimentScore])
+        tagger.string = text
+        let (tag, _) = tagger.tag(
+          at: text.startIndex,
+          unit: .paragraph,
+          scheme: .sentimentScore)
+        let score = Double(tag?.rawValue ?? "0") ?? 0.0
+        result(["score": score])
+      } else {
+        result(["score": 0.0])
+      }
+
     case "transcribeFile":
       let args = call.arguments as? [String: Any] ?? [:]
       let filePath = args["filePath"] as? String ?? ""

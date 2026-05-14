@@ -2796,6 +2796,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get message_menu_action_show_original => 'Asl matnni koʻrsatish';
 
   @override
+  String get message_menu_action_read_aloud => 'Ovoz bilan oʻqish';
+
+  @override
   String get message_menu_action_edit => 'Tahrirlash';
 
   @override

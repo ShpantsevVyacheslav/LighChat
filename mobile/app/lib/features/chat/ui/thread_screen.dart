@@ -1757,6 +1757,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
         // В тред-скрине Translate пока не предлагается (canTranslate=false),
         // но кейс должен быть в свитче, иначе non-exhaustive_switch_statement.
         return;
+      case MessageMenuActionType.readAloud:
+        // Аналогично — Read-aloud не поддерживается в тред-скрине пока.
+        return;
       case MessageMenuActionType.edit:
         _toast(AppLocalizations.of(context)!.common_soon);
       case MessageMenuActionType.pin:

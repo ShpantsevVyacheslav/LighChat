@@ -99,6 +99,7 @@ import 'sticker_pack_menu_actions.dart';
 import '../data/secret_chat_media_open_service.dart';
 import '../data/local_message_translator.dart';
 import '../data/local_text_language_detector.dart';
+import '../data/local_text_to_speech.dart';
 import 'message_translation_sheet.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -4008,6 +4009,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     );
   }
 
+  /// Озвучивает текст через нативный TTS. Перед чтением — детект языка
+  /// (через тот же `LocalTextLanguageDetector`), чтобы движок выбрал
+  /// правильный голос.
+  Future<void> _readMessageAloud(String rawText) async {
+    final stripped =
+        rawText.contains('<') ? messageHtmlToPlainText(rawText) : rawText;
+    final text = stripped.trim();
+    if (text.isEmpty) return;
+    String? langTag;
+    try {
+      final det = await LocalTextLanguageDetector.instance.detect(text);
+      if (det.isReliable) langTag = det.language;
+    } catch (_) {/* fall back to system locale */}
+    await LocalTextToSpeech.instance.speak(text: text, languageTag: langTag);
+  }
+
   Future<void> _pinMessage(
     ChatMessage m,
     User user,
@@ -4229,6 +4246,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         if (mounted) _toast(AppLocalizations.of(context)!.chat_text_copied);
       case MessageMenuActionType.translate:
         await _translateMessage(m, menuTextSource);
+      case MessageMenuActionType.readAloud:
+        await _readMessageAloud(menuTextSource);
       case MessageMenuActionType.edit:
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
