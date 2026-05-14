@@ -306,8 +306,11 @@ class _WebStyleVoiceRow extends StatelessWidget {
             ],
           );
 
+    // Пузырь шире, если развёрнут блок транскрипта — длинные сообщения
+    // на 300px wrap-аются в десяток строк, читать неудобно.
+    final maxWidth = footer != null ? 360.0 : 300.0;
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 300),
+      constraints: BoxConstraints(maxWidth: maxWidth),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
         child: ChatGlassPanel(
@@ -629,8 +632,10 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
     final wpm = (durationSec > 0.5 && wordsCount > 0)
         ? (wordsCount / durationSec * 60).round()
         : null;
-    // TL;DR имеет смысл только для достаточно длинных голосовых.
-    final canSummarize = original.length > 180 && wordsCount >= 25;
+    // TL;DR имеет смысл для среднего/длинного голосового. Порог
+    // намеренно невысокий, чтобы кнопка появлялась на реальных
+    // 15-секундных голосовых.
+    final canSummarize = original.length > 120 && wordsCount >= 15;
     final displayed = _showSummary && _summary != null
         ? _summary!
         : (_showTranslation && _translation != null
@@ -732,27 +737,38 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
-                                    if (canKaraoke)
-                                      _KaraokeTranscript(
-                                        segments: segments,
-                                        positionStream:
-                                            widget.positionStream!,
-                                        onSeek: widget.onSeek,
-                                        baseColor: textColor,
-                                        highlightColor: textColor,
-                                        highlightBg: Colors.white
-                                            .withValues(alpha: 0.16),
-                                      )
-                                    else
-                                      SelectableText(
-                                        displayed,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          height: 1.32,
-                                          fontWeight: FontWeight.w500,
-                                          color: textColor,
-                                        ),
+                                    // На длинных транскриптах ограничиваем
+                                    // высоту блока (~20 строк) с внутренним
+                                    // скроллом — иначе пузырь занимает пол-
+                                    // экрана и обрезается layout-ом.
+                                    ConstrainedBox(
+                                      constraints:
+                                          const BoxConstraints(maxHeight: 320),
+                                      child: SingleChildScrollView(
+                                        physics:
+                                            const BouncingScrollPhysics(),
+                                        child: canKaraoke
+                                            ? _KaraokeTranscript(
+                                                segments: segments,
+                                                positionStream:
+                                                    widget.positionStream!,
+                                                onSeek: widget.onSeek,
+                                                baseColor: textColor,
+                                                highlightColor: textColor,
+                                                highlightBg: Colors.white
+                                                    .withValues(alpha: 0.16),
+                                              )
+                                            : SelectableText(
+                                                displayed,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  height: 1.32,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: textColor,
+                                                ),
+                                              ),
                                       ),
+                                    ),
                                     if (wpm != null ||
                                         _sentimentEmoji != null) ...[
                                       const SizedBox(height: 6),
@@ -1287,6 +1303,10 @@ class _KaraokeTranscript extends StatelessWidget {
             final seg = segments[i];
             final isActive = i == activeIdx;
             final hasTrailingSpace = i < segments.length - 1;
+            // Apple Speech иногда возвращает сегмент с leading-пробелом —
+            // комбинация с нашим trailing-space даёт двойной зазор между
+            // словами. trim() убирает оба.
+            final word = seg.text.trim();
             return GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: onSeek == null ? null : () => onSeek!(seg.start),
@@ -1299,7 +1319,7 @@ class _KaraokeTranscript extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  hasTrailingSpace ? '${seg.text} ' : seg.text,
+                  hasTrailingSpace ? '$word ' : word,
                   style: TextStyle(
                     fontSize: 14,
                     height: 1.32,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,15 +9,10 @@ import '../../../l10n/app_localizations.dart';
 import '../data/local_voice_transcriber.dart';
 import 'chat_avatar.dart';
 
-/// Полноэкранный «караоке» режим воспроизведения голосового сообщения —
-/// в стиле lyrics-вью у Apple Music / Яндекс Музыки.
-///
-/// На экране: чёрный фон, наверху close, по центру 3 строки текста
-/// (прошлая + текущая + следующая), внизу карточка с аватаром
-/// отправителя, прогресс-бар и кнопки управления.
-///
-/// Слова из [TranscriptSegment]-ов группируются в «строки» эвристикой —
-/// по знакам препинания + лимиту слов.
+/// Полноэкранный «караоке» режим воспроизведения голосового сообщения.
+/// Дизайн в духе Apple Music Lyrics с фишками от себя: word-by-word
+/// fade-in активной строки, animated cosmic-background, gradient
+/// play-button + микро-эквалайзер у аватара.
 class KaraokeScreen extends StatefulWidget {
   const KaraokeScreen({
     super.key,
@@ -42,17 +38,29 @@ class KaraokeScreen extends StatefulWidget {
       PageRouteBuilder<void>(
         opaque: true,
         barrierDismissible: false,
-        transitionDuration: const Duration(milliseconds: 300),
+        transitionDuration: const Duration(milliseconds: 320),
         pageBuilder: (ctx, anim, secAnim) => KaraokeScreen(
           audioUrl: audioUrl,
           segments: segments,
           senderName: senderName,
           senderAvatarUrl: senderAvatarUrl,
         ),
-        transitionsBuilder: (ctx, anim, _, child) => FadeTransition(
-          opacity: anim,
-          child: child,
-        ),
+        transitionsBuilder: (ctx, anim, _, child) {
+          final curved = CurvedAnimation(
+            parent: anim,
+            curve: Curves.easeOutCubic,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.04),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
       ),
     );
   }
@@ -61,9 +69,13 @@ class KaraokeScreen extends StatefulWidget {
   State<KaraokeScreen> createState() => _KaraokeScreenState();
 }
 
-class _KaraokeScreenState extends State<KaraokeScreen> {
+class _KaraokeScreenState extends State<KaraokeScreen>
+    with TickerProviderStateMixin {
   late final AudioPlayer _player;
   late final List<List<TranscriptSegment>> _lines;
+  late final AnimationController _bgController;
+  late final AnimationController _eqController;
+
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
   bool _playing = false;
@@ -78,6 +90,13 @@ class _KaraokeScreenState extends State<KaraokeScreen> {
     super.initState();
     _lines = _groupIntoLines(widget.segments);
     _player = AudioPlayer();
+    _bgController =
+        AnimationController(vsync: this, duration: const Duration(seconds: 18))
+          ..repeat();
+    _eqController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
     unawaited(_setup());
   }
@@ -110,9 +129,8 @@ class _KaraokeScreenState extends State<KaraokeScreen> {
         }
         setState(() => _playing = s.playing);
       });
-      // Авто-старт — пользователь явно выбрал karaoke-режим.
       await _player.play();
-    } catch (_) {/* fail silently — UI всё ещё показывает текст */}
+    } catch (_) {/* fail silently */}
   }
 
   @override
@@ -121,11 +139,12 @@ class _KaraokeScreenState extends State<KaraokeScreen> {
     unawaited(_durSub?.cancel());
     unawaited(_stateSub?.cancel());
     unawaited(_player.dispose());
+    _bgController.dispose();
+    _eqController.dispose();
     super.dispose();
   }
 
-  /// Группируем word-сегменты в «строки» по 4-8 слов, закрывая строку
-  /// на сильной пунктуации (`.?!…`) или по лимиту.
+  /// Группируем сегменты по 4-8 слов, закрывая строку на пунктуации.
   static List<List<TranscriptSegment>> _groupIntoLines(
     List<TranscriptSegment> segs, {
     int softMax = 6,
@@ -151,7 +170,6 @@ class _KaraokeScreenState extends State<KaraokeScreen> {
     return lines;
   }
 
-  /// Активная строка — та, в чей диапазон попадает текущая позиция плеера.
   int _activeLineIndex(Duration pos) {
     if (_lines.isEmpty) return -1;
     for (var i = 0; i < _lines.length; i++) {
@@ -164,11 +182,6 @@ class _KaraokeScreenState extends State<KaraokeScreen> {
   }
 
   Duration _lineStart(int index) => _lines[index].first.start;
-
-  String _lineText(int index) => _lines[index]
-      .map((s) => s.text.trim())
-      .where((t) => t.isNotEmpty)
-      .join(' ');
 
   String _fmt(Duration d) {
     final m = d.inMinutes;
@@ -201,73 +214,156 @@ class _KaraokeScreenState extends State<KaraokeScreen> {
         : 0.0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0B0E),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            children: [
-              _TopBar(
-                title: l10n.voice_karaoke_title,
-                onClose: () => Navigator.of(context).maybePop(),
+      backgroundColor: const Color(0xFF0B0B12),
+      body: Stack(
+        children: [
+          // Анимированный космический фон — медленно движущиеся «орбы».
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _bgController,
+              builder: (context, _) => CustomPaint(
+                painter: _CosmicBackgroundPainter(t: _bgController.value),
               ),
-              Expanded(
-                child: _LyricsView(
-                  lines: _lines,
-                  activeIndex: activeIdx,
-                  onSeekToLine: (i) => unawaited(_player.seek(_lineStart(i))),
-                  textForLine: _lineText,
-                ),
-              ),
-              const SizedBox(height: 8),
-              _SenderCard(
-                name: widget.senderName,
-                avatarUrl: widget.senderAvatarUrl,
-                subtitle: l10n.voice_attachment_title_voice_message,
-              ),
-              const SizedBox(height: 18),
-              _ProgressBar(
-                progress: progress,
-                onSeekRatio: _ready
-                    ? (r) => unawaited(_player.seek(
-                          Duration(
-                            milliseconds:
-                                (r * _duration.inMilliseconds).round(),
-                          ),
-                        ))
-                    : null,
-              ),
-              const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
                 children: [
-                  Text(_fmt(_position), style: _timeStyle),
-                  Text(_fmt(_duration), style: _timeStyle),
+                  _TopBar(
+                    title: l10n.voice_karaoke_title,
+                    onClose: () => Navigator.of(context).maybePop(),
+                  ),
+                  Expanded(
+                    child: _LyricsView(
+                      lines: _lines,
+                      activeIndex: activeIdx,
+                      currentPosition: _position,
+                      onSeekToLine: (i) =>
+                          unawaited(_player.seek(_lineStart(i))),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _SenderCard(
+                    name: widget.senderName,
+                    avatarUrl: widget.senderAvatarUrl,
+                    subtitle: l10n.voice_attachment_title_voice_message,
+                    eqController: _eqController,
+                    playing: _playing,
+                  ),
+                  const SizedBox(height: 18),
+                  _ProgressBar(
+                    progress: progress,
+                    onSeekRatio: _ready
+                        ? (r) => unawaited(_player.seek(
+                              Duration(
+                                milliseconds:
+                                    (r * _duration.inMilliseconds).round(),
+                              ),
+                            ))
+                        : null,
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(_fmt(_position), style: _timeStyle),
+                      Text(_fmt(_duration), style: _timeStyle),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  _Controls(
+                    playing: _playing,
+                    ready: _ready,
+                    onSkipBack: () =>
+                        unawaited(_skip(const Duration(seconds: -10))),
+                    onSkipForward: () =>
+                        unawaited(_skip(const Duration(seconds: 10))),
+                    onTogglePlay: () => unawaited(_togglePlay()),
+                  ),
+                  const SizedBox(height: 12),
                 ],
               ),
-              const SizedBox(height: 12),
-              _Controls(
-                playing: _playing,
-                ready: _ready,
-                onSkipBack: () =>
-                    unawaited(_skip(const Duration(seconds: -10))),
-                onSkipForward: () =>
-                    unawaited(_skip(const Duration(seconds: 10))),
-                onTogglePlay: () => unawaited(_togglePlay()),
-              ),
-              const SizedBox(height: 12),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
+// ---------------------- Cosmic animated background ----------------------
+
+class _CosmicBackgroundPainter extends CustomPainter {
+  _CosmicBackgroundPainter({required this.t});
+  final double t; // 0..1
+
+  // Размытые «орбы» — три цветных пятна, плавающие по орбитам.
+  static const _orbs = <_Orb>[
+    _Orb(color: Color(0xFF7C5CFF), baseRadius: 0.42, speed: 0.7, phase: 0.0),
+    _Orb(color: Color(0xFF3A86FF), baseRadius: 0.36, speed: 0.5, phase: 0.33),
+    _Orb(color: Color(0xFFFF5C7A), baseRadius: 0.32, speed: 0.85, phase: 0.66),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Базовая заливка — тёмная.
+    final base = Paint()..color = const Color(0xFF0B0B12);
+    canvas.drawRect(Offset.zero & size, base);
+
+    for (final orb in _orbs) {
+      final angle = (t * orb.speed + orb.phase) * 2 * math.pi;
+      final cx = size.width * (0.5 + 0.32 * math.cos(angle));
+      final cy = size.height * (0.45 + 0.28 * math.sin(angle));
+      final r = size.shortestSide * orb.baseRadius;
+      final paint = Paint()
+        ..shader = RadialGradient(
+          colors: [
+            orb.color.withValues(alpha: 0.55),
+            orb.color.withValues(alpha: 0.0),
+          ],
+          stops: const [0.0, 1.0],
+        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 60);
+      canvas.drawCircle(Offset(cx, cy), r, paint);
+    }
+
+    // Сверху лёгкий vignette — текст в центре читается контрастнее.
+    final vignette = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          Colors.transparent,
+          const Color(0xFF0B0B12).withValues(alpha: 0.5),
+        ],
+        stops: const [0.5, 1.0],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, vignette);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CosmicBackgroundPainter old) => old.t != t;
+}
+
+class _Orb {
+  const _Orb({
+    required this.color,
+    required this.baseRadius,
+    required this.speed,
+    required this.phase,
+  });
+  final Color color;
+  final double baseRadius;
+  final double speed;
+  final double phase;
+}
+
+// ---------------------- Top bar ----------------------
+
 const TextStyle _timeStyle = TextStyle(
   fontSize: 12,
   fontWeight: FontWeight.w600,
-  color: Color(0xFF9CA0AB),
+  color: Color(0xFFA0A4AD),
   letterSpacing: 0.3,
 );
 
@@ -309,18 +405,20 @@ class _TopBar extends StatelessWidget {
   }
 }
 
+// ---------------------- Lyrics ----------------------
+
 class _LyricsView extends StatelessWidget {
   const _LyricsView({
     required this.lines,
     required this.activeIndex,
+    required this.currentPosition,
     required this.onSeekToLine,
-    required this.textForLine,
   });
 
   final List<List<TranscriptSegment>> lines;
   final int activeIndex;
+  final Duration currentPosition;
   final void Function(int) onSeekToLine;
-  final String Function(int) textForLine;
 
   @override
   Widget build(BuildContext context) {
@@ -345,43 +443,40 @@ class _LyricsView extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (prev != null) ...[
-            _LyricLine(
-              text: textForLine(prev),
+            _LyricLine.staticLine(
+              segments: lines[prev],
               opacity: 0.32,
               fontSize: 22,
-              fontWeight: FontWeight.w700,
               onTap: () => onSeekToLine(prev),
             ),
             const SizedBox(height: 22),
           ],
           AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
+            duration: const Duration(milliseconds: 260),
             transitionBuilder: (child, anim) => FadeTransition(
               opacity: anim,
               child: SlideTransition(
                 position: Tween<Offset>(
-                  begin: const Offset(0, 0.08),
+                  begin: const Offset(0, 0.10),
                   end: Offset.zero,
                 ).animate(anim),
                 child: child,
               ),
             ),
-            child: _LyricLine(
+            child: _LyricLine.activeLine(
               key: ValueKey<int>(clampedActive),
-              text: textForLine(clampedActive),
-              opacity: 1.0,
+              segments: lines[clampedActive],
               fontSize: 30,
-              fontWeight: FontWeight.w800,
+              position: currentPosition,
               onTap: () => onSeekToLine(clampedActive),
             ),
           ),
           if (next != null) ...[
             const SizedBox(height: 22),
-            _LyricLine(
-              text: textForLine(next),
+            _LyricLine.staticLine(
+              segments: lines[next],
               opacity: 0.32,
               fontSize: 22,
-              fontWeight: FontWeight.w700,
               onTap: () => onSeekToLine(next),
             ),
           ],
@@ -392,20 +487,54 @@ class _LyricsView extends StatelessWidget {
 }
 
 class _LyricLine extends StatelessWidget {
-  const _LyricLine({
+  const _LyricLine._({
     super.key,
-    required this.text,
+    required this.segments,
     required this.opacity,
     required this.fontSize,
-    required this.fontWeight,
     required this.onTap,
+    required this.position,
+    required this.isActive,
   });
 
-  final String text;
+  factory _LyricLine.staticLine({
+    required List<TranscriptSegment> segments,
+    required double opacity,
+    required double fontSize,
+    required VoidCallback onTap,
+  }) =>
+      _LyricLine._(
+        segments: segments,
+        opacity: opacity,
+        fontSize: fontSize,
+        onTap: onTap,
+        position: Duration.zero,
+        isActive: false,
+      );
+
+  factory _LyricLine.activeLine({
+    Key? key,
+    required List<TranscriptSegment> segments,
+    required double fontSize,
+    required Duration position,
+    required VoidCallback onTap,
+  }) =>
+      _LyricLine._(
+        key: key,
+        segments: segments,
+        opacity: 1.0,
+        fontSize: fontSize,
+        onTap: onTap,
+        position: position,
+        isActive: true,
+      );
+
+  final List<TranscriptSegment> segments;
   final double opacity;
   final double fontSize;
-  final FontWeight fontWeight;
   final VoidCallback onTap;
+  final Duration position;
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
@@ -414,32 +543,96 @@ class _LyricLine extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: fontSize,
-            fontWeight: fontWeight,
-            height: 1.2,
-            letterSpacing: -0.4,
-            color: Colors.white.withValues(alpha: opacity),
-          ),
-        ),
+        child: isActive
+            ? _ActiveLineText(
+                segments: segments,
+                position: position,
+                fontSize: fontSize,
+              )
+            : Text(
+                segments.map((s) => s.text.trim()).join(' '),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                  letterSpacing: -0.4,
+                  color: Colors.white.withValues(alpha: opacity),
+                ),
+              ),
       ),
     );
   }
 }
+
+/// Word-by-word fade-in: каждое слово в активной строке проявляется по
+/// мере того, как плеер до него «дошёл». Прошедшие слова — полным белым,
+/// будущие — приглушённым.
+class _ActiveLineText extends StatelessWidget {
+  const _ActiveLineText({
+    required this.segments,
+    required this.position,
+    required this.fontSize,
+  });
+
+  final List<TranscriptSegment> segments;
+  final Duration position;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return RichText(
+      textAlign: TextAlign.center,
+      text: TextSpan(
+        children: [
+          for (var i = 0; i < segments.length; i++) ...[
+            TextSpan(
+              text: segments[i].text.trim(),
+              style: TextStyle(
+                fontSize: fontSize,
+                fontWeight: FontWeight.w800,
+                height: 1.2,
+                letterSpacing: -0.4,
+                color: _colorFor(segments[i]),
+              ),
+            ),
+            if (i < segments.length - 1)
+              TextSpan(
+                text: ' ',
+                style: TextStyle(fontSize: fontSize, height: 1.2),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Color _colorFor(TranscriptSegment seg) {
+    // Прошедшее слово — полным белым, текущее (если плеер сейчас «на нём») —
+    // полным белым тоже, будущее — приглушённым.
+    if (position >= seg.start) return Colors.white;
+    final delta = (seg.start - position).inMilliseconds;
+    if (delta < 200) return Colors.white;
+    return Colors.white.withValues(alpha: 0.32);
+  }
+}
+
+// ---------------------- Sender card with mini equalizer ----------------------
 
 class _SenderCard extends StatelessWidget {
   const _SenderCard({
     required this.name,
     required this.avatarUrl,
     required this.subtitle,
+    required this.eqController,
+    required this.playing,
   });
 
   final String name;
   final String? avatarUrl;
   final String subtitle;
+  final AnimationController eqController;
+  final bool playing;
 
   @override
   Widget build(BuildContext context) {
@@ -447,7 +640,26 @@ class _SenderCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: Row(
         children: [
-          ChatAvatar(title: name, radius: 22, avatarUrl: avatarUrl),
+          Stack(
+            alignment: Alignment.bottomRight,
+            clipBehavior: Clip.none,
+            children: [
+              ChatAvatar(title: name, radius: 24, avatarUrl: avatarUrl),
+              if (playing)
+                Positioned(
+                  right: -2,
+                  bottom: -2,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF0B0B12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: _EqualizerBars(controller: eqController),
+                  ),
+                ),
+            ],
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -484,6 +696,48 @@ class _SenderCard extends StatelessWidget {
     );
   }
 }
+
+class _EqualizerBars extends StatelessWidget {
+  const _EqualizerBars({required this.controller});
+  final AnimationController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 16,
+      height: 16,
+      child: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) {
+          final t = controller.value;
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: List<Widget>.generate(3, (i) {
+              final phase = i * 0.33;
+              final v = (math.sin((t + phase) * 2 * math.pi) + 1) / 2;
+              final height = 4.0 + 10.0 * v;
+              return Container(
+                width: 3,
+                height: height,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFFE5DBFF), Color(0xFF8C7AFF)],
+                  ),
+                  borderRadius: BorderRadius.circular(1.5),
+                ),
+              );
+            }),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ---------------------- Progress + controls ----------------------
 
 class _ProgressBar extends StatelessWidget {
   const _ProgressBar({required this.progress, required this.onSeekRatio});
@@ -524,7 +778,9 @@ class _ProgressBar extends StatelessWidget {
                   child: Container(
                     height: 3,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.92),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFE5DBFF), Color(0xFFFFFFFF)],
+                      ),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -555,40 +811,186 @@ class _Controls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        IconButton(
-          onPressed: ready ? onSkipBack : null,
-          icon: const Icon(Icons.replay_10_rounded),
-          iconSize: 36,
-          color: Colors.white.withValues(alpha: 0.86),
+        _CircleIcon(
+          onTap: ready ? onSkipBack : null,
+          icon: Icons.replay_10_rounded,
+          size: 56,
         ),
-        Material(
-          color: accent,
-          shape: const CircleBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: ready ? onTogglePlay : null,
-            child: SizedBox(
-              width: 72,
-              height: 72,
-              child: Icon(
-                playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                color: Colors.white,
-                size: 36,
+        // Большой gradient play/pause с тенью и pulse-обводкой во время play.
+        _PlayPauseButton(
+          playing: playing,
+          ready: ready,
+          onTap: onTogglePlay,
+        ),
+        _CircleIcon(
+          onTap: ready ? onSkipForward : null,
+          icon: Icons.forward_10_rounded,
+          size: 56,
+        ),
+      ],
+    );
+  }
+}
+
+class _CircleIcon extends StatelessWidget {
+  const _CircleIcon({
+    required this.onTap,
+    required this.icon,
+    required this.size,
+  });
+  final VoidCallback? onTap;
+  final IconData icon;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    return Material(
+      color: Colors.white.withValues(alpha: enabled ? 0.08 : 0.04),
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Icon(
+            icon,
+            color: Colors.white.withValues(alpha: enabled ? 0.92 : 0.4),
+            size: 28,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlayPauseButton extends StatefulWidget {
+  const _PlayPauseButton({
+    required this.playing,
+    required this.ready,
+    required this.onTap,
+  });
+
+  final bool playing;
+  final bool ready;
+  final VoidCallback onTap;
+
+  @override
+  State<_PlayPauseButton> createState() => _PlayPauseButtonState();
+}
+
+class _PlayPauseButtonState extends State<_PlayPauseButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+    if (widget.playing) _pulse.repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PlayPauseButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.playing && !_pulse.isAnimating) {
+      _pulse.repeat();
+    } else if (!widget.playing && _pulse.isAnimating) {
+      _pulse.stop();
+      _pulse.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 96,
+      height: 96,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Pulse-обводка во время воспроизведения.
+          AnimatedBuilder(
+            animation: _pulse,
+            builder: (context, _) {
+              final t = _pulse.value;
+              final scale = 1.0 + 0.25 * t;
+              final opacity = (1.0 - t).clamp(0.0, 1.0);
+              return IgnorePointer(
+                child: Transform.scale(
+                  scale: scale,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFFB39DFF)
+                            .withValues(alpha: 0.5 * opacity),
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          Material(
+            shape: const CircleBorder(),
+            clipBehavior: Clip.antiAlias,
+            color: Colors.transparent,
+            child: Ink(
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFFE9DBFF),
+                    Color(0xFFB39DFF),
+                    Color(0xFF7C5CFF),
+                  ],
+                  stops: [0.0, 0.55, 1.0],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x55B39DFF),
+                    blurRadius: 24,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: InkWell(
+                onTap: widget.ready ? widget.onTap : null,
+                child: SizedBox(
+                  width: 80,
+                  height: 80,
+                  child: Icon(
+                    widget.playing
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                    color: const Color(0xFF1B0E3A),
+                    size: 40,
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-        IconButton(
-          onPressed: ready ? onSkipForward : null,
-          icon: const Icon(Icons.forward_10_rounded),
-          iconSize: 36,
-          color: Colors.white.withValues(alpha: 0.86),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
