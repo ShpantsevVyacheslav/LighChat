@@ -67,6 +67,8 @@
 	<string>Чтобы прикреплять фото и видео из галереи</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Для локальной транскрибации голосовых сообщений на устройстве — без отправки аудио на внешние серверы</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

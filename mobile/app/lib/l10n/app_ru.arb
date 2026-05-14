@@ -1099,6 +1099,7 @@
   "media_viewer_action_forward": "Переслать",
   "media_viewer_action_send": "Отправить",
   "media_viewer_action_save": "Сохранить",
+  "media_viewer_action_live_text": "Live Text",
   "media_viewer_action_show_in_chat": "Показать в чате",
   "media_viewer_action_delete": "Удалить",
   "media_viewer_error_no_gallery_access": "Нет доступа к сохранению в галерею",

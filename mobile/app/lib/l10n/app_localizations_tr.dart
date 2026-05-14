@@ -2191,6 +2191,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get media_viewer_action_save => 'Kaydet';
 
   @override
+  String get media_viewer_action_live_text => 'Canlı Metin';
+
+  @override
   String get media_viewer_action_show_in_chat => 'Sohbette göster';
 
   @override

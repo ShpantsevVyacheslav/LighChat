@@ -2192,6 +2192,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get media_viewer_action_save => 'Сохранить';
 
   @override
+  String get media_viewer_action_live_text => 'Live Text';
+
+  @override
   String get media_viewer_action_show_in_chat => 'Показать в чате';
 
   @override

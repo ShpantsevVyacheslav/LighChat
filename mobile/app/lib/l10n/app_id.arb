@@ -1079,6 +1079,7 @@
   "media_viewer_action_forward": "Teruskan",
   "media_viewer_action_send": "Kirim",
   "media_viewer_action_save": "Simpan",
+  "media_viewer_action_live_text": "Live Text",
   "media_viewer_action_show_in_chat": "Tampilkan in Obrolan",
   "media_viewer_action_delete": "Hapus",
   "media_viewer_error_no_gallery_access": "Tidak permission to Simpan to Galeri",

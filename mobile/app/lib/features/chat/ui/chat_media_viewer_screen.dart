@@ -21,6 +21,7 @@ import '../data/local_cache_entry_registry.dart';
 import 'chat_gallery_video_local_cache.dart';
 import 'chat_media_viewer_photo_page.dart';
 import 'chat_vlc_network_media.dart';
+import '../data/live_text.dart';
 import '../../../l10n/app_localizations.dart';
 
 String formatChatMediaViewerDate(BuildContext context, DateTime utcOrLocal) {
@@ -179,6 +180,10 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
   /// подписки на контроллер плеера в этом виджете.
   bool _galleryVideoControlsVisible = true;
 
+  /// Поддерживает ли устройство Live Text (iOS 16+ VisionKit). Проверяем
+  /// один раз при инициализации — состояние стабильно за время жизни вью.
+  bool _liveTextAvailable = false;
+
   @override
   void initState() {
     super.initState();
@@ -187,6 +192,9 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
     final start = n == 0 ? 0 : widget.initialIndex.clamp(0, n - 1);
     _index = start;
     _pageController = PageController(initialPage: start);
+    unawaited(LiveTextViewer.instance.isAvailable().then((v) {
+      if (mounted) setState(() => _liveTextAvailable = v);
+    }));
   }
 
   @override
@@ -244,6 +252,15 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
       if ((measured - _topChromeMeasuredHeight).abs() < 0.5) return;
       setState(() => _topChromeMeasuredHeight = measured);
     });
+  }
+
+  /// Открыть нативный Live Text viewer для текущей картинки (iOS 16+).
+  Future<void> _openLiveText() async {
+    final cur = _current;
+    if (cur == null) return;
+    final url = cur.attachment.url.trim();
+    if (url.isEmpty) return;
+    await LiveTextViewer.instance.present(imageUrl: url);
   }
 
   Future<void> _saveCurrent() async {
@@ -735,6 +752,9 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                       unawaited(_saveCurrent());
                                     }
                                     return;
+                                  case 'live_text':
+                                    unawaited(_openLiveText());
+                                    return;
                                   case 'show_in_chat':
                                     _showInChat();
                                     return;
@@ -815,6 +835,26 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                           const SizedBox(width: 12),
                                           Text(
                                             l10n.media_viewer_action_save,
+                                            style: TextStyle(
+                                              color: hi,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  if (_liveTextAvailable && !currentIsVideo)
+                                    PopupMenuItem(
+                                      value: 'live_text',
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.text_format_rounded,
+                                            color: hi,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            l10n.media_viewer_action_live_text,
                                             style: TextStyle(
                                               color: hi,
                                               fontWeight: FontWeight.w600,

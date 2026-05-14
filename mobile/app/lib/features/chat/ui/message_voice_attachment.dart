@@ -14,6 +14,7 @@ import '../data/apple_intelligence.dart';
 import '../data/local_message_translator.dart';
 import '../data/local_text_language_detector.dart';
 import '../data/local_voice_transcriber.dart';
+import '../data/voice_live_activity.dart';
 
 /// Один активный голосовой плеер (паритет с вебом: остальные ставятся на паузу).
 final class _VoicePlaybackExclusive {
@@ -1028,6 +1029,11 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
       const <({Duration start, Duration end})>[];
   bool _skipSilence = false;
 
+  // Live Activity (iOS 16.1+): id текущей активности и таймер throttle
+  // на обновление позиции (раз в секунду).
+  String? _liveActivityId;
+  DateTime _lastLiveActivityUpdate = DateTime.fromMillisecondsSinceEpoch(0);
+
   @override
   void initState() {
     super.initState();
@@ -1054,6 +1060,7 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
       _posSub = _player.positionStream.listen((p) {
         if (!mounted) return;
         setState(() => _position = p);
+        _maybeUpdateLiveActivity();
         // Skip-silence: если плеер играет и попал в silence-интервал —
         // прыгаем в конец паузы. Сразу проверяем что плеер именно играет,
         // чтобы не мешать ручному seek/паузе.
@@ -1074,6 +1081,7 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
             _position = _duration;
           });
           unawaited(_player.seek(Duration.zero));
+          unawaited(_endLiveActivity());
           return;
         }
         setState(() => _playing = s.playing);
@@ -1090,16 +1098,65 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
       if (_playing) {
         await _player.pause();
         _VoicePlaybackExclusive.clear(this);
+        unawaited(_endLiveActivity());
       } else {
         await _VoicePlaybackExclusive.beforeStartOther(
           this,
           () => _player.pause(),
         );
         await _player.play();
+        unawaited(_ensureLiveActivity());
       }
     } catch (_) {
       if (mounted) setState(() => _failed = true);
     }
+  }
+
+  /// Запустить (или переиспользовать) Live Activity при старте плеера.
+  Future<void> _ensureLiveActivity() async {
+    if (_liveActivityId != null) {
+      // Уже запущена — просто обновим isPlaying.
+      unawaited(VoiceLiveActivity.instance.update(
+        activityId: _liveActivityId!,
+        position: _position,
+        isPlaying: true,
+      ));
+      return;
+    }
+    final name = (widget.senderName ?? '').trim().isNotEmpty
+        ? widget.senderName!.trim()
+        : 'Voice message';
+    final id = await VoiceLiveActivity.instance.start(
+      senderName: name,
+      total: _duration,
+      position: _position,
+      isPlaying: true,
+    );
+    if (id != null && mounted) {
+      _liveActivityId = id;
+    }
+  }
+
+  /// Throttled-апдейт позиции в Live Activity: не чаще раза в секунду —
+  /// иначе перегружаем ActivityKit лишними update-ми и ест батарею.
+  void _maybeUpdateLiveActivity() {
+    final id = _liveActivityId;
+    if (id == null) return;
+    final now = DateTime.now();
+    if (now.difference(_lastLiveActivityUpdate).inMilliseconds < 1000) return;
+    _lastLiveActivityUpdate = now;
+    unawaited(VoiceLiveActivity.instance.update(
+      activityId: id,
+      position: _position,
+      isPlaying: _playing,
+    ));
+  }
+
+  Future<void> _endLiveActivity() async {
+    final id = _liveActivityId;
+    if (id == null) return;
+    _liveActivityId = null;
+    await VoiceLiveActivity.instance.end(id);
   }
 
   void _seekFromWaveformLocal(double localX, double width) {
@@ -1211,6 +1268,12 @@ class _VoiceJustAudioBarState extends State<_VoiceJustAudioBar> {
     unawaited(_posSub?.cancel());
     unawaited(_stateSub?.cancel());
     unawaited(_player.dispose());
+    // Закрыть Live Activity при размонтировании виджета — иначе она
+    // зависнет в Lock Screen до явного swipe-to-dismiss.
+    if (_liveActivityId != null) {
+      unawaited(VoiceLiveActivity.instance.end(_liveActivityId!));
+      _liveActivityId = null;
+    }
     super.dispose();
   }
 

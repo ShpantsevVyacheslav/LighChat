@@ -2195,6 +2195,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get media_viewer_action_save => 'Salvar';
 
   @override
+  String get media_viewer_action_live_text => 'Live Text';
+
+  @override
   String get media_viewer_action_show_in_chat => 'Mostrar no chat';
 
   @override
@@ -10512,6 +10515,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get media_viewer_action_save => 'Salvar';
+
+  @override
+  String get media_viewer_action_live_text => 'Live Text';
 
   @override
   String get media_viewer_action_show_in_chat => 'Mostrar no chat';

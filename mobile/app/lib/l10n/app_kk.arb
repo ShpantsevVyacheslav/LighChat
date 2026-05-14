@@ -1079,6 +1079,7 @@
   "media_viewer_action_forward": "Переслать",
   "media_viewer_action_send": "Жіберу",
   "media_viewer_action_save": "Сақтау",
+  "media_viewer_action_live_text": "Live Text",
   "media_viewer_action_show_in_chat": "Показать в чатта",
   "media_viewer_action_delete": "Жою",
   "media_viewer_error_no_gallery_access": "Жоқ қолжетімділіка сохранению в галерею",

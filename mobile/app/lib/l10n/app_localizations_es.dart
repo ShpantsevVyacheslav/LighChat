@@ -2206,6 +2206,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get media_viewer_action_save => 'Guardar';
 
   @override
+  String get media_viewer_action_live_text => 'Live Text';
+
+  @override
   String get media_viewer_action_show_in_chat => 'Mostrar en el chat';
 
   @override
@@ -10537,6 +10540,9 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get media_viewer_action_save => 'Guardar';
+
+  @override
+  String get media_viewer_action_live_text => 'Live Text';
 
   @override
   String get media_viewer_action_show_in_chat => 'Mostrar en el chat';

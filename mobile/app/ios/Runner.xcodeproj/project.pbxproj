@@ -25,6 +25,9 @@
 		B1B1B1B101000000000001E0 /* VoiceTranscriberBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B102000000000002E0 /* VoiceTranscriberBridge.swift */; };
 		B1B1B1B104000000000004E0 /* TextToSpeechBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B105000000000005E0 /* TextToSpeechBridge.swift */; };
 		B1B1B1B106000000000006E0 /* AppleIntelligenceBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B107000000000007E0 /* AppleIntelligenceBridge.swift */; };
+		B1B1B1B108000000000008E0 /* LiveTextBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B109000000000009E0 /* LiveTextBridge.swift */; };
+		B1B1B1B10A000000000010E0 /* VoiceActivityBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B10B000000000011E0 /* VoiceActivityBridge.swift */; };
+		B1B1B1B10C000000000012E0 /* VoiceActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B10D000000000013E0 /* VoiceActivityAttributes.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -98,6 +101,9 @@
 		B1B1B1B102000000000002E0 /* VoiceTranscriberBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceTranscriberBridge.swift; sourceTree = "<group>"; };
 		B1B1B1B105000000000005E0 /* TextToSpeechBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextToSpeechBridge.swift; sourceTree = "<group>"; };
 		B1B1B1B107000000000007E0 /* AppleIntelligenceBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleIntelligenceBridge.swift; sourceTree = "<group>"; };
+		B1B1B1B109000000000009E0 /* LiveTextBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveTextBridge.swift; sourceTree = "<group>"; };
+		B1B1B1B10B000000000011E0 /* VoiceActivityBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceActivityBridge.swift; sourceTree = "<group>"; };
+		B1B1B1B10D000000000013E0 /* VoiceActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceActivityAttributes.swift; sourceTree = "<group>"; };
 		B2F8A9012ECF9000100A1D01 /* RunnerDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RunnerDebug.entitlements; sourceTree = "<group>"; };
 		B2F8A9012ECF9000100A1D02 /* RunnerRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RunnerRelease.entitlements; sourceTree = "<group>"; };
 		BCE89198E9E815BAC52B21AF /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
@@ -242,6 +248,9 @@
 				B1B1B1B102000000000002E0 /* VoiceTranscriberBridge.swift */,
 				B1B1B1B105000000000005E0 /* TextToSpeechBridge.swift */,
 				B1B1B1B107000000000007E0 /* AppleIntelligenceBridge.swift */,
+				B1B1B1B109000000000009E0 /* LiveTextBridge.swift */,
+				B1B1B1B10B000000000011E0 /* VoiceActivityBridge.swift */,
+				B1B1B1B10D000000000013E0 /* VoiceActivityAttributes.swift */,
 			);
 			path = Speech;
 			sourceTree = "<group>";
@@ -517,6 +526,9 @@
 				B1B1B1B101000000000001E0 /* VoiceTranscriberBridge.swift in Sources */,
 				B1B1B1B104000000000004E0 /* TextToSpeechBridge.swift in Sources */,
 				B1B1B1B106000000000006E0 /* AppleIntelligenceBridge.swift in Sources */,
+				B1B1B1B108000000000008E0 /* LiveTextBridge.swift in Sources */,
+				B1B1B1B10A000000000010E0 /* VoiceActivityBridge.swift in Sources */,
+				B1B1B1B10C000000000012E0 /* VoiceActivityAttributes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

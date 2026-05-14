@@ -2198,6 +2198,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get media_viewer_action_save => 'Saqlash';
 
   @override
+  String get media_viewer_action_live_text => 'Live Text';
+
+  @override
   String get media_viewer_action_show_in_chat => 'Chatda koʻrsatish';
 
   @override

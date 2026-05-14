@@ -1099,6 +1099,7 @@
   "media_viewer_action_forward": "Forward",
   "media_viewer_action_send": "Send",
   "media_viewer_action_save": "Save",
+  "media_viewer_action_live_text": "Live Text",
   "media_viewer_action_show_in_chat": "Show in chat",
   "media_viewer_action_delete": "Delete",
   "media_viewer_error_no_gallery_access": "No permission to save to gallery",

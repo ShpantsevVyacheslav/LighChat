@@ -1079,6 +1079,7 @@
   "media_viewer_action_forward": "Reenviar",
   "media_viewer_action_send": "Enviar",
   "media_viewer_action_save": "Guardar",
+  "media_viewer_action_live_text": "Live Text",
   "media_viewer_action_show_in_chat": "Mostrar en el chat",
   "media_viewer_action_delete": "Eliminar",
   "media_viewer_error_no_gallery_access": "Sin permiso para guardar en la galería",

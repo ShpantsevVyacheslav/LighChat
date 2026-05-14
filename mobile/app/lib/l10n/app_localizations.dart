@@ -3862,6 +3862,12 @@ abstract class AppLocalizations {
   /// **'Сохранить'**
   String get media_viewer_action_save;
 
+  /// No description provided for @media_viewer_action_live_text.
+  ///
+  /// In ru, this message translates to:
+  /// **'Live Text'**
+  String get media_viewer_action_live_text;
+
   /// No description provided for @media_viewer_action_show_in_chat.
   ///
   /// In ru, this message translates to:
