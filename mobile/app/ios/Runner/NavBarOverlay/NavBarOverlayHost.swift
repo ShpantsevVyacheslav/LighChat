@@ -114,12 +114,11 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// ~15-20pt от низа экрана). UITabBar по-стандарту сидит над safe
   /// area (gap 34pt — большой). Положительный overlap двигает
   /// bar.frame ниже screen edge.
-  /// -8pt overlap (negative): bar.bottom РАНЬШЕ screen-bottom на 8pt
-  /// → items оказываются ещё выше, gap до home-indicator-top ≈ 42pt.
-  /// Раньше 12pt не давало визуально-заметного подъёма (items сидели
-  /// на ~22pt от низа); пользователь просил «поднять выше», -8pt
-  /// убирает overlap полностью + добавляет 8pt доп воздуха.
-  private static let tabBarBottomOverlap: CGFloat = -8
+  /// 0pt overlap: bar.bottom ровно у screen-bottom. Раньше пробовали
+  /// -8pt — items оказывались слишком высоко (~42pt от низа), теперь
+  /// 0pt → ~34pt (= home indicator height), pill сидит сразу над
+  /// home indicator зоной — оптимум по фидбеку.
+  private static let tabBarBottomOverlap: CGFloat = 0
   /// Отступ bar.top от safeArea.top. ОТРИЦАТЕЛЬНЫЙ — поднимаем bar в
   /// system-reserved area под Dynamic Island. -6pt — pill'ы чуть-чуть
   /// заходят в DI clearance, но не прижимаются к status bar items.
@@ -1087,7 +1086,10 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
         // не клипится по высоте item'а (28pt iconHeight для standard
         // bar.height = 49). UITabBar при необходимости сам отскейлит
         // вниз, нам важна max quality оригинала.
-        let cropped = self.makeCircularTabImage(raw, size: 32)
+        // 38pt avatar — крупнее, чем 32, как просил пользователь.
+        // UITabBar отскейлит при необходимости (item height 28pt),
+        // важно держать качественный source — visual получается крупнее.
+        let cropped = self.makeCircularTabImage(raw, size: 38)
         self.tabAvatarImageCache[urlStr] = cropped
         Self.log("loadTabAvatar OK tab=\(tabId) status=\(status) bytes=\(data.count)")
         // Найти текущий UITabBarItem и обновить картинку. Cropped уже
