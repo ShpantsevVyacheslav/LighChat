@@ -604,9 +604,15 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
     final unreadSeparatorId = widget.unreadSeparatorMessageId;
 
     // Empty-state placeholder: карточка с хранителем маяка, машущим рукой.
-    // Появляется только когда сообщений физически нет (включая outbox);
-    // нужно ровно одно sliver, занимающее оставшийся viewport.
-    if (asc.isEmpty && widget.outgoingMediaFooter == null) {
+    // Появляется когда нет ни одного пользовательского сообщения. System-
+    // event-маркеры («E2EE enabled», аналогичные системные дивайдеры) не
+    // считаются сообщениями — placeholder показывается и при их наличии,
+    // иначе для новых чатов с уже знакомым контактом empty-state не
+    // срабатывает (там сразу создаётся system-event про E2EE).
+    final hasUserMessages = asc.any(
+      (m) => !(m.senderId == '__system__' && m.systemEvent != null),
+    );
+    if (!hasUserMessages && widget.outgoingMediaFooter == null) {
       slivers.add(
         SliverFillRemaining(
           hasScrollBody: false,
