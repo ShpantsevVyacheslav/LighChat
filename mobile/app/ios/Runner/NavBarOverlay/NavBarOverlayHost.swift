@@ -546,8 +546,23 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     }
 
     NavBarOverlayHost.log(
-      "[tab-anim] applyBottomBar FULL REBUILD (signature changed). prev=\(lastBottomBarItemsSignature.prefix(60)) new=\(signature.prefix(60))"
+      "[tab-anim] applyBottomBar FULL REBUILD (signature changed)"
     )
+    // Подробный diff prev vs new (полные строки, без обрезки) — без
+    // этого `.prefix(60)` скрывал реальную разницу.
+    NavBarOverlayHost.log("[tab-anim]   PREV: \(lastBottomBarItemsSignature)")
+    NavBarOverlayHost.log("[tab-anim]   NEW:  \(signature)")
+    // Если хотя бы один из item'ов отличается — какой именно по индексу.
+    let prevParts = lastBottomBarItemsSignature.split(separator: "|")
+    let newParts = signature.split(separator: "|")
+    let maxParts = max(prevParts.count, newParts.count)
+    for i in 0..<maxParts {
+      let p = i < prevParts.count ? String(prevParts[i]) : "<missing>"
+      let n = i < newParts.count ? String(newParts[i]) : "<missing>"
+      if p != n {
+        NavBarOverlayHost.log("[tab-anim]   DIFF #\(i): prev='\(p)' new='\(n)'")
+      }
+    }
 
     lastBottomBarItemsSignature = signature
     tabItemsById.removeAll(keepingCapacity: true)
