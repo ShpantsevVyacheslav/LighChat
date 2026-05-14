@@ -39,6 +39,8 @@ import 'message_reactions_row.dart';
 import 'message_reply_preview.dart';
 import 'message_swipe_to_reply.dart';
 import 'outbox_job_media_bubble.dart';
+import '../data/local_voice_transcriber.dart';
+import '../data/voice_message_track.dart';
 
 typedef ChatMessageVisibleCallback =
     void Function(ChatMessage message, double visibleFraction);
@@ -599,6 +601,28 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
         return widget.reversed ? b.id.compareTo(a.id) : a.id.compareTo(b.id);
       });
 
+    // Собираем все голосовые сообщения в порядке времени — этот список
+    // передаём в каждое `MessageAttachments`, чтобы karaoke умел
+    // prev/next между голосовыми всего чата.
+    final conversationVoiceTracks = <VoiceMessageTrack>[];
+    for (final m in asc) {
+      for (final a in m.attachments) {
+        if (isVoiceMessageAttachment(a)) {
+          final cached = LocalVoiceTranscriber.instance.cachedFor(m.id);
+          final profile = widget.profileMap?[m.senderId];
+          conversationVoiceTracks.add(VoiceMessageTrack(
+            conversationId: widget.conversationId,
+            messageId: m.id,
+            audioUrl: a.url,
+            senderName: profile?.name ?? '',
+            senderAvatarUrl: profile?.avatar,
+            segments: cached?.segments,
+          ));
+          break; // не дублируем — один трек на сообщение
+        }
+      }
+    }
+
     _maybeInitialScrollToBottom(asc);
     final pendingSyncedEmoji = _takePendingSyncedEmojiBurst(asc);
     if (pendingSyncedEmoji != null) {
@@ -762,6 +786,7 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
                 onOutboxRetry: widget.onOutboxRetry,
                 onOutboxDismiss: widget.onOutboxDismiss,
                 isStalePending: _isStalePending(m),
+                conversationVoiceTracks: conversationVoiceTracks,
               ),
             );
             final rowKey = widget.messageItemKeys[m.id];
@@ -853,7 +878,18 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
       );
     }
 
-    slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 8)));
+    // Top-padding для самого верхнего сообщения. В reversed-чате
+    // axis-end = top of viewport, поэтому SliverToBoxAdapter, добавленный
+    // последним в slivers, сядет сверху над OLDEST'ом. Используем
+    // `topOverlayOffset` (он уже учитывает native bar + pinned/lobby
+    // overlay'ы) + 16pt доп. отступа — без этого первое сообщение
+    // застревало под status-bar'ом / шапкой и невозможно было его
+    // полностью увидеть. На Android/Win/Linux topOverlayOffset = 4,
+    // получаем те же 8pt как раньше.
+    final topSpacer = widget.reversed
+        ? math.max(8.0, widget.topOverlayOffset + 16)
+        : 8.0;
+    slivers.add(SliverToBoxAdapter(child: SizedBox(height: topSpacer)));
 
     final boostJump =
         widget.jumpScrollBoostMessageId != null &&
@@ -1192,6 +1228,7 @@ class _ChatMessageBubble extends StatelessWidget {
     this.onOutboxRetry,
     this.onOutboxDismiss,
     this.isStalePending = false,
+    this.conversationVoiceTracks,
   });
 
   final ChatMessage message;
@@ -1235,6 +1272,9 @@ class _ChatMessageBubble extends StatelessWidget {
 
   /// Real Firestore message stuck in `'sending'` for more than 30s.
   final bool isStalePending;
+
+  /// Все голосовые сообщения чата для prev/next в karaoke.
+  final List<VoiceMessageTrack>? conversationVoiceTracks;
 
   @override
   Widget build(BuildContext context) {
@@ -1594,6 +1634,7 @@ class _ChatMessageBubble extends StatelessWidget {
             voiceTranscript: message.voiceTranscript,
             senderName: profileMap?[message.senderId]?.name,
             senderAvatarUrl: profileMap?[message.senderId]?.avatar,
+            conversationVoiceTracks: conversationVoiceTracks,
             videoCirclePlayingSlotId: videoCirclePlayingSlotId,
             onOpenGridGallery: openGridGallery,
             onOpenFileAttachment: openFileAttachment,
@@ -1631,6 +1672,7 @@ class _ChatMessageBubble extends StatelessWidget {
               voiceTranscript: message.voiceTranscript,
             senderName: profileMap?[message.senderId]?.name,
             senderAvatarUrl: profileMap?[message.senderId]?.avatar,
+            conversationVoiceTracks: conversationVoiceTracks,
               videoCirclePlayingSlotId: videoCirclePlayingSlotId,
               onOpenGridGallery: openGridGallery,
               onOpenFileAttachment: openFileAttachment,
@@ -1777,6 +1819,7 @@ class _ChatMessageBubble extends StatelessWidget {
             voiceTranscript: message.voiceTranscript,
             senderName: profileMap?[message.senderId]?.name,
             senderAvatarUrl: profileMap?[message.senderId]?.avatar,
+            conversationVoiceTracks: conversationVoiceTracks,
             videoCirclePlayingSlotId: videoCirclePlayingSlotId,
             onOpenGridGallery: openGridGallery,
             onOpenFileAttachment: openFileAttachment,
@@ -1865,6 +1908,7 @@ class _ChatMessageBubble extends StatelessWidget {
                         voiceTranscript: message.voiceTranscript,
             senderName: profileMap?[message.senderId]?.name,
             senderAvatarUrl: profileMap?[message.senderId]?.avatar,
+            conversationVoiceTracks: conversationVoiceTracks,
                         videoCirclePlayingSlotId: videoCirclePlayingSlotId,
                         onOpenGridGallery: openGridGallery,
                         onOpenFileAttachment: openFileAttachment,
@@ -1910,6 +1954,7 @@ class _ChatMessageBubble extends StatelessWidget {
             voiceTranscript: message.voiceTranscript,
             senderName: profileMap?[message.senderId]?.name,
             senderAvatarUrl: profileMap?[message.senderId]?.avatar,
+            conversationVoiceTracks: conversationVoiceTracks,
             videoCirclePlayingSlotId: videoCirclePlayingSlotId,
             onOpenGridGallery: openGridGallery,
             onOpenFileAttachment: openFileAttachment,
