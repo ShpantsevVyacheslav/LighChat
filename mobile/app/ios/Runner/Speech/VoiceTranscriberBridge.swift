@@ -121,16 +121,31 @@ final class VoiceTranscriberBridge: NSObject {
       return
     }
 
+    // Tier 1: on-device (если доступно). Fallback на серверное Apple-распознавание
+    // — оно работает в РФ и часто точнее на коротких сообщениях.
+    let canOnDevice: Bool = {
+      if #available(iOS 13.0, *) { return recognizer.supportsOnDeviceRecognition }
+      return false
+    }()
+    performRecognition(
+      recognizer: recognizer, url: url,
+      onDevice: canOnDevice,
+      allowFallback: true,
+      result: result)
+  }
+
+  private func performRecognition(
+    recognizer: SFSpeechRecognizer, url: URL,
+    onDevice: Bool, allowFallback: Bool, result: @escaping FlutterResult
+  ) {
     let request = SFSpeechURLRecognitionRequest(url: url)
     request.shouldReportPartialResults = false
     if #available(iOS 13.0, *) {
-      if recognizer.supportsOnDeviceRecognition {
-        request.requiresOnDeviceRecognition = true
-      }
+      request.requiresOnDeviceRecognition = onDevice
     }
     request.taskHint = .dictation
 
-    recognizerQueue.async {
+    recognizerQueue.async { [weak self] in
       var delivered = false
       let lock = NSLock()
       func deliver(_ value: Any?) {
@@ -143,9 +158,37 @@ final class VoiceTranscriberBridge: NSObject {
 
       _ = recognizer.recognitionTask(with: request) { recognitionResult, error in
         if let error = error as NSError? {
-          // SFSpeechErrorDomain code 203 = no speech detected — return empty string.
-          if error.domain == "kAFAssistantErrorDomain" && error.code == 203 {
+          if Self.isNoSpeechError(error) {
+            if onDevice && allowFallback {
+              // On-device не нашёл речь — это часто означает не «реально нет
+              // речи», а «модели не хватило». Пробуем серверный путь Apple.
+              lock.lock()
+              if !delivered {
+                delivered = true
+                lock.unlock()
+                self?.performRecognition(
+                  recognizer: recognizer, url: url,
+                  onDevice: false, allowFallback: false, result: result)
+              } else {
+                lock.unlock()
+              }
+              return
+            }
             deliver(["text": ""])
+            return
+          }
+          if onDevice && allowFallback {
+            // Любая иная ошибка on-device — пробуем сервер.
+            lock.lock()
+            if !delivered {
+              delivered = true
+              lock.unlock()
+              self?.performRecognition(
+                recognizer: recognizer, url: url,
+                onDevice: false, allowFallback: false, result: result)
+            } else {
+              lock.unlock()
+            }
             return
           }
           deliver(
@@ -162,5 +205,14 @@ final class VoiceTranscriberBridge: NSObject {
         }
       }
     }
+  }
+
+  private static func isNoSpeechError(_ error: NSError) -> Bool {
+    if error.domain == "kAFAssistantErrorDomain"
+      && [203, 1110, 1700].contains(error.code)
+    {
+      return true
+    }
+    return error.localizedDescription.lowercased().contains("no speech")
   }
 }

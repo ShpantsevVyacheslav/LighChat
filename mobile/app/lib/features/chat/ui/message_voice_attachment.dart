@@ -353,14 +353,17 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isMine = widget.isMine;
+    // Адаптивные цвета: на «моих» пузырях фон = primary, текст = onPrimary.
+    // На входящих и в media-tab фон — surface-glass, текст = onSurface.
     final metaColor = isMine
-        ? scheme.onPrimary.withValues(alpha: 0.8)
-        : scheme.onSurface.withValues(alpha: 0.62);
+        ? scheme.onPrimary.withValues(alpha: 0.82)
+        : scheme.onSurface.withValues(alpha: 0.72);
     final textColor = isMine
-        ? scheme.onPrimary.withValues(alpha: 0.95)
-        : scheme.onSurface.withValues(alpha: 0.92);
+        ? scheme.onPrimary
+        : scheme.onSurface;
 
     final current = (widget.transcript ?? _localTranscript ?? '').trim();
+    final hasTranscript = current.isNotEmpty;
 
     final l10n = AppLocalizations.of(context)!;
     final showLabel = l10n.voice_transcript_show;
@@ -369,105 +372,156 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
     final loadingLabel = l10n.voice_transcript_loading;
     final failedLabel = l10n.voice_transcript_failed;
     final inlineError = _errorText;
+
     return Padding(
       padding: const EdgeInsets.only(top: 6, left: 2, right: 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              TextButton(
-                onPressed: () async {
-                  setState(() => _open = !_open);
-                  if (_open) {
-                    await _ensureTranscript();
-                  }
-                },
-                style: TextButton.styleFrom(
-                  minimumSize: const Size(44, 32),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(
-                  _open ? hideLabel : showLabel,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: metaColor,
-                  ),
-                ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () async {
+                setState(() => _open = !_open);
+                if (_open) {
+                  await _ensureTranscript();
+                }
+              },
+              style: TextButton.styleFrom(
+                minimumSize: const Size(44, 32),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                foregroundColor: metaColor,
               ),
-              const Spacer(),
-              IconButton(
-                tooltip: copyLabel,
-                onPressed: current.isEmpty
-                    ? null
-                    : () async {
-                        await Clipboard.setData(ClipboardData(text: current));
-                      },
-                iconSize: 18,
+              icon: Icon(
+                _open
+                    ? Icons.keyboard_arrow_up_rounded
+                    : Icons.keyboard_arrow_down_rounded,
+                size: 18,
                 color: metaColor,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-                icon: const Icon(Icons.copy_all_outlined),
               ),
-            ],
-          ),
-          if (_open)
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
-              child: _busy
-                  ? Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: metaColor,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            loadingLabel,
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                              color: metaColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : (current.isEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            inlineError?.trim().isNotEmpty == true
-                                ? l10n.voice_transcript_error(inlineError!)
-                                : failedLabel,
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                              color: metaColor,
-                            ),
-                          ),
-                        )
-                      : Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            current,
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              height: 1.3,
-                              fontWeight: FontWeight.w600,
-                              color: textColor,
-                            ),
-                          ),
-                        )),
+              label: Text(
+                _open ? hideLabel : showLabel,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: metaColor,
+                ),
+              ),
             ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topLeft,
+            child: !_open
+                ? const SizedBox(width: double.infinity)
+                : AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    child: _busy
+                        ? Padding(
+                            key: const ValueKey('loading'),
+                            padding: const EdgeInsets.fromLTRB(8, 2, 8, 6),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: metaColor,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  loadingLabel,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: metaColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : hasTranscript
+                            ? Padding(
+                                key: const ValueKey('text'),
+                                padding: const EdgeInsets.fromLTRB(8, 2, 4, 4),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    SelectableText(
+                                      current,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        height: 1.32,
+                                        fontWeight: FontWeight.w500,
+                                        color: textColor,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: TextButton.icon(
+                                        onPressed: () async {
+                                          final messenger =
+                                              ScaffoldMessenger.maybeOf(
+                                                  context);
+                                          await Clipboard.setData(
+                                              ClipboardData(text: current));
+                                          messenger?.showSnackBar(
+                                            SnackBar(
+                                              duration: const Duration(
+                                                  milliseconds: 1200),
+                                              content: Text(copyLabel),
+                                            ),
+                                          );
+                                        },
+                                        style: TextButton.styleFrom(
+                                          minimumSize: const Size(44, 30),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8),
+                                          tapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          foregroundColor: metaColor,
+                                        ),
+                                        icon: Icon(
+                                          Icons.copy_all_outlined,
+                                          size: 16,
+                                          color: metaColor,
+                                        ),
+                                        label: Text(
+                                          copyLabel,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: metaColor,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Padding(
+                                key: const ValueKey('error'),
+                                padding: const EdgeInsets.fromLTRB(8, 2, 8, 6),
+                                child: Text(
+                                  inlineError?.trim().isNotEmpty == true
+                                      ? l10n.voice_transcript_error(
+                                          inlineError!)
+                                      : failedLabel,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: textColor.withValues(alpha: 0.88),
+                                  ),
+                                ),
+                              ),
+                  ),
+          ),
         ],
       ),
     );
