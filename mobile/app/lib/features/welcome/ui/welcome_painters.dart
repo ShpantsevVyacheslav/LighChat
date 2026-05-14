@@ -375,10 +375,6 @@ class KeeperPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    // `debugPrint` идёт в stdout — видно в Xcode Console (release тоже).
-    debugPrint(
-      '[lighchat.keeper] paint size=${w.toStringAsFixed(1)}x${h.toStringAsFixed(1)} body=0x${bodyColor.toARGB32().toRadixString(16)}',
-    );
     // координаты в долях; ноги внизу, голова вверху
     final fill = Paint()..color = bodyColor;
     final accent = Paint()..color = accentColor;
