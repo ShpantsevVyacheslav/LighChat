@@ -3,14 +3,13 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 60;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		225E587D2FB62E09006FACE0 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 225E587C2FB62E09006FACE0 /* WidgetKit.framework */; };
 		225E587F2FB62E09006FACE0 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 225E587E2FB62E09006FACE0 /* SwiftUI.framework */; };
-		225E588C2FB62E0B006FACE0 /* VoiceActivityExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 225E587B2FB62E09006FACE0 /* VoiceActivityExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		225E58982FB630F7006FACE0 /* VoiceActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B10D000000000013E0 /* VoiceActivityAttributes.swift */; };
 		2273FEB12F88DE5E0054E104 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 2273FEB02F88DE5E0054E104 /* GoogleService-Info.plist */; };
 		22B808C12F97703A008C1DCF /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A4226D422C18325703427045 /* Pods_Runner.framework */; };
@@ -36,13 +35,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		225E588A2FB62E0B006FACE0 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 225E587A2FB62E09006FACE0;
-			remoteInfo = VoiceActivityExtension;
-		};
 		331C8085294A63A400263BE5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
@@ -70,7 +62,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				225E588C2FB62E0B006FACE0 /* VoiceActivityExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -382,7 +373,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				225E588B2FB62E0B006FACE0 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			productName = Runner;
@@ -632,11 +622,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		225E588B2FB62E0B006FACE0 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 225E587A2FB62E09006FACE0 /* VoiceActivityExtension */;
-			targetProxy = 225E588A2FB62E0B006FACE0 /* PBXContainerItemProxy */;
-		};
 		331C8086294A63A400263BE5 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 97C146ED1CF9000F007C117D /* Runner */;
@@ -678,13 +663,13 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = T896C2B2FW;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = VoiceActivity/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = VoiceActivity;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -722,13 +707,13 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = T896C2B2FW;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = VoiceActivity/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = VoiceActivity;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -763,13 +748,13 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = T896C2B2FW;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = VoiceActivity/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = VoiceActivity;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
