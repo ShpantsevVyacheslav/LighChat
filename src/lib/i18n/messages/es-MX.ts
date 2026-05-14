@@ -2259,6 +2259,9 @@ export const messagesEsMx = {
       crewShore: 'Tripulación en la costa',
       markConstellation: 'Constelación del faro',
       oceanWaves: 'Olas del océano',
+      doodleMarine: 'Garabatos marinos',
+      doodleStickers: 'Stickers de mascotas',
+      doodleFormula: 'Fórmulas náuticas',
     },
     bubbleRadius: {
       rounded: 'Redondeadas',

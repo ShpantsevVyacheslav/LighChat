@@ -2276,6 +2276,9 @@ export const messagesRu = {
       crewShore: 'Команда у берега',
       markConstellation: 'Созвездие маяка',
       oceanWaves: 'Океанские волны',
+      doodleMarine: 'Морские дудлы',
+      doodleStickers: 'Маскоты-стикеры',
+      doodleFormula: 'Морские формулы',
     },
     bubbleRadius: {
       rounded: 'Скруглённые',

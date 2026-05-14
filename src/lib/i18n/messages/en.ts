@@ -2274,6 +2274,9 @@ export const messagesEn = {
       crewShore: 'Crew on the Shore',
       markConstellation: 'Lighthouse Constellation',
       oceanWaves: 'Ocean Waves',
+      doodleMarine: 'Marine Doodles',
+      doodleStickers: 'Mascot Stickers',
+      doodleFormula: 'Navigation Formulas',
     },
     bubbleRadius: {
       rounded: 'Rounded',

@@ -603,6 +603,424 @@ def concept_ocean_waves(theme):
     return bg.convert("RGB")
 
 
+# ---------------------------------------------------------------------------
+# Telegram-style doodle patterns
+# ---------------------------------------------------------------------------
+#
+# Концепты `doodle-*` — бесшовный фоновый паттерн из мелких фирменных иконок
+# на фирменном градиенте. Стилистика — Telegram pattern wallpapers (повторы
+# контурных силуэтов с разворотом / разными размерами), но иконки и палитра
+# наши: маяк, штурвал, якорь, чайка, ракушка, волна, мини-маскоты LighChat,
+# навигационные формулы и компас. Иконки рисуются контуром (stroke без fill)
+# с низкой альфой — паттерн читается как фон, а не отвлекает от чата.
+
+
+def _norm_pts(pts, cx, cy, size):
+    return [(cx + x * size, cy + y * size) for x, y in pts]
+
+
+def icon_lighthouse(d, cx, cy, size, color, alpha=180, width=3):
+    """Мини-силуэт маяка (контур)."""
+    s = size / 2
+    rgba = color + (alpha,)
+    # Постамент
+    d.polygon(_norm_pts([(-1.0, 1.0), (1.0, 1.0), (0.85, 0.78), (-0.85, 0.78)],
+                        cx, cy, s), outline=rgba, width=width)
+    # Башня
+    d.polygon(_norm_pts([(-0.55, 0.78), (0.55, 0.78), (0.40, -0.20), (-0.40, -0.20)],
+                        cx, cy, s), outline=rgba, width=width)
+    # Балкон
+    d.line(_norm_pts([(-0.55, -0.20), (0.55, -0.20)], cx, cy, s),
+           fill=rgba, width=width)
+    # Фонарная комната
+    d.rectangle([cx - s * 0.30, cy - s * 0.55, cx + s * 0.30, cy - s * 0.20],
+                outline=rgba, width=width)
+    # Купол + шпиль
+    d.line(_norm_pts([(-0.30, -0.55), (0.30, -0.55)], cx, cy, s),
+           fill=rgba, width=width)
+    d.line(_norm_pts([(0.0, -0.55), (0.0, -0.95)], cx, cy, s),
+           fill=rgba, width=width)
+    # Лучи света
+    for ang_deg in (-60, -30, 30, 60):
+        ang = math.radians(ang_deg - 90)
+        x2 = cx + math.cos(ang) * s * 0.85
+        y2 = cy + math.sin(ang) * s * 0.85
+        d.line([(cx, cy - s * 0.40), (x2, y2 - s * 0.20)], fill=rgba, width=width)
+
+
+def icon_anchor(d, cx, cy, size, color, alpha=180, width=3):
+    s = size / 2
+    rgba = color + (alpha,)
+    # Кольцо
+    r = s * 0.18
+    d.ellipse([cx - r, cy - s * 0.95, cx + r, cy - s * 0.60], outline=rgba, width=width)
+    # Шток
+    d.line([(cx, cy - s * 0.60), (cx, cy + s * 0.60)], fill=rgba, width=width)
+    # Перекладина
+    d.line([(cx - s * 0.50, cy - s * 0.40), (cx + s * 0.50, cy - s * 0.40)],
+           fill=rgba, width=width)
+    # Дуга-якорь
+    d.arc([cx - s * 0.70, cy - s * 0.10, cx + s * 0.70, cy + s * 0.85],
+          start=20, end=160, fill=rgba, width=width)
+    # Жалa
+    d.line([(cx - s * 0.65, cy + s * 0.50), (cx - s * 0.85, cy + s * 0.30)],
+           fill=rgba, width=width)
+    d.line([(cx + s * 0.65, cy + s * 0.50), (cx + s * 0.85, cy + s * 0.30)],
+           fill=rgba, width=width)
+
+
+def icon_wheel(d, cx, cy, size, color, alpha=180, width=3):
+    s = size / 2
+    rgba = color + (alpha,)
+    # Внешнее кольцо
+    d.ellipse([cx - s * 0.85, cy - s * 0.85, cx + s * 0.85, cy + s * 0.85],
+              outline=rgba, width=width)
+    # Внутреннее кольцо
+    d.ellipse([cx - s * 0.30, cy - s * 0.30, cx + s * 0.30, cy + s * 0.30],
+              outline=rgba, width=width)
+    # 8 спиц с рукоятями
+    for i in range(8):
+        ang = math.radians(i * 45)
+        x1 = cx + math.cos(ang) * s * 0.30
+        y1 = cy + math.sin(ang) * s * 0.30
+        x2 = cx + math.cos(ang) * s * 1.05
+        y2 = cy + math.sin(ang) * s * 1.05
+        d.line([(x1, y1), (x2, y2)], fill=rgba, width=width)
+        # Рукоять-крестик
+        x3 = cx + math.cos(ang) * s * 1.10
+        y3 = cy + math.sin(ang) * s * 1.10
+        d.ellipse([x3 - s * 0.08, y3 - s * 0.08, x3 + s * 0.08, y3 + s * 0.08],
+                  outline=rgba, width=width)
+
+
+def icon_seagull(d, cx, cy, size, color, alpha=180, width=3):
+    s = size / 2
+    rgba = color + (alpha,)
+    # Две дуги — крылья (M-shape)
+    d.arc([cx - s * 0.95, cy - s * 0.15, cx - s * 0.05, cy + s * 0.55],
+          start=200, end=340, fill=rgba, width=width)
+    d.arc([cx + s * 0.05, cy - s * 0.15, cx + s * 0.95, cy + s * 0.55],
+          start=200, end=340, fill=rgba, width=width)
+
+
+def icon_shell(d, cx, cy, size, color, alpha=180, width=3):
+    s = size / 2
+    rgba = color + (alpha,)
+    # Полукруг-ракушка
+    d.arc([cx - s * 0.85, cy - s * 0.30, cx + s * 0.85, cy + s * 1.40],
+          start=180, end=360, fill=rgba, width=width)
+    # Радиальные складки
+    for ang_deg in (180, 200, 220, 240, 260, 280, 300, 320, 340, 360):
+        ang = math.radians(ang_deg)
+        x2 = cx + math.cos(ang) * s * 0.80
+        y2 = cy + s * 0.55 + math.sin(ang) * s * 0.85
+        d.line([(cx, cy + s * 0.55), (x2, y2)], fill=rgba, width=width)
+
+
+def icon_compass(d, cx, cy, size, color, alpha=180, width=3):
+    s = size / 2
+    rgba = color + (alpha,)
+    d.ellipse([cx - s * 0.90, cy - s * 0.90, cx + s * 0.90, cy + s * 0.90],
+              outline=rgba, width=width)
+    # Стрелка-роза
+    d.polygon(_norm_pts([(0, -0.80), (0.18, 0), (0, 0.20), (-0.18, 0)], cx, cy, s),
+              outline=rgba, width=width)
+    d.polygon(_norm_pts([(0, 0.80), (0.18, 0), (0, -0.20), (-0.18, 0)], cx, cy, s),
+              outline=rgba, width=width)
+    # Кардиналы (точки N E S W)
+    for ang_deg in (0, 90, 180, 270):
+        ang = math.radians(ang_deg - 90)
+        x = cx + math.cos(ang) * s * 0.78
+        y = cy + math.sin(ang) * s * 0.78
+        d.ellipse([x - s * 0.08, y - s * 0.08, x + s * 0.08, y + s * 0.08],
+                  fill=rgba)
+
+
+def icon_wave(d, cx, cy, size, color, alpha=180, width=3):
+    s = size / 2
+    rgba = color + (alpha,)
+    pts = []
+    for i in range(33):
+        t = i / 32
+        x = cx + (t - 0.5) * 2 * s * 0.95
+        y = cy + math.sin(t * math.pi * 2) * s * 0.30
+        pts.append((x, y))
+    d.line(pts, fill=rgba, width=width)
+
+
+def icon_knot(d, cx, cy, size, color, alpha=180, width=3):
+    """Морской узел — две перекрещивающиеся петли."""
+    s = size / 2
+    rgba = color + (alpha,)
+    d.arc([cx - s * 0.85, cy - s * 0.85, cx + s * 0.15, cy + s * 0.15],
+          start=0, end=360, fill=rgba, width=width)
+    d.arc([cx - s * 0.15, cy - s * 0.15, cx + s * 0.85, cy + s * 0.85],
+          start=0, end=360, fill=rgba, width=width)
+    d.arc([cx - s * 0.15, cy - s * 0.85, cx + s * 0.85, cy + s * 0.15],
+          start=180, end=360, fill=rgba, width=width)
+    d.arc([cx - s * 0.85, cy - s * 0.15, cx + s * 0.15, cy + s * 0.85],
+          start=0, end=180, fill=rgba, width=width)
+
+
+def icon_lifebuoy(d, cx, cy, size, color, alpha=180, width=3):
+    s = size / 2
+    rgba = color + (alpha,)
+    d.ellipse([cx - s * 0.90, cy - s * 0.90, cx + s * 0.90, cy + s * 0.90],
+              outline=rgba, width=width)
+    d.ellipse([cx - s * 0.40, cy - s * 0.40, cx + s * 0.40, cy + s * 0.40],
+              outline=rgba, width=width)
+    # Крестики (4 ручки) на 0/90/180/270
+    for ang_deg in (45, 135, 225, 315):
+        ang = math.radians(ang_deg)
+        x1 = cx + math.cos(ang) * s * 0.40
+        y1 = cy + math.sin(ang) * s * 0.40
+        x2 = cx + math.cos(ang) * s * 0.90
+        y2 = cy + math.sin(ang) * s * 0.90
+        d.line([(x1, y1), (x2, y2)], fill=rgba, width=width + 4)
+
+
+def icon_keeper_mini(d, cx, cy, size, color, alpha=180, width=3):
+    """Силуэт-керпер с фонарём (мини)."""
+    s = size / 2
+    rgba = color + (alpha,)
+    # Голова
+    d.ellipse([cx - s * 0.20, cy - s * 0.95, cx + s * 0.20, cy - s * 0.55],
+              outline=rgba, width=width)
+    # Шляпа
+    d.line([(cx - s * 0.30, cy - s * 0.78), (cx + s * 0.30, cy - s * 0.78)],
+           fill=rgba, width=width)
+    d.rectangle([cx - s * 0.15, cy - s * 1.05, cx + s * 0.15, cy - s * 0.78],
+                outline=rgba, width=width)
+    # Пальто
+    d.polygon(_norm_pts([(-0.40, -0.55), (0.40, -0.55), (0.50, 0.40), (-0.50, 0.40)],
+                        cx, cy, s), outline=rgba, width=width)
+    # Шарф
+    d.line([(cx - s * 0.40, cy - s * 0.45), (cx + s * 0.40, cy - s * 0.45)],
+           fill=rgba, width=width + 1)
+    # Ноги
+    d.line([(cx - s * 0.20, cy + s * 0.40), (cx - s * 0.20, cy + s * 0.95)],
+           fill=rgba, width=width)
+    d.line([(cx + s * 0.20, cy + s * 0.40), (cx + s * 0.20, cy + s * 0.95)],
+           fill=rgba, width=width)
+    # Поднятый фонарь (правая рука)
+    d.line([(cx + s * 0.35, cy - s * 0.40), (cx + s * 0.65, cy - s * 0.85)],
+           fill=rgba, width=width)
+    d.rectangle([cx + s * 0.55, cy - s * 1.05, cx + s * 0.85, cy - s * 0.75],
+                outline=rgba, width=width)
+
+
+def icon_crab_mini(d, cx, cy, size, color, alpha=180, width=3):
+    """Мини-крабик: широкое тело-полукруг + 2 пары клешней + 6 лапок + глазки."""
+    s = size / 2
+    rgba = color + (alpha,)
+    # Тело — широкая «купольная» форма (полуэллипс)
+    d.chord([cx - s * 0.65, cy - s * 0.45, cx + s * 0.65, cy + s * 0.35],
+            start=180, end=360, outline=rgba, width=width)
+    # Прямая нижняя кромка тела
+    d.line([(cx - s * 0.65, cy - s * 0.05), (cx + s * 0.65, cy - s * 0.05)],
+           fill=rgba, width=width)
+    # Глаза с белыми точками внутри — две черные точки на куполе
+    d.ellipse([cx - s * 0.25, cy - s * 0.30, cx - s * 0.10, cy - s * 0.15],
+              outline=rgba, width=width)
+    d.ellipse([cx + s * 0.10, cy - s * 0.30, cx + s * 0.25, cy - s * 0.15],
+              outline=rgba, width=width)
+    # Зрачки
+    d.ellipse([cx - s * 0.20, cy - s * 0.26, cx - s * 0.15, cy - s * 0.20],
+              fill=rgba)
+    d.ellipse([cx + s * 0.15, cy - s * 0.26, cx + s * 0.20, cy - s * 0.20],
+              fill=rgba)
+    # Улыбка
+    d.arc([cx - s * 0.18, cy - s * 0.10, cx + s * 0.18, cy + s * 0.05],
+          start=0, end=180, fill=rgba, width=width)
+    # Левая клешня — рука + клешня
+    d.line([(cx - s * 0.65, cy - s * 0.10), (cx - s * 0.95, cy - s * 0.30)],
+           fill=rgba, width=width + 1)
+    d.ellipse([cx - s * 1.10, cy - s * 0.50, cx - s * 0.80, cy - s * 0.20],
+              outline=rgba, width=width)
+    d.line([(cx - s * 1.05, cy - s * 0.45), (cx - s * 0.95, cy - s * 0.30)],
+           fill=rgba, width=width)
+    # Правая клешня
+    d.line([(cx + s * 0.65, cy - s * 0.10), (cx + s * 0.95, cy - s * 0.30)],
+           fill=rgba, width=width + 1)
+    d.ellipse([cx + s * 0.80, cy - s * 0.50, cx + s * 1.10, cy - s * 0.20],
+              outline=rgba, width=width)
+    d.line([(cx + s * 1.05, cy - s * 0.45), (cx + s * 0.95, cy - s * 0.30)],
+           fill=rgba, width=width)
+    # 3 пары лапок снизу — расходятся под углом
+    for x_off, ang_off in ((-0.45, -25), (-0.25, -10), (-0.05, 5),
+                            (0.05, -5), (0.25, 10), (0.45, 25)):
+        x1 = cx + s * x_off
+        y1 = cy - s * 0.05
+        x2 = x1 + s * 0.18 * math.sin(math.radians(ang_off))
+        y2 = y1 + s * 0.55
+        d.line([(x1, y1), (x2, y2)], fill=rgba, width=width)
+
+
+def icon_star4(d, cx, cy, size, color, alpha=180, width=3):
+    """Четырёхконечная навигационная звезда (sparkle)."""
+    s = size / 2
+    rgba = color + (alpha,)
+    d.polygon(_norm_pts([(0, -1.0), (0.25, -0.25), (1.0, 0), (0.25, 0.25),
+                         (0, 1.0), (-0.25, 0.25), (-1.0, 0), (-0.25, -0.25)],
+                        cx, cy, s), outline=rgba, width=width)
+
+
+def render_text(text, font_size, color, alpha=180):
+    """Рендер текста с минимальным паддингом — для формульных иконок."""
+    from PIL import ImageFont
+    try:
+        font = ImageFont.truetype("/System/Library/Fonts/SFNSMono.ttf", font_size)
+    except OSError:
+        try:
+            font = ImageFont.truetype("Menlo.ttc", font_size)
+        except OSError:
+            font = ImageFont.load_default()
+    # Грубая оценка размера и сразу crop
+    tmp = Image.new("RGBA", (font_size * len(text) + 20, font_size + 20),
+                    (0, 0, 0, 0))
+    td = ImageDraw.Draw(tmp)
+    td.text((10, 10), text, fill=color + (alpha,), font=font)
+    bbox = tmp.getbbox()
+    return tmp.crop(bbox) if bbox else tmp
+
+
+def doodle_pattern(size, icon_fns, color, alpha=180, density=0.85,
+                   base=160, jitter=40, seed=1, width=3):
+    """Размещает иконки квазислучайно по сетке.
+
+    Каждый шаг сетки получает иконку с вероятностью `density`. Каждая иконка
+    отрисовывается на отдельном RGBA-холсте (`size×2`), поворачивается и
+    вкладывается в общий слой — так получается естественный «кайф паттерна»
+    без артефактов поворота через ImageDraw.
+    """
+    layer = Image.new("RGBA", size, (0, 0, 0, 0))
+    rng = random.Random(seed)
+    w, h = size
+    for gy in range(0, h + base, base):
+        # Каждая нечётная строка смещена на полшага — telegram-style
+        row_off = (base // 2) if (gy // base) % 2 else 0
+        for gx in range(-base, w + base, base):
+            if rng.random() > density:
+                continue
+            icon_fn = rng.choice(icon_fns)
+            sz = rng.randint(int(base * 0.55), int(base * 0.90))
+            angle = rng.randint(-30, 30)
+            sub = Image.new("RGBA", (sz * 2, sz * 2), (0, 0, 0, 0))
+            sd = ImageDraw.Draw(sub)
+            icon_fn(sd, sz, sz, sz, color, alpha, width)
+            if angle:
+                sub = sub.rotate(angle, resample=Image.BICUBIC, expand=True)
+            cx = gx + row_off + rng.randint(-jitter, jitter)
+            cy = gy + rng.randint(-jitter, jitter)
+            layer.paste(sub, (cx - sub.width // 2, cy - sub.height // 2), sub)
+    return layer
+
+
+def doodle_text_pattern(size, snippets, color, alpha=180, density=0.65,
+                        base=200, font_size=44, jitter=50, seed=1):
+    """Паттерн из коротких текстовых фрагментов — для doodle-formula."""
+    layer = Image.new("RGBA", size, (0, 0, 0, 0))
+    rng = random.Random(seed)
+    w, h = size
+    # Кэшируем рендер текста
+    cache = {s: render_text(s, font_size, color, alpha) for s in snippets}
+    for gy in range(-base, h + base, base):
+        row_off = (base // 2) if (gy // base) % 2 else 0
+        for gx in range(-base, w + base, base):
+            if rng.random() > density:
+                continue
+            text = rng.choice(snippets)
+            sub = cache[text]
+            angle = rng.randint(-25, 25)
+            if angle:
+                sub_r = sub.rotate(angle, resample=Image.BICUBIC, expand=True)
+            else:
+                sub_r = sub
+            cx = gx + row_off + rng.randint(-jitter, jitter)
+            cy = gy + rng.randint(-jitter, jitter)
+            layer.paste(sub_r, (cx - sub_r.width // 2, cy - sub_r.height // 2), sub_r)
+    return layer
+
+
+# --- Doodle concepts ---
+
+
+MARINE_ICONS = [icon_lighthouse, icon_anchor, icon_wheel, icon_seagull,
+                icon_shell, icon_compass, icon_wave, icon_knot,
+                icon_lifebuoy, icon_star4]
+STICKER_ICONS = [icon_keeper_mini, icon_crab_mini, icon_lighthouse,
+                 icon_seagull, icon_star4]
+FORMULA_SNIPPETS = [
+    "N", "S", "E", "W", "NE", "SW", "045°", "180°", "270°", "360°",
+    "v=d/t", "sin θ", "cos θ", "tan α", "λ=c/f", "Δh", "α₁+α₂",
+    "lat 41°", "lon 12°", "knots", "kt", "nm", "≈", "Σ", "π", "∞",
+    "12'34\"", "0600", "1200", "2400",
+]
+
+
+def concept_doodle_marine(theme):
+    """Морской паттерн: маяк, штурвал, якорь, чайка, компас, ракушка, волна."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (218, 234, 244), (190, 215, 230))
+        ink = (32, 52, 78)
+        alpha = 70
+    else:
+        bg = vertical_gradient((W, H), (14, 28, 52), (22, 46, 76))
+        ink = (210, 230, 250)
+        alpha = 150
+    pat = doodle_pattern((W, H), MARINE_ICONS, ink,
+                        alpha=alpha, density=0.88, base=200,
+                        jitter=50, seed=101, width=4)
+    bg.paste(pat, (0, 0), pat)
+    return bg.convert("RGB")
+
+
+def concept_doodle_stickers(theme):
+    """Мини-маскоты LighChat — keeper, crab, маяк, чайка, искра."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (252, 230, 200), (235, 218, 232))
+        ink = (40, 30, 60)
+        alpha = 100
+    else:
+        # Глубокий navy с coral-иконками — фирменный контраст
+        bg = vertical_gradient((W, H), (12, 20, 40), (28, 18, 44))
+        ink = (255, 180, 80)  # тёплый ярче coral для контраста
+        alpha = 200
+    pat = doodle_pattern((W, H), STICKER_ICONS, ink,
+                        alpha=alpha, density=0.85, base=220,
+                        jitter=55, seed=202, width=4)
+    bg.paste(pat, (0, 0), pat)
+    return bg.convert("RGB")
+
+
+def concept_doodle_formula(theme):
+    """Telegram-style: морские формулы, румбы, координаты, sin/cos."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (220, 230, 245), (200, 218, 236))
+        ink = (28, 50, 80)
+        alpha = 110
+    else:
+        # Тёмно-навy 'школьная доска' — как телеграмские формулы на чёрном
+        bg = vertical_gradient((W, H), (16, 24, 42), (10, 18, 32))
+        ink = (220, 235, 255)
+        alpha = 180
+    pat = doodle_text_pattern((W, H), FORMULA_SNIPPETS, ink,
+                             alpha=alpha, density=0.72, base=220,
+                             font_size=56, jitter=60, seed=303)
+    bg.paste(pat, (0, 0), pat)
+    # Координатная сетка чуть видимая
+    grid = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(grid)
+    grid_step = 240
+    grid_color = ink + (max(20, alpha // 4),)
+    for x in range(0, W, grid_step):
+        gd.line([(x, 0), (x, H)], fill=grid_color, width=1)
+    for y in range(0, H, grid_step):
+        gd.line([(0, y), (W, y)], fill=grid_color, width=1)
+    bg.paste(grid, (0, 0), grid)
+    return bg.convert("RGB")
+
+
 CONCEPTS = {
     "lighthouse-dawn": concept_lighthouse_dawn,
     "keeper-watch": concept_keeper_watch,
@@ -612,6 +1030,9 @@ CONCEPTS = {
     "crew-shore": concept_crew_shore,
     "mark-constellation": concept_mark_constellation,
     "ocean-waves": concept_ocean_waves,
+    "doodle-marine": concept_doodle_marine,
+    "doodle-stickers": concept_doodle_stickers,
+    "doodle-formula": concept_doodle_formula,
 }
 
 
@@ -619,15 +1040,21 @@ def main():
     OUT_WEB.mkdir(parents=True, exist_ok=True)
     OUT_MOBILE.mkdir(parents=True, exist_ok=True)
     for slug, fn in CONCEPTS.items():
+        is_doodle = slug.startswith("doodle-")
         for theme in ("light", "dark"):
             img = fn(theme)
-            # Лёгкая виньетка
-            vm = vignette((W, H), strength=0.18 if theme == "light" else 0.35)
-            base = img.convert("RGBA")
-            overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-            overlay.putalpha(vm.point(lambda v: 255 - v))
-            base = Image.alpha_composite(base, overlay)
-            out = base.convert("RGB")
+            if is_doodle:
+                # Doodle-паттерны должны быть равномерны по плотности —
+                # виньетка съедает иконки по краям и читается как баг.
+                out = img
+            else:
+                # Лёгкая виньетка для сюжетных концептов
+                vm = vignette((W, H), strength=0.18 if theme == "light" else 0.35)
+                base = img.convert("RGBA")
+                overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+                overlay.putalpha(vm.point(lambda v: 255 - v))
+                base = Image.alpha_composite(base, overlay)
+                out = base.convert("RGB")
             for target in (OUT_WEB, OUT_MOBILE):
                 path = target / f"{slug}-{theme}.webp"
                 out.save(path, "WEBP", quality=82, method=4)

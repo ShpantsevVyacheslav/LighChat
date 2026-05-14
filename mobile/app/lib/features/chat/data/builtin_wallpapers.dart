@@ -108,6 +108,36 @@ const List<BuiltinWallpaper> kBuiltinWallpapers = <BuiltinWallpaper>[
       colors: [Color(0xFFE0EAFF), Color(0xFFE3D7F5)],
     ),
   ),
+  BuiltinWallpaper(
+    slug: 'doodle-marine',
+    lightAsset: 'assets/wallpapers/doodle-marine-light.webp',
+    darkAsset: 'assets/wallpapers/doodle-marine-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFDAEAF4), Color(0xFFBED7E6)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'doodle-stickers',
+    lightAsset: 'assets/wallpapers/doodle-stickers-light.webp',
+    darkAsset: 'assets/wallpapers/doodle-stickers-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFCE6C8), Color(0xFFEBDAE8)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'doodle-formula',
+    lightAsset: 'assets/wallpapers/doodle-formula-light.webp',
+    darkAsset: 'assets/wallpapers/doodle-formula-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFDCE6F5), Color(0xFFC8DAEC)],
+    ),
+  ),
 ];
 
 bool isBuiltinWallpaperValue(String? value) =>

@@ -2259,6 +2259,9 @@ export const messagesUz = {
       crewShore: 'Sohildagi Guruh',
       markConstellation: 'Mayoq Yulduz Turkumi',
       oceanWaves: 'Okean Toʻlqinlari',
+      doodleMarine: 'Dengiz dudlari',
+      doodleStickers: 'Maskot stikerlar',
+      doodleFormula: 'Navigatsiya formulalari',
     },
     bubbleRadius: {
       rounded: 'Yumaloqlangan',

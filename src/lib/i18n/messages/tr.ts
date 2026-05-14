@@ -2259,6 +2259,9 @@ export const messagesTr = {
       crewShore: 'Sahildeki Ekip',
       markConstellation: 'Deniz Feneri Takımyıldızı',
       oceanWaves: 'Okyanus Dalgaları',
+      doodleMarine: 'Denizci Karalamalar',
+      doodleStickers: 'Maskot Çıkartmaları',
+      doodleFormula: 'Seyir Formülleri',
     },
     bubbleRadius: {
       rounded: 'Yuvarlatılmış',

@@ -2259,6 +2259,9 @@ export const messagesId = {
       crewShore: 'Kru di Pantai',
       markConstellation: 'Konstelasi Mercusuar',
       oceanWaves: 'Ombak Lautan',
+      doodleMarine: 'Coretan Bahari',
+      doodleStickers: 'Stiker Maskot',
+      doodleFormula: 'Rumus Navigasi',
     },
     bubbleRadius: {
       rounded: 'Membulat',

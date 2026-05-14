@@ -16,7 +16,10 @@ export type BuiltinWallpaperSlug =
   | 'keeper-cabin'
   | 'crew-shore'
   | 'mark-constellation'
-  | 'ocean-waves';
+  | 'ocean-waves'
+  | 'doodle-marine'
+  | 'doodle-stickers'
+  | 'doodle-formula';
 
 export interface BuiltinWallpaper {
   slug: BuiltinWallpaperSlug;
@@ -86,6 +89,27 @@ export const BUILTIN_WALLPAPERS: readonly BuiltinWallpaper[] = [
     light: '/wallpapers/ocean-waves-light.webp',
     dark: '/wallpapers/ocean-waves-dark.webp',
     previewGradient: 'linear-gradient(135deg, #E0EAFF 0%, #E3D7F5 100%)',
+  },
+  {
+    slug: 'doodle-marine',
+    labelKey: 'doodleMarine',
+    light: '/wallpapers/doodle-marine-light.webp',
+    dark: '/wallpapers/doodle-marine-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #DAEAF4 0%, #BED7E6 100%)',
+  },
+  {
+    slug: 'doodle-stickers',
+    labelKey: 'doodleStickers',
+    light: '/wallpapers/doodle-stickers-light.webp',
+    dark: '/wallpapers/doodle-stickers-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #FCE6C8 0%, #EBDAE8 100%)',
+  },
+  {
+    slug: 'doodle-formula',
+    labelKey: 'doodleFormula',
+    light: '/wallpapers/doodle-formula-light.webp',
+    dark: '/wallpapers/doodle-formula-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #DCE6F5 0%, #C8DAEC 100%)',
   },
 ] as const;
 

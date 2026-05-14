@@ -2259,6 +2259,9 @@ export const messagesKk = {
       crewShore: 'Жағалаудағы команда',
       markConstellation: 'Шамшырақ шоқжұлдызы',
       oceanWaves: 'Мұхит толқындары',
+      doodleMarine: 'Теңіз дудлдары',
+      doodleStickers: 'Маскот стикерлер',
+      doodleFormula: 'Навигация формулалары',
     },
     bubbleRadius: {
       rounded: 'Дөңгелектенген',

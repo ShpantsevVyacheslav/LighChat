@@ -2259,6 +2259,9 @@ export const messagesPtBr = {
       crewShore: 'Tripulação na costa',
       markConstellation: 'Constelação do farol',
       oceanWaves: 'Ondas do oceano',
+      doodleMarine: 'Rabiscos marinhos',
+      doodleStickers: 'Adesivos de mascotes',
+      doodleFormula: 'Fórmulas de navegação',
     },
     bubbleRadius: {
       rounded: 'Arredondados',
