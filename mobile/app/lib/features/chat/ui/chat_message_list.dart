@@ -661,22 +661,21 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
       if (g.isEmpty) continue;
       final dayKey = ChatMessageList.dayKey(g.first.createdAt);
 
-      // Лёгкий маркер-якорь дня (1pt SizedBox с GlobalKey) ВНЕ
-      // SliverList'а — он всегда лежит в layout'е (как самостоятельный
-      // sliver, не как child SliverChildBuilderDelegate'а), и его
-      // currentContext доступен пока он попадает в cacheExtent.
+      // Маркер «day starts here» — ОДНОВРЕМЕННО:
+      //   1) визуальный разделитель дня (Telegram-style inline pill);
+      //   2) якорь для sticky-day логики через GlobalKey в
+      //      `_dayStartKeys` (см. _computeVisibleDayLabel).
       //
       // В НЕ-reversed режиме (groups oldest→newest, axis down) ставим
       // маркер ПЕРЕД sliver'ом → визуально на верху дня. В reversed
       // (axis up) — ПОСЛЕ, потому что axis-end в reverse = верх
-      // viewport'а. См. _computeVisibleDayLabel для деталей логики
-      // выбора видимого дня по этим маркерам.
+      // viewport'а.
       if (!widget.reversed) {
         slivers.add(
           SliverToBoxAdapter(
-            child: SizedBox(
+            child: _DayDividerCapsule(
               key: _dayStartKeys.putIfAbsent(dayKey, GlobalKey.new),
-              height: 1,
+              date: g.first.createdAt,
             ),
           ),
         );
@@ -834,9 +833,9 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
       if (widget.reversed) {
         slivers.add(
           SliverToBoxAdapter(
-            child: SizedBox(
+            child: _DayDividerCapsule(
               key: _dayStartKeys.putIfAbsent(dayKey, GlobalKey.new),
-              height: 1,
+              date: g.first.createdAt,
             ),
           ),
         );
@@ -2522,4 +2521,24 @@ class _SyncedEmojiBurstCandidate {
 
   final String eventId;
   final String emoji;
+}
+
+/// Inline day-divider в потоке сообщений (Telegram-style pill между
+/// группами разных дней). По верху pill'а же висит floating sticky
+/// capsule — при скролле inline pill уходит вниз/вверх, а floating
+/// остаётся на месте, оба показывают одну и ту же дату.
+class _DayDividerCapsule extends StatelessWidget {
+  const _DayDividerCapsule({super.key, required this.date});
+
+  final DateTime date;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final label = formatChatDayLabel(date.toLocal(), l10n);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Center(child: ChatBlurredDateCapsule(label: label)),
+    );
+  }
 }
