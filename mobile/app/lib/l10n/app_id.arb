@@ -849,6 +849,16 @@
   "voice_transcript_permission_denied": "Pengenalan suara tidak diizinkan. Aktifkan di pengaturan sistem.",
   "voice_transcript_unsupported_lang": "Bahasa ini tidak didukung untuk transkripsi di perangkat.",
   "voice_transcript_no_model": "Pasang paket bahasa pengenalan suara offline di pengaturan sistem.",
+  "voice_translate_action": "Terjemahkan",
+  "voice_translate_show_original": "Asli",
+  "voice_translate_in_progress": "Menerjemahkan…",
+  "voice_translate_unsupported": "Terjemahan tidak tersedia untuk pasangan bahasa ini.",
+  "voice_translate_failed": "Terjemahan gagal: {error}",
+  "@voice_translate_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "chat_messages_title": "Pesan",
   "chat_call_decline": "Tolak",
   "chat_call_open": "Buka",

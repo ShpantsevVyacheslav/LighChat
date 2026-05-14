@@ -3202,6 +3202,36 @@ abstract class AppLocalizations {
   /// **'Установите офлайн-пакет распознавания речи в системных настройках.'**
   String get voice_transcript_no_model;
 
+  /// No description provided for @voice_translate_action.
+  ///
+  /// In ru, this message translates to:
+  /// **'Перевести'**
+  String get voice_translate_action;
+
+  /// No description provided for @voice_translate_show_original.
+  ///
+  /// In ru, this message translates to:
+  /// **'Оригинал'**
+  String get voice_translate_show_original;
+
+  /// No description provided for @voice_translate_in_progress.
+  ///
+  /// In ru, this message translates to:
+  /// **'Перевожу…'**
+  String get voice_translate_in_progress;
+
+  /// No description provided for @voice_translate_unsupported.
+  ///
+  /// In ru, this message translates to:
+  /// **'Перевод недоступен для этой языковой пары.'**
+  String get voice_translate_unsupported;
+
+  /// No description provided for @voice_translate_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось перевести: {error}'**
+  String voice_translate_failed(Object error);
+
   /// No description provided for @chat_messages_title.
   ///
   /// In ru, this message translates to:

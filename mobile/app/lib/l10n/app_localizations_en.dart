@@ -1787,6 +1787,24 @@ class AppLocalizationsEn extends AppLocalizations {
       'Install an offline speech recognition language pack in system settings.';
 
   @override
+  String get voice_translate_action => 'Translate';
+
+  @override
+  String get voice_translate_show_original => 'Original';
+
+  @override
+  String get voice_translate_in_progress => 'Translating…';
+
+  @override
+  String get voice_translate_unsupported =>
+      'Translation is not available for this language pair.';
+
+  @override
+  String voice_translate_failed(Object error) {
+    return 'Translation failed: $error';
+  }
+
+  @override
   String get chat_messages_title => 'Messages';
 
   @override

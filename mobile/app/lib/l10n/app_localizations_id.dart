@@ -1797,6 +1797,24 @@ class AppLocalizationsId extends AppLocalizations {
       'Pasang paket bahasa pengenalan suara offline di pengaturan sistem.';
 
   @override
+  String get voice_translate_action => 'Terjemahkan';
+
+  @override
+  String get voice_translate_show_original => 'Asli';
+
+  @override
+  String get voice_translate_in_progress => 'Menerjemahkan…';
+
+  @override
+  String get voice_translate_unsupported =>
+      'Terjemahan tidak tersedia untuk pasangan bahasa ini.';
+
+  @override
+  String voice_translate_failed(Object error) {
+    return 'Terjemahan gagal: $error';
+  }
+
+  @override
   String get chat_messages_title => 'Pesan';
 
   @override

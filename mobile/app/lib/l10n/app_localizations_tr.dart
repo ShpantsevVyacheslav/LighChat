@@ -1802,6 +1802,24 @@ class AppLocalizationsTr extends AppLocalizations {
       'Sistem ayarlarından çevrimdışı konuşma tanıma dil paketini yükleyin.';
 
   @override
+  String get voice_translate_action => 'Çevir';
+
+  @override
+  String get voice_translate_show_original => 'Orijinal';
+
+  @override
+  String get voice_translate_in_progress => 'Çevriliyor…';
+
+  @override
+  String get voice_translate_unsupported =>
+      'Bu dil çifti için çeviri kullanılamıyor.';
+
+  @override
+  String voice_translate_failed(Object error) {
+    return 'Çeviri başarısız: $error';
+  }
+
+  @override
   String get chat_messages_title => 'Mesajlar';
 
   @override

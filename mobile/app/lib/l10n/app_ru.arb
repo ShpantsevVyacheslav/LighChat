@@ -869,6 +869,16 @@
   "voice_transcript_permission_denied": "Распознавание речи запрещено. Включите его в системных настройках.",
   "voice_transcript_unsupported_lang": "Этот язык не поддерживается локальным распознаванием на устройстве.",
   "voice_transcript_no_model": "Установите офлайн-пакет распознавания речи в системных настройках.",
+  "voice_translate_action": "Перевести",
+  "voice_translate_show_original": "Оригинал",
+  "voice_translate_in_progress": "Перевожу…",
+  "voice_translate_unsupported": "Перевод недоступен для этой языковой пары.",
+  "voice_translate_failed": "Не удалось перевести: {error}",
+  "@voice_translate_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "chat_messages_title": "Сообщения",
   "chat_call_decline": "Отклонить",
   "chat_call_open": "Открыть",

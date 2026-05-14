@@ -20,10 +20,11 @@ class LocalVoiceTranscriber {
   static const MethodChannel _channel =
       MethodChannel('lighchat/voice_transcribe');
 
-  /// In-memory cache «messageId → transcript» на время жизни процесса.
+  /// In-memory cache «messageId → результат» на время жизни процесса.
   /// Для E2EE-сообщений это единственный источник transcript-а
   /// (на сервер plaintext не уходит).
-  final Map<String, String> _cache = <String, String>{};
+  final Map<String, VoiceTranscriptionResult> _cache =
+      <String, VoiceTranscriptionResult>{};
 
   List<String>? _supportedCache;
 
@@ -48,8 +49,8 @@ class LocalVoiceTranscriber {
     }
   }
 
-  /// Получить кэшированный transcript, если есть.
-  String? cachedFor(String messageId) => _cache[messageId];
+  /// Получить кэшированный результат, если есть.
+  VoiceTranscriptionResult? cachedFor(String messageId) => _cache[messageId];
 
   /// Транскрибировать удалённый или локальный файл (`widget.attachment.url`).
   ///
@@ -63,14 +64,14 @@ class LocalVoiceTranscriber {
   /// [autoDetect] — на iOS включает двухпроходный авто-детект языка через
   /// `NLLanguageRecognizer`. Покрывает кейс «UI на en, голосовое на ru».
   /// На Android параметр игнорируется (нет нативного аналога без ML Kit).
-  Future<String> transcribeAttachment({
+  Future<VoiceTranscriptionResult> transcribeAttachment({
     required String messageId,
     required String audioUrl,
     required String languageHint,
     bool autoDetect = true,
   }) async {
     final cached = _cache[messageId];
-    if (cached != null && cached.isNotEmpty) return cached;
+    if (cached != null && cached.text.isNotEmpty) return cached;
 
     final localPath = await _resolveToLocalFile(audioUrl);
     final languageTag = await _pickLanguageTag(languageHint);
@@ -90,8 +91,14 @@ class LocalVoiceTranscriber {
         },
       );
       final text = (raw?['text'] ?? '').toString().trim();
-      _cache[messageId] = text;
-      return text;
+      final detected =
+          (raw?['detectedLanguage'] ?? '').toString().trim().toLowerCase();
+      final result = VoiceTranscriptionResult(
+        text: text,
+        detectedLanguage: detected.isEmpty ? null : detected,
+      );
+      _cache[messageId] = result;
+      return result;
     } on PlatformException catch (e) {
       throw VoiceTranscriptionException(
         code: e.code,
@@ -244,4 +251,18 @@ class VoiceTranscriptionException implements Exception {
 
   @override
   String toString() => 'VoiceTranscriptionException($code): $message';
+}
+
+/// Результат транскрипции голосового сообщения.
+///
+/// [detectedLanguage] — короткий ISO-код (`'ru'`, `'en'` и т.п.) языка,
+/// на котором финально распозналось. `null`, если язык не определён
+/// (например, результат пустой или старый кэш без этого поля).
+class VoiceTranscriptionResult {
+  const VoiceTranscriptionResult({
+    required this.text,
+    required this.detectedLanguage,
+  });
+  final String text;
+  final String? detectedLanguage;
 }

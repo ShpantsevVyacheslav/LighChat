@@ -849,6 +849,16 @@
   "voice_transcript_permission_denied": "O reconhecimento de voz não é permitido. Ative-o nas configurações do sistema.",
   "voice_transcript_unsupported_lang": "Este idioma não é compatível com a transcrição no dispositivo.",
   "voice_transcript_no_model": "Instale um pacote de reconhecimento de voz offline nas configurações do sistema.",
+  "voice_translate_action": "Traduzir",
+  "voice_translate_show_original": "Original",
+  "voice_translate_in_progress": "Traduzindo…",
+  "voice_translate_unsupported": "A tradução não está disponível para este par de idiomas.",
+  "voice_translate_failed": "Falha na tradução: {error}",
+  "@voice_translate_failed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
   "chat_messages_title": "Mensagens",
   "chat_call_decline": "Recusar",
   "chat_call_open": "Abrir",

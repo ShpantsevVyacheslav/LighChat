@@ -1808,6 +1808,24 @@ class AppLocalizationsUz extends AppLocalizations {
       'Tizim sozlamalarida oflayn nutqni aniqlash til paketini oʻrnating.';
 
   @override
+  String get voice_translate_action => 'Tarjima qilish';
+
+  @override
+  String get voice_translate_show_original => 'Asl';
+
+  @override
+  String get voice_translate_in_progress => 'Tarjima qilinmoqda…';
+
+  @override
+  String get voice_translate_unsupported =>
+      'Bu til juftligi uchun tarjima mavjud emas.';
+
+  @override
+  String voice_translate_failed(Object error) {
+    return 'Tarjima muvaffaqiyatsiz: $error';
+  }
+
+  @override
   String get chat_messages_title => 'Xabarlar';
 
   @override

@@ -1801,6 +1801,24 @@ class AppLocalizationsKk extends AppLocalizations {
       'Жүйелік параметрлерден офлайн сөйлеуді тану тілдік пакетін орнатыңыз.';
 
   @override
+  String get voice_translate_action => 'Аудару';
+
+  @override
+  String get voice_translate_show_original => 'Түпнұсқа';
+
+  @override
+  String get voice_translate_in_progress => 'Аударылуда…';
+
+  @override
+  String get voice_translate_unsupported =>
+      'Бұл тіл жұбы үшін аударма қолжетімсіз.';
+
+  @override
+  String voice_translate_failed(Object error) {
+    return 'Аудару сәтсіз: $error';
+  }
+
+  @override
   String get chat_messages_title => 'Хабарламалар';
 
   @override

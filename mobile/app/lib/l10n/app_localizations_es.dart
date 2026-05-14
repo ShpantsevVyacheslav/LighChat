@@ -1816,6 +1816,24 @@ class AppLocalizationsEs extends AppLocalizations {
       'Instala un paquete de reconocimiento de voz sin conexión en los ajustes del sistema.';
 
   @override
+  String get voice_translate_action => 'Traducir';
+
+  @override
+  String get voice_translate_show_original => 'Original';
+
+  @override
+  String get voice_translate_in_progress => 'Traduciendo…';
+
+  @override
+  String get voice_translate_unsupported =>
+      'La traducción no está disponible para este par de idiomas.';
+
+  @override
+  String voice_translate_failed(Object error) {
+    return 'No se pudo traducir: $error';
+  }
+
+  @override
   String get chat_messages_title => 'Mensajes';
 
   @override
@@ -10087,6 +10105,24 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   @override
   String get voice_transcript_no_model =>
       'Instala un paquete de reconocimiento de voz sin conexión en los ajustes del sistema.';
+
+  @override
+  String get voice_translate_action => 'Traducir';
+
+  @override
+  String get voice_translate_show_original => 'Original';
+
+  @override
+  String get voice_translate_in_progress => 'Traduciendo…';
+
+  @override
+  String get voice_translate_unsupported =>
+      'La traducción no está disponible para este par de idiomas.';
+
+  @override
+  String voice_translate_failed(Object error) {
+    return 'No se pudo traducir: $error';
+  }
 
   @override
   String get chat_messages_title => 'Mensajes';

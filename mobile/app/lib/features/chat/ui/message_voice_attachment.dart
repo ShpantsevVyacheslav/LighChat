@@ -9,6 +9,7 @@ import 'message_audio_waveform.dart';
 import 'chat_glass_panel.dart';
 import 'chat_vlc_network_media.dart';
 import '../../../l10n/app_localizations.dart';
+import '../data/local_message_translator.dart';
 import '../data/local_voice_transcriber.dart';
 
 /// Один активный голосовой плеер (паритет с вебом: остальные ставятся на паузу).
@@ -314,19 +315,25 @@ class _TranscriptControls extends StatefulWidget {
 class _TranscriptControlsState extends State<_TranscriptControls> {
   bool _open = false;
   bool _busy = false;
-  String? _localTranscript;
+  VoiceTranscriptionResult? _localResult;
   String? _errorText;
+
+  // Translation state.
+  bool _translating = false;
+  bool _showTranslation = false;
+  String? _translation;
 
   @override
   void initState() {
     super.initState();
-    _localTranscript =
+    _localResult =
         LocalVoiceTranscriber.instance.cachedFor(widget.messageId);
   }
 
   Future<void> _ensureTranscript() async {
     if (_busy) return;
-    final existing = (widget.transcript ?? _localTranscript ?? '').trim();
+    final existing =
+        (widget.transcript ?? _localResult?.text ?? '').trim();
     if (existing.isNotEmpty) return;
     setState(() {
       _busy = true;
@@ -334,13 +341,13 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
     });
     try {
       final lang = Localizations.localeOf(context).languageCode.toLowerCase();
-      final text = await LocalVoiceTranscriber.instance.transcribeAttachment(
+      final res = await LocalVoiceTranscriber.instance.transcribeAttachment(
         messageId: widget.messageId,
         audioUrl: widget.audioUrl,
         languageHint: lang,
       );
       if (!mounted) return;
-      setState(() => _localTranscript = text);
+      setState(() => _localResult = res);
     } catch (e) {
       if (!mounted) return;
       final friendly = _friendlyError(e);
@@ -379,6 +386,70 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
     return e.toString();
   }
 
+  /// Должна ли отображаться кнопка «Translate». Условия:
+  /// - есть распознанный текст,
+  /// - детект языка от Apple Speech есть и отличается от UI-локали,
+  /// - ML Kit поддерживает пару исходный→целевой.
+  bool _canOfferTranslation(String text) {
+    if (text.isEmpty) return false;
+    final detected = _localResult?.detectedLanguage;
+    if (detected == null || detected.isEmpty) return false;
+    final ui = Localizations.localeOf(context).languageCode.toLowerCase();
+    if (detected == ui) return false;
+    return LocalMessageTranslator.instance
+        .supportsPair(from: detected, to: ui);
+  }
+
+  Future<void> _toggleTranslation() async {
+    if (_translating) return;
+    final original =
+        (widget.transcript ?? _localResult?.text ?? '').trim();
+    final detected = _localResult?.detectedLanguage;
+    if (original.isEmpty || detected == null) return;
+
+    // Если перевод уже есть в локальном state — просто переключаем view.
+    if (_translation != null) {
+      setState(() => _showTranslation = !_showTranslation);
+      return;
+    }
+
+    final ui = Localizations.localeOf(context).languageCode.toLowerCase();
+    setState(() {
+      _translating = true;
+      _errorText = null;
+    });
+    try {
+      final result = await LocalMessageTranslator.instance.translate(
+        cacheKey: '${widget.messageId}|$detected→$ui',
+        text: original,
+        from: detected,
+        to: ui,
+      );
+      if (!mounted) return;
+      setState(() {
+        _translation = result;
+        _showTranslation = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      final msg = e is UnsupportedTranslationException
+          ? (l10n?.voice_translate_unsupported ?? 'Translation not available')
+          : (l10n?.voice_translate_failed(e.toString()) ??
+              'Translation failed');
+      setState(() => _errorText = msg);
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      messenger?.showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 2),
+          content: Text(msg),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _translating = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -392,8 +463,13 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
         ? scheme.onPrimary
         : scheme.onSurface;
 
-    final current = (widget.transcript ?? _localTranscript ?? '').trim();
-    final hasTranscript = current.isNotEmpty;
+    final original =
+        (widget.transcript ?? _localResult?.text ?? '').trim();
+    final hasTranscript = original.isNotEmpty;
+    final canTranslate = _canOfferTranslation(original);
+    final displayed = (_showTranslation && _translation != null)
+        ? _translation!
+        : original;
 
     final l10n = AppLocalizations.of(context)!;
     final showLabel = l10n.voice_transcript_show;
@@ -401,6 +477,9 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
     final copyLabel = l10n.voice_transcript_copy;
     final loadingLabel = l10n.voice_transcript_loading;
     final failedLabel = l10n.voice_transcript_failed;
+    final translateLabel = l10n.voice_translate_action;
+    final showOriginalLabel = l10n.voice_translate_show_original;
+    final translatingLabel = l10n.voice_translate_in_progress;
     final inlineError = _errorText;
 
     return Padding(
@@ -483,7 +562,7 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
                                       CrossAxisAlignment.stretch,
                                   children: [
                                     SelectableText(
-                                      current,
+                                      displayed,
                                       style: TextStyle(
                                         fontSize: 14,
                                         height: 1.32,
@@ -492,45 +571,99 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
                                       ),
                                     ),
                                     const SizedBox(height: 2),
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: TextButton.icon(
-                                        onPressed: () async {
-                                          final messenger =
-                                              ScaffoldMessenger.maybeOf(
-                                                  context);
-                                          await Clipboard.setData(
-                                              ClipboardData(text: current));
-                                          messenger?.showSnackBar(
-                                            SnackBar(
-                                              duration: const Duration(
-                                                  milliseconds: 1200),
-                                              content: Text(copyLabel),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.end,
+                                      children: [
+                                        if (canTranslate) ...[
+                                          TextButton.icon(
+                                            onPressed: _translating
+                                                ? null
+                                                : _toggleTranslation,
+                                            style: TextButton.styleFrom(
+                                              minimumSize: const Size(44, 30),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8),
+                                              tapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                              foregroundColor: metaColor,
                                             ),
-                                          );
-                                        },
-                                        style: TextButton.styleFrom(
-                                          minimumSize: const Size(44, 30),
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 8),
-                                          tapTargetSize:
-                                              MaterialTapTargetSize.shrinkWrap,
-                                          foregroundColor: metaColor,
-                                        ),
-                                        icon: Icon(
-                                          Icons.copy_all_outlined,
-                                          size: 16,
-                                          color: metaColor,
-                                        ),
-                                        label: Text(
-                                          copyLabel,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
+                                            icon: _translating
+                                                ? SizedBox(
+                                                    width: 14,
+                                                    height: 14,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: metaColor,
+                                                    ),
+                                                  )
+                                                : Icon(
+                                                    _showTranslation
+                                                        ? Icons
+                                                            .restart_alt_rounded
+                                                        : Icons
+                                                            .translate_rounded,
+                                                    size: 16,
+                                                    color: metaColor,
+                                                  ),
+                                            label: Text(
+                                              _translating
+                                                  ? translatingLabel
+                                                  : (_showTranslation
+                                                      ? showOriginalLabel
+                                                      : translateLabel),
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: metaColor,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                        ],
+                                        TextButton.icon(
+                                          onPressed: () async {
+                                            final messenger =
+                                                ScaffoldMessenger.maybeOf(
+                                                    context);
+                                            await Clipboard.setData(
+                                                ClipboardData(text: displayed));
+                                            messenger?.showSnackBar(
+                                              SnackBar(
+                                                duration: const Duration(
+                                                    milliseconds: 1200),
+                                                content: Text(copyLabel),
+                                              ),
+                                            );
+                                          },
+                                          style: TextButton.styleFrom(
+                                            minimumSize: const Size(44, 30),
+                                            padding:
+                                                const EdgeInsets.symmetric(
+                                                    horizontal: 8),
+                                            tapTargetSize:
+                                                MaterialTapTargetSize
+                                                    .shrinkWrap,
+                                            foregroundColor: metaColor,
+                                          ),
+                                          icon: Icon(
+                                            Icons.copy_all_outlined,
+                                            size: 16,
                                             color: metaColor,
                                           ),
+                                          label: Text(
+                                            copyLabel,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: metaColor,
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
                                   ],
                                 ),

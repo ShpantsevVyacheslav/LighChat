@@ -151,7 +151,7 @@ final class VoiceTranscriberBridge: NSObject {
             message: err.localizedDescription,
             details: nil))
       } else {
-        result(["text": ""])
+        result(["text": "", "detectedLanguage": ""])
       }
       return
     }
@@ -176,7 +176,10 @@ final class VoiceTranscriberBridge: NSObject {
               originalLocale: locale, originalText: text,
               url: url, result: result)
           } else {
-            result(["text": text])
+            result([
+              "text": text,
+              "detectedLanguage": locale.languageCode ?? "",
+            ])
           }
           return
         }
@@ -289,36 +292,42 @@ final class VoiceTranscriberBridge: NSObject {
     url: URL,
     result: @escaping FlutterResult
   ) {
+    let originalCode = (originalLocale.languageCode ?? "").lowercased()
     let langRecognizer = NLLanguageRecognizer()
     langRecognizer.processString(originalText)
     let hypotheses = langRecognizer.languageHypotheses(withMaximum: 1)
     guard let (topLang, confidence) = hypotheses.max(by: { $0.value < $1.value })
     else {
-      result(["text": originalText])
+      result(["text": originalText, "detectedLanguage": originalCode])
       return
     }
     let detectedCode = topLang.rawValue.lowercased()
-    let originalCode = (originalLocale.languageCode ?? "").lowercased()
     if detectedCode == originalCode || confidence < 0.75 {
-      result(["text": originalText])
+      result(["text": originalText, "detectedLanguage": originalCode])
       return
     }
     // Подбираем поддерживаемую локаль распознавания для определённого языка.
     guard let newLocale = bestRecognitionLocale(for: detectedCode) else {
-      result(["text": originalText])
+      result(["text": originalText, "detectedLanguage": originalCode])
       return
     }
     guard let newRecognizer = makeRecognizer(locale: newLocale) else {
-      result(["text": originalText])
+      result(["text": originalText, "detectedLanguage": originalCode])
       return
     }
     performRecognition(recognizer: newRecognizer, url: url) { outcome in
       switch outcome {
       case .success(let secondaryText):
-        let finalText = secondaryText.isEmpty ? originalText : secondaryText
-        result(["text": finalText])
+        if secondaryText.isEmpty {
+          result(["text": originalText, "detectedLanguage": originalCode])
+        } else {
+          result([
+            "text": secondaryText,
+            "detectedLanguage": newLocale.languageCode ?? detectedCode,
+          ])
+        }
       case .failure:
-        result(["text": originalText])
+        result(["text": originalText, "detectedLanguage": originalCode])
       }
     }
   }

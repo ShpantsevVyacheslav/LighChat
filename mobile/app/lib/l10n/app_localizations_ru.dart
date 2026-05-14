@@ -1803,6 +1803,24 @@ class AppLocalizationsRu extends AppLocalizations {
       'Установите офлайн-пакет распознавания речи в системных настройках.';
 
   @override
+  String get voice_translate_action => 'Перевести';
+
+  @override
+  String get voice_translate_show_original => 'Оригинал';
+
+  @override
+  String get voice_translate_in_progress => 'Перевожу…';
+
+  @override
+  String get voice_translate_unsupported =>
+      'Перевод недоступен для этой языковой пары.';
+
+  @override
+  String voice_translate_failed(Object error) {
+    return 'Не удалось перевести: $error';
+  }
+
+  @override
   String get chat_messages_title => 'Сообщения';
 
   @override
