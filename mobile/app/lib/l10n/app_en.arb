@@ -4280,5 +4280,6 @@
   "birthday_error_send": "Couldn't send the message. Please try again.",
   "birthday_error_reminder": "Couldn't set the reminder",
   "chat_empty_title": "No messages yet",
-  "chat_empty_subtitle": "Say hi — the lighthouse keeper is already waving"
+  "chat_empty_subtitle": "Say hi — the lighthouse keeper is already waving",
+  "chat_empty_quick_greet": "Say hi 👋"
 }

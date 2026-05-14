@@ -89,6 +89,7 @@ class ChatMessageList extends ConsumerStatefulWidget {
     this.onOutboxDismiss,
     this.pendingRetryAt = const <String, DateTime>{},
     this.topOverlayOffset = 4,
+    this.onEmptyQuickGreet,
   });
 
   /// Y-сдвиг для floating date capsule. На iOS native bar — overlay поверх
@@ -96,6 +97,10 @@ class ChatMessageList extends ConsumerStatefulWidget {
   /// `nativeBarBottom + pinnedPillHeight(if any) + small gap`, чтобы
   /// дата всегда висела сразу под видимой шапкой.
   final double topOverlayOffset;
+
+  /// Колбэк для быстрого приветствия из empty-state placeholder.
+  /// Если null — кнопка «Поздороваться» в карточке скрывается.
+  final VoidCallback? onEmptyQuickGreet;
 
   final List<ChatMessage> messagesDesc;
   final String currentUserId;
@@ -603,9 +608,11 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
     // нужно ровно одно sliver, занимающее оставшийся viewport.
     if (asc.isEmpty && widget.outgoingMediaFooter == null) {
       slivers.add(
-        const SliverFillRemaining(
+        SliverFillRemaining(
           hasScrollBody: false,
-          child: EmptyMessagesPlaceholder(),
+          child: EmptyMessagesPlaceholder(
+            onQuickGreet: widget.onEmptyQuickGreet,
+          ),
         ),
       );
     }

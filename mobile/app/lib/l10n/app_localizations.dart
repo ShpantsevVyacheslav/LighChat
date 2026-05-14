@@ -14421,6 +14421,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Напишите первое сообщение — хранитель маяка уже ждёт'**
   String get chat_empty_subtitle;
+
+  /// No description provided for @chat_empty_quick_greet.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поздороваться 👋'**
+  String get chat_empty_quick_greet;
 }
 
 class _AppLocalizationsDelegate

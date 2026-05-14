@@ -2053,6 +2053,44 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                                 ),
                                                               );
                                                             },
+                                                            // Быстрое
+                                                            // приветствие из
+                                                            // empty-state.
+                                                            onEmptyQuickGreet: () {
+                                                              _controller.text =
+                                                                  '👋';
+                                                              final globalPolicy =
+                                                                  E2eeDataTypePolicy.fromFirestore(
+                                                                    rawPrivacySettings['e2eeEncryptedDataTypes'],
+                                                                  );
+                                                              final convData =
+                                                                  conv?.data;
+                                                              final overrideRaw =
+                                                                  convData
+                                                                      ?.e2eeEncryptedDataTypesOverride;
+                                                              final overridePolicy =
+                                                                  overrideRaw ==
+                                                                      null
+                                                                  ? null
+                                                                  : E2eeDataTypePolicy.fromFirestore(
+                                                                      overrideRaw,
+                                                                    );
+                                                              final effectivePolicy =
+                                                                  resolveE2eeEffectivePolicy(
+                                                                    global:
+                                                                        globalPolicy,
+                                                                    override:
+                                                                        overridePolicy,
+                                                                  );
+                                                              unawaited(
+                                                                _submitComposer(
+                                                                  user.uid,
+                                                                  conv: convData,
+                                                                  e2eePolicy:
+                                                                      effectivePolicy,
+                                                                ),
+                                                              );
+                                                            },
                                                             pendingRetryAt:
                                                                 _pendingRetryAt,
                                                             fontSize: fontSize,

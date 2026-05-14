@@ -8175,4 +8175,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get chat_empty_subtitle =>
       'Say hi — the lighthouse keeper is already waving';
+
+  @override
+  String get chat_empty_quick_greet => 'Say hi 👋';
 }

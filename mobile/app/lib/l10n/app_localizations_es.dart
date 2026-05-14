@@ -8269,6 +8269,9 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get chat_empty_subtitle =>
       'Напишите первое сообщение — хранитель маяка уже ждёт';
+
+  @override
+  String get chat_empty_quick_greet => 'Поздороваться 👋';
 }
 
 /// The translations for Spanish Castilian, as used in Mexico (`es_MX`).
