@@ -41,6 +41,7 @@ import 'message_swipe_to_reply.dart';
 import 'outbox_job_media_bubble.dart';
 import '../data/chat_haptics.dart';
 import '../data/local_voice_transcriber.dart';
+import 'auto_translated_message_text.dart';
 import 'entity_chips_row.dart';
 import '../data/voice_message_track.dart';
 
@@ -81,6 +82,7 @@ class ChatMessageList extends ConsumerStatefulWidget {
     this.onOpenFileAttachment,
     this.flashHighlightMessageId,
     this.profileMap,
+    this.autoTranslateIncoming = false,
     this.contactProfiles = const <String, ContactLocalProfile>{},
     this.onToggleReaction,
     this.onRetryMediaNorm,
@@ -165,6 +167,7 @@ class ChatMessageList extends ConsumerStatefulWidget {
   /// Подсветка строки ~2 с после перехода к сообщению.
   final String? flashHighlightMessageId;
   final Map<String, UserProfile>? profileMap;
+  final bool autoTranslateIncoming;
   final Map<String, ContactLocalProfile> contactProfiles;
   final Future<void> Function(ChatMessage message, String emoji)?
   onToggleReaction;
@@ -791,6 +794,7 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
                 onOpenMediaGallery: widget.onOpenMediaGallery,
                 onOpenFileAttachment: widget.onOpenFileAttachment,
                 profileMap: widget.profileMap,
+                autoTranslateIncoming: widget.autoTranslateIncoming,
                 contactProfiles: widget.contactProfiles,
                 onToggleReaction: widget.onToggleReaction,
                 onRetryMediaNorm: widget.onRetryMediaNorm,
@@ -1259,6 +1263,7 @@ class _ChatMessageBubble extends StatelessWidget {
     this.onOpenMediaGallery,
     this.onOpenFileAttachment,
     this.profileMap,
+    this.autoTranslateIncoming = false,
     required this.contactProfiles,
     this.onToggleReaction,
     this.onRetryMediaNorm,
@@ -1293,6 +1298,7 @@ class _ChatMessageBubble extends StatelessWidget {
   final void Function(ChatAttachment attachment, ChatMessage message)?
   onOpenFileAttachment;
   final Map<String, UserProfile>? profileMap;
+  final bool autoTranslateIncoming;
   final Map<String, ContactLocalProfile> contactProfiles;
   final Future<void> Function(ChatMessage message, String emoji)?
   onToggleReaction;
@@ -1577,13 +1583,30 @@ class _ChatMessageBubble extends StatelessWidget {
       // Entity chips: ML Kit находит телефоны/email/адреса/даты в тексте —
       // под сообщением появятся кликабельные чипы с quick-action.
       final uiLang = Localizations.localeOf(context).languageCode.toLowerCase();
+      // Авто-перевод: если включён в настройках и сообщение не моё,
+      // ML Kit on-device переводит на язык UI; пользователь может
+      // переключиться обратно тапом на плашку «Переведено».
+      final textBubbleWidget = autoTranslateIncoming
+          ? AutoTranslatedMessageText(
+              messageId: message.id,
+              originalPlainText: displayPlain,
+              original: textWidget,
+              enabled: autoTranslateIncoming,
+              isMine: isMine,
+              targetLanguage: uiLang,
+              subtleColor: textBaseStyle.color
+                      ?.withValues(alpha: 0.6) ??
+                  scheme.onSurface.withValues(alpha: 0.6),
+              accentColor: scheme.primary,
+            )
+          : textWidget;
       return ConstrainedBox(
         constraints: BoxConstraints(maxWidth: innerMax),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            textWidget,
+            textBubbleWidget,
             EntityChipsRow(
               text: displayPlain,
               languageHint: uiLang,

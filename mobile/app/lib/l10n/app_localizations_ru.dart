@@ -4729,6 +4729,22 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chat_settings_show_time_hint => 'Время отправки под сообщениями';
 
   @override
+  String get chat_settings_auto_translate => 'Авто-перевод входящих';
+
+  @override
+  String get chat_settings_auto_translate_hint =>
+      'Сообщения на других языках переводятся on-device на ваш язык';
+
+  @override
+  String get message_auto_translated_label => 'Переведено';
+
+  @override
+  String get message_show_original => 'Показать оригинал';
+
+  @override
+  String get message_show_translation => 'Показать перевод';
+
+  @override
   String get chat_settings_reset_all => 'Сбросить настройки';
 
   @override

@@ -4749,6 +4749,22 @@ class AppLocalizationsUz extends AppLocalizations {
   String get chat_settings_show_time_hint => 'Xabarlar ostida yuborish vaqti';
 
   @override
+  String get chat_settings_auto_translate => 'Kirishni avto-tarjima';
+
+  @override
+  String get chat_settings_auto_translate_hint =>
+      'Boshqa tildagi xabarlar qurilmangizda tilingizga tarjima qilinadi';
+
+  @override
+  String get message_auto_translated_label => 'Tarjima qilindi';
+
+  @override
+  String get message_show_original => 'Asl matnni koʻrsatish';
+
+  @override
+  String get message_show_translation => 'Tarjimani koʻrsatish';
+
+  @override
   String get chat_settings_reset_all => 'Sozlamalarni tiklash';
 
   @override

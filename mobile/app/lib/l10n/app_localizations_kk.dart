@@ -4731,6 +4731,22 @@ class AppLocalizationsKk extends AppLocalizations {
       'Время отправкжәне под хабарламаларми';
 
   @override
+  String get chat_settings_auto_translate => 'Кіріс хаттарды аудару';
+
+  @override
+  String get chat_settings_auto_translate_hint =>
+      'Бөтен тілдегі хаттар құрылғыда сіздің тіліңізге аударылады';
+
+  @override
+  String get message_auto_translated_label => 'Аударылған';
+
+  @override
+  String get message_show_original => 'Түпнұсқаны көрсету';
+
+  @override
+  String get message_show_translation => 'Аударманы көрсету';
+
+  @override
   String get chat_settings_reset_all => 'Сбросить настройки';
 
   @override

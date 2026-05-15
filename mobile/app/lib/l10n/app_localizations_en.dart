@@ -4701,6 +4701,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chat_settings_show_time_hint => 'Sent time under messages';
 
   @override
+  String get chat_settings_auto_translate => 'Auto-translate incoming';
+
+  @override
+  String get chat_settings_auto_translate_hint =>
+      'Foreign messages are translated on-device to your language';
+
+  @override
+  String get message_auto_translated_label => 'Translated';
+
+  @override
+  String get message_show_original => 'Show original';
+
+  @override
+  String get message_show_translation => 'Show translation';
+
+  @override
   String get chat_settings_reset_all => 'Reset settings';
 
   @override

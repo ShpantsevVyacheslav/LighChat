@@ -8284,6 +8284,36 @@ abstract class AppLocalizations {
   /// **'Время отправки под сообщениями'**
   String get chat_settings_show_time_hint;
 
+  /// No description provided for @chat_settings_auto_translate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Авто-перевод входящих'**
+  String get chat_settings_auto_translate;
+
+  /// No description provided for @chat_settings_auto_translate_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сообщения на других языках переводятся on-device на ваш язык'**
+  String get chat_settings_auto_translate_hint;
+
+  /// No description provided for @message_auto_translated_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Переведено'**
+  String get message_auto_translated_label;
+
+  /// No description provided for @message_show_original.
+  ///
+  /// In ru, this message translates to:
+  /// **'Показать оригинал'**
+  String get message_show_original;
+
+  /// No description provided for @message_show_translation.
+  ///
+  /// In ru, this message translates to:
+  /// **'Показать перевод'**
+  String get message_show_translation;
+
   /// No description provided for @chat_settings_reset_all.
   ///
   /// In ru, this message translates to:

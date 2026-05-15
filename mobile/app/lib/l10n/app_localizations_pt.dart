@@ -4748,6 +4748,22 @@ class AppLocalizationsPt extends AppLocalizations {
       'Horário do envio abaixo das mensagens';
 
   @override
+  String get chat_settings_auto_translate => 'Traduzir mensagens recebidas';
+
+  @override
+  String get chat_settings_auto_translate_hint =>
+      'Mensagens em outros idiomas são traduzidas no dispositivo para o seu idioma';
+
+  @override
+  String get message_auto_translated_label => 'Traduzido';
+
+  @override
+  String get message_show_original => 'Mostrar original';
+
+  @override
+  String get message_show_translation => 'Mostrar tradução';
+
+  @override
   String get chat_settings_reset_all => 'Restaurar configurações';
 
   @override
@@ -13153,6 +13169,22 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get chat_settings_show_time_hint =>
       'Horário do envio abaixo das mensagens';
+
+  @override
+  String get chat_settings_auto_translate => 'Traduzir mensagens recebidas';
+
+  @override
+  String get chat_settings_auto_translate_hint =>
+      'Mensagens em outros idiomas são traduzidas no dispositivo para o seu idioma';
+
+  @override
+  String get message_auto_translated_label => 'Traduzido';
+
+  @override
+  String get message_show_original => 'Mostrar original';
+
+  @override
+  String get message_show_translation => 'Mostrar tradução';
 
   @override
   String get chat_settings_reset_all => 'Restaurar configurações';

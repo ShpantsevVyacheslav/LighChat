@@ -1156,6 +1156,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               (rawChatSettings['bubbleRadius'] as String?) ?? 'rounded';
           final showTimestamps =
               (rawChatSettings['showTimestamps'] as bool?) ?? true;
+          final autoTranslateIncoming =
+              (rawChatSettings['autoTranslateIncoming'] as bool?) ?? false;
           final emojiBurstAnimationProfile =
               normalizeChatEmojiBurstAnimationProfile(
                 rawChatSettings['emojiBurstAnimationProfile'] as String?,
@@ -2124,6 +2126,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                                 bubbleRadius,
                                                             showTimestamps:
                                                                 showTimestamps,
+                                                            autoTranslateIncoming:
+                                                                autoTranslateIncoming,
                                                             emojiBurstAnimationProfile:
                                                                 emojiBurstAnimationProfile,
                                                             outgoingBubbleColor:

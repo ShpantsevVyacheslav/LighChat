@@ -4714,6 +4714,22 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_settings_show_time_hint => 'Dikirim time under Pesan';
 
   @override
+  String get chat_settings_auto_translate => 'Terjemahkan otomatis';
+
+  @override
+  String get chat_settings_auto_translate_hint =>
+      'Pesan asing diterjemahkan di perangkat ke bahasa Anda';
+
+  @override
+  String get message_auto_translated_label => 'Diterjemahkan';
+
+  @override
+  String get message_show_original => 'Tampilkan asli';
+
+  @override
+  String get message_show_translation => 'Tampilkan terjemahan';
+
+  @override
   String get chat_settings_reset_all => 'Atur ulang Pengaturan';
 
   @override

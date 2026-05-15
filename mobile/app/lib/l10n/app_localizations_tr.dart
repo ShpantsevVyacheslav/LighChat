@@ -4732,6 +4732,22 @@ class AppLocalizationsTr extends AppLocalizations {
       'Mesajların altında gönderim zamanı';
 
   @override
+  String get chat_settings_auto_translate => 'Gelenleri otomatik çevir';
+
+  @override
+  String get chat_settings_auto_translate_hint =>
+      'Yabancı dildeki mesajlar cihazda dilinize çevrilir';
+
+  @override
+  String get message_auto_translated_label => 'Çevrildi';
+
+  @override
+  String get message_show_original => 'Orijinali göster';
+
+  @override
+  String get message_show_translation => 'Çeviriyi göster';
+
+  @override
   String get chat_settings_reset_all => 'Ayarları sıfırla';
 
   @override

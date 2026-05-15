@@ -29,6 +29,7 @@ class _EditableChatSettings {
     required this.fontSize,
     required this.bubbleRadius,
     required this.showTimestamps,
+    required this.autoTranslateIncoming,
     required this.bottomNavAppearance,
     required this.bottomNavIconNames,
     required this.bottomNavIconGlobalStyle,
@@ -43,6 +44,7 @@ class _EditableChatSettings {
   String fontSize;
   String bubbleRadius;
   bool showTimestamps;
+  bool autoTranslateIncoming;
   String bottomNavAppearance;
   Map<String, String> bottomNavIconNames;
   BottomNavIconVisualStyle bottomNavIconGlobalStyle;
@@ -61,6 +63,7 @@ const Map<String, Object?> _defaultChatSettings = <String, Object?>{
   'chatWallpaper': null,
   'bubbleRadius': 'rounded',
   'showTimestamps': true,
+  'autoTranslateIncoming': false,
   'emojiBurstAnimationProfile': chatEmojiBurstAnimationProfileBalanced,
   'bottomNavAppearance': 'colorful',
   'bottomNavIconNames': <String, String>{},
@@ -339,6 +342,8 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
       fontSize: (chat['fontSize'] as String?) ?? 'medium',
       bubbleRadius: (chat['bubbleRadius'] as String?) ?? 'rounded',
       showTimestamps: (chat['showTimestamps'] as bool?) ?? true,
+      autoTranslateIncoming:
+          (chat['autoTranslateIncoming'] as bool?) ?? false,
       emojiBurstAnimationProfile: normalizeChatEmojiBurstAnimationProfile(
         chat['emojiBurstAnimationProfile'] as String?,
       ),
@@ -1950,6 +1955,52 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                                   'showTimestamps': value,
                                 });
                                 _scrollToPreview();
+                              },
+                              activeThumbColor: Colors.white,
+                              activeTrackColor: sectionBlue,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      // Auto-translate incoming messages: ML Kit on-device,
+                      // язык назначения = язык UI пользователя.
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    l10n.chat_settings_auto_translate,
+                                    style: TextStyle(
+                                      fontSize: _kBlockTitleSize,
+                                      fontWeight: FontWeight.w600,
+                                      color: textMain,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    l10n.chat_settings_auto_translate_hint,
+                                    style: TextStyle(
+                                      fontSize: _kBodyTextSize,
+                                      color: textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Switch.adaptive(
+                              value: s.autoTranslateIncoming,
+                              onChanged: (value) {
+                                setState(
+                                  () => s.autoTranslateIncoming = value,
+                                );
+                                _savePatch(<String, Object?>{
+                                  'autoTranslateIncoming': value,
+                                });
                               },
                               activeThumbColor: Colors.white,
                               activeTrackColor: sectionBlue,

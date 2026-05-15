@@ -4764,6 +4764,22 @@ class AppLocalizationsEs extends AppLocalizations {
       'Hora de envío debajo de los mensajes';
 
   @override
+  String get chat_settings_auto_translate => 'Auto-traducir entrantes';
+
+  @override
+  String get chat_settings_auto_translate_hint =>
+      'Mensajes en otros idiomas se traducen en el dispositivo a tu idioma';
+
+  @override
+  String get message_auto_translated_label => 'Traducido';
+
+  @override
+  String get message_show_original => 'Mostrar original';
+
+  @override
+  String get message_show_translation => 'Mostrar traducción';
+
+  @override
   String get chat_settings_reset_all => 'Restablecer configuración';
 
   @override
@@ -13183,6 +13199,22 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   @override
   String get chat_settings_show_time_hint =>
       'Hora de envío debajo de los mensajes';
+
+  @override
+  String get chat_settings_auto_translate => 'Auto-traducir entrantes';
+
+  @override
+  String get chat_settings_auto_translate_hint =>
+      'Mensajes en otros idiomas se traducen en el dispositivo a tu idioma';
+
+  @override
+  String get message_auto_translated_label => 'Traducido';
+
+  @override
+  String get message_show_original => 'Mostrar original';
+
+  @override
+  String get message_show_translation => 'Mostrar traducción';
 
   @override
   String get chat_settings_reset_all => 'Restablecer configuración';
