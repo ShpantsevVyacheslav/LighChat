@@ -91,10 +91,18 @@ class _ChatBottomNavState extends State<ChatBottomNav>
     if (_native) {
       _nativeEvents =
           NativeNavBarFacade.instance.events.listen(_onNativeEvent);
+      // Двойной postFrame: первый кадр — экран после mount'а ещё может быть
+      // подложкой для chained navigation (например new_group_chat_screen
+      // делает `go('/chats')` + postFrame `push('/chats/$convId')` —
+      // chat-list mount'ится, но через 1 frame chat-detail уже сверху). На
+      // втором postFrame route.isCurrent уже верно отражает реальную
+      // вершину — `_pushNativeBottomBar` без `force` правильно скипает
+      // push если мы не топ, и bar не «всплывает» поверх детального экрана.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        // initState: экран только что mount'нулся, мы точно владельцы —
-        // принудительно пушим, минуя isCurrent-guard.
-        if (mounted) _pushNativeBottomBar(force: true);
+        if (!mounted) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _pushNativeBottomBar();
+        });
       });
     }
   }
