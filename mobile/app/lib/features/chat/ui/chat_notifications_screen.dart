@@ -717,10 +717,7 @@ class _RingtonePickerSheet extends StatefulWidget {
 
 class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
     with TickerProviderStateMixin {
-  /// Активный плеер превью. Новый создаётся на каждый тап play — гарантирует
-  /// чистое состояние AVAudioSession без накопленного state-а от прошлых
-  /// setAudioSource'ов (баг iOS — первые 1–3 source'а на shared-плеере
-  /// иногда молчат).
+  /// Активный плеер превью. Новый создаётся на каждый тап play.
   AudioPlayer? _activePlayer;
   StreamSubscription<PlayerState>? _activeStateSub;
 
@@ -728,14 +725,30 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
   String? _selectedId;
   String? _storageUrlCache;
 
+  /// Монотонный счётчик для тегирования логов — легко связать события
+  /// одного тапа в Console.
+  int _tapCounter = 0;
+
+  /// Префикс для всех debugPrint — чтобы grep'ать в Xcode:
+  ///   `(lldb) target add-bp -n debugPrint`  → или просто фильтр по строке.
+  static const String _logTag = '[ringtone-picker]';
+
+  void _log(int tap, String msg) {
+    debugPrint('$_logTag #$tap $msg');
+  }
+
   @override
   void initState() {
     super.initState();
     _selectedId = widget.initialId;
+    debugPrint('$_logTag initState: forCalls=${widget.forCalls} '
+        'initialId=${widget.initialId}');
   }
 
   @override
   void dispose() {
+    debugPrint('$_logTag dispose: previewingId=$_previewingId '
+        'activePlayer=${_activePlayer?.hashCode}');
     _activeStateSub?.cancel();
     _activePlayer?.dispose();
     super.dispose();
@@ -744,45 +757,86 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
   RingtoneVariant get _variant =>
       widget.forCalls ? RingtoneVariant.calls : RingtoneVariant.messages;
 
-  Future<void> _stopActive() async {
+  Future<void> _stopActive(int tap) async {
     final p = _activePlayer;
     final sub = _activeStateSub;
     _activePlayer = null;
     _activeStateSub = null;
+    _log(tap, 'stopActive: oldPlayer=${p?.hashCode}');
     if (sub != null) {
       try {
         await sub.cancel();
-      } catch (_) {}
+        _log(tap, '  oldSub cancelled');
+      } catch (e) {
+        _log(tap, '  oldSub cancel error: $e');
+      }
     }
     if (p != null) {
       try {
         await p.stop();
-      } catch (_) {}
-      // Дисспоз асинхронно, не блокируем UI.
-      unawaited(p.dispose());
+        _log(tap, '  oldPlayer stopped');
+      } catch (e) {
+        _log(tap, '  oldPlayer stop error: $e');
+      }
+      try {
+        await p.dispose();
+        _log(tap, '  oldPlayer disposed');
+      } catch (e) {
+        _log(tap, '  oldPlayer dispose error: $e');
+      }
     }
   }
 
-  Future<void> _playSource(String id, AudioSource source) async {
-    await _stopActive();
-    if (!mounted) return;
+  Future<void> _playSource(int tap, String id, AudioSource source) async {
+    _log(tap, 'playSource start: id=$id sourceType=${source.runtimeType}');
+    await _stopActive(tap);
+    if (!mounted) {
+      _log(tap, '  !mounted after stop, abort');
+      return;
+    }
     final player = AudioPlayer();
     _activePlayer = player;
+    _log(tap, '  created AudioPlayer hash=${player.hashCode}');
     setState(() => _previewingId = id);
 
     _activeStateSub = player.playerStateStream.listen((state) {
-      if (!mounted || _activePlayer != player) return;
+      if (!mounted) return;
+      _log(tap, '  state[${player.hashCode}]: '
+          'playing=${state.playing} ps=${state.processingState}');
+      if (_activePlayer != player) {
+        _log(tap, '  state[${player.hashCode}]: not active anymore, skip');
+        return;
+      }
       if (state.processingState == ProcessingState.completed) {
+        _log(tap, '  state[${player.hashCode}]: COMPLETED → clear indicator');
         setState(() => _previewingId = null);
       }
     });
 
     try {
-      await player.setAudioSource(source, preload: true);
-      if (!mounted || _activePlayer != player) return;
+      _log(tap, '  setAudioSource(preload:true)... ');
+      final dur = await player
+          .setAudioSource(source, preload: true)
+          .timeout(const Duration(seconds: 6), onTimeout: () {
+            _log(tap, '  setAudioSource TIMEOUT 6s');
+            throw TimeoutException('setAudioSource > 6s');
+          });
+      _log(tap, '  setAudioSource OK, duration=$dur');
+      if (!mounted || _activePlayer != player) {
+        _log(tap, '  not active after setAudioSource, abort');
+        return;
+      }
+      try {
+        await player.setVolume(1.0);
+      } catch (e) {
+        _log(tap, '  setVolume error (ignored): $e');
+      }
+      _log(tap, '  play()...');
       await player.play();
+      _log(tap, '  play() returned');
     } catch (e, s) {
-      debugPrint('Ringtone preview failed for $id: $e\n$s');
+      _log(tap, '  ERROR: $e');
+      _log(tap, '  STACK: $s');
       if (mounted && _activePlayer == player) {
         setState(() => _previewingId = null);
       }
@@ -790,30 +844,48 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
   }
 
   Future<void> _togglePreview(RingtonePreset preset) async {
+    final tap = ++_tapCounter;
+    _log(tap, 'togglePreview tap: id=${preset.id} '
+        'previewingId=$_previewingId variant=$_variant');
     if (_previewingId == preset.id) {
-      await _stopActive();
+      _log(tap, '  same id → stop & clear');
+      await _stopActive(tap);
       if (mounted) setState(() => _previewingId = null);
       return;
     }
-    await _playSource(preset.id, AudioSource.asset(preset.assetPath(_variant)));
+    final assetPath = preset.assetPath(_variant);
+    _log(tap, '  assetPath=$assetPath');
+    await _playSource(tap, preset.id, AudioSource.asset(assetPath));
   }
 
   Future<void> _toggleStoragePreview() async {
+    final tap = ++_tapCounter;
+    _log(tap, 'toggleStoragePreview: previewingId=$_previewingId');
     if (_previewingId == kStorageRingtoneId) {
-      await _stopActive();
+      _log(tap, '  same id → stop & clear');
+      await _stopActive(tap);
       if (mounted) setState(() => _previewingId = null);
       return;
     }
     try {
-      _storageUrlCache ??= await FirebaseStorage.instance
-          .ref('audio/ringtone.mp3')
-          .getDownloadURL();
+      if (_storageUrlCache == null) {
+        _log(tap, '  fetching Storage download URL...');
+        _storageUrlCache = await FirebaseStorage.instance
+            .ref('audio/ringtone.mp3')
+            .getDownloadURL()
+            .timeout(const Duration(seconds: 6));
+        _log(tap, '  got URL=${_storageUrlCache?.substring(0, 60)}…');
+      } else {
+        _log(tap, '  using cached URL');
+      }
       await _playSource(
+        tap,
         kStorageRingtoneId,
         AudioSource.uri(Uri.parse(_storageUrlCache!)),
       );
     } catch (e, s) {
-      debugPrint('Storage ringtone preview failed: $e\n$s');
+      _log(tap, '  Storage preview ERROR: $e');
+      _log(tap, '  STACK: $s');
       if (mounted) setState(() => _previewingId = null);
     }
   }
