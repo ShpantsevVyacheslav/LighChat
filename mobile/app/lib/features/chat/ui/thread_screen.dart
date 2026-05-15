@@ -224,6 +224,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
     if (_pendingFocusMessageId != null && _pendingFocusMessageId!.isEmpty) {
       _pendingFocusMessageId = null;
     }
+    // Bug 1: см. комментарий в chat_screen — клавиатура и sticker-шторка
+    // должны быть mutually exclusive. Закрываем панель при фокусе.
+    _composerFocus.addListener(_onComposerFocusChangedClosePanel);
     _captureKeyboardHeight();
     // Прогреваем `_lastKeyboardHeight` из персистентного кэша — см.
     // chat_screen для деталей. Без этого первое открытие шторки стикеров
@@ -275,6 +278,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
     WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     _composerController.dispose();
+    _composerFocus.removeListener(_onComposerFocusChangedClosePanel);
     _composerFocus.dispose();
     _searchController.dispose();
     _searchFocus.dispose();
@@ -877,6 +881,15 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
       _stickersSearchQuery = '';
       _stickerPanelLockedHeight = 0;
     });
+  }
+
+  /// См. chat_screen `_onComposerFocusChangedClosePanel`: тап в композер
+  /// → клавиатура → панель стикеров mutually exclusive.
+  void _onComposerFocusChangedClosePanel() {
+    if (!mounted) return;
+    if (_composerFocus.hasFocus && _stickersPanelOpen) {
+      _closeStickersPanel();
+    }
   }
 
   void _insertEmojiIntoThreadComposer(String emoji) {
