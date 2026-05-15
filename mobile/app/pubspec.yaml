@@ -93,6 +93,10 @@ dependencies:
   url_launcher: ^6.3.1
   file_picker: ^11.0.2
   geolocator: ^13.0.2
+  # Геокодинг адреса в lat/lon через нативные iOS CLGeocoder / Android
+  # Geocoder. Нужен для deeplink-ов такси (Яндекс Go / Uber требуют
+  # координаты, не текст адреса).
+  geocoding: ^4.0.0
   camera: ^0.11.0+2
   visibility_detector: ^0.4.0+2
   cached_network_image: ^3.4.1

@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geocoding/geocoding.dart' as geo;
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
 import '../../../l10n/app_localizations.dart';
@@ -24,7 +25,11 @@ class NavigatorPickerSheet {
     required String address,
   }) async {
     final encoded = Uri.encodeComponent(address);
-    final apps = await _availableApps(encoded);
+    // Геокодим адрес → lat/lon чтобы такси-приложения (Yandex Go / Uber)
+    // корректно строили маршрут. Картам lat/lon не нужен — они умеют
+    // искать по строке.
+    final coords = await _geocode(address);
+    final apps = await _availableApps(encoded, coords);
     if (apps.isEmpty) {
       // Fallback: Apple Maps на iOS / geo:// на Android.
       final fallback = Platform.isIOS
@@ -54,7 +59,25 @@ class NavigatorPickerSheet {
     );
   }
 
-  static Future<List<_NavApp>> _availableApps(String encoded) async {
+  /// Геокодим адрес в lat/lon через native CLGeocoder/Android Geocoder.
+  /// Возвращаем `null` если не получилось (нет сети, адрес неоднозначный).
+  static Future<({double lat, double lon})?> _geocode(String address) async {
+    try {
+      final results = await geo.locationFromAddress(address).timeout(
+            const Duration(seconds: 5),
+          );
+      if (results.isEmpty) return null;
+      final first = results.first;
+      return (lat: first.latitude, lon: first.longitude);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<List<_NavApp>> _availableApps(
+    String encoded,
+    ({double lat, double lon})? coords,
+  ) async {
     final out = <_NavApp>[];
 
     // Apple Maps — присутствует на каждом iOS, не требует canLaunch.
@@ -130,26 +153,38 @@ class NavigatorPickerSheet {
 
     // === Taxi ===
 
-    // Яндекс Go (бывш. Yandex Taxi).
+    // Яндекс Go (бывш. Yandex Taxi). Требует end-lat/end-lon — без
+    // координат маршрут не строится. Если геокодинг не удался —
+    // открываем без destination (юзер сам введёт).
     if (await _canLaunch(Uri.parse('yandextaxi://'))) {
+      final yandexUrl = coords != null
+          ? 'yandextaxi://route?end-lat=${coords.lat}&end-lon=${coords.lon}'
+              '&ref=lighchat&appmetrica_tracking_id=1178268795219780156'
+          : 'yandextaxi://';
       out.add(_NavApp(
         id: 'yandex_go',
         label: 'Яндекс Go',
         icon: Icons.local_taxi_rounded,
         color: const Color(0xFFFFCC00),
-        url: 'yandextaxi://route?end-address=$encoded&appmetrica_tracking_id=1178268795219780156',
+        url: yandexUrl,
       ));
     }
 
-    // Uber.
+    // Uber — formatted_address как hint + координаты (если есть) для
+    // точного pin-а.
     if (await _canLaunch(Uri.parse('uber://'))) {
+      final uberUrl = StringBuffer('uber://?action=setPickup&pickup=my_location'
+          '&dropoff[formatted_address]=$encoded');
+      if (coords != null) {
+        uberUrl.write('&dropoff[latitude]=${coords.lat}'
+            '&dropoff[longitude]=${coords.lon}');
+      }
       out.add(_NavApp(
         id: 'uber',
         label: 'Uber',
         icon: Icons.local_taxi_outlined,
         color: const Color(0xFF000000),
-        url: 'uber://?action=setPickup&pickup=my_location'
-            '&dropoff[formatted_address]=$encoded',
+        url: uberUrl.toString(),
       ));
     }
 
