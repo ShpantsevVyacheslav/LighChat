@@ -2824,6 +2824,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                       },
                                       onClipboardToolbarPaste:
                                           _pasteContentFromClipboard,
+                                      onNativeStickerInserted:
+                                          _handleNativeStickerInsert,
                                       showFormattingToolbar:
                                           _composerFormattingOpen,
                                       onCloseFormattingToolbar: () => setState(
@@ -3606,6 +3608,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         _toast(AppLocalizations.of(context)!.chat_clipboard_paste_failed(e));
       }
     }
+  }
+
+  /// Phase 8: пользователь вставил стикер/memoji/genmoji через системную
+  /// emoji-клавиатуру в нативном UITextView. Swift сохранил каждое
+  /// изображение в tmp PNG-файл и удалил attachment-run из attributedText.
+  /// Здесь добавляем файлы в pendingAttachments с префиксом `sticker_`,
+  /// чтобы receiver-side рендерил их как стикеры (без обычного bubble).
+  Future<void> _handleNativeStickerInsert(List<String> paths) async {
+    if (paths.isEmpty || !mounted) return;
+    final added = <XFile>[];
+    for (final p in paths) {
+      if (p.trim().isEmpty) continue;
+      final name =
+          'sticker_${DateTime.now().toUtc().microsecondsSinceEpoch}_'
+          '${added.length}.png';
+      added.add(XFile(p, name: name));
+    }
+    if (added.isEmpty || !mounted) return;
+    setState(() => _pendingAttachments.addAll(added));
+    _scheduleChatDraftSave();
+    _recomputeComposerLimits();
   }
 
   String _starredDocId(String conversationId, String messageId) {

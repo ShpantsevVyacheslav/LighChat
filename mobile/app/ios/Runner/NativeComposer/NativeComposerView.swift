@@ -530,6 +530,16 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
     updateHintVisibility()
     notifyContentHeightIfChanged()
     if isApplyingRemoteText { return }
+    // Phase 8: системная emoji-клавиатура (вкладка Stickers/Memoji/Genmoji)
+    // вставляет картинку в UITextView как `NSTextAttachment`. Наш
+    // `serialize()` не знает про attachment-runs — нужно их вытащить,
+    // сохранить в tmp PNG, удалить из attributedText и отдать Dart как
+    // обычные image-attachment'ы (через pendingAttachments pipeline).
+    let extracted = extractAndRemoveInlineImageAttachments()
+    if !extracted.isEmpty {
+      channel.invokeMethod(
+        "attachmentInserted", arguments: ["paths": extracted])
+    }
     let plain = currentPlainText()
     let sel = plainSelection(plain)
     channel.invokeMethod(
@@ -539,6 +549,73 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
         "selectionStart": sel.start,
         "selectionEnd": sel.end,
       ])
+  }
+
+  /// Ищет в `attributedText` все `NSTextAttachment`-run'ы с реальной
+  /// картинкой (Stickers/Memoji/Genmoji со стандартной iOS-клавиатуры).
+  /// Каждый сохраняет в tmp PNG, удаляет run из attributedText, возвращает
+  /// абсолютные пути сохранённых файлов.
+  ///
+  /// Если у attachment'а нет `image` напрямую, пробуем resolve через
+  /// `image(forBounds:textContainer:characterIndex:)` (тут iOS возвращает
+  /// растрированный bitmap для memoji/genmoji), а в крайнем случае —
+  /// инициализируем UIImage из `attachment.contents` (raw NSData).
+  private func extractAndRemoveInlineImageAttachments() -> [String] {
+    let attr = textView.attributedText
+    guard let attr = attr, attr.length > 0 else { return [] }
+    let full = NSRange(location: 0, length: attr.length)
+    var hits: [(range: NSRange, image: UIImage)] = []
+    attr.enumerateAttribute(.attachment, in: full, options: []) {
+      val, range, _ in
+      guard let attach = val as? NSTextAttachment else { return }
+      var img: UIImage? = attach.image
+      if img == nil {
+        img = attach.image(
+          forBounds: attach.bounds, textContainer: nil,
+          characterIndex: range.location)
+      }
+      if img == nil, let data = attach.contents {
+        img = UIImage(data: data)
+      }
+      if let i = img { hits.append((range, i)) }
+    }
+    if hits.isEmpty { return [] }
+
+    var paths: [String] = []
+    for (_, image) in hits {
+      // PNG сохраняет прозрачность memoji/sticker'а — JPEG бы её схлопнул
+      // в чёрный.
+      guard let data = image.pngData() else { continue }
+      let name = "composer_sticker_\(UUID().uuidString).png"
+      let url = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent(name)
+      do {
+        try data.write(to: url, options: .atomic)
+        paths.append(url.path)
+      } catch {
+        // tmp недоступен — просто пропускаем стикер. Не мешаем юзеру
+        // дальше печатать.
+      }
+    }
+
+    // Удаляем attachment-run'ы из attributedText (в обратном порядке,
+    // чтобы NSRange'ы не сдвигались).
+    let mut = NSMutableAttributedString(attributedString: attr)
+    for (range, _) in hits.reversed() {
+      mut.deleteCharacters(in: range)
+    }
+    let prevSel = textView.selectedRange
+    isApplyingRemoteText = true
+    textView.attributedText = mut
+    // Курсор клампим в новые границы (стикеры обычно вставляются в
+    // позицию курсора, после удаления — курсор сдвинется на тот же offset
+    // в attachment.range.location).
+    let cap = mut.length
+    let newLoc = min(prevSel.location, cap)
+    textView.selectedRange = NSRange(location: newLoc, length: 0)
+    isApplyingRemoteText = false
+    updateHintVisibility()
+    return paths
   }
 
   func textViewDidChangeSelection(_ textView: UITextView) {

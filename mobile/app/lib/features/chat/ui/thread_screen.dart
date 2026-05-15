@@ -724,6 +724,24 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
     }
   }
 
+  /// Phase 8: пользователь вставил стикер/memoji/genmoji через системную
+  /// emoji-клавиатуру в нативном UITextView треда. Native сохранил
+  /// изображение в tmp PNG и удалил attachment-run; здесь добавляем
+  /// файл в pendingAttachments как стикер (`sticker_*.png`).
+  Future<void> _handleNativeStickerInsert(List<String> paths) async {
+    if (paths.isEmpty || !mounted) return;
+    final added = <XFile>[];
+    for (final p in paths) {
+      if (p.trim().isEmpty) continue;
+      final name =
+          'sticker_${DateTime.now().toUtc().microsecondsSinceEpoch}_'
+          '${added.length}.png';
+      added.add(XFile(p, name: name));
+    }
+    if (added.isEmpty || !mounted) return;
+    setState(() => _pendingAttachments.addAll(added));
+  }
+
   Future<void> _sendThreadStickerOrGifAttachment(
     String uid,
     ChatRepository repo,
@@ -2882,6 +2900,8 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                   },
                                   onClipboardToolbarPaste:
                                       _pasteContentFromClipboard,
+                                  onNativeStickerInserted:
+                                      _handleNativeStickerInsert,
                                   showFormattingToolbar:
                                       _composerFormattingOpen,
                                   onCloseFormattingToolbar: () => setState(

@@ -64,6 +64,7 @@ class ChatComposer extends StatefulWidget {
     this.aiAvailable = false,
     this.onRewriteWithAi,
     this.onClipboardToolbarPaste,
+    this.onNativeStickerInserted,
     this.stickerSuggestionBuilder,
     this.e2eeDisabledBanner,
     this.groupMentionCandidates,
@@ -127,6 +128,13 @@ class ChatComposer extends StatefulWidget {
 
   /// Вставка из буфера (текст + файлы) при «Вставить» в контекстном меню поля.
   final Future<void> Function()? onClipboardToolbarPaste;
+
+  /// Phase 8 (native composer only): пользователь вставил стикер/memoji/
+  /// genmoji через системную emoji-клавиатуру. Native UITextView сохранил
+  /// каждое изображение в tmp PNG-файл и передал абсолютные пути сюда.
+  /// Caller должен добавить файлы в `pendingAttachments` как обычные
+  /// изображения (XFile). Если callback null — стикеры будут проигнорированы.
+  final Future<void> Function(List<String> paths)? onNativeStickerInserted;
 
   /// Необязательный строитель строки быстрых стикеров над полем ввода.
   ///
@@ -583,6 +591,7 @@ class _ChatComposerState extends State<ChatComposer> {
                 minLines: 1,
                 maxLines: 6,
                 onPasteRequested: paste,
+                onAttachmentInserted: widget.onNativeStickerInserted,
               ),
             ),
           ),

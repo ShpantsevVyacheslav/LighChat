@@ -45,6 +45,7 @@ class NativeIosComposerField extends StatefulWidget {
     this.maxLines = 6,
     this.onSubmitted,
     this.onPasteRequested,
+    this.onAttachmentInserted,
   });
 
   final TextEditingController controller;
@@ -62,6 +63,12 @@ class NativeIosComposerField extends StatefulWidget {
   /// Caller обрабатывает через [readComposerClipboardPayload] +
   /// добавление в `pendingAttachments`.
   final Future<void> Function()? onPasteRequested;
+
+  /// Phase 8: пользователь вставил стикер / memoji / genmoji через
+  /// системную emoji-клавиатуру → Swift извлёк UIImage в tmp PNG-файл
+  /// и сообщает абсолютные пути. Caller должен добавить их в
+  /// `pendingAttachments` как обычные image-вложения.
+  final Future<void> Function(List<String> paths)? onAttachmentInserted;
 
   @override
   State<NativeIosComposerField> createState() => NativeIosComposerFieldState();
@@ -239,6 +246,25 @@ class NativeIosComposerFieldState extends State<NativeIosComposerField> {
         final cb = widget.onPasteRequested;
         if (cb != null) {
           unawaited(cb());
+        }
+        break;
+      case 'attachmentInserted':
+        // Phase 8: системная emoji-клавиатура вставила inline-стикер
+        // (Sticker/Memoji/Genmoji). Native сохранил картинку в tmp PNG
+        // и удалил attachment-run из attributedText. Здесь добавляем
+        // путь в pendingAttachments как обычное изображение.
+        final cb = widget.onAttachmentInserted;
+        if (cb == null) break;
+        final map = (call.arguments as Map?)?.cast<String, Object?>() ?? {};
+        final raw = map['paths'];
+        final paths = <String>[];
+        if (raw is List) {
+          for (final p in raw) {
+            if (p is String && p.isNotEmpty) paths.add(p);
+          }
+        }
+        if (paths.isNotEmpty) {
+          unawaited(cb(paths));
         }
         break;
     }
