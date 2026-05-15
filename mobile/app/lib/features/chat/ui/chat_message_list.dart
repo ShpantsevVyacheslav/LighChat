@@ -252,6 +252,11 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
   bool? _lastAtBottomReported;
   Timer? _stalePendingTicker;
 
+  /// Видимость floating sticky-day капсулы. Telegram-style: появляется
+  /// при скролле, плавно скрывается после ~1.5с покоя.
+  bool _stickyDayVisible = false;
+  Timer? _stickyDayFadeOutTimer;
+
   @override
   void didUpdateWidget(covariant ChatMessageList oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -289,6 +294,7 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
     widget.scrollController.removeListener(_onScrollControllerTick);
     _videoCirclePlayingSlotId.dispose();
     _stalePendingTicker?.cancel();
+    _stickyDayFadeOutTimer?.cancel();
     super.dispose();
   }
 
@@ -936,8 +942,14 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
               left: 0,
               right: 0,
               child: IgnorePointer(
-                child: Center(
-                  child: ChatBlurredDateCapsule(label: stickyDisplay),
+                // Telegram-style: появляется при скролле, плавно
+                // прячется через 1.2с покоя (см. _showStickyDayCapsule).
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 220),
+                  opacity: _stickyDayVisible ? 1.0 : 0.0,
+                  child: Center(
+                    child: ChatBlurredDateCapsule(label: stickyDisplay),
+                  ),
                 ),
               ),
             ),
@@ -1082,8 +1094,26 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
         n is ScrollEndNotification ||
         n is UserScrollNotification) {
       _scheduleStickyDayUpdate();
+      _showStickyDayCapsule();
     }
     return _onScrollNotification(n);
+  }
+
+  /// Telegram-style: показываем floating sticky-day капсулу при скролле,
+  /// прячем через 1.2с покоя. Анимация opacity делает появление/уход
+  /// плавным.
+  void _showStickyDayCapsule() {
+    _stickyDayFadeOutTimer?.cancel();
+    if (!_stickyDayVisible && mounted) {
+      setState(() => _stickyDayVisible = true);
+    }
+    _stickyDayFadeOutTimer = Timer(
+      const Duration(milliseconds: 1200),
+      () {
+        if (!mounted) return;
+        setState(() => _stickyDayVisible = false);
+      },
+    );
   }
 }
 
