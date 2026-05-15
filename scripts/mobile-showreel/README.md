@@ -45,12 +45,21 @@ LighChat на iPhone-симуляторе.
      services в Simulator → Features → Location → Custom Location)
    - папки (создайте Personal/Groups через Edit Folders)
 
-3. **iPhone 16 Pro симулятор**:
+3. **iPhone симулятор любой модели**. Сначала найдите доступные:
    ```bash
-   xcrun simctl boot "iPhone 16 Pro"
+   xcrun simctl list devices | grep -iE 'iPhone' | grep -v unavailable
+   ```
+   Возьмите UDID нужного и забутьте:
+   ```bash
+   xcrun simctl boot <UDID-or-prefix>
    open -a Simulator
    ```
-   После этого один раз установите приложение и залогиньтесь.
+   Скрипт `record.sh` автодетектит booted simulator — модель не
+   важна. Рекомендуется iPhone 15 Pro / 16 Pro / 17 — современные
+   модели с тонкой dynamic island и 9:19.5 aspect.
+
+   После этого один раз установите приложение через
+   `flutter run -d <UDID-or-prefix>` и залогиньтесь.
 
 4. **ffmpeg** в `$PATH` (`brew install ffmpeg`).
 
