@@ -4750,6 +4750,12 @@ class AppLocalizationsKk extends AppLocalizations {
   String get chat_settings_show_all_wallpapers => 'Барлық обойларды көрсету';
 
   @override
+  String get chat_settings_animated_wallpapers_heading => 'Анимациялы обойлар';
+
+  @override
+  String get chat_settings_animated_wallpapers_hint => 'Чат ашылғанда бір рет ойналады';
+
+  @override
   String get chat_settings_emoji_effects => 'Эффекты эмодзи';
 
   @override

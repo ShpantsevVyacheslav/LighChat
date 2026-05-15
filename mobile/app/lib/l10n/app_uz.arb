@@ -2384,6 +2384,8 @@
   "chat_settings_background_hint": "Galereyadan rasm tanlang yoki sozlang",
   "chat_settings_builtin_wallpapers_heading": "Brendli devor qogʻozlari",
   "chat_settings_show_all_wallpapers": "Barcha oboylarni koʻrsatish",
+  "chat_settings_animated_wallpapers_heading": "Animatsion oboylar",
+  "chat_settings_animated_wallpapers_hint": "Chat ochilganda bir marta ijro etiladi",
   "chat_settings_emoji_effects": "Emoji effektlari",
   "chat_settings_emoji_description": "Chatda bosish orqali toʻliq ekranli emoji portlashi uchun animatsiya profili.",
   "chat_settings_emoji_lite": "Lite: minimal yuk, past darajali qurilmalarda eng silliq.",

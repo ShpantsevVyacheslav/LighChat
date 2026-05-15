@@ -4784,6 +4784,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get chat_settings_show_all_wallpapers => 'Ver todos los fondos';
 
   @override
+  String get chat_settings_animated_wallpapers_heading => 'Fondos animados';
+
+  @override
+  String get chat_settings_animated_wallpapers_hint => 'Se reproduce una vez al abrir el chat';
+
+  @override
   String get chat_settings_emoji_effects => 'Efectos de emoji';
 
   @override

@@ -12,6 +12,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
 import '../data/bottom_nav_icon_settings.dart';
+import '../data/animated_wallpapers.dart';
 import '../data/builtin_wallpapers.dart';
 import '../data/emoji_burst_animation_profile.dart';
 import '../data/new_chat_user_search.dart' show ruEnSubstringMatch;
@@ -570,6 +571,17 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
         gradient: builtin.previewGradient,
         image: DecorationImage(
           image: AssetImage(builtin.assetFor(Theme.of(context).brightness)),
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    final animated = resolveAnimatedWallpaper(value);
+    if (animated != null) {
+      return BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: animated.previewGradient,
+        image: DecorationImage(
+          image: AssetImage(animated.assetFor(Theme.of(context).brightness)),
           fit: BoxFit.cover,
         ),
       );
@@ -1677,6 +1689,49 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           color: textSecondary,
                         ),
                       ),
+                      // Анимированные обои — отдельная секция. Над плиткой
+                      // значок «▶» подсказывает, что это движение, а не
+                      // статика. Анимация одноразовая (играется один раз
+                      // при открытии чата) и не отвлекает от переписки.
+                      const SizedBox(height: 20),
+                      Text(
+                        l10n.chat_settings_animated_wallpapers_heading,
+                        style: TextStyle(
+                          fontSize: _kBlockTitleSize,
+                          fontWeight: FontWeight.w600,
+                          color: textMain,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        l10n.chat_settings_animated_wallpapers_hint,
+                        style: TextStyle(
+                          fontSize: _kMutedTextSize,
+                          color: textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: kAnimatedWallpapers.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 4,
+                              mainAxisSpacing: 8,
+                              crossAxisSpacing: 8,
+                              childAspectRatio: 1.04,
+                            ),
+                        itemBuilder: (context, index) {
+                          final wp = kAnimatedWallpapers[index];
+                          final value = wp.value;
+                          return _AnimatedWallpaperTile(
+                            selected: s.chatWallpaper == value,
+                            decoration: _wallpaperDecoration(context, value),
+                            onTap: () => _selectWallpaper(s, value),
+                          );
+                        },
+                      ),
                       const SizedBox(height: 20),
                       Text(
                         l10n.chat_settings_outgoing_messages,
@@ -2619,6 +2674,59 @@ class _AddWallpaperTile extends StatelessWidget {
                   ],
                 ),
         ),
+      ),
+    );
+  }
+}
+
+/// Плитка анимированного обоя с badge «▶» в правом верхнем углу — чтобы
+/// пользователь видел, что это движение, а не статика.
+class _AnimatedWallpaperTile extends StatelessWidget {
+  const _AnimatedWallpaperTile({
+    required this.selected,
+    required this.decoration,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final BoxDecoration decoration;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Сам preview как у обычной плитки
+          _WallpaperTile(
+            selected: selected,
+            decoration: decoration,
+            onTap: onTap,
+          ),
+          // Badge «анимация» поверх — маленький круглый индикатор play
+          Positioned(
+            right: 6,
+            top: 6,
+            child: IgnorePointer(
+              child: Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF2F86FF).withValues(alpha: 0.92),
+                ),
+                child: const Icon(
+                  Icons.play_arrow_rounded,
+                  size: 14,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

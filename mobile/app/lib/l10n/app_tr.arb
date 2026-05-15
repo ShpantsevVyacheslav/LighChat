@@ -2384,6 +2384,8 @@
   "chat_settings_background_hint": "Galeriden bir fotoğraf seçin veya özelleştirin",
   "chat_settings_builtin_wallpapers_heading": "Marka duvar kâğıtları",
   "chat_settings_show_all_wallpapers": "Tüm duvar kâğıtları",
+  "chat_settings_animated_wallpapers_heading": "Animasyonlu duvar kâğıtları",
+  "chat_settings_animated_wallpapers_hint": "Sohbet açıldığında bir kez oynar",
   "chat_settings_emoji_effects": "Emoji efektleri",
   "chat_settings_emoji_description": "Sohbette dokunmayla tam ekran emoji patlaması için animasyon profili.",
   "chat_settings_emoji_lite": "Hafif: minimum yük, düşük performanslı cihazlarda en akıcı.",

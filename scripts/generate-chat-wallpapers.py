@@ -3690,6 +3690,74 @@ def concept_clean_galaxy(theme):
     return bg.convert("RGB")
 
 
+# ---------------------------------------------------------------------------
+# Animated wallpapers — preview-фоны (статичные ассеты для пикеров и как
+# подложка под живой painter в чате; саму анимацию рисует Flutter-слой
+# `AnimatedWallpaperLayer`, см.
+# `mobile/app/lib/features/chat/ui/animated_wallpaper_layer.dart`).
+# ---------------------------------------------------------------------------
+
+
+def concept_animated_falling_star(theme):
+    """Preview для падающей звезды — чистое звёздное небо без Млечного
+    пути и без самой звезды (её рисует painter поверх)."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (215, 225, 245), (180, 200, 230))
+        star_color = (60, 80, 120)
+        density = 200
+    else:
+        bg = vertical_gradient((W, H), (4, 6, 18), (10, 12, 32))
+        star_color = (255, 255, 255)
+        density = 700
+    bg.paste(starfield((W, H), density=density, color=star_color, seed=44),
+             (0, 0),
+             starfield((W, H), density=density, color=star_color, seed=44))
+    return bg.convert("RGB")
+
+
+def concept_animated_lighthouse_beam(theme):
+    """Preview для свечения маяка — ночное море со звёздами и маяк по
+    центру (без луча; его рисует painter поверх)."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (210, 230, 240), (180, 210, 230))
+        rock_color = (60, 75, 110)
+        body_color = (245, 240, 230)
+        sea_color = (90, 140, 175)
+    else:
+        bg = vertical_gradient((W, H), (10, 18, 36), (22, 32, 56))
+        rock_color = (10, 20, 36)
+        body_color = (220, 200, 175)
+        sea_color = (12, 32, 60)
+    if theme == "dark":
+        bg.paste(starfield((W, H), density=240, seed=66), (0, 0),
+                 starfield((W, H), density=240, seed=66))
+    # Море
+    sea = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(sea)
+    sd.rectangle([0, int(H * 0.66), W, H], fill=sea_color + (255,))
+    bg.paste(sea, (0, 0), sea)
+    # Скала
+    rock = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    rd = ImageDraw.Draw(rock)
+    rd.polygon([
+        (int(W * 0.30), int(H * 0.74)),
+        (int(W * 0.50), int(H * 0.65)),
+        (int(W * 0.70), int(H * 0.74)),
+        (int(W * 0.85), int(H * 0.84)),
+        (int(W * 0.15), int(H * 0.84)),
+    ], fill=rock_color + (255,))
+    bg.paste(rock, (0, 0), rock)
+    # Маяк по центру (origin для луча — W*0.50, H*0.42)
+    lh_w = int(W * 0.22)
+    lh_h = int(lh_w * LH_LIGHTHOUSE)
+    lh = draw_lighthouse((lh_w, lh_h), navy=NAVY_DARK, coral=CORAL,
+                         body=body_color)
+    # Маяк ставим так, чтобы фонарная комната была на y≈0.42
+    lh_top = int(H * 0.42) - int(lh_h * 0.28)
+    bg.paste(lh, (int(W * 0.50 - lh_w / 2), lh_top), lh)
+    return bg.convert("RGB")
+
+
 CONCEPTS = {
     "lighthouse-dawn": concept_lighthouse_dawn,
     "keeper-watch": concept_keeper_watch,
@@ -3730,6 +3798,8 @@ CONCEPTS = {
     "deep-ocean": concept_deep_ocean,
     "night-sea": concept_night_sea,
     "clean-galaxy": concept_clean_galaxy,
+    "animated-falling-star": concept_animated_falling_star,
+    "animated-lighthouse-beam": concept_animated_lighthouse_beam,
 }
 
 

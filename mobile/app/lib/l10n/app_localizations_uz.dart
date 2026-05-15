@@ -4769,6 +4769,12 @@ class AppLocalizationsUz extends AppLocalizations {
   String get chat_settings_show_all_wallpapers => 'Barcha oboylarni koʻrsatish';
 
   @override
+  String get chat_settings_animated_wallpapers_heading => 'Animatsion oboylar';
+
+  @override
+  String get chat_settings_animated_wallpapers_hint => 'Chat ochilganda bir marta ijro etiladi';
+
+  @override
   String get chat_settings_emoji_effects => 'Emoji effektlari';
 
   @override

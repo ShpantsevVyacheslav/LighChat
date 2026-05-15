@@ -8326,6 +8326,18 @@ abstract class AppLocalizations {
   /// **'Показать все'**
   String get chat_settings_show_all_wallpapers;
 
+  /// No description provided for @chat_settings_animated_wallpapers_heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Animated wallpapers'**
+  String get chat_settings_animated_wallpapers_heading;
+
+  /// No description provided for @chat_settings_animated_wallpapers_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Plays once when you open a chat'**
+  String get chat_settings_animated_wallpapers_hint;
+
   /// No description provided for @chat_settings_emoji_effects.
   ///
   /// In ru, this message translates to:

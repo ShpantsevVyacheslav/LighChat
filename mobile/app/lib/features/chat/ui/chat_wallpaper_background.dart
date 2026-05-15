@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../data/animated_wallpapers.dart';
 import '../data/builtin_wallpapers.dart';
+import 'animated_wallpaper_layer.dart';
 import 'chat_cached_network_image.dart';
 import 'chat_wallpaper_scope.dart';
 
@@ -60,16 +62,26 @@ class ChatWallpaperBackground extends StatelessWidget {
     }
 
     final builtin = resolveBuiltinWallpaper(raw);
+    final animated = resolveAnimatedWallpaper(raw);
     final gradient = _gradients[raw];
     final isNetwork = raw.startsWith('http');
-    final isImage = builtin != null || isNetwork;
+    final isImage = builtin != null || animated != null || isNetwork;
 
     return ChatWallpaperScope(
       wallpaper: raw,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (builtin != null)
+          if (animated != null)
+            Positioned.fill(
+              child: Image.asset(
+                animated.assetFor(Theme.of(context).brightness),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    const _DefaultChatBackdrop(child: SizedBox.expand()),
+              ),
+            )
+          else if (builtin != null)
             Positioned.fill(
               child: Image.asset(
                 builtin.assetFor(Theme.of(context).brightness),
@@ -91,6 +103,15 @@ class ChatWallpaperBackground extends StatelessWidget {
             DecoratedBox(decoration: BoxDecoration(gradient: gradient))
           else
             const _DefaultChatBackdrop(child: SizedBox.expand()),
+          // Анимация поверх preview-картинки. Ключ-по-slug гарантирует
+          // перезапуск проигрывания при смене обои в настройках.
+          if (animated != null)
+            Positioned.fill(
+              child: AnimatedWallpaperLayer(
+                key: ValueKey('animated-${animated.slug}'),
+                wallpaper: animated,
+              ),
+            ),
           if (isImage)
             Container(color: Colors.black.withValues(alpha: 0.35)),
           child,

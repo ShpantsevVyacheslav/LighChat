@@ -4748,6 +4748,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chat_settings_show_all_wallpapers => 'Показать все';
 
   @override
+  String get chat_settings_animated_wallpapers_heading => 'Анимированные обои';
+
+  @override
+  String get chat_settings_animated_wallpapers_hint => 'Проигрывается один раз при открытии чата';
+
+  @override
   String get chat_settings_emoji_effects => 'Эффекты эмодзи';
 
   @override

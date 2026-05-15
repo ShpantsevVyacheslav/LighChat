@@ -4735,6 +4735,12 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_settings_show_all_wallpapers => 'Lihat semua wallpaper';
 
   @override
+  String get chat_settings_animated_wallpapers_heading => 'Wallpaper animasi';
+
+  @override
+  String get chat_settings_animated_wallpapers_hint => 'Diputar sekali saat membuka chat';
+
+  @override
   String get chat_settings_emoji_effects => 'Efek emoji';
 
   @override

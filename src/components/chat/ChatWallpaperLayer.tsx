@@ -8,6 +8,11 @@ import {
   pickBuiltinWallpaperSrc,
   resolveBuiltinWallpaper,
 } from '@/lib/builtinWallpapers';
+import {
+  isAnimatedWallpaperValue,
+  pickAnimatedWallpaperSrc,
+  resolveAnimatedWallpaper,
+} from '@/lib/animatedWallpapers';
 
 export function isChatWallpaperImageUrl(wallpaper: string | null | undefined): boolean {
   return !!(wallpaper && (wallpaper.startsWith('http') || wallpaper.startsWith('data:')));
@@ -30,18 +35,29 @@ type ChatWallpaperLayerProps = {
 export function ChatWallpaperLayer({ wallpaper, className }: ChatWallpaperLayerProps) {
   const { resolvedTheme } = useTheme();
   const builtin = resolveBuiltinWallpaper(wallpaper);
-  const builtinSrc = builtin
-    ? pickBuiltinWallpaperSrc(builtin, resolvedTheme === 'dark' ? 'dark' : 'light')
-    : null;
-  const isImage = !builtin && isChatWallpaperImageUrl(wallpaper);
+  const animated = resolveAnimatedWallpaper(wallpaper);
+  const themeKey = resolvedTheme === 'dark' ? 'dark' : 'light';
+  const builtinSrc = builtin ? pickBuiltinWallpaperSrc(builtin, themeKey) : null;
+  // Для web сейчас рендерим только статичный preview анимированного обоя.
+  // Сама «живая» анимация (падающая звезда, луч маяка) реализована
+  // на mobile-стороне через Flutter `AnimatedWallpaperLayer`.
+  const animatedSrc = animated ? pickAnimatedWallpaperSrc(animated, themeKey) : null;
+  const isImage =
+    !builtin && !animated && isChatWallpaperImageUrl(wallpaper);
   const wallpaperStyle =
-    !builtin && !isImage && wallpaper && !isBuiltinWallpaperValue(wallpaper)
+    !builtin &&
+    !animated &&
+    !isImage &&
+    wallpaper &&
+    !isBuiltinWallpaperValue(wallpaper) &&
+    !isAnimatedWallpaperValue(wallpaper)
       ? ({ background: wallpaper } as React.CSSProperties)
       : undefined;
 
-  if (!builtinSrc && !isImage && !wallpaperStyle) return null;
+  if (!builtinSrc && !animatedSrc && !isImage && !wallpaperStyle) return null;
 
-  const renderedSrc = builtinSrc ?? (isImage ? wallpaper! : null);
+  const renderedSrc =
+    builtinSrc ?? animatedSrc ?? (isImage ? wallpaper! : null);
 
   return (
     <div

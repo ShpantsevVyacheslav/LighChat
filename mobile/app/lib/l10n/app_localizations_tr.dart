@@ -4752,6 +4752,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chat_settings_show_all_wallpapers => 'Tüm duvar kâğıtları';
 
   @override
+  String get chat_settings_animated_wallpapers_heading => 'Animasyonlu duvar kâğıtları';
+
+  @override
+  String get chat_settings_animated_wallpapers_hint => 'Sohbet açıldığında bir kez oynar';
+
+  @override
   String get chat_settings_emoji_effects => 'Emoji efektleri';
 
   @override
