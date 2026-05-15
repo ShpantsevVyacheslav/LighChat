@@ -59,6 +59,10 @@ class MessageTranslationSheet extends StatefulWidget {
 class _MessageTranslationSheetState extends State<MessageTranslationSheet> {
   late String _from;
   late String _to;
+  // Текущий source-текст. На старте = `widget.originalText`; после swap'а
+  // становится бывшим переводом (т.е. тем, что лежало в нижней карточке).
+  // Так swap правильно «переворачивает» и направление, и контент.
+  late String _sourceText;
   String? _translated;
   String? _error;
   TranslationPhase? _phase;
@@ -69,6 +73,7 @@ class _MessageTranslationSheetState extends State<MessageTranslationSheet> {
     super.initState();
     _from = widget.from;
     _to = widget.to;
+    _sourceText = widget.originalText;
     WidgetsBinding.instance.addPostFrameCallback((_) => _translate());
   }
 
@@ -81,8 +86,8 @@ class _MessageTranslationSheetState extends State<MessageTranslationSheet> {
     });
     try {
       final result = await LocalMessageTranslator.instance.translate(
-        cacheKey: 'text|${widget.messageId}|$_from→$_to',
-        text: widget.originalText,
+        cacheKey: 'text|${widget.messageId}|$_from→$_to|${_sourceText.hashCode}',
+        text: _sourceText,
         from: _from,
         to: _to,
         onPhase: (p) {
@@ -113,14 +118,12 @@ class _MessageTranslationSheetState extends State<MessageTranslationSheet> {
   void _changeFrom(String code) {
     if (code == _from) return;
     if (code == _to) {
-      // выбор source == текущему target → swap
-      setState(() {
-        _from = code;
-        _to = widget.from == code ? widget.to : _swapFallback(code);
-      });
-    } else {
-      setState(() => _from = code);
+      // Выбор source == текущему target — это и есть swap. Делегируем,
+      // чтобы единообразно обновить и `_sourceText` / `_translated`.
+      _swap();
+      return;
     }
+    setState(() => _from = code);
     unawaited(ChatHaptics.instance.selectionChanged());
     _translate();
   }
@@ -128,28 +131,40 @@ class _MessageTranslationSheetState extends State<MessageTranslationSheet> {
   void _changeTo(String code) {
     if (code == _to) return;
     if (code == _from) {
-      setState(() {
-        _to = code;
-        _from = _swapFallback(code);
-      });
-    } else {
-      setState(() => _to = code);
+      _swap();
+      return;
     }
+    setState(() => _to = code);
     unawaited(ChatHaptics.instance.selectionChanged());
     _translate();
   }
 
-  String _swapFallback(String taken) => taken == 'en' ? 'ru' : 'en';
-
   void _swap() {
     if (_from == _to) return;
+    final prevTranslated = _translated;
+    final prevSource = _sourceText;
     setState(() {
-      final tmp = _from;
+      final tmpLang = _from;
       _from = _to;
-      _to = tmp;
+      _to = tmpLang;
+      // Если перевод уже посчитан — он становится новым source,
+      // а старый source — мгновенный «перевод» (тот же текст, что и
+      // лежал в нижней карточке до свопа). Это даёт мгновенный
+      // визуальный отклик, без второго прохода ML Kit.
+      if (prevTranslated != null && prevTranslated.trim().isNotEmpty) {
+        _sourceText = prevTranslated;
+        _translated = prevSource;
+      } else {
+        // Перевод ещё не успел посчитаться — просто свапаем направление,
+        // source остаётся прежним, target пересчитаем.
+        _translated = null;
+      }
     });
     unawaited(ChatHaptics.instance.tick());
-    _translate();
+    // После свопа translated уже корректен (prevSource), повторный вызов
+    // переводчика не нужен — он бы дал тот же текст, что мы уже показали.
+    // Запускаем только если результат не был готов.
+    if (_translated == null) _translate();
   }
 
   @override
@@ -186,7 +201,7 @@ class _MessageTranslationSheetState extends State<MessageTranslationSheet> {
                           _LanguageCard(
                             palette: palette,
                             languageCode: _from,
-                            text: widget.originalText,
+                            text: _sourceText,
                             muted: true,
                             onTapPill: () => _showLanguagePicker(
                               context: context,
