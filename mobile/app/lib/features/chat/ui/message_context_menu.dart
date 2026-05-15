@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import '../data/chat_emoji_only.dart';
+import '../data/chat_haptics.dart';
 import '../../../l10n/app_localizations.dart';
 import 'chat_wallpaper_scope.dart';
 import 'chat_wallpaper_tone.dart';
@@ -947,7 +949,10 @@ class _ReactionStrip extends StatelessWidget {
               Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: () => onPick(e),
+                  onTap: () {
+                    unawaited(ChatHaptics.instance.reactionBurst());
+                    onPick(e);
+                  },
                   borderRadius: BorderRadius.circular(12),
                   child: Padding(
                     padding: const EdgeInsets.all(6),

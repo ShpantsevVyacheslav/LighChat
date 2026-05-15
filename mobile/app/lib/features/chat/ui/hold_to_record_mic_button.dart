@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../data/chat_haptics.dart';
 import 'voice_message_preview_bar.dart';
 import 'voice_message_record_sheet.dart';
 
@@ -150,15 +151,15 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
   }
 
   Future<void> _startHaptic() async {
+    // Core Haptics: «острый» tick для начала записи. На устройствах без
+    // CoreHaptics bridge сам делает fallback на impactGenerator.
     try {
-      await HapticFeedback.mediumImpact();
-      await Future<void>.delayed(const Duration(milliseconds: 24));
-      await HapticFeedback.selectionClick();
-      return;
-    } catch (_) {}
-    try {
-      await HapticFeedback.lightImpact();
-    } catch (_) {}
+      await ChatHaptics.instance.tick();
+    } catch (_) {
+      try {
+        await HapticFeedback.mediumImpact();
+      } catch (_) {}
+    }
   }
 
   Future<bool> _ensureMicPermission() async {
@@ -460,7 +461,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
     try {
       final elapsed = _currentElapsed();
       final path = await _recorder.stop();
-      unawaited(_lightHaptic());
+      unawaited(ChatHaptics.instance.success());
       _stopTicker();
       _recOverlay?.remove();
       _recOverlay = null;
@@ -728,7 +729,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
       _elapsed = _elapsedBeforePause;
       if (mounted) setState(() {});
       _recOverlay?.markNeedsBuild();
-      unawaited(_lightHaptic());
+      unawaited(ChatHaptics.instance.tick());
     } catch (_) {}
   }
 
@@ -740,7 +741,7 @@ class _HoldToRecordMicButtonState extends State<HoldToRecordMicButton> {
       _paused = false;
       if (mounted) setState(() {});
       _recOverlay?.markNeedsBuild();
-      unawaited(_lightHaptic());
+      unawaited(ChatHaptics.instance.tick());
     } catch (_) {}
   }
 }

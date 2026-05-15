@@ -93,6 +93,7 @@ import 'message_html_text.dart';
 import 'report_sheet.dart';
 import 'chat_composer.dart';
 import 'smart_reply_chips.dart';
+import '../data/chat_haptics.dart';
 import '../data/document_scanner.dart';
 import 'thread_route_payload.dart';
 import 'secret_chat_secure_scope.dart';
@@ -3244,6 +3245,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                             if (t != 0) return t;
                             return a.id.compareTo(b.id);
                           });
+                        // Гаптик «пришло новое сообщение»: только когда счётчик
+                        // вырос и последнее — не от меня (иначе сами себе
+                        // вибрируем после отправки). previousVisibleCount > 0
+                        // — исключаем первый рендер чата (история-загрузка
+                        // не должна стрелять).
+                        if (previousVisibleCount > 0 &&
+                            visibleMsgs.length > previousVisibleCount &&
+                            _sortedAscCache.isNotEmpty &&
+                            _sortedAscCache.last.senderId != user.uid) {
+                          unawaited(ChatHaptics.instance.receiveMessage());
+                        }
                         _sortedHydratedAscCache = const <ChatMessage>[];
                         _syncMessageItemKeys(_sortedAscCache);
                         if (visibleMsgs.length < _limit) {
@@ -4087,6 +4099,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         conversationId: widget.conversationId,
         pins: next,
       );
+      unawaited(ChatHaptics.instance.tick());
     } catch (e) {
       if (mounted) _toast(l10n.chat_pin_failed(e));
     }
@@ -4103,6 +4116,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         conversationId: widget.conversationId,
         pins: next,
       );
+      unawaited(ChatHaptics.instance.tick());
     } catch (e) {
       if (mounted) _toast(l10n.chat_unpin_failed(e));
     }
@@ -4268,6 +4282,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           return;
         }
         await copyMessageTextToClipboard(m);
+        unawaited(ChatHaptics.instance.success());
         if (mounted) _toast(AppLocalizations.of(context)!.chat_text_copied);
       case MessageMenuActionType.translate:
         await _translateMessage(m, menuTextSource);
@@ -4335,6 +4350,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         }
         if (m.isDeleted) return;
         if (!mounted) return;
+        unawaited(ChatHaptics.instance.success());
         context.push('/chats/forward', extra: <ChatMessage>[m]);
       case MessageMenuActionType.select:
         setState(() => _selectedMessageIds.add(m.id));

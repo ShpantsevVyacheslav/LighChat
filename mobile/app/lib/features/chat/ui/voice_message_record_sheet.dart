@@ -3,9 +3,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
-import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
+
+import '../data/chat_haptics.dart';
 
 class VoiceMessageRecordResult {
   const VoiceMessageRecordResult({
@@ -84,12 +85,6 @@ class _VoiceMessageRecordSheetBodyState
     return '${dir.path}/audio_${DateTime.now().microsecondsSinceEpoch}.m4a';
   }
 
-  Future<void> _lightHaptic() async {
-    try {
-      await HapticFeedback.lightImpact();
-    } catch (_) {}
-  }
-
   void _startTicker() {
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(milliseconds: 250), (_) {
@@ -129,7 +124,7 @@ class _VoiceMessageRecordSheetBodyState
       _elapsed = Duration.zero;
       _recordPath = null;
       _recording = true;
-      unawaited(_lightHaptic());
+      unawaited(ChatHaptics.instance.tick());
       _startTicker();
     } catch (_) {
       setState(() => _error = AppLocalizations.of(context)!.voice_start_error);
@@ -146,7 +141,7 @@ class _VoiceMessageRecordSheetBodyState
     });
     try {
       final path = await _recorder.stop();
-      unawaited(_lightHaptic());
+      unawaited(ChatHaptics.instance.success());
       _stopTicker();
       final elapsed = _startedAt == null
           ? Duration.zero

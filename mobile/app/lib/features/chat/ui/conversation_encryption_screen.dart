@@ -6,6 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../data/chat_haptics.dart';
 import '../data/e2ee_data_type_policy.dart';
 import 'profile_subpage_header.dart';
 
@@ -235,6 +236,7 @@ class _ConversationEncryptionScreenState
                 onChanged: _busy
                     ? null
                     : (v) {
+                        unawaited(ChatHaptics.instance.success());
                         if (v) {
                           unawaited(_enable());
                         } else {
