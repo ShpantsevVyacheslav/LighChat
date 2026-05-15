@@ -6070,6 +6070,20 @@ class AppLocalizationsRu extends AppLocalizations {
       'Все страницы удалены. Нажмите + чтобы отсканировать новую.';
 
   @override
+  String get scanner_preview_send_as_pdf => 'Отправить как PDF';
+
+  @override
+  String get scanner_preview_send_as_pdf_hint =>
+      'Один файл со всеми страницами вместо отдельных картинок';
+
+  @override
+  String get scanner_preview_building_pdf => 'Собираю PDF…';
+
+  @override
+  String get scanner_pdf_failed_fallback =>
+      'Не удалось собрать PDF — отправлю как изображения';
+
+  @override
   String get attach_circle => 'Кружок';
 
   @override

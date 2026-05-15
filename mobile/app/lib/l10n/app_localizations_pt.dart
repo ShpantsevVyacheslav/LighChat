@@ -6099,6 +6099,20 @@ class AppLocalizationsPt extends AppLocalizations {
       'Todas as páginas foram excluídas. Toque em + para digitalizar.';
 
   @override
+  String get scanner_preview_send_as_pdf => 'Enviar como PDF';
+
+  @override
+  String get scanner_preview_send_as_pdf_hint =>
+      'Um arquivo com todas as páginas em vez de imagens separadas';
+
+  @override
+  String get scanner_preview_building_pdf => 'Criando PDF…';
+
+  @override
+  String get scanner_pdf_failed_fallback =>
+      'Falha ao criar PDF — enviando como imagens';
+
+  @override
   String get attach_circle => 'Nota em vídeo';
 
   @override
@@ -14726,6 +14740,20 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get scanner_preview_empty =>
       'Todas as páginas foram excluídas. Toque em + para digitalizar.';
+
+  @override
+  String get scanner_preview_send_as_pdf => 'Enviar como PDF';
+
+  @override
+  String get scanner_preview_send_as_pdf_hint =>
+      'Um arquivo com todas as páginas em vez de imagens separadas';
+
+  @override
+  String get scanner_preview_building_pdf => 'Criando PDF…';
+
+  @override
+  String get scanner_pdf_failed_fallback =>
+      'Falha ao criar PDF — enviando como imagens';
 
   @override
   String get attach_circle => 'Nota em vídeo';

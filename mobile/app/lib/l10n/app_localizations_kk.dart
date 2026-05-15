@@ -6072,6 +6072,20 @@ class AppLocalizationsKk extends AppLocalizations {
   String get scanner_preview_empty => 'Барлық беттер жойылды. + басыңыз.';
 
   @override
+  String get scanner_preview_send_as_pdf => 'PDF ретінде жіберу';
+
+  @override
+  String get scanner_preview_send_as_pdf_hint =>
+      'Барлық беттер бір файлда — жеке суреттер орнына';
+
+  @override
+  String get scanner_preview_building_pdf => 'PDF жасалуда…';
+
+  @override
+  String get scanner_pdf_failed_fallback =>
+      'PDF жасалмады — суреттер ретінде жіберілуде';
+
+  @override
   String get attach_circle => 'Кружок';
 
   @override

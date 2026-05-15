@@ -6040,6 +6040,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'All pages deleted. Tap + to scan a new one.';
 
   @override
+  String get scanner_preview_send_as_pdf => 'Send as PDF';
+
+  @override
+  String get scanner_preview_send_as_pdf_hint =>
+      'One file with all pages instead of separate images';
+
+  @override
+  String get scanner_preview_building_pdf => 'Building PDF…';
+
+  @override
+  String get scanner_pdf_failed_fallback =>
+      'PDF build failed — sending as images';
+
+  @override
   String get attach_circle => 'Circle';
 
   @override

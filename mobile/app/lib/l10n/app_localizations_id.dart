@@ -6061,6 +6061,20 @@ class AppLocalizationsId extends AppLocalizations {
       'Semua halaman dihapus. Ketuk + untuk memindai baru.';
 
   @override
+  String get scanner_preview_send_as_pdf => 'Kirim sebagai PDF';
+
+  @override
+  String get scanner_preview_send_as_pdf_hint =>
+      'Satu file dengan semua halaman, bukan gambar terpisah';
+
+  @override
+  String get scanner_preview_building_pdf => 'Membuat PDF…';
+
+  @override
+  String get scanner_pdf_failed_fallback =>
+      'Gagal membuat PDF — mengirim sebagai gambar';
+
+  @override
   String get attach_circle => 'Lingkaran';
 
   @override

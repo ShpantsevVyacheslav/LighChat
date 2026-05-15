@@ -44,4 +44,34 @@ class DocumentScanner {
       return const [];
     }
   }
+
+  /// Объединяет JPEG-страницы в один PDF в tmp/cacheDir. Возвращает путь
+  /// к PDF файлу или `null` при ошибке (нет страниц / write failed).
+  ///
+  /// iOS использует `PDFKit.PDFDocument` + `PDFPage(image:)`, Android —
+  /// `android.graphics.pdf.PdfDocument`. Размер каждой страницы PDF
+  /// берётся из размера исходной картинки (aspect ratio сохраняется).
+  ///
+  /// [filename] — опциональное имя файла. Если не задано, используется
+  /// `scan_<timestamp>.pdf`. Расширение `.pdf` добавляется автоматически.
+  Future<String?> imagesToPdf(
+    List<String> paths, {
+    String? filename,
+  }) async {
+    if (paths.isEmpty) return null;
+    if (!(Platform.isIOS || Platform.isAndroid)) return null;
+    try {
+      final args = <String, dynamic>{'paths': paths};
+      if (filename != null) args['filename'] = filename;
+      final result = await _channel.invokeMethod<String>('imagesToPdf', args);
+      return (result == null || result.isEmpty) ? null : result;
+    } on PlatformException catch (e) {
+      if (kDebugMode) {
+        debugPrint('[DocumentScanner] imagesToPdf error: ${e.code} ${e.message}');
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
 }

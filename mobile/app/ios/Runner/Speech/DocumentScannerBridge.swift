@@ -1,5 +1,6 @@
 import Flutter
 import Foundation
+import PDFKit
 import UIKit
 import VisionKit
 
@@ -51,9 +52,60 @@ final class DocumentScannerBridge: NSObject {
         self?.presentScanner()
       }
 
+    case "imagesToPdf":
+      let args = call.arguments as? [String: Any] ?? [:]
+      let paths = (args["paths"] as? [Any] ?? []).compactMap { $0 as? String }
+      let outName = (args["filename"] as? String).flatMap {
+        $0.isEmpty ? nil : $0
+      }
+      DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+        let path = self?.buildPdf(from: paths, suggestedName: outName)
+        DispatchQueue.main.async {
+          if let path = path {
+            result(path)
+          } else {
+            result(FlutterError(code: "pdf_failed",
+                                message: "Failed to build PDF from images",
+                                details: nil))
+          }
+        }
+      }
+
     default:
       result(FlutterMethodNotImplemented)
     }
+  }
+
+  /// Объединяет JPEG-страницы в один PDF в tmp/. Использует PDFKit:
+  /// каждая страница = `PDFPage(image:)`, размер берётся из самой
+  /// картинки (preserve aspect ratio автоматически). Возвращает путь
+  /// к файлу или nil при ошибке.
+  private func buildPdf(from paths: [String], suggestedName: String?) -> String? {
+    guard !paths.isEmpty else { return nil }
+    let document = PDFDocument()
+    var index = 0
+    for path in paths {
+      guard let img = UIImage(contentsOfFile: path) else { continue }
+      guard let page = PDFPage(image: img) else { continue }
+      document.insert(page, at: index)
+      index += 1
+    }
+    guard index > 0 else { return nil }
+    let tmp = NSTemporaryDirectory()
+    let stamp = Int(Date().timeIntervalSince1970 * 1000)
+    let safeName: String = {
+      if let raw = suggestedName?.trimmingCharacters(in: .whitespacesAndNewlines),
+         !raw.isEmpty
+      {
+        // Удаляем path separators и заменяем небезопасные символы.
+        let cleaned = raw.replacingOccurrences(of: "/", with: "_")
+          .replacingOccurrences(of: "\\", with: "_")
+        return cleaned.hasSuffix(".pdf") ? cleaned : "\(cleaned).pdf"
+      }
+      return "scan_\(stamp).pdf"
+    }()
+    let dest = "\(tmp)\(safeName)"
+    return document.write(toFile: dest) ? dest : nil
   }
 
   private func presentScanner() {

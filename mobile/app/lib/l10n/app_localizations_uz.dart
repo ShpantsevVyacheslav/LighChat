@@ -6096,6 +6096,20 @@ class AppLocalizationsUz extends AppLocalizations {
   String get scanner_preview_empty => 'Barcha sahifalar oʻchirildi. + bosing.';
 
   @override
+  String get scanner_preview_send_as_pdf => 'PDF sifatida yuborish';
+
+  @override
+  String get scanner_preview_send_as_pdf_hint =>
+      'Barcha sahifalar bitta faylda — alohida rasmlar oʻrniga';
+
+  @override
+  String get scanner_preview_building_pdf => 'PDF yaratilmoqda…';
+
+  @override
+  String get scanner_pdf_failed_fallback =>
+      'PDF yaratilmadi — rasmlar sifatida yuborilmoqda';
+
+  @override
   String get attach_circle => 'Doira';
 
   @override

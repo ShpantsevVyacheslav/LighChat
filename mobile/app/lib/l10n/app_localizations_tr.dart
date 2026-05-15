@@ -6073,6 +6073,20 @@ class AppLocalizationsTr extends AppLocalizations {
       'Tüm sayfalar silindi. Yeni taramak için + dokunun.';
 
   @override
+  String get scanner_preview_send_as_pdf => 'PDF olarak gönder';
+
+  @override
+  String get scanner_preview_send_as_pdf_hint =>
+      'Tüm sayfalar tek dosyada, ayrı görseller yerine';
+
+  @override
+  String get scanner_preview_building_pdf => 'PDF oluşturuluyor…';
+
+  @override
+  String get scanner_pdf_failed_fallback =>
+      'PDF oluşturulamadı — görseller olarak gönderiliyor';
+
+  @override
   String get attach_circle => 'Daire';
 
   @override

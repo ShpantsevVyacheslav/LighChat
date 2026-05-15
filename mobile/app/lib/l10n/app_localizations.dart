@@ -10654,6 +10654,30 @@ abstract class AppLocalizations {
   /// **'Все страницы удалены. Нажмите + чтобы отсканировать новую.'**
   String get scanner_preview_empty;
 
+  /// No description provided for @scanner_preview_send_as_pdf.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить как PDF'**
+  String get scanner_preview_send_as_pdf;
+
+  /// No description provided for @scanner_preview_send_as_pdf_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Один файл со всеми страницами вместо отдельных картинок'**
+  String get scanner_preview_send_as_pdf_hint;
+
+  /// No description provided for @scanner_preview_building_pdf.
+  ///
+  /// In ru, this message translates to:
+  /// **'Собираю PDF…'**
+  String get scanner_preview_building_pdf;
+
+  /// No description provided for @scanner_pdf_failed_fallback.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось собрать PDF — отправлю как изображения'**
+  String get scanner_pdf_failed_fallback;
+
   /// No description provided for @attach_circle.
   ///
   /// In ru, this message translates to:

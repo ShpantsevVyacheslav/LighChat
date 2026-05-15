@@ -19,6 +19,18 @@ import '../data/document_scanner.dart';
 /// Возвращает финальный список путей. Если пользователь отменил —
 /// возвращает пустой список; вызывающий код сам решает что делать со
 /// старыми временными файлами.
+/// Результат preview-экрана: либо одни и те же страницы изображений,
+/// либо склеенный PDF (если юзер не выключил toggle «Отправить как
+/// PDF»). PDF — это **один** файл, содержащий все страницы в
+/// исходном порядке.
+class DocumentScanResult {
+  const DocumentScanResult({required this.paths, required this.isPdf});
+  final List<String> paths;
+  final bool isPdf;
+
+  bool get isEmpty => paths.isEmpty;
+}
+
 class DocumentScannerPreviewScreen extends StatefulWidget {
   const DocumentScannerPreviewScreen({
     super.key,
@@ -27,11 +39,11 @@ class DocumentScannerPreviewScreen extends StatefulWidget {
 
   final List<String> initialPaths;
 
-  static Future<List<String>?> open(
+  static Future<DocumentScanResult?> open(
     BuildContext context, {
     required List<String> initialPaths,
   }) {
-    return Navigator.of(context).push<List<String>>(
+    return Navigator.of(context).push<DocumentScanResult>(
       MaterialPageRoute(
         builder: (_) =>
             DocumentScannerPreviewScreen(initialPaths: initialPaths),
@@ -48,6 +60,8 @@ class DocumentScannerPreviewScreen extends StatefulWidget {
 class _DocumentScannerPreviewScreenState
     extends State<DocumentScannerPreviewScreen> {
   late List<String> _paths;
+  bool _sendAsPdf = true;
+  bool _busy = false;
 
   @override
   void initState() {
@@ -89,12 +103,56 @@ class _DocumentScannerPreviewScreenState
   }
 
   void _cancel() {
-    Navigator.of(context).pop<List<String>>(<String>[]);
+    Navigator.of(context).pop<DocumentScanResult>(
+      const DocumentScanResult(paths: [], isPdf: false),
+    );
   }
 
-  void _send() {
-    unawaited(ChatHaptics.instance.success());
-    Navigator.of(context).pop<List<String>>(_paths);
+  Future<void> _send() async {
+    if (_busy || _paths.isEmpty) return;
+    if (!_sendAsPdf) {
+      unawaited(ChatHaptics.instance.success());
+      Navigator.of(context).pop<DocumentScanResult>(
+        DocumentScanResult(paths: List.of(_paths), isPdf: false),
+      );
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      // Имя по умолчанию — `scan_YYYYMMDD_HHmm.pdf`, как пользователи
+      // привыкли от Files / Notes сканеров.
+      final now = DateTime.now();
+      String two(int v) => v.toString().padLeft(2, '0');
+      final filename =
+          'scan_${now.year}${two(now.month)}${two(now.day)}_${two(now.hour)}${two(now.minute)}.pdf';
+      final pdfPath = await DocumentScanner.instance.imagesToPdf(
+        _paths,
+        filename: filename,
+      );
+      if (!mounted) return;
+      if (pdfPath == null) {
+        // PDF build failed — fall back на отправку изображений, чтобы
+        // юзер не остался ни с чем.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.scanner_pdf_failed_fallback,
+            ),
+          ),
+        );
+        unawaited(ChatHaptics.instance.warning());
+        Navigator.of(context).pop<DocumentScanResult>(
+          DocumentScanResult(paths: List.of(_paths), isPdf: false),
+        );
+        return;
+      }
+      unawaited(ChatHaptics.instance.success());
+      Navigator.of(context).pop<DocumentScanResult>(
+        DocumentScanResult(paths: [pdfPath], isPdf: true),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
@@ -205,10 +263,64 @@ class _DocumentScannerPreviewScreenState
               top: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
-                child: _SendButton(
-                  label: l10n.scanner_preview_send(_paths.length),
-                  accent: accent,
-                  onTap: _send,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Toggle «PDF (1 файл) vs изображения (N файлов)».
+                    // Default ON: документ-сканер чаще всего нужен для
+                    // pdf-документов, так привычнее по UX.
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.picture_as_pdf_rounded,
+                            size: 20,
+                            color: fg.withValues(alpha: 0.82),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l10n.scanner_preview_send_as_pdf,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: fg,
+                                  ),
+                                ),
+                                Text(
+                                  l10n.scanner_preview_send_as_pdf_hint,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: fgMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch.adaptive(
+                            value: _sendAsPdf,
+                            onChanged: _busy
+                                ? null
+                                : (v) => setState(() => _sendAsPdf = v),
+                            activeThumbColor: Colors.white,
+                            activeTrackColor: const Color(0xFF2F86FF),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _SendButton(
+                      label: _busy
+                          ? l10n.scanner_preview_building_pdf
+                          : l10n.scanner_preview_send(_paths.length),
+                      accent: accent,
+                      onTap: _busy ? null : _send,
+                      busy: _busy,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -389,11 +501,13 @@ class _SendButton extends StatefulWidget {
     required this.label,
     required this.accent,
     required this.onTap,
+    this.busy = false,
   });
 
   final String label;
   final Color accent;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool busy;
 
   @override
   State<_SendButton> createState() => _SendButtonState();
@@ -404,6 +518,7 @@ class _SendButtonState extends State<_SendButton> {
 
   @override
   Widget build(BuildContext context) {
+    final disabled = widget.onTap == null;
     return AnimatedScale(
       duration: const Duration(milliseconds: 110),
       scale: _pressed ? 0.97 : 1,
@@ -423,25 +538,45 @@ class _SendButtonState extends State<_SendButton> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [widget.accent.withValues(alpha: 0.92), widget.accent],
+                colors: disabled
+                    ? [
+                        widget.accent.withValues(alpha: 0.42),
+                        widget.accent.withValues(alpha: 0.32),
+                      ]
+                    : [
+                        widget.accent.withValues(alpha: 0.92),
+                        widget.accent,
+                      ],
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: widget.accent.withValues(alpha: 0.35),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+              boxShadow: disabled
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: widget.accent.withValues(alpha: 0.35),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
             ),
             alignment: Alignment.center,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.send_rounded,
-                  size: 18,
-                  color: Colors.white,
-                ),
+                if (widget.busy)
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                else
+                  const Icon(
+                    Icons.send_rounded,
+                    size: 18,
+                    color: Colors.white,
+                  ),
                 const SizedBox(width: 8),
                 Text(
                   widget.label,

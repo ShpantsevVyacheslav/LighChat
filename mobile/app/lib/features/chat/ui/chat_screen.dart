@@ -5869,15 +5869,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           final paths = await DocumentScanner.instance.scan();
           if (!mounted || paths.isEmpty) return;
           // Preview screen — пользователь может удалить страницы,
-          // переупорядочить, переснять отдельную, добавить ещё.
-          final curated = await DocumentScannerPreviewScreen.open(
+          // переупорядочить, переснять отдельную, добавить ещё, и
+          // выбрать «Отправить как PDF» (default ON) → собираем все
+          // страницы в один документ, иначе как N изображений.
+          final result = await DocumentScannerPreviewScreen.open(
             context,
             initialPaths: paths,
           );
-          if (!mounted || curated == null || curated.isEmpty) return;
-          final add = curated
-              .map((p) => XFile(p, name: p.split(Platform.pathSeparator).last))
-              .toList();
+          if (!mounted || result == null || result.isEmpty) return;
+          final add = result.paths.map((p) {
+            final name = p.split(Platform.pathSeparator).last;
+            // PDF — задаём корректный mimeType, чтобы attachment pipeline
+            // отрисовал PDF preview-icon, а не image-thumbnail.
+            return result.isPdf
+                ? XFile(p, name: name, mimeType: 'application/pdf')
+                : XFile(p, name: name);
+          }).toList();
           setState(() => _pendingAttachments.addAll(add));
           _scheduleChatDraftSave();
           _recomputeComposerLimits();

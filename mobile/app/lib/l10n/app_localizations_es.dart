@@ -6115,6 +6115,20 @@ class AppLocalizationsEs extends AppLocalizations {
       'Todas las páginas eliminadas. Toca + para escanear otra.';
 
   @override
+  String get scanner_preview_send_as_pdf => 'Enviar como PDF';
+
+  @override
+  String get scanner_preview_send_as_pdf_hint =>
+      'Un archivo con todas las páginas en lugar de imágenes separadas';
+
+  @override
+  String get scanner_preview_building_pdf => 'Creando PDF…';
+
+  @override
+  String get scanner_pdf_failed_fallback =>
+      'Error al crear PDF — enviando como imágenes';
+
+  @override
   String get attach_circle => 'Circular';
 
   @override
@@ -14757,6 +14771,20 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   @override
   String get scanner_preview_empty =>
       'Todas las páginas eliminadas. Toca + para escanear otra.';
+
+  @override
+  String get scanner_preview_send_as_pdf => 'Enviar como PDF';
+
+  @override
+  String get scanner_preview_send_as_pdf_hint =>
+      'Un archivo con todas las páginas en lugar de imágenes separadas';
+
+  @override
+  String get scanner_preview_building_pdf => 'Creando PDF…';
+
+  @override
+  String get scanner_pdf_failed_fallback =>
+      'Error al crear PDF — enviando como imágenes';
 
   @override
   String get attach_circle => 'Circular';
