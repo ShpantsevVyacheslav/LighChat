@@ -4064,6 +4064,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         clean,
         style: styleId ?? 'friendly',
       ),
+      runStream: (styleId) => AppleIntelligence.instance.streamRewrite(
+        clean,
+        style: styleId ?? 'friendly',
+      ),
       applyLabel: l10n.ai_action_apply,
       onApply: (result) {
         if (!mounted) return;
@@ -4094,6 +4098,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       title: l10n.ai_action_summarize,
       original: clean,
       run: (_) => AppleIntelligence.instance.summarize(clean),
+      runStream: (_) => AppleIntelligence.instance.streamSummarize(clean),
     );
   }
 

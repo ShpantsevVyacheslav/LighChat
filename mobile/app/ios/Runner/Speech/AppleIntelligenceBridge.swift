@@ -23,11 +23,34 @@ final class AppleIntelligenceBridge: NSObject {
   static let shared = AppleIntelligenceBridge()
   private static let logTag = "[AppleIntelligence]"
 
+  /// Активные стрим-задачи: streamId → Task. Хранятся чтобы можно было
+  /// cancelStream() их остановить — пользователь может закрыть шторку до
+  /// завершения генерации.
+  private var streamTasks: [String: Task<Void, Never>] = [:]
+  private var streamSink: FlutterEventSink?
+
   func register(messenger: FlutterBinaryMessenger) {
     let channel = FlutterMethodChannel(
       name: "lighchat/apple_intelligence", binaryMessenger: messenger)
     channel.setMethodCallHandler { [weak self] call, result in
       self?.handle(call: call, result: result)
+    }
+    let stream = FlutterEventChannel(
+      name: "lighchat/apple_intelligence_stream", binaryMessenger: messenger)
+    stream.setStreamHandler(_AiStreamHandler(bridge: self))
+  }
+
+  func attachStreamSink(_ sink: @escaping FlutterEventSink) {
+    streamSink = sink
+  }
+
+  func detachStreamSink() {
+    streamSink = nil
+  }
+
+  private func emit(_ payload: [String: Any]) {
+    DispatchQueue.main.async { [weak self] in
+      self?.streamSink?(payload)
     }
   }
 
@@ -69,9 +92,99 @@ final class AppleIntelligenceBridge: NSObject {
           "Summarize the recent dialog from a group chat:\n\n\(messages)",
         completion: result)
 
+    case "streamSummarize":
+      let streamId = (args["streamId"] as? String) ?? ""
+      let text = (args["text"] as? String ?? "")
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+      if streamId.isEmpty || text.isEmpty {
+        result(false); return
+      }
+      startStream(
+        streamId: streamId,
+        instructions:
+          "You are a concise summarizer. Always reply in the same language as the input. Output one or two short sentences.",
+        prompt: "Summarize this briefly:\n\n\(text)")
+      result(true)
+
+    case "streamRewrite":
+      let streamId = (args["streamId"] as? String) ?? ""
+      let text = (args["text"] as? String ?? "")
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+      let style = (args["style"] as? String ?? "friendly").lowercased()
+      if streamId.isEmpty || text.isEmpty {
+        result(false); return
+      }
+      let (sys, ask) = Self.rewritePrompt(style: style, text: text)
+      startStream(streamId: streamId, instructions: sys, prompt: ask)
+      result(true)
+
+    case "cancelStream":
+      let streamId = (args["streamId"] as? String) ?? ""
+      if let t = streamTasks.removeValue(forKey: streamId) {
+        t.cancel()
+      }
+      result(nil)
+
     default:
       result(FlutterMethodNotImplemented)
     }
+  }
+
+  private func startStream(
+    streamId: String, instructions: String, prompt: String
+  ) {
+    #if canImport(FoundationModels)
+      if #available(iOS 26.0, *) {
+        let model = SystemLanguageModel.default
+        guard case .available = model.availability else {
+          emit([
+            "streamId": streamId,
+            "event": "error",
+            "reason": "unavailable",
+          ])
+          return
+        }
+        let task = Task { [weak self] in
+          guard let self = self else { return }
+          do {
+            let session = LanguageModelSession(instructions: instructions)
+            let stream = session.streamResponse(to: prompt)
+            for try await partial in stream {
+              if Task.isCancelled { break }
+              // partial.content — накопительный текст, не дельта.
+              self.emit([
+                "streamId": streamId,
+                "event": "delta",
+                "content": partial.content,
+              ])
+            }
+            if !Task.isCancelled {
+              self.emit([
+                "streamId": streamId,
+                "event": "done",
+              ])
+            }
+          } catch is CancellationError {
+            // silent
+          } catch {
+            NSLog("%@ stream error: %@", Self.logTag, "\(error)")
+            self.emit([
+              "streamId": streamId,
+              "event": "error",
+              "reason": "exception",
+            ])
+          }
+          self.streamTasks.removeValue(forKey: streamId)
+        }
+        streamTasks[streamId] = task
+        return
+      }
+    #endif
+    emit([
+      "streamId": streamId,
+      "event": "error",
+      "reason": "unsupportedOs",
+    ])
   }
 
   static func isFoundationModelsAvailable() -> Bool {
@@ -174,5 +287,22 @@ final class AppleIntelligenceBridge: NSObject {
       }
     #endif
     completion(nil)
+  }
+}
+
+private final class _AiStreamHandler: NSObject, FlutterStreamHandler {
+  init(bridge: AppleIntelligenceBridge) { self.bridge = bridge }
+  weak var bridge: AppleIntelligenceBridge?
+
+  func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink)
+    -> FlutterError?
+  {
+    bridge?.attachStreamSink(events)
+    return nil
+  }
+
+  func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    bridge?.detachStreamSink()
+    return nil
   }
 }

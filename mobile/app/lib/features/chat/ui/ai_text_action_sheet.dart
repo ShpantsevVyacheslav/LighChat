@@ -25,6 +25,7 @@ class AiTextActionSheet extends StatefulWidget {
     required this.title,
     required this.original,
     required this.run,
+    this.runStream,
     this.applyLabel,
     this.onApply,
     this.styleVariants = const [],
@@ -38,8 +39,14 @@ class AiTextActionSheet extends StatefulWidget {
   final String original;
 
   /// Сама работа. Получает `styleId` (или `null` если стиля нет) и возвращает
-  /// результат-строку или `null` при ошибке/недоступности модели.
+  /// результат-строку или `null` при ошибке/недоступности модели. Используется
+  /// как fallback если [runStream] не задан или native не поддерживает стрим.
   final Future<String?> Function(String? styleId) run;
+
+  /// Опционально: стримовая работа. Получает styleId, возвращает Stream
+  /// строк (каждая эмиссия — накопительный content). Если задан — используется
+  /// вместо [run] и текст «печатается» в UI символ за символом.
+  final Stream<String> Function(String? styleId)? runStream;
 
   /// Текст кнопки «Заменить» (опц.). Если `null` — кнопка скрыта.
   final String? applyLabel;
@@ -60,6 +67,7 @@ class AiTextActionSheet extends StatefulWidget {
     required String title,
     required String original,
     required Future<String?> Function(String? styleId) run,
+    Stream<String> Function(String? styleId)? runStream,
     String? applyLabel,
     void Function(String result)? onApply,
     List<AiStyleVariant> styleVariants = const [],
@@ -74,6 +82,7 @@ class AiTextActionSheet extends StatefulWidget {
         title: title,
         original: original,
         run: run,
+        runStream: runStream,
         applyLabel: applyLabel,
         onApply: onApply,
         styleVariants: styleVariants,
@@ -99,6 +108,8 @@ class _AiTextActionSheetState extends State<AiTextActionSheet> {
   bool _busy = false;
   bool _failed = false;
   String? _failureStatus;
+  StreamSubscription<String>? _streamSub;
+  bool _streaming = false;
 
   @override
   void initState() {
@@ -110,17 +121,53 @@ class _AiTextActionSheetState extends State<AiTextActionSheet> {
   }
 
   Future<void> _run() async {
+    // Отменяем предыдущий стрим если был.
+    await _streamSub?.cancel();
+    _streamSub = null;
     setState(() {
       _busy = true;
       _failed = false;
       _failureStatus = null;
       _result = null;
+      _streaming = false;
     });
+
+    final streamFactory = widget.runStream;
+    if (streamFactory != null) {
+      // Streaming path — токены появляются live.
+      _streaming = true;
+      final s = streamFactory(_styleId);
+      _streamSub = s.listen(
+        (cumulative) {
+          if (!mounted) return;
+          setState(() {
+            _result = cumulative;
+            _busy = false;
+          });
+        },
+        onError: (e) async {
+          final status =
+              await AppleIntelligence.instance.availabilityStatus();
+          if (!mounted) return;
+          setState(() {
+            _busy = false;
+            _failed = (_result ?? '').isEmpty;
+            _failureStatus = status;
+            _streaming = false;
+          });
+        },
+        onDone: () {
+          if (!mounted) return;
+          setState(() => _streaming = false);
+        },
+      );
+      return;
+    }
+
+    // Single-shot fallback.
     final out = await widget.run(_styleId);
     String? status;
     if (out == null) {
-      // Узнаём детальную причину — модель ещё качается / выключено в
-      // Настройках / устройство не поддерживает.
       status = await AppleIntelligence.instance.availabilityStatus();
     }
     if (!mounted) return;
@@ -130,6 +177,12 @@ class _AiTextActionSheetState extends State<AiTextActionSheet> {
       _failureStatus = status;
       _result = out;
     });
+  }
+
+  @override
+  void dispose() {
+    _streamSub?.cancel();
+    super.dispose();
   }
 
   String _failureMessage(AppLocalizations l10n) {
@@ -221,6 +274,7 @@ class _AiTextActionSheetState extends State<AiTextActionSheet> {
                               text: _result,
                               busy: _busy,
                               failed: _failed,
+                              streaming: _streaming,
                               busyLabel: l10n.ai_action_thinking,
                               failedLabel: _failureMessage(l10n),
                             ),
@@ -489,12 +543,14 @@ class _ResultCard extends StatelessWidget {
     required this.failed,
     required this.busyLabel,
     required this.failedLabel,
+    this.streaming = false,
   });
 
   final _Palette palette;
   final String? text;
   final bool busy;
   final bool failed;
+  final bool streaming;
   final String busyLabel;
   final String failedLabel;
 
@@ -548,14 +604,82 @@ class _ResultCard extends StatelessWidget {
         ),
       );
     }
-    return SelectableText(
-      text ?? '',
+    return _StreamableText(
+      text: text ?? '',
       style: TextStyle(
         fontSize: 15.5,
         height: 1.4,
         fontWeight: FontWeight.w600,
         color: palette.bodyColor,
       ),
+      streaming: streaming,
+      caretColor: palette.accent,
+    );
+  }
+}
+
+/// Текст с опциональным мигающим курсором в конце пока streaming=true.
+/// Используется в AI sheet — иммитирует «печатание» AI-ответа.
+class _StreamableText extends StatefulWidget {
+  const _StreamableText({
+    required this.text,
+    required this.style,
+    required this.streaming,
+    required this.caretColor,
+  });
+
+  final String text;
+  final TextStyle style;
+  final bool streaming;
+  final Color caretColor;
+
+  @override
+  State<_StreamableText> createState() => _StreamableTextState();
+}
+
+class _StreamableTextState extends State<_StreamableText>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _blink;
+
+  @override
+  void initState() {
+    super.initState();
+    _blink = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _blink.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.streaming) {
+      return SelectableText(widget.text, style: widget.style);
+    }
+    return AnimatedBuilder(
+      animation: _blink,
+      builder: (context, _) {
+        final alpha = (1.0 - (_blink.value - 0.5).abs() * 2).clamp(0.0, 1.0);
+        return Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(widget.text, style: widget.style),
+            Padding(
+              padding: const EdgeInsets.only(left: 2),
+              child: Container(
+                width: 2,
+                height: (widget.style.fontSize ?? 16) * 1.05,
+                color: widget.caretColor.withValues(alpha: alpha),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
