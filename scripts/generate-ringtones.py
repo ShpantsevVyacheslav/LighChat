@@ -122,6 +122,71 @@ def edge_fades(audio: np.ndarray, fade_in_ms: float = 4.0,
 
 
 # ============================================================================
+# Post-processing chain: reverb → stereo widening → soft limiter
+# ============================================================================
+
+def build_ir(duration_s: float, rt60_s: float, seed: int = 1) -> np.ndarray:
+    """Synthesize a compact synthetic IR.
+
+    - Кластер early reflections (~5–40 мс), затем гладкий диффузный хвост.
+    - Слабая low-pass через сглаживающий 5-tap kernel — убирает «sandy»
+      высокие частоты у белого шума, имитирует поглощение комнатой.
+    """
+    n = int(duration_s * SR)
+    rng = np.random.default_rng(seed=seed)
+    noise = rng.standard_normal(n)
+    decay = np.exp(-6.908 * np.linspace(0.0, duration_s, n) / rt60_s)
+    diffuse = noise * decay
+    kernel = np.array([0.10, 0.25, 0.30, 0.25, 0.10])
+    diffuse = np.convolve(diffuse, kernel, mode='same')
+    # Early reflections (короткий кластер impulse'ов)
+    early = np.zeros(n)
+    for t_ms, amp in ((7.5, 0.45), (14.0, -0.30), (22.0, 0.25), (33.0, -0.18)):
+        idx = int(t_ms * SR / 1000)
+        if idx < n:
+            early[idx] = amp
+    ir = early + diffuse * 0.55
+    # Нормируем чтобы reverb добавлял энергию контролируемо.
+    peak = max(abs(ir).max(), 1e-6)
+    return ir / peak * 0.42
+
+
+def apply_reverb(audio: np.ndarray, ir: np.ndarray, wet: float = 0.30) -> np.ndarray:
+    """Mix dry + convolved (wet) signal. Хвост IR расширяет длительность."""
+    if wet <= 0.0:
+        return audio
+    wet_sig = np.convolve(audio, ir, mode='full')
+    out = np.zeros(len(wet_sig), dtype=np.float64)
+    # Слегка ослабим dry для баланса (не слишком много, иначе звучит мутно).
+    out[: len(audio)] = audio * (1.0 - wet * 0.35)
+    out += wet_sig * wet
+    return out
+
+
+def widen_stereo(mono: np.ndarray, delay_ms: float = 9.0,
+                 gain_r: float = 0.86) -> np.ndarray:
+    """Haas-эффект: правый канал задерживается на ~7–12 мс. Создаёт
+    ощущение ширины без потери mono-совместимости (на динамике смартфона
+    практически совпадает с mono mix-down)."""
+    n = len(mono)
+    d = int(delay_ms * SR / 1000)
+    out = np.zeros((n, 2), dtype=np.float64)
+    out[:, 0] = mono
+    if d > 0 and d < n:
+        out[d:, 1] = mono[: n - d] * gain_r
+    # Чтобы правый канал не начинался с тишины — заполним начало мягко.
+    fill = min(d, n)
+    if fill > 0:
+        out[:fill, 1] = mono[:fill] * gain_r * 0.45
+    return out
+
+
+def soft_limit(audio: np.ndarray, threshold: float = 0.92) -> np.ndarray:
+    """Tanh-based soft clipping — мягкий ceiling без жёстких overshoot'ов."""
+    return np.tanh(audio / threshold) * threshold
+
+
+# ============================================================================
 # Pitch reference
 # ============================================================================
 C4 = 261.63
@@ -448,37 +513,91 @@ def hand_raise_ping() -> np.ndarray:
 # ============================================================================
 
 def write_wav(path: Path, audio: np.ndarray) -> None:
+    """Write mono (1D) or stereo (N,2) audio to 16-bit PCM WAV."""
     pcm = np.clip(audio, -1.0, 1.0)
-    pcm16 = (pcm * 32767.0).astype(np.int16)
+    if pcm.ndim == 1:
+        nch = 1
+        frames = (pcm * 32767.0).astype(np.int16)
+    else:
+        nch = pcm.shape[1]
+        # shape (N, nch) → reshape(-1) даёт interleaved order L0,R0,L1,R1,...
+        frames = (pcm * 32767.0).astype(np.int16).reshape(-1)
     with wave.open(str(path), "wb") as w:
-        w.setnchannels(1)
+        w.setnchannels(nch)
         w.setsampwidth(2)
         w.setframerate(SR)
-        w.writeframes(pcm16.tobytes())
+        w.writeframes(frames.tobytes())
 
 
-def wav_to_mp3(wav_path: Path, mp3_path: Path, bitrate: str = "96k") -> None:
+def wav_to_mp3(wav_path: Path, mp3_path: Path, bitrate: str = "128k") -> None:
     subprocess.run(
         [
             "ffmpeg", "-y", "-loglevel", "error",
             "-i", str(wav_path),
-            "-codec:a", "libmp3lame", "-b:a", bitrate, "-ac", "1",
+            "-codec:a", "libmp3lame", "-b:a", bitrate,
             str(mp3_path),
         ],
         check=True,
     )
 
 
+# Variant-specific reverb caches (создаются один раз).
+_IR_MESSAGE: np.ndarray | None = None
+_IR_CALL: np.ndarray | None = None
+_IR_PING: np.ndarray | None = None
+
+
+def _ensure_irs() -> None:
+    global _IR_MESSAGE, _IR_CALL, _IR_PING
+    if _IR_MESSAGE is None:
+        # Короткая «комната» для сообщений — тёплая, ~180 мс.
+        _IR_MESSAGE = build_ir(duration_s=0.22, rt60_s=0.18, seed=11)
+        # Просторный «зал» для звонков — длиннее, более глубокий.
+        _IR_CALL = build_ir(duration_s=0.50, rt60_s=0.42, seed=23)
+        # Очень короткий plate-like для конференц-пинга.
+        _IR_PING = build_ir(duration_s=0.12, rt60_s=0.10, seed=7)
+
+
+# Какие пресеты лучше воспринимаются с уменьшенным reverb (сухие/деревянные).
+_DRY_PRESETS = {"marimba_tap", "wood_block", "tap_tone"}
+
+
 def emit(rel_path: str, audio: np.ndarray) -> None:
+    """Apply post-processing (reverb → stereo widening → soft limit), encode."""
+    _ensure_irs()
+
+    # Выбор IR и базовой влажности по variant.
+    if rel_path.startswith("ringtones/messages/"):
+        ir = _IR_MESSAGE
+        wet = 0.22
+        delay_ms = 7.0
+    elif rel_path.startswith("ringtones/calls/"):
+        ir = _IR_CALL
+        wet = 0.30
+        delay_ms = 11.0
+    else:
+        ir = _IR_PING
+        wet = 0.18
+        delay_ms = 5.0
+
+    # Сухие пресеты — режем reverb, чтобы wood/marimba/tap не «плыли».
+    preset_id = Path(rel_path).stem
+    if preset_id in _DRY_PRESETS:
+        wet *= 0.5
+
+    processed = apply_reverb(audio, ir, wet=wet)
+    processed = widen_stereo(processed, delay_ms=delay_ms, gain_r=0.86)
+    processed = soft_limit(processed, threshold=0.92)
+
     web_path = OUT_WEB / f"{rel_path}.mp3"
     mobile_path = OUT_MOBILE / f"{rel_path}.mp3"
     tmp_wav = web_path.with_suffix(".wav")
-    write_wav(tmp_wav, audio)
-    wav_to_mp3(tmp_wav, web_path)
+    write_wav(tmp_wav, processed)
+    wav_to_mp3(tmp_wav, web_path, bitrate="128k")
     tmp_wav.unlink()
     shutil.copyfile(web_path, mobile_path)
-    dur = len(audio) / SR
-    print(f"  {rel_path}.mp3  duration={dur:.2f}s  size={web_path.stat().st_size} B")
+    dur = len(processed) / SR
+    print(f"  {rel_path}.mp3  dur={dur:.2f}s  size={web_path.stat().st_size} B")
 
 
 def main() -> int:
