@@ -2869,6 +2869,13 @@ class AppLocalizationsKk extends AppLocalizations {
   String get message_menu_action_read_aloud => 'Дауыстап оқу';
 
   @override
+  String get tts_quality_hint =>
+      'Дауыс роботқа ұқсайды ма? Параметрлер → Қол жетімділік → Дауыспен оқу → Дауыстар орнатыңыз.';
+
+  @override
+  String get tts_quality_hint_cta => 'Параметрлер';
+
+  @override
   String get message_menu_action_edit => 'Өзгерту';
 
   @override

@@ -1470,6 +1470,8 @@
   "message_menu_action_translate": "Аудару",
   "message_menu_action_show_original": "Түпнұсқаны көрсету",
   "message_menu_action_read_aloud": "Дауыстап оқу",
+  "tts_quality_hint": "Дауыс роботқа ұқсайды ма? Параметрлер → Қол жетімділік → Дауыспен оқу → Дауыстар орнатыңыз.",
+  "tts_quality_hint_cta": "Параметрлер",
   "message_menu_action_edit": "Өзгерту",
   "message_menu_action_pin": "Бекіту",
   "message_menu_action_star_add": "Қосу в таңдаулылар",

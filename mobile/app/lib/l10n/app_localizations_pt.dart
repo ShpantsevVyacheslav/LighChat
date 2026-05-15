@@ -2878,6 +2878,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get message_menu_action_read_aloud => 'Ler em voz alta';
 
   @override
+  String get tts_quality_hint =>
+      'Voz robótica? Instale vozes Enhanced em Ajustes → Acessibilidade → Conteúdo Falado → Vozes.';
+
+  @override
+  String get tts_quality_hint_cta => 'Ajustes';
+
+  @override
   String get message_menu_action_edit => 'Editar';
 
   @override
@@ -11334,6 +11341,13 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get message_menu_action_read_aloud => 'Ler em voz alta';
+
+  @override
+  String get tts_quality_hint =>
+      'Voz robótica? Instale vozes Enhanced em Ajustes → Acessibilidade → Conteúdo Falado → Vozes.';
+
+  @override
+  String get tts_quality_hint_cta => 'Ajustes';
 
   @override
   String get message_menu_action_edit => 'Editar';

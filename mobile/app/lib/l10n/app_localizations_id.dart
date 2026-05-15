@@ -2864,6 +2864,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get message_menu_action_read_aloud => 'Baca dengan suara';
 
   @override
+  String get tts_quality_hint =>
+      'Suara terdengar robot? Pasang suara Enhanced di Pengaturan → Aksesibilitas → Konten Lisan → Suara.';
+
+  @override
+  String get tts_quality_hint_cta => 'Pengaturan';
+
+  @override
   String get message_menu_action_edit => 'Sunting';
 
   @override

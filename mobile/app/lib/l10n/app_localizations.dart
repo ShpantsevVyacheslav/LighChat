@@ -4984,6 +4984,18 @@ abstract class AppLocalizations {
   /// **'Прочитать вслух'**
   String get message_menu_action_read_aloud;
 
+  /// No description provided for @tts_quality_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Голос звучит как робот? Установите Enhanced-голоса: Настройки → Универсальный доступ → Контент с речью → Голоса.'**
+  String get tts_quality_hint;
+
+  /// No description provided for @tts_quality_hint_cta.
+  ///
+  /// In ru, this message translates to:
+  /// **'Настройки'**
+  String get tts_quality_hint_cta;
+
   /// No description provided for @message_menu_action_edit.
   ///
   /// In ru, this message translates to:

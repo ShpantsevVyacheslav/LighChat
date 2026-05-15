@@ -2871,6 +2871,13 @@ class AppLocalizationsTr extends AppLocalizations {
   String get message_menu_action_read_aloud => 'Sesli oku';
 
   @override
+  String get tts_quality_hint =>
+      'Ses robotik mi? Ayarlar → Erişilebilirlik → Konuşulan İçerik → Sesler bölümünden Enhanced sesleri yükleyin.';
+
+  @override
+  String get tts_quality_hint_cta => 'Ayarlar';
+
+  @override
   String get message_menu_action_edit => 'Düzenle';
 
   @override

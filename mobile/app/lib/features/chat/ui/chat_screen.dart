@@ -16,6 +16,8 @@ import 'package:intl/intl.dart' show DateFormat;
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:lighchat_mobile/app_providers.dart';
@@ -4167,6 +4169,48 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       if (det.isReliable) langTag = det.language;
     } catch (_) {/* fall back to system locale */}
     await LocalTextToSpeech.instance.speak(text: text, languageTag: langTag);
+
+    // Если установлен только Compact голос — показываем разовый tip
+    // как в системные Настройки добавить Enhanced/Premium для нормального
+    // звучания. Tip помечается seen в shared_preferences чтобы не спамить.
+    unawaited(_maybeShowTtsQualityHint(langTag));
+  }
+
+  Future<void> _maybeShowTtsQualityHint(String? langTag) async {
+    try {
+      final info = await LocalTextToSpeech.instance.voiceQualityInfo(
+        languageTag: langTag,
+      );
+      if (info.hasEnhancedOrBetter) return; // всё ок, голос норм
+      if (!mounted) return;
+      final prefs = await SharedPreferences.getInstance();
+      const seenKey = 'tts.qualityHint.seen';
+      if (prefs.getBool(seenKey) == true) return;
+      if (!mounted) return;
+      await prefs.setBool(seenKey, true);
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 8),
+          content: Text(l10n.tts_quality_hint),
+          action: SnackBarAction(
+            label: l10n.tts_quality_hint_cta,
+            onPressed: () {
+              // Открыть системные Настройки. В iOS app-settings deeplink
+              // не пускает напрямую в Accessibility > Spoken Content,
+              // приходится открывать корень приложения наших настроек.
+              unawaited(
+                url_launcher.launchUrl(
+                  Uri.parse('app-settings:'),
+                  mode: url_launcher.LaunchMode.externalApplication,
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    } catch (_) {/* silent */}
   }
 
   Future<void> _pinMessage(

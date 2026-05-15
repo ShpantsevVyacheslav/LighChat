@@ -1470,6 +1470,8 @@
   "message_menu_action_translate": "Tarjima qilish",
   "message_menu_action_show_original": "Asl matnni koʻrsatish",
   "message_menu_action_read_aloud": "Ovoz bilan oʻqish",
+  "tts_quality_hint": "Ovoz robotga oʻxshaydi? Sozlamalar → Maxsus imkoniyatlar → Soʻzlangan kontent → Ovozlardan Enhanced ovozlarni oʻrnating.",
+  "tts_quality_hint_cta": "Sozlamalar",
   "message_menu_action_edit": "Tahrirlash",
   "message_menu_action_pin": "Qadash",
   "message_menu_action_star_add": "Sevimlilarga qoʻshish",

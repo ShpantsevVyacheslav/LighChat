@@ -2695,25 +2695,70 @@ def concept_cute_fox(theme):
 
 
 def concept_panda_bamboo(theme):
-    """Панда среди бамбука."""
+    """Панда среди бамбукового леса.
+
+    Бамбук рисуется в три плана: дальний размытый «лес» (много стеблей с
+    низкой alpha по всему полотну), передние стебли по краям рамки, узлы
+    с тенью. Для dark-варианта «чёрные» части панды осветлены до средне-
+    серых, чтобы не сливаться с тёмным фоном.
+    """
     if theme == "light":
         bg = vertical_gradient((W, H), (235, 245, 220), (215, 230, 195))
         body = (252, 252, 252)
         dark = (28, 30, 40)
         eye_white = (255, 255, 255)
         cane_color = (115, 150, 95)
+        far_cane = (170, 195, 145)
+        haze = (255, 255, 255)
     else:
-        bg = vertical_gradient((W, H), (16, 26, 20), (28, 38, 30))
-        body = (220, 220, 220)
-        dark = (12, 14, 22)
-        eye_white = (245, 245, 245)
-        cane_color = (50, 80, 55)
-    # Стебли бамбука по краям
-    for x_frac, alpha in [(0.05, 220), (0.12, 200), (0.88, 220), (0.95, 200)]:
+        # Чуть посветлее фон, чтобы был контраст со средне-серыми «чёрными»
+        # частями панды.
+        bg = vertical_gradient((W, H), (28, 46, 32), (44, 62, 44))
+        body = (235, 235, 235)
+        dark = (50, 55, 65)
+        eye_white = (250, 250, 250)
+        cane_color = (90, 130, 80)
+        far_cane = (60, 95, 60)
+        haze = (140, 175, 130)
+    # Дальний план — много стеблей по всему полотну с низкой alpha
+    rng = random.Random(303)
+    far_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    fd = ImageDraw.Draw(far_layer)
+    for _ in range(14):
+        x = rng.randint(0, W)
+        cw = rng.randint(int(W * 0.010), int(W * 0.018))
+        a = rng.randint(70, 130)
+        fd.rectangle([x - cw // 2, 0, x + cw // 2, H],
+                     fill=far_cane + (a,))
+        # Узлы дальних стеблей
+        node_step = int(H * 0.10)
+        for ny in range(int(H * 0.05), H, node_step):
+            fd.rectangle([x - cw // 2 - 1, ny - 3, x + cw // 2 + 1, ny + 3],
+                         fill=(max(0, far_cane[0] - 25),
+                               max(0, far_cane[1] - 25),
+                               max(0, far_cane[2] - 25)) + (a,))
+    far_layer = far_layer.filter(ImageFilter.GaussianBlur(radius=4))
+    bg.paste(far_layer, (0, 0), far_layer)
+    # Туманная вертикальная полоса в центре — подложка под панду,
+    # отделяет её от заднего плана и подсвечивает силуэт
+    haze_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    hd = ImageDraw.Draw(haze_layer)
+    hd.ellipse([int(W * 0.18), int(H * 0.22),
+                int(W * 0.82), int(H * 0.78)],
+               fill=haze + (90 if theme == "dark" else 120,))
+    haze_layer = haze_layer.filter(ImageFilter.GaussianBlur(radius=80))
+    bg.paste(haze_layer, (0, 0), haze_layer)
+    # Передние стебли — по краям рамки + 2 в средне-фронтальной зоне
+    for x_frac, alpha, cw_frac in [
+        (0.04, 235, 0.024), (0.11, 215, 0.022),
+        (0.30, 200, 0.020),
+        (0.70, 200, 0.020),
+        (0.89, 215, 0.022), (0.96, 235, 0.024),
+    ]:
         cane_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         cd = ImageDraw.Draw(cane_layer)
         x = int(W * x_frac)
-        cw = int(W * 0.022)
+        cw = int(W * cw_frac)
         cd.rectangle([x - cw // 2, 0, x + cw // 2, H],
                      fill=cane_color + (alpha,))
         # Узлы

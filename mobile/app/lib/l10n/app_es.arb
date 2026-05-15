@@ -1470,6 +1470,8 @@
   "message_menu_action_translate": "Traducir",
   "message_menu_action_show_original": "Mostrar original",
   "message_menu_action_read_aloud": "Leer en voz alta",
+  "tts_quality_hint": "¿Voz robótica? Instala voces Enhanced en Ajustes → Accesibilidad → Contenido leído → Voces.",
+  "tts_quality_hint_cta": "Ajustes",
   "message_menu_action_edit": "Editar",
   "message_menu_action_pin": "Fijar",
   "message_menu_action_star_add": "Agregar a Destacados",

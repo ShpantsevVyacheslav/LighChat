@@ -2870,6 +2870,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get message_menu_action_read_aloud => 'Прочитать вслух';
 
   @override
+  String get tts_quality_hint =>
+      'Голос звучит как робот? Установите Enhanced-голоса: Настройки → Универсальный доступ → Контент с речью → Голоса.';
+
+  @override
+  String get tts_quality_hint_cta => 'Настройки';
+
+  @override
   String get message_menu_action_edit => 'Изменить';
 
   @override

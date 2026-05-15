@@ -1470,6 +1470,8 @@
   "message_menu_action_translate": "Terjemahkan",
   "message_menu_action_show_original": "Tampilkan asli",
   "message_menu_action_read_aloud": "Baca dengan suara",
+  "tts_quality_hint": "Suara terdengar robot? Pasang suara Enhanced di Pengaturan → Aksesibilitas → Konten Lisan → Suara.",
+  "tts_quality_hint_cta": "Pengaturan",
   "message_menu_action_edit": "Sunting",
   "message_menu_action_pin": "Sematkan",
   "message_menu_action_star_add": "Tambah to Berbintang",

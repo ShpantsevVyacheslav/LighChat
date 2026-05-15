@@ -2852,6 +2852,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get message_menu_action_read_aloud => 'Read aloud';
 
   @override
+  String get tts_quality_hint =>
+      'Voice sounds robotic? Install Enhanced voices in Settings → Accessibility → Spoken Content → Voices.';
+
+  @override
+  String get tts_quality_hint_cta => 'Settings';
+
+  @override
   String get message_menu_action_edit => 'Edit';
 
   @override

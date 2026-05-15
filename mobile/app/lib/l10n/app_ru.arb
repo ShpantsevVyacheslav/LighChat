@@ -1490,6 +1490,8 @@
   "message_menu_action_translate": "Перевести",
   "message_menu_action_show_original": "Показать оригинал",
   "message_menu_action_read_aloud": "Прочитать вслух",
+  "tts_quality_hint": "Голос звучит как робот? Установите Enhanced-голоса: Настройки → Универсальный доступ → Контент с речью → Голоса.",
+  "tts_quality_hint_cta": "Настройки",
   "message_menu_action_edit": "Изменить",
   "message_menu_action_pin": "Закрепить",
   "message_menu_action_star_add": "Добавить в избранное",

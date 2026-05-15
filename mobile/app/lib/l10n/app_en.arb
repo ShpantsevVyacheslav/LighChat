@@ -1490,6 +1490,8 @@
   "message_menu_action_translate": "Translate",
   "message_menu_action_show_original": "Show original",
   "message_menu_action_read_aloud": "Read aloud",
+  "tts_quality_hint": "Voice sounds robotic? Install Enhanced voices in Settings → Accessibility → Spoken Content → Voices.",
+  "tts_quality_hint_cta": "Settings",
   "message_menu_action_edit": "Edit",
   "message_menu_action_pin": "Pin",
   "message_menu_action_star_add": "Add to Starred",

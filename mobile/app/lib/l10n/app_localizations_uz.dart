@@ -2880,6 +2880,13 @@ class AppLocalizationsUz extends AppLocalizations {
   String get message_menu_action_read_aloud => 'Ovoz bilan oʻqish';
 
   @override
+  String get tts_quality_hint =>
+      'Ovoz robotga oʻxshaydi? Sozlamalar → Maxsus imkoniyatlar → Soʻzlangan kontent → Ovozlardan Enhanced ovozlarni oʻrnating.';
+
+  @override
+  String get tts_quality_hint_cta => 'Sozlamalar';
+
+  @override
   String get message_menu_action_edit => 'Tahrirlash';
 
   @override
