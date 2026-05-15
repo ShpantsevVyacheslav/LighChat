@@ -47,6 +47,7 @@ import 'chat_drag_drop_target.dart';
 import 'chat_message_list.dart';
 import 'chat_scroll_anchor_button.dart';
 import 'chat_message_search_overlay.dart';
+import 'destructive_confirm_dialog.dart';
 import 'chat_selection_app_bar.dart';
 import 'composer_attachment_menu.dart';
 import 'composer_sticker_gif_sheet.dart';
@@ -1345,22 +1346,11 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return false;
     final l10n = AppLocalizations.of(context)!;
-    final ok = await showDialog<bool>(
+    final ok = await showDestructiveConfirmDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.chat_delete_message_title_single),
-        content: Text(l10n.chat_delete_message_body_single),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.common_cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.common_delete),
-          ),
-        ],
-      ),
+      title: l10n.chat_delete_message_title_single,
+      body: l10n.chat_delete_message_body_single,
+      confirmLabel: l10n.common_delete,
     );
     if (ok != true || !mounted) return false;
     try {
@@ -1593,30 +1583,15 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) return;
     final l10n = AppLocalizations.of(context)!;
-    final ok = await showDialog<bool>(
+    final ok = await showDestructiveConfirmDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          targets.length > 1
-              ? l10n.chat_delete_message_title_multi
-              : l10n.chat_delete_message_title_single,
-        ),
-        content: Text(
-          targets.length > 1
-              ? l10n.chat_delete_message_body_multi(targets.length)
-              : l10n.chat_delete_message_body_single,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l10n.common_cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l10n.common_delete),
-          ),
-        ],
-      ),
+      title: targets.length > 1
+          ? l10n.chat_delete_message_title_multi
+          : l10n.chat_delete_message_title_single,
+      body: targets.length > 1
+          ? l10n.chat_delete_message_body_multi(targets.length)
+          : l10n.chat_delete_message_body_single,
+      confirmLabel: l10n.common_delete,
     );
     if (ok != true || !mounted) return;
     setState(() => _selectionBusy = true);
