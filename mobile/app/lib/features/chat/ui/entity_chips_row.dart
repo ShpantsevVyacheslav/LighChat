@@ -120,12 +120,17 @@ class _EntityChipsRowState extends State<EntityChipsRow> {
         ? start.add(const Duration(days: 1))
         : start.add(const Duration(hours: 1));
 
-    final title = _buildTitle(widget.text, c.annotation.text);
+    final location = _findAddress(_annotations);
+    final title = _buildTitle(
+      widget.text,
+      excerpts: [c.annotation.text, ?location],
+    );
     final description = _buildDescription(widget.text, widget.attachmentLabels);
 
     final event = cal.Event(
       title: title,
       description: description.isEmpty ? null : description,
+      location: location,
       startDate: start,
       endDate: end,
       allDay: allDay,
@@ -138,11 +143,37 @@ class _EntityChipsRowState extends State<EntityChipsRow> {
     }
   }
 
-  /// Берём текст сообщения, вычёркиваем матч даты — остаток становится
-  /// заголовком события. Если ничего не осталось — fallback на «Событие».
-  static String _buildTitle(String fullText, String dateMatch) {
-    var t = fullText.replaceFirst(dateMatch, '').trim();
-    t = t.replaceAll(RegExp(r'\s+'), ' ');
+  /// Ищем в списке аннотаций первую с типом `address`. Если найдена —
+  /// возвращаем её raw-текст для использования как `location` события.
+  static String? _findAddress(List<EntityAnnotation>? annotations) {
+    if (annotations == null) return null;
+    for (final a in annotations) {
+      for (final e in a.entities) {
+        if (e.type == EntityType.address) return a.text.trim();
+      }
+    }
+    return null;
+  }
+
+  /// Берём текст сообщения, вычёркиваем матчи даты и адреса (если есть) —
+  /// остаток становится заголовком события. Если ничего не осталось —
+  /// fallback на «Событие».
+  static String _buildTitle(
+    String fullText, {
+    required List<String> excerpts,
+  }) {
+    var t = fullText;
+    for (final e in excerpts) {
+      if (e.isEmpty) continue;
+      t = t.replaceFirst(e, '');
+    }
+    t = t.replaceAll(RegExp(r'\s+'), ' ').trim();
+    // Trim хвостовые предлоги-связки типа «в», «на», «у» — после удаления
+    // адреса/даты они часто остаются висеть.
+    t = t.replaceAll(
+      RegExp(r'(?:\s*[,;\-—]+\s*)+$|^(?:\s*[,;\-—]+\s*)+'),
+      '',
+    );
     if (t.isEmpty) return 'Событие';
     if (t.length > 100) t = '${t.substring(0, 97)}…';
     return t;
