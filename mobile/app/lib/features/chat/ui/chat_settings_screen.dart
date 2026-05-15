@@ -377,21 +377,22 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
   /// Автоскролл к карточке превью — вызывается после изменения настройки,
   /// которая влияет на отображаемый превью (фон, цвета пузырьков, шрифт,
   /// форма, отметка времени), чтобы пользователь сразу видел эффект.
-  /// Превью теперь sticky (закреплено в `SliverPersistentHeader` сверху)
-  /// и всегда видно при изменении настроек, влияющих на его внешний вид.
-  /// Метод оставлен для обратной совместимости — если scroll отъехал
-  /// далеко вниз (раздел эмодзи / дополнительно), возвращаем к началу,
-  /// чтобы пользователь сразу увидел эффект.
+  /// Превью теперь sticky — пока scroll выше раздела «Эмодзи эффекты»,
+  /// превью всегда видно сверху, и автоскролл при изменении настроек
+  /// не нужен (раньше он давал визуальный «прыжок» при каждом тапе).
+  /// Возвращаемся к 0 только если превью уже отлипло
+  /// (`_hidePreview == true`) — то есть пользователь скроллил в раздел
+  /// «Дополнительно» / «Показать время» / «Авто-перевод», а оттуда
+  /// меняет настройку, влияющую на превью.
   void _scrollToPreview() {
+    if (!_hidePreview) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
-      if (_scrollController.offset > 4) {
-        _scrollController.animateTo(
-          0,
-          duration: const Duration(milliseconds: 320),
-          curve: Curves.easeOutCubic,
-        );
-      }
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+      );
     });
   }
 
