@@ -98,6 +98,34 @@ post_install do |installer|
     next if user_project.nil?
     user_project.native_targets.each do |target|
       next unless target.name == 'Runner'
+      # iOS 17+ strict signature check: Flutter native-asset frameworks
+      # (например `objective_c.framework` для package:objective_c bindings)
+      # копируются `xcode_backend.sh embed_and_thin` уже ad-hoc-подписанными
+      # (TeamIdentifier=not set). На устройстве это даёт 0xe8008014
+      # «invalid signature» при установке. Доп. shell script phase
+      # переподписывает все `.framework` в Runner.app/Frameworks нашим
+      # development cert после embed-этапа Flutter.
+      already_has_resign = target.build_phases.any? do |phase|
+        phase.respond_to?(:name) && phase.name == 'Re-sign embedded frameworks'
+      end
+      unless already_has_resign
+        resign_phase = target.new_shell_script_build_phase('Re-sign embedded frameworks')
+        resign_phase.shell_script = <<~SCRIPT
+          set -e
+          FW_DIR="${BUILT_PRODUCTS_DIR}/${WRAPPER_NAME}/Frameworks"
+          [ -d "$FW_DIR" ] || exit 0
+          if [ -z "${EXPANDED_CODE_SIGN_IDENTITY}" ]; then
+            echo "note: empty EXPANDED_CODE_SIGN_IDENTITY (likely no codesign requested), skipping resign"
+            exit 0
+          fi
+          for fw in "$FW_DIR"/*.framework; do
+            [ -d "$fw" ] || continue
+            /usr/bin/codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY}" \\
+              --preserve-metadata=identifier,entitlements,flags "$fw" || true
+          done
+        SCRIPT
+      end
+
       target.build_configurations.each do |config|
         # iOS Archive/TestFlight may strip FFI-exported symbols, leading to:
         # `Failed to lookup symbol 'super_native_extensions_init_message_channel_context'`.

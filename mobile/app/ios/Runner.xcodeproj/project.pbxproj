@@ -381,6 +381,7 @@
 				C918DED6EFF0C552AB823CD9 /* [CP] Copy Pods Resources */,
 				20FC984FE463968EBA68027A /* FlutterFire: "flutterfire upload-crashlytics-symbols" */,
 				B2B94A08041A79B04183350C /* Embed Foundation Extensions */,
+				04BE13D4B05816CB64027376 /* Re-sign embedded frameworks */,
 			);
 			buildRules = (
 			);
@@ -465,6 +466,24 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		04BE13D4B05816CB64027376 /* Re-sign embedded frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Re-sign embedded frameworks";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nFW_DIR=\"${BUILT_PRODUCTS_DIR}/${WRAPPER_NAME}/Frameworks\"\n[ -d \"$FW_DIR\" ] || exit 0\nif [ -z \"${EXPANDED_CODE_SIGN_IDENTITY}\" ]; then\n  echo \"note: empty EXPANDED_CODE_SIGN_IDENTITY (likely no codesign requested), skipping resign\"\n  exit 0\nfi\nfor fw in \"$FW_DIR\"/*.framework; do\n  [ -d \"$fw\" ] || continue\n  /usr/bin/codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" \\\n    --preserve-metadata=identifier,entitlements,flags \"$fw\" || true\ndone\n";
+		};
 		20FC984FE463968EBA68027A /* FlutterFire: "flutterfire upload-crashlytics-symbols" */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
