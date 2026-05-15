@@ -1,0 +1,6 @@
+# MP4-выходы рендера велики и не подходят для git.
+# Кладите итоговые файлы в Firebase Storage / R2 / другой CDN
+# и пробрасывайте URL в <FeaturesShowreel videoSrc={url} />.
+*.mp4
+*.webm
+.work/

@@ -1,0 +1,46 @@
+{
+  "ru": {
+    "voice": "Milena",
+    "rate": 200,
+    "scenes": [
+      { "id": "intro", "durationMs": 8000, "text": "Знакомьтесь с LighChat. Мессенджер, который объединяет переписку, звонки, видеовстречи, игры и AI прямо на вашем устройстве." },
+      { "id": "encryption", "durationMs": 14000, "text": "Сквозное шифрование. Включите E2EE — и сообщения видите только вы и собеседник. Сервер LighChat физически не может их прочитать. Сравните отпечатки ключей, чтобы убедиться: посередине нет третьего." },
+      { "id": "secret", "durationMs": 14000, "text": "Секретные чаты живут по своим правилам. Сообщения исчезают по таймеру, пересылка запрещена, медиа открывается один раз. На чат можно поставить отдельный пароль или биометрию." },
+      { "id": "disappearing", "durationMs": 12000, "text": "Исчезающие сообщения. Установите таймер — час, день, неделя или месяц — и сообщения исчезнут сами у всех участников. Никаких следов, никаких архивов." },
+      { "id": "scheduled", "durationMs": 12000, "text": "Отложенные сообщения. Напишите сейчас — отправится в нужное время. Сервер LighChat сам доставит сообщение, даже если телефон выключен." },
+      { "id": "games", "durationMs": 12000, "text": "Играйте в Дурака прямо в чате. Реальное время, красивые карты, без отдельного приложения. Зовите друзей — и партия начнётся за секунды." },
+      { "id": "meetings", "durationMs": 14000, "text": "Видеовстречи. Полноценные конференции с участниками, чатом, опросами и заявками на вход. Гости подключаются по ссылке без аккаунта, демонстрация экрана работает из коробки." },
+      { "id": "calls", "durationMs": 14000, "text": "Звонки и видео-кружки. Стабильные звонки один на один на технологии WebRTC. Или запишите короткий видео-кружок прямо в ленте чата — лицо, эмоция, голос за пару секунд." },
+      { "id": "folders", "durationMs": 12000, "text": "Папки и треды. Раскладывайте чаты по полочкам, открывайте обсуждения веткой — сотни диалогов без хаоса." },
+      { "id": "live-location", "durationMs": 12000, "text": "Прямая трансляция геолокации. Покажите, где вы сейчас. Собеседник видит вас в реальном времени, пока вы делитесь, и баннер всегда напоминает выключить трансляцию." },
+      { "id": "multi-device", "durationMs": 12000, "text": "Несколько устройств. Подключайте телефон, планшет, веб и десктоп через QR-код. Резервная копия ключей с паролем переживёт даже потерю всех устройств." },
+      { "id": "stickers", "durationMs": 10000, "text": "Стикеры, GIF, опросы, встроенные редакторы фото и видео. Эмоции и медиа — без переключения приложений." },
+      { "id": "privacy", "durationMs": 10000, "text": "Тонкая приватность. Каждая мелочь — отдельный переключатель. Решайте сами, что показывать другим: статус, последний визит, прочтение, дату рождения." },
+      { "id": "ai", "durationMs": 14000, "text": "AI прямо на устройстве. Спаркл-иконка над инпутом перепишет ваше сообщение в одиннадцати стилях — от дружелюбного до делового. Всё на Apple Intelligence: ни одно слово не уходит в облако." },
+      { "id": "navigator", "durationMs": 12000, "text": "Карты, такси и календарь. Локация открывается в Яндекс Картах, Гугл Картах или вызывает такси одним тапом. Время и место — сразу в системный календарь." },
+      { "id": "outro", "durationMs": 6000, "text": "Это лишь начало. Откройте LighChat — и узнайте остальное сами." }
+    ]
+  },
+  "en": {
+    "voice": "Samantha",
+    "rate": 195,
+    "scenes": [
+      { "id": "intro", "durationMs": 8000, "text": "Meet LighChat. A messenger that brings chat, calls, video meetings, games, and AI together right on your device." },
+      { "id": "encryption", "durationMs": 14000, "text": "End-to-end encryption. Turn it on, and only you and the recipient can read the messages. LighChat servers physically cannot decrypt them. Compare the key fingerprints to make sure no one is in the middle." },
+      { "id": "secret", "durationMs": 14000, "text": "Secret chats play by stricter rules. Messages disappear on a timer, forwarding is blocked, media opens once, and the chat itself can be locked behind a separate password or biometrics." },
+      { "id": "disappearing", "durationMs": 12000, "text": "Disappearing messages. Pick a timer — an hour, a day, a week, or a month — and messages quietly vanish for everyone. No traces, no archives." },
+      { "id": "scheduled", "durationMs": 12000, "text": "Scheduled messages. Write now, deliver later. The LighChat server sends the message at the exact moment you picked, even when your phone is off." },
+      { "id": "games", "durationMs": 12000, "text": "Play card games right inside the chat. Real-time matches, beautiful cards, no extra app needed. Invite friends, and the deal begins in seconds." },
+      { "id": "meetings", "durationMs": 14000, "text": "Video meetings. Full conferences with participants, chat, polls, and join requests. Guests join by link without an account, and screen sharing works out of the box." },
+      { "id": "calls", "durationMs": 14000, "text": "Calls and video circles. Stable one-to-one WebRTC calls. Or drop a short video circle right in the chat feed — face, emotion, voice in a couple of seconds." },
+      { "id": "folders", "durationMs": 12000, "text": "Folders and threads. Sort chats into shelves and spin discussions into threads — hundreds of conversations without chaos." },
+      { "id": "live-location", "durationMs": 12000, "text": "Live location sharing. Show where you are right now. The other side sees you in real time, and a banner always reminds you to stop sharing." },
+      { "id": "multi-device", "durationMs": 12000, "text": "Multiple devices. Connect phone, tablet, web and desktop via Q R pairing. A password-protected key backup survives even losing every old device." },
+      { "id": "stickers", "durationMs": 10000, "text": "Stickers, GIFs, polls, and built-in photo and video editors. Emotion and media — without switching apps." },
+      { "id": "privacy", "durationMs": 10000, "text": "Fine-grained privacy. Every detail is its own toggle. You decide what others see: online status, last seen, read receipts, date of birth." },
+      { "id": "ai", "durationMs": 14000, "text": "AI right on your device. The sparkle icon above the input rewrites your message in eleven styles, from friendly to formal. All powered by Apple Intelligence: not a single word leaves your phone." },
+      { "id": "navigator", "durationMs": 12000, "text": "Maps, taxi, and calendar. Locations open in Apple Maps, Google Maps, or hail a taxi in one tap. Time and place straight into the system calendar." },
+      { "id": "outro", "durationMs": 6000, "text": "This is just the start. Open LighChat and discover the rest yourself." }
+    ]
+  }
+}

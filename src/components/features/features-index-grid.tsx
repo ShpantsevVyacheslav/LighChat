@@ -58,7 +58,18 @@ export function FeaturesIndexGrid({ source }: { source?: string }) {
         </div>
       </section>
 
-      <FeaturesShowreel open={showreelOpen} onClose={() => setShowreelOpen(false)} />
+      <FeaturesShowreel
+        open={showreelOpen}
+        onClose={() => setShowreelOpen(false)}
+        // Если в Firebase Storage / CDN есть готовый mp4 — задайте
+        // `NEXT_PUBLIC_SHOWREEL_URL_RU` / `..._EN` в env. Если переменной
+        // нет — играется live scripted-плеер с TTS через Web Speech API.
+        videoSrc={
+          (locale === 'en'
+            ? process.env.NEXT_PUBLIC_SHOWREEL_URL_EN
+            : process.env.NEXT_PUBLIC_SHOWREEL_URL_RU) || undefined
+        }
+      />
 
       {/* Highlights */}
       <section className="space-y-4">

@@ -1,0 +1,354 @@
+<!doctype html>
+<!--
+  Standalone showreel-плеер для офлайн-рендеринга через Playwright.
+  Никаких dependencies, никаких внешних шрифтов — всё inline, чтобы рендер
+  был детерминированным и не упирался в сеть.
+
+  URL-параметры:
+    ?lang=ru|en   — какой набор сцен играть (для двух MP4-выходов)
+    ?fps=30       — debug
+-->
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <title>LighChat Showreel</title>
+    <style>
+      :root {
+        --brand-primary: #2E86FF;
+        --brand-violet: #9A18FF;
+        --brand-coral: #E9967A;
+        --brand-emerald: #34D399;
+        --brand-amber: #FBBF24;
+        --bg-deep: #02060F;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 100%;
+        height: 100%;
+        background: var(--bg-deep);
+        color: #fff;
+        font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Helvetica Neue', sans-serif;
+        overflow: hidden;
+        font-feature-settings: 'cv11', 'ss01';
+      }
+      .stage {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 60px;
+        padding: 80px 100px;
+        opacity: 0;
+        transform: scale(0.96);
+        transition: opacity 0.6s ease, transform 8s ease-out;
+      }
+      .scene.active {
+        opacity: 1;
+        transform: scale(1);
+      }
+      .scene .visual {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .scene .visual-card {
+        position: relative;
+        width: 100%;
+        max-width: 540px;
+        aspect-ratio: 16 / 10;
+        border-radius: 28px;
+        background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 40px 80px -20px rgba(0,0,0,0.55);
+        overflow: hidden;
+      }
+      .scene .visual-bg {
+        position: absolute;
+        inset: 0;
+      }
+      .scene .visual-icon {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .scene .visual-icon svg {
+        width: 36%;
+        height: auto;
+        filter: drop-shadow(0 12px 32px rgba(0,0,0,0.45));
+      }
+      .scene .copy {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 16px;
+      }
+      .scene .index {
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.55);
+      }
+      .scene .title {
+        font-size: 56px;
+        line-height: 1.05;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .scene .subtitle {
+        font-size: 22px;
+        line-height: 1.45;
+        color: rgba(255,255,255,0.78);
+      }
+
+      /* Брендовый «дым» под визуалом по акценту */
+      .scene[data-accent='primary'] .visual-bg { background: radial-gradient(circle at 30% 30%, rgba(46,134,255,0.45), rgba(46,134,255,0.05) 60%, transparent 100%); }
+      .scene[data-accent='violet']  .visual-bg { background: radial-gradient(circle at 30% 30%, rgba(154,24,255,0.40), rgba(154,24,255,0.04) 60%, transparent 100%); }
+      .scene[data-accent='coral']   .visual-bg { background: radial-gradient(circle at 30% 30%, rgba(233,150,122,0.40), rgba(233,150,122,0.04) 60%, transparent 100%); }
+      .scene[data-accent='emerald'] .visual-bg { background: radial-gradient(circle at 30% 30%, rgba(52,211,153,0.45), rgba(52,211,153,0.04) 60%, transparent 100%); }
+      .scene[data-accent='amber']   .visual-bg { background: radial-gradient(circle at 30% 30%, rgba(251,191,36,0.45), rgba(251,191,36,0.04) 60%, transparent 100%); }
+      .scene[data-accent='primary'] .index { color: var(--brand-primary); }
+      .scene[data-accent='violet']  .index { color: var(--brand-violet); }
+      .scene[data-accent='coral']   .index { color: var(--brand-coral); }
+      .scene[data-accent='emerald'] .index { color: var(--brand-emerald); }
+      .scene[data-accent='amber']   .index { color: var(--brand-amber); }
+
+      /* Прогресс-бар поверх */
+      .progress {
+        position: fixed;
+        left: 100px;
+        right: 100px;
+        bottom: 40px;
+        display: flex;
+        gap: 4px;
+      }
+      .progress .tick {
+        flex: 1;
+        height: 3px;
+        border-radius: 2px;
+        background: rgba(255,255,255,0.18);
+        overflow: hidden;
+      }
+      .progress .tick .fill {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: #fff;
+        transition: width 0.1s linear;
+      }
+      .brand-wm {
+        position: fixed;
+        left: 100px;
+        bottom: 60px;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        opacity: 0.55;
+      }
+      /* Сигнал «рендер закончен» — пустая чёрная плашка, по которой Playwright поймёт что записывать больше нечего */
+      #done {
+        position: fixed;
+        inset: 0;
+        background: #000;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 9;
+      }
+      #done.shown { opacity: 1; }
+
+      /* Лёгкий float у визуала, чтобы видео не было статичным */
+      @keyframes floaty {
+        0%, 100% { transform: translateY(0); }
+        50%      { transform: translateY(-8px); }
+      }
+      .scene.active .visual-card { animation: floaty 5s ease-in-out infinite; }
+    </style>
+  </head>
+  <body>
+    <div class="stage" id="stage"></div>
+    <div class="progress" id="progress"></div>
+    <div class="brand-wm">LIGHCHAT · TOUR</div>
+    <div id="done"></div>
+
+    <script>
+      // COPY-словарь объявляем ПЕРЕД основным скриптом — он использует window.__SHOWREEL_COPY__.
+      window.__SHOWREEL_COPY__ = {
+        ru: {
+          intro:         { title: 'Знакомьтесь с LighChat',         subtitle: 'Мессенджер, который объединяет переписку, звонки, видеовстречи, игры и AI прямо на вашем устройстве.' },
+          encryption:    { title: 'Сквозное шифрование',            subtitle: 'Включите E2EE — и сообщения видите только вы и собеседник. Сервер LighChat физически не может их прочитать.' },
+          secret:        { title: 'Секретные чаты',                 subtitle: 'Сообщения исчезают по таймеру, пересылка запрещена, медиа открывается один раз. На чат можно поставить отдельный пароль.' },
+          disappearing:  { title: 'Исчезающие сообщения',           subtitle: 'Установите таймер — час, день, неделя или месяц — и сообщения исчезнут у всех участников. Никаких следов.' },
+          scheduled:     { title: 'Отложенные сообщения',           subtitle: 'Напишите сейчас — отправится в нужный момент. Сервер сам доставит, даже если телефон выключен.' },
+          games:         { title: 'Игры в чате',                    subtitle: 'Играйте в «Дурака» прямо в чате. Реальное время, красивые карты, без отдельного приложения.' },
+          meetings:      { title: 'Видеовстречи',                   subtitle: 'Полноценные конференции с участниками, чатом, опросами и заявками на вход. Гости — по ссылке без аккаунта.' },
+          calls:         { title: 'Звонки и видео-кружки',          subtitle: 'Стабильные 1:1 звонки на WebRTC. Или запишите короткий видео-кружок прямо в ленте чата.' },
+          folders:       { title: 'Папки и треды',                  subtitle: 'Раскладывайте чаты по папкам, открывайте обсуждения веткой — сотни диалогов без хаоса.' },
+          'live-location':{ title: 'Прямая геолокация',             subtitle: 'Покажите, где вы сейчас. Собеседник видит вас в реальном времени, пока вы делитесь.' },
+          'multi-device':{ title: 'Несколько устройств',            subtitle: 'Подключайте телефон, планшет, веб и десктоп через QR. Резервная копия ключей с паролем — ваши чаты не пропадут.' },
+          stickers:      { title: 'Стикеры и медиа',                subtitle: 'Стикеры, GIF, опросы и встроенные редакторы фото и видео. Эмоции и медиа — без переключения приложений.' },
+          privacy:       { title: 'Тонкая приватность',             subtitle: 'Каждая мелочь — отдельный переключатель. Вы решаете, что показывать другим.' },
+          ai:            { title: 'AI Smart Compose',               subtitle: 'AI прямо на устройстве. Sparkle-иконка перепишет ваше сообщение в одиннадцати стилях — от дружелюбного до делового.' },
+          navigator:     { title: 'Карты, такси и календарь',       subtitle: 'Локация открывается в картах, или вызывает такси одним тапом. Время и место — сразу в системный календарь.' },
+          outro:         { title: 'Это лишь начало',                subtitle: 'Откройте LighChat — и узнайте остальное сами.' },
+        },
+        en: {
+          intro:         { title: 'Meet LighChat',                  subtitle: 'A messenger that brings chat, calls, meetings, games and AI together right on your device.' },
+          encryption:    { title: 'End-to-end encryption',          subtitle: 'Turn on E2EE — and only you and the recipient can read the messages. LighChat servers physically cannot decrypt them.' },
+          secret:        { title: 'Secret chats',                   subtitle: 'Messages disappear on a timer, forwarding is blocked, media opens once. The chat itself can be locked behind a separate password.' },
+          disappearing:  { title: 'Disappearing messages',          subtitle: 'Pick a timer — an hour, a day, a week or a month — and messages quietly vanish for everyone. No traces.' },
+          scheduled:     { title: 'Scheduled messages',             subtitle: 'Write now, deliver later. The server sends it at the right moment, even when your phone is off.' },
+          games:         { title: 'Games in chat',                  subtitle: 'Play Durak right inside the chat. Real-time matches, beautiful cards, no extra app needed.' },
+          meetings:      { title: 'Video meetings',                 subtitle: 'Full conferences with chat, polls, screen-sharing and join requests. Guests join by link, no account needed.' },
+          calls:         { title: 'Calls and video circles',        subtitle: 'Stable 1:1 WebRTC calls. Or drop a short video circle right in the chat feed.' },
+          folders:       { title: 'Folders and threads',            subtitle: 'Sort chats into folders, spin discussions into threads — hundreds of conversations without chaos.' },
+          'live-location':{ title: 'Live location',                 subtitle: 'Share where you are right now. The other side sees you in real time while you share.' },
+          'multi-device':{ title: 'Multiple devices',               subtitle: 'Connect phone, tablet, web and desktop via QR. A password-protected key backup survives losing every device.' },
+          stickers:      { title: 'Stickers and media',             subtitle: 'Stickers, GIFs, polls and built-in photo and video editors. Emotion and media — without switching apps.' },
+          privacy:       { title: 'Fine-grained privacy',           subtitle: 'Every detail is its own toggle. You decide what others see.' },
+          ai:            { title: 'AI Smart Compose',               subtitle: 'AI right on your device. The sparkle icon rewrites your message in eleven styles, from friendly to formal.' },
+          navigator:     { title: 'Maps, taxi and calendar',        subtitle: 'Locations open in Maps or hail a taxi in one tap. Time and place straight into the system calendar.' },
+          outro:         { title: 'This is just the start',         subtitle: 'Open LighChat and discover the rest yourself.' },
+        },
+      };
+    </script>
+
+    <script>
+      // Сцены — синхронизированы со scenes-манифестом из приложения.
+      // Длительности в миллисекундах. Сумма ~178 с (≈ 2 мин 58 с).
+      const SCENES = [
+        { id: 'intro',          dur: 8000,  accent: 'primary', icon: 'sparkle' },
+        { id: 'encryption',     dur: 14000, accent: 'emerald', icon: 'lock' },
+        { id: 'secret',         dur: 14000, accent: 'violet',  icon: 'timer-lock' },
+        { id: 'disappearing',   dur: 12000, accent: 'coral',   icon: 'eye-off' },
+        { id: 'scheduled',      dur: 12000, accent: 'primary', icon: 'clock' },
+        { id: 'games',          dur: 12000, accent: 'amber',   icon: 'cards' },
+        { id: 'meetings',       dur: 14000, accent: 'primary', icon: 'meeting' },
+        { id: 'calls',          dur: 14000, accent: 'emerald', icon: 'phone' },
+        { id: 'folders',        dur: 12000, accent: 'violet',  icon: 'folders' },
+        { id: 'live-location',  dur: 12000, accent: 'coral',   icon: 'pin' },
+        { id: 'multi-device',   dur: 12000, accent: 'primary', icon: 'devices' },
+        { id: 'stickers',       dur: 10000, accent: 'amber',   icon: 'sticker' },
+        { id: 'privacy',        dur: 10000, accent: 'primary', icon: 'shield' },
+        { id: 'ai',             dur: 14000, accent: 'violet',  icon: 'sparkle' },
+        { id: 'navigator',      dur: 12000, accent: 'emerald', icon: 'map-pin' },
+        { id: 'outro',          dur: 6000,  accent: 'primary', icon: 'arrow-right' },
+      ];
+
+      // SVG-иконки (упрощённые Lucide-стиля). Цвет берём через currentColor.
+      const ICONS = {
+        sparkle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1M12 8l1.5 2.5L16 12l-2.5 1.5L12 16l-1.5-2.5L8 12l2.5-1.5z"/></svg>',
+        lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+        'timer-lock': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2h4M5 5l-1.5-1.5"/></svg>',
+        'eye-off': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18M10.6 6.1A10.7 10.7 0 0 1 12 6c7 0 10 6 10 6a16 16 0 0 1-2.4 3.3M6.6 6.6A16 16 0 0 0 2 12s3 6 10 6c1.9 0 3.5-.4 4.9-1.1M9.9 4.2A10 10 0 0 0 12 4"/></svg>',
+        clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+        cards: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="11" height="14" rx="2"/><rect x="10" y="3" width="11" height="14" rx="2"/></svg>',
+        meeting: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M22 8l-6 4 6 4z"/></svg>',
+        phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .3 2 .6 2.9a2 2 0 0 1-.5 2.1L7.9 10.1a16 16 0 0 0 6 6l1.4-1.4a2 2 0 0 1 2.1-.5c.9.3 1.9.5 2.9.6a2 2 0 0 1 1.7 2z"/></svg>',
+        folders: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 11h18"/></svg>',
+        pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>',
+        devices: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="12" height="14" rx="2"/><rect x="15" y="9" width="6" height="11" rx="1.5"/><path d="M8 21h2"/></svg>',
+        sticker: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 3H6a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h9l6-6V8.5z"/><path d="M15 21v-5a1 1 0 0 1 1-1h5"/></svg>',
+        shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 4v6c0 5-4 9-9 10-5-1-9-5-9-10V6z"/></svg>',
+        'map-pin': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9a7 7 0 0 1 14 0c0 5-7 13-7 13S5 14 5 9z"/><circle cx="12" cy="9" r="2.5"/></svg>',
+        'arrow-right': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+      };
+
+      // Парсим ?lang=
+      const urlLang = new URLSearchParams(location.search).get('lang') || 'ru';
+      const LANG = (urlLang === 'en') ? 'en' : 'ru';
+
+      const COPY = window.__SHOWREEL_COPY__[LANG];
+
+      const stage = document.getElementById('stage');
+      const progress = document.getElementById('progress');
+      const done = document.getElementById('done');
+
+      // Создаём DOM-сцены
+      const sceneEls = SCENES.map((s, idx) => {
+        const el = document.createElement('div');
+        el.className = 'scene';
+        el.dataset.accent = s.accent;
+        el.innerHTML = `
+          <div class="visual">
+            <div class="visual-card">
+              <div class="visual-bg"></div>
+              <div class="visual-icon" style="color: white">${ICONS[s.icon] || ICONS.sparkle}</div>
+            </div>
+          </div>
+          <div class="copy">
+            <div class="index">${idx + 1} / ${SCENES.length}</div>
+            <div class="title">${COPY[s.id].title}</div>
+            <div class="subtitle">${COPY[s.id].subtitle}</div>
+          </div>
+        `;
+        stage.appendChild(el);
+        return el;
+      });
+
+      // Прогресс-бар тики
+      const tickFills = SCENES.map((s, i) => {
+        const tick = document.createElement('div');
+        tick.className = 'tick';
+        const fill = document.createElement('span');
+        fill.className = 'fill';
+        tick.appendChild(fill);
+        progress.appendChild(tick);
+        return fill;
+      });
+
+      // Запуск тура — последовательно показываем сцены.
+      // Window-сигнал `__SHOWREEL_READY__` означает: страница построена,
+      // Playwright может стартовать запись.
+      window.__SHOWREEL_READY__ = true;
+
+      // Window-флаг `__START_PLAYBACK__` — Playwright выставит его в true
+      // когда начнёт запись, и шоурил стартует.
+      const TICK = 100;
+      let started = false;
+
+      window.__START_PLAYBACK__ = () => {
+        if (started) return;
+        started = true;
+        playFrom(0);
+      };
+
+      function playFrom(idx) {
+        if (idx >= SCENES.length) {
+          // На последнем кадре подождём 500ms, чтобы Playwright успел дозаписать
+          setTimeout(() => {
+            done.classList.add('shown');
+            window.__SHOWREEL_DONE__ = true;
+          }, 500);
+          return;
+        }
+        // Переключаем активность
+        sceneEls.forEach((el, i) => el.classList.toggle('active', i === idx));
+        // Для прошлых тиков — 100%, для текущего — анимация
+        for (let i = 0; i < idx; i++) tickFills[i].style.width = '100%';
+        for (let i = idx + 1; i < tickFills.length; i++) tickFills[i].style.width = '0%';
+        // Анимируем заполнение текущего тика
+        const fill = tickFills[idx];
+        fill.style.width = '0%';
+        const dur = SCENES[idx].dur;
+        const start = Date.now();
+        const iv = setInterval(() => {
+          const p = Math.min(1, (Date.now() - start) / dur);
+          fill.style.width = (p * 100).toFixed(2) + '%';
+          if (p >= 1) {
+            clearInterval(iv);
+            playFrom(idx + 1);
+          }
+        }, TICK);
+      }
+    </script>
+  </body>
+</html>

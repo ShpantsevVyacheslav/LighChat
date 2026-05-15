@@ -1,0 +1,14 @@
+{
+  "name": "lighchat-showreel-render",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "render:ru": "node render.mjs --lang=ru",
+    "render:en": "node render.mjs --lang=en",
+    "render:all": "node render.mjs --lang=ru && node render.mjs --lang=en"
+  },
+  "dependencies": {
+    "playwright": "1.48.2"
+  }
+}

@@ -32,7 +32,18 @@ function ttsTag(locale: string): string {
 /**
  * Полноэкранный showreel-плеер фич LighChat.
  *
- * Особенности:
+ *  ## Два режима
+ *
+ *  1. **Pre-rendered MP4** (предпочтительно) — если задан `videoSrc`,
+ *     показываем нативный `<video>` элемент с озвучкой из ffmpeg-собранного
+ *     mp4 (см. `scripts/showreel-render/`). Высокое качество звука,
+ *     полная синхронизация, не зависит от Web Speech API.
+ *
+ *  2. **Scripted fallback** — если `videoSrc` не задан, плеер играет
+ *     scripted-последовательность сцен с TTS через Web Speech API. Это
+ *     то же содержимое, но рендер живой, без видео-файла.
+ *
+ * Особенности (fallback):
  *  – auto-advance по `scene.durationMs`;
  *  – TTS-озвучка через Web Speech API (`useShowreelTts`);
  *  – элементы управления: Play/Pause, Prev/Next, Mute, Close, прогресс-бар
@@ -44,9 +55,19 @@ function ttsTag(locale: string): string {
 export function FeaturesShowreel({
   open,
   onClose,
+  /**
+   * URL до готового MP4. Может быть локальный (`/showreel/showreel-ru.mp4`)
+   * или Firebase Storage / CDN. При наличии — играется как `<video>`,
+   * scripted fallback отключается.
+   *
+   * Удобно передавать карту по локали:
+   * `videoSrc={locale === 'en' ? '/showreel/en.mp4' : '/showreel/ru.mp4'}`.
+   */
+  videoSrc,
 }: {
   open: boolean;
   onClose: () => void;
+  videoSrc?: string;
 }) {
   const { locale } = useI18n();
   const lang = pickLang(locale);
@@ -150,6 +171,37 @@ export function FeaturesShowreel({
   }, [tts]);
 
   if (!open) return null;
+
+  // Если задан videoSrc — играем native <video>. Это даёт максимальное
+  // качество, синк со звуком и переживёт любые браузерные ограничения
+  // Web Speech API. Cancel TTS если переключаемся в видео-режим.
+  if (videoSrc) {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="fixed inset-0 z-[320] flex items-center justify-center bg-black animate-in fade-in duration-300"
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white backdrop-blur-md hover:bg-black/60"
+        >
+          <X className="h-5 w-5" aria-hidden />
+        </button>
+        <video
+          key={videoSrc}
+          src={videoSrc}
+          controls
+          autoPlay
+          playsInline
+          className="max-h-screen max-w-screen-2xl w-full h-full object-contain"
+          onEnded={onClose}
+        />
+      </div>
+    );
+  }
 
   const sceneProgress = Math.min(1, elapsedInScene / scene.durationMs);
   const Mock = scene.Mock;
