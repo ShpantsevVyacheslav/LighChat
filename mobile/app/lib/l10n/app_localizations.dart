@@ -1444,6 +1444,36 @@ abstract class AppLocalizations {
   /// **'Постукивание'**
   String get ringtone_tap_tone;
 
+  /// No description provided for @ringtone_lofi_keys.
+  ///
+  /// In ru, this message translates to:
+  /// **'Лофи клавиши'**
+  String get ringtone_lofi_keys;
+
+  /// No description provided for @ringtone_tape_chime.
+  ///
+  /// In ru, this message translates to:
+  /// **'Тёплый колокол'**
+  String get ringtone_tape_chime;
+
+  /// No description provided for @ringtone_dream_pad.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мечтательный пэд'**
+  String get ringtone_dream_pad;
+
+  /// No description provided for @ringtone_chill_arp.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чилл арпеджио'**
+  String get ringtone_chill_arp;
+
+  /// No description provided for @ringtone_velvet_pulse.
+  ///
+  /// In ru, this message translates to:
+  /// **'Бархатный пульс'**
+  String get ringtone_velvet_pulse;
+
   /// No description provided for @ringtone_storage_original.
   ///
   /// In ru, this message translates to:

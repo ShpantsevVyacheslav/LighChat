@@ -798,6 +798,21 @@ class AppLocalizationsTr extends AppLocalizations {
   String get ringtone_tap_tone => 'Vuruş';
 
   @override
+  String get ringtone_lofi_keys => 'Lo-fi tuşlar';
+
+  @override
+  String get ringtone_tape_chime => 'Sıcak çan';
+
+  @override
+  String get ringtone_dream_pad => 'Rüya ped';
+
+  @override
+  String get ringtone_chill_arp => 'Sakin arpej';
+
+  @override
+  String get ringtone_velvet_pulse => 'Kadife darbe';
+
+  @override
   String get ringtone_storage_original => 'Orijinal';
 
   @override

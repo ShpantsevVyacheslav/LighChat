@@ -794,6 +794,21 @@ class AppLocalizationsId extends AppLocalizations {
   String get ringtone_tap_tone => 'Ketukan';
 
   @override
+  String get ringtone_lofi_keys => 'Lo-fi keys';
+
+  @override
+  String get ringtone_tape_chime => 'Lonceng hangat';
+
+  @override
+  String get ringtone_dream_pad => 'Pad mimpi';
+
+  @override
+  String get ringtone_chill_arp => 'Arpegio santai';
+
+  @override
+  String get ringtone_velvet_pulse => 'Denyut beludru';
+
+  @override
   String get ringtone_storage_original => 'Asli';
 
   @override

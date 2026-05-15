@@ -39,6 +39,11 @@ const RINGTONE_LABEL_KEYS: Record<string, string> = {
   sparkle: "notifications.ringtoneSparkle",
   airy_note: "notifications.ringtoneAiryNote",
   tap_tone: "notifications.ringtoneTapTone",
+  lofi_keys: "notifications.ringtoneLofiKeys",
+  tape_chime: "notifications.ringtoneTapeChime",
+  dream_pad: "notifications.ringtoneDreamPad",
+  chill_arp: "notifications.ringtoneChillArp",
+  velvet_pulse: "notifications.ringtoneVelvetPulse",
   [STORAGE_RINGTONE_ID]: "notifications.ringtoneStorageOriginal",
 };
 
@@ -160,10 +165,7 @@ export function RingtonePicker({
           <PickerOption
             label={t("notifications.ringtoneStorageOriginal")}
             selected={effectiveId === STORAGE_RINGTONE_ID}
-            onSelect={() => {
-              onChange(STORAGE_RINGTONE_ID);
-              setOpen(false);
-            }}
+            onSelect={() => onChange(STORAGE_RINGTONE_ID)}
             onTogglePreview={() => togglePreview(STORAGE_RINGTONE_ID)}
             playing={playingId === STORAGE_RINGTONE_ID}
             previewAriaLabel={t("notifications.ringtonePreviewLabel")}
@@ -174,10 +176,7 @@ export function RingtonePicker({
             key={preset.id}
             label={t(RINGTONE_LABEL_KEYS[preset.id] ?? preset.id)}
             selected={effectiveId === preset.id}
-            onSelect={() => {
-              onChange(preset.id);
-              setOpen(false);
-            }}
+            onSelect={() => onChange(preset.id)}
             onTogglePreview={() => togglePreview(preset.id)}
             playing={playingId === preset.id}
             previewAriaLabel={t("notifications.ringtonePreviewLabel")}

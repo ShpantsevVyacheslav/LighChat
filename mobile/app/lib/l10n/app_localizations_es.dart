@@ -805,6 +805,21 @@ class AppLocalizationsEs extends AppLocalizations {
   String get ringtone_tap_tone => 'Toque';
 
   @override
+  String get ringtone_lofi_keys => 'Lo-fi keys';
+
+  @override
+  String get ringtone_tape_chime => 'Campana cálida';
+
+  @override
+  String get ringtone_dream_pad => 'Pad onírico';
+
+  @override
+  String get ringtone_chill_arp => 'Arpegio chill';
+
+  @override
+  String get ringtone_velvet_pulse => 'Pulso terciopelo';
+
+  @override
   String get ringtone_storage_original => 'Original';
 
   @override
@@ -9432,6 +9447,21 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get ringtone_tap_tone => 'Toque';
+
+  @override
+  String get ringtone_lofi_keys => 'Lo-fi keys';
+
+  @override
+  String get ringtone_tape_chime => 'Campana cálida';
+
+  @override
+  String get ringtone_dream_pad => 'Pad onírico';
+
+  @override
+  String get ringtone_chill_arp => 'Arpegio chill';
+
+  @override
+  String get ringtone_velvet_pulse => 'Pulso terciopelo';
 
   @override
   String get ringtone_storage_original => 'Original';

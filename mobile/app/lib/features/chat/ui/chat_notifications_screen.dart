@@ -120,26 +120,31 @@ class ChatNotificationsScreen extends ConsumerWidget {
               }
 
               Future<void> openRingtonePicker({required bool forCalls}) async {
-                final picked = await showModalBottomSheet<String?>(
+                // Шторка живёт до явного swipe-down/back — выбор не закрывает
+                // её, чтобы пользователь мог свободно прослушивать варианты.
+                // Каждый тап по строке мгновенно сохраняется в Firestore через
+                // переданный коллбек.
+                await showModalBottomSheet<void>(
                   context: context,
                   isScrollControlled: true,
                   backgroundColor: Colors.transparent,
                   barrierColor: Colors.black.withValues(alpha: 0.62),
                   builder: (sheetCtx) => _RingtonePickerSheet(
                     forCalls: forCalls,
-                    currentId: forCalls
+                    initialId: forCalls
                         ? settings.callRingtoneId
                         : settings.messageRingtoneId,
+                    onSelected: (id) {
+                      // sentinel '' = вернуть к null/умолчанию.
+                      final value = (id == null || id.isEmpty) ? null : id;
+                      if (forCalls) {
+                        savePatch(callRingtoneId: value);
+                      } else {
+                        savePatch(messageRingtoneId: value);
+                      }
+                    },
                   ),
                 );
-                if (picked == null) return; // отмена
-                // sentinel '' означает «вернуть к умолчанию» (null в Firestore)
-                final value = picked.isEmpty ? null : picked;
-                if (forCalls) {
-                  await savePatch(callRingtoneId: value);
-                } else {
-                  await savePatch(messageRingtoneId: value);
-                }
               }
 
               return _NotificationsView(
@@ -585,6 +590,16 @@ String _ringtoneLabel(AppLocalizations l10n, String id) {
       return l10n.ringtone_airy_note;
     case 'tap_tone':
       return l10n.ringtone_tap_tone;
+    case 'lofi_keys':
+      return l10n.ringtone_lofi_keys;
+    case 'tape_chime':
+      return l10n.ringtone_tape_chime;
+    case 'dream_pad':
+      return l10n.ringtone_dream_pad;
+    case 'chill_arp':
+      return l10n.ringtone_chill_arp;
+    case 'velvet_pulse':
+      return l10n.ringtone_velvet_pulse;
     case kStorageRingtoneId:
       return l10n.ringtone_storage_original;
     default:
@@ -675,14 +690,26 @@ class _RingtoneRow extends StatelessWidget {
 
 /// Кастомный bottom-sheet выбора рингтона — премиум-look без Material radios:
 /// glassmorphism, мягкий градиент-фон, индикатор-точка с глоу.
+///
+/// Особенности:
+///   - Тап по строке НЕ закрывает шторку — сохраняет в Firestore через
+///     [onSelected] и обновляет локальный выбор. Закрыть можно swipe-down /
+///     back / тапом за пределами.
+///   - Превью использует свежий [AudioPlayer] на каждый тап — это надёжнее
+///     на iOS, где общий плеер из-за ленивой инициализации AVAudioSession
+///     мог не воспроизвести первые несколько вызовов.
+///   - Список скроллится: при 10+ пресетах в ограниченной высоте sheet'а
+///     контент уезжает в [SingleChildScrollView].
 class _RingtonePickerSheet extends StatefulWidget {
   const _RingtonePickerSheet({
     required this.forCalls,
-    required this.currentId,
+    required this.initialId,
+    required this.onSelected,
   });
 
   final bool forCalls;
-  final String? currentId;
+  final String? initialId;
+  final ValueChanged<String?> onSelected;
 
   @override
   State<_RingtonePickerSheet> createState() => _RingtonePickerSheetState();
@@ -690,66 +717,73 @@ class _RingtonePickerSheet extends StatefulWidget {
 
 class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
     with TickerProviderStateMixin {
-  final AudioPlayer _previewPlayer = AudioPlayer();
+  /// Активный плеер превью. Новый создаётся на каждый тап play — гарантирует
+  /// чистое состояние AVAudioSession без накопленного state-а от прошлых
+  /// setAudioSource'ов (баг iOS — первые 1–3 source'а на shared-плеере
+  /// иногда молчат).
+  AudioPlayer? _activePlayer;
+  StreamSubscription<PlayerState>? _activeStateSub;
+
   String? _previewingId;
+  String? _selectedId;
   String? _storageUrlCache;
-  StreamSubscription<PlayerState>? _stateSub;
-
-  /// Кэш предзаготовленных `AudioSource` для каждого пресета. Создаются один
-  /// раз при открытии шита — сам setAsset/load выполняется лениво именно при
-  /// play, но объект-источник переиспользуется (быстрее и стабильнее, чем
-  /// строить путь заново на каждый тап).
-  late final Map<String, AudioSource> _presetSources;
-
-  /// Текущий запрос превью. Защищает от гонки между тапами — поздний finish
-  /// старого запроса не должен отменить отображение нового.
-  int _previewRequestId = 0;
 
   @override
   void initState() {
     super.initState();
-    _presetSources = {
-      for (final p in kRingtonePresets)
-        p.id: AudioSource.asset(p.assetPath(_variant)),
-    };
-    // Сбрасываем индикатор только когда дорожка ДОИГРАЛА (completed) —
-    // не реагируем на промежуточные buffering/idle, иначе превью гасится
-    // мгновенно во время setAsset → play цепочки.
-    _stateSub = _previewPlayer.playerStateStream.listen((state) {
-      if (!mounted) return;
-      if (state.processingState == ProcessingState.completed) {
-        if (_previewingId != null) {
-          setState(() => _previewingId = null);
-        }
-      }
-    });
+    _selectedId = widget.initialId;
   }
 
   @override
   void dispose() {
-    _stateSub?.cancel();
-    _previewPlayer.dispose();
+    _activeStateSub?.cancel();
+    _activePlayer?.dispose();
     super.dispose();
   }
 
   RingtoneVariant get _variant =>
       widget.forCalls ? RingtoneVariant.calls : RingtoneVariant.messages;
 
+  Future<void> _stopActive() async {
+    final p = _activePlayer;
+    final sub = _activeStateSub;
+    _activePlayer = null;
+    _activeStateSub = null;
+    if (sub != null) {
+      try {
+        await sub.cancel();
+      } catch (_) {}
+    }
+    if (p != null) {
+      try {
+        await p.stop();
+      } catch (_) {}
+      // Дисспоз асинхронно, не блокируем UI.
+      unawaited(p.dispose());
+    }
+  }
+
   Future<void> _playSource(String id, AudioSource source) async {
-    final requestId = ++_previewRequestId;
+    await _stopActive();
+    if (!mounted) return;
+    final player = AudioPlayer();
+    _activePlayer = player;
+    setState(() => _previewingId = id);
+
+    _activeStateSub = player.playerStateStream.listen((state) {
+      if (!mounted || _activePlayer != player) return;
+      if (state.processingState == ProcessingState.completed) {
+        setState(() => _previewingId = null);
+      }
+    });
+
     try {
-      // Гарантированно тормозим текущий плеер ДО смены источника.
-      await _previewPlayer.stop();
-      if (!mounted || requestId != _previewRequestId) return;
-      // preload: true заставляет дождаться полной загрузки/буферизации;
-      // без него на iOS первая play() могла рассинхрониться.
-      await _previewPlayer.setAudioSource(source, preload: true);
-      if (!mounted || requestId != _previewRequestId) return;
-      setState(() => _previewingId = id);
-      await _previewPlayer.play();
+      await player.setAudioSource(source, preload: true);
+      if (!mounted || _activePlayer != player) return;
+      await player.play();
     } catch (e, s) {
       debugPrint('Ringtone preview failed for $id: $e\n$s');
-      if (mounted && requestId == _previewRequestId) {
+      if (mounted && _activePlayer == player) {
         setState(() => _previewingId = null);
       }
     }
@@ -757,18 +791,16 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
 
   Future<void> _togglePreview(RingtonePreset preset) async {
     if (_previewingId == preset.id) {
-      await _previewPlayer.stop();
+      await _stopActive();
       if (mounted) setState(() => _previewingId = null);
       return;
     }
-    final source = _presetSources[preset.id];
-    if (source == null) return;
-    await _playSource(preset.id, source);
+    await _playSource(preset.id, AudioSource.asset(preset.assetPath(_variant)));
   }
 
   Future<void> _toggleStoragePreview() async {
     if (_previewingId == kStorageRingtoneId) {
-      await _previewPlayer.stop();
+      await _stopActive();
       if (mounted) setState(() => _previewingId = null);
       return;
     }
@@ -776,12 +808,32 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
       _storageUrlCache ??= await FirebaseStorage.instance
           .ref('audio/ringtone.mp3')
           .getDownloadURL();
-      final source = AudioSource.uri(Uri.parse(_storageUrlCache!));
-      await _playSource(kStorageRingtoneId, source);
+      await _playSource(
+        kStorageRingtoneId,
+        AudioSource.uri(Uri.parse(_storageUrlCache!)),
+      );
     } catch (e, s) {
       debugPrint('Storage ringtone preview failed: $e\n$s');
       if (mounted) setState(() => _previewingId = null);
     }
+  }
+
+  void _select(String? id) {
+    // sentinel '' — pop-to-default (исторический контракт savePatch).
+    final value = id == kStorageRingtoneId ? id : id;
+    setState(() => _selectedId = value);
+    widget.onSelected(value);
+  }
+
+  bool _isSelected(String id) {
+    final s = _selectedId;
+    if (s == id) return true;
+    if (s == null) {
+      // Эффективные fallback'и для отображения отметки.
+      if (widget.forCalls && id == kStorageRingtoneId) return true;
+      if (!widget.forCalls && id == kDefaultMessageRingtoneId) return true;
+    }
+    return false;
   }
 
   @override
@@ -791,7 +843,8 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
     final title = widget.forCalls
         ? l10n.ringtone_picker_calls_title
         : l10n.ringtone_picker_messages_title;
-    final selectedId = widget.currentId;
+    // Ограничим высоту шторки до 80% экрана, чтобы было видно фон-настройки.
+    final maxHeight = mq.size.height * 0.8;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -799,100 +852,97 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
         right: 12,
         bottom: 12 + mq.viewInsets.bottom,
       ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.all(Radius.circular(28)),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF161B26),
-                  Color(0xFF0B0F18),
-                ],
-              ),
-              borderRadius: const BorderRadius.all(Radius.circular(28)),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.07),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.5),
-                  blurRadius: 32,
-                  offset: const Offset(0, 12),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.all(Radius.circular(28)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFF161B26),
+                    Color(0xFF0B0F18),
+                  ],
                 ),
-              ],
-            ),
-            child: SafeArea(
-              top: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 10),
-                  // Drag handle.
-                  Center(
-                    child: Container(
-                      width: 38,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
+                borderRadius: const BorderRadius.all(Radius.circular(28)),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.07),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    blurRadius: 32,
+                    offset: const Offset(0, 12),
                   ),
-                  const SizedBox(height: 18),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (widget.forCalls)
-                          _PremiumPickerTile(
-                            label: l10n.ringtone_storage_original,
-                            // Эффективный fallback для звонков (null →
-                            // audio/ringtone.mp3 из Storage), поэтому при
-                            // отсутствии явного выбора эта строка отмечена.
-                            selected: selectedId == kStorageRingtoneId ||
-                                selectedId == null,
-                            onTap: () =>
-                                Navigator.of(context).pop(kStorageRingtoneId),
-                            onTogglePreview: _toggleStoragePreview,
-                            previewing: _previewingId == kStorageRingtoneId,
-                          ),
-                        for (final p in kRingtonePresets)
-                          _PremiumPickerTile(
-                            label: _ringtoneLabel(l10n, p.id),
-                            // Для сообщений null = classic_chime (effective default).
-                            selected: selectedId == p.id ||
-                                (selectedId == null &&
-                                    !widget.forCalls &&
-                                    p.id == kDefaultMessageRingtoneId),
-                            onTap: () => Navigator.of(context).pop(p.id),
-                            onTogglePreview: () => _togglePreview(p),
-                            previewing: _previewingId == p.id,
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
                 ],
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 10),
+                    // Drag handle.
+                    Center(
+                      child: Container(
+                        width: 38,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (widget.forCalls)
+                              _PremiumPickerTile(
+                                label: l10n.ringtone_storage_original,
+                                selected: _isSelected(kStorageRingtoneId),
+                                onTap: () => _select(kStorageRingtoneId),
+                                onTogglePreview: _toggleStoragePreview,
+                                previewing:
+                                    _previewingId == kStorageRingtoneId,
+                              ),
+                            for (final p in kRingtonePresets)
+                              _PremiumPickerTile(
+                                label: _ringtoneLabel(l10n, p.id),
+                                selected: _isSelected(p.id),
+                                onTap: () => _select(p.id),
+                                onTogglePreview: () => _togglePreview(p),
+                                previewing: _previewingId == p.id,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                ),
               ),
             ),
           ),

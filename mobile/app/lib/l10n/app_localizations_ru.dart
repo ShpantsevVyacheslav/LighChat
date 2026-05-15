@@ -795,6 +795,21 @@ class AppLocalizationsRu extends AppLocalizations {
   String get ringtone_tap_tone => 'Постукивание';
 
   @override
+  String get ringtone_lofi_keys => 'Лофи клавиши';
+
+  @override
+  String get ringtone_tape_chime => 'Тёплый колокол';
+
+  @override
+  String get ringtone_dream_pad => 'Мечтательный пэд';
+
+  @override
+  String get ringtone_chill_arp => 'Чилл арпеджио';
+
+  @override
+  String get ringtone_velvet_pulse => 'Бархатный пульс';
+
+  @override
   String get ringtone_storage_original => 'Оригинальная';
 
   @override

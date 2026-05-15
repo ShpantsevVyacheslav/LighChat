@@ -792,6 +792,21 @@ class AppLocalizationsKk extends AppLocalizations {
   String get ringtone_tap_tone => 'Соғу';
 
   @override
+  String get ringtone_lofi_keys => 'Лофи перне';
+
+  @override
+  String get ringtone_tape_chime => 'Жылы қоңырау';
+
+  @override
+  String get ringtone_dream_pad => 'Армандаған пэд';
+
+  @override
+  String get ringtone_chill_arp => 'Чилл арпеджио';
+
+  @override
+  String get ringtone_velvet_pulse => 'Барқыт пульс';
+
+  @override
   String get ringtone_storage_original => 'Түпнұсқа';
 
   @override

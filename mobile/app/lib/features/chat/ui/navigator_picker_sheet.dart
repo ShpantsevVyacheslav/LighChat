@@ -8,6 +8,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geocoding/geocoding.dart' as geo;
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
+import 'package:lighchat_mobile/core/app_logger.dart';
+
 import '../../../l10n/app_localizations.dart';
 import '../data/chat_haptics.dart';
 
@@ -26,11 +28,20 @@ class NavigatorPickerSheet {
     required String address,
   }) async {
     final encoded = Uri.encodeComponent(address);
+    appLogger.d(
+      '[navigator] OPEN address="$address" encoded(len=${encoded.length})',
+    );
     // Геокодим адрес → lat/lon чтобы такси-приложения (Yandex Go / Uber)
     // корректно строили маршрут. Картам lat/lon не нужен — они умеют
     // искать по строке.
     final coords = await _geocode(address);
+    appLogger.d(
+      '[navigator] geocode result: ${coords == null ? "FAILED (no coords)" : "lat=${coords.lat} lon=${coords.lon}"}',
+    );
     final apps = await _availableApps(encoded, coords);
+    appLogger.d(
+      '[navigator] available apps (${apps.length}): ${apps.map((a) => a.id).join(",")}',
+    );
     if (apps.isEmpty) {
       // Fallback: Apple Maps на iOS / geo:// на Android.
       final fallback = Platform.isIOS
@@ -64,13 +75,25 @@ class NavigatorPickerSheet {
   /// Возвращаем `null` если не получилось (нет сети, адрес неоднозначный).
   static Future<({double lat, double lon})?> _geocode(String address) async {
     try {
+      appLogger.d('[navigator] _geocode start address="$address"');
       final results = await geo.locationFromAddress(address).timeout(
             const Duration(seconds: 5),
           );
-      if (results.isEmpty) return null;
+      if (results.isEmpty) {
+        appLogger.w('[navigator] _geocode empty results for "$address"');
+        return null;
+      }
       final first = results.first;
+      appLogger.d(
+        '[navigator] _geocode → lat=${first.latitude} lon=${first.longitude} (results=${results.length})',
+      );
       return (lat: first.latitude, lon: first.longitude);
-    } catch (_) {
+    } catch (e, st) {
+      appLogger.w(
+        '[navigator] _geocode FAILED for "$address": $e',
+        error: e,
+        stackTrace: st,
+      );
       return null;
     }
   }
@@ -160,19 +183,27 @@ class NavigatorPickerSheet {
 
     // === Taxi ===
 
-    // Яндекс Go. Документированная схема `yandextaxi://route?...`. БЕЗ
-    // `appmetrica_tracking_id` приложение игнорирует параметры маршрута
-    // и открывается на главный экран. ID `1178268795219780156` — публичный
-    // demo-tracking, который Яндекс разрешает использовать без регистрации
-    // партнёрского кабинета (используется в их же ссылках с maps.yandex.ru).
+    // Яндекс Go. История с deeplink'ом:
+    //  - `yandextaxi://route?end-lat=&end-lon=&appmetrica_tracking_id=…`
+    //    — официальная partner schema, БЕЗ tracking_id app её игнорирует.
+    //  - Universal link `https://3.redirect.appmetrica.yandex.com/route?…`
+    //    — AppMetrica redirector с теми же параметрами. На некоторых
+    //    устройствах работает корректнее (особенно когда у юзера несколько
+    //    Yandex-приложений и app-schema конфликтует).
+    //  - Без координат — fallback на `yandextaxi://` (просто открыть app).
+    //
+    // Используем universal link если есть координаты — он надёжнее
+    // прокидывает destination и при необходимости откроет браузер
+    // (а оттуда уже Apple universal-link → app).
     if (await _canLaunch(Uri.parse('yandextaxi://'))) {
       const trackingId = '1178268795219780156';
       final yandexUrl = coords != null
-          ? 'yandextaxi://route'
+          ? 'https://3.redirect.appmetrica.yandex.com/route'
               '?end-lat=${coords.lat}'
               '&end-lon=${coords.lon}'
               '&appmetrica_tracking_id=$trackingId'
               '&ref=lighchat'
+              '&utm_source=lighchat'
           : 'yandextaxi://';
       out.add(_NavApp(
         id: 'yandex_go',
@@ -184,21 +215,34 @@ class NavigatorPickerSheet {
       ));
     }
 
-    // Uber — formatted_address как hint + координаты (если есть) для
-    // точного pin-а.
+    // Uber — без `client_id` deeplink игнорирует параметры drop-off и
+    // открывает app на главный экран (Uber API changed 2018+, требует
+    // registered client_id). Универсальный fallback: universal link
+    // `https://m.uber.com/ul/?action=setPickup&...`, который тоже
+    // принимает параметры без client_id и открывает либо app (если
+    // установлен — universal link redirect), либо мобильный сайт.
+    // Так координаты гарантированно попадают.
     if (await _canLaunch(Uri.parse('uber://'))) {
-      final uberUrl = StringBuffer('uber://?action=setPickup&pickup=my_location'
-          '&dropoff[formatted_address]=$encoded');
+      final params = StringBuffer(
+        'action=setPickup&pickup=my_location'
+        '&dropoff[formatted_address]=$encoded',
+      );
       if (coords != null) {
-        uberUrl.write('&dropoff[latitude]=${coords.lat}'
-            '&dropoff[longitude]=${coords.lon}');
+        params.write(
+          '&dropoff[latitude]=${coords.lat}'
+          '&dropoff[longitude]=${coords.lon}',
+        );
       }
+      // Universal-link форма: на iOS система откроет приложение Uber
+      // если оно установлено, иначе m.uber.com. На обоих путях drop-off
+      // отображается корректно (без client_id).
+      final uberUrl = 'https://m.uber.com/ul/?$params';
       out.add(_NavApp(
         id: 'uber',
         label: 'Uber',
         icon: Icons.local_taxi_outlined,
         color: const Color(0xFF000000),
-        url: uberUrl.toString(),
+        url: uberUrl,
         assetPath: 'assets/services/car.svg',
       ));
     }
@@ -215,8 +259,11 @@ class NavigatorPickerSheet {
       ));
     }
 
-    // Citymobil — нет официальной схемы, открываем веб-fallback только
-    // если установлено приложение (схема `citymobil://`).
+    // Ситимобил — у компании НЕТ публично-документированной schema для
+    // передачи маршрута в deeplink. App-схема `citymobil://` открывает
+    // приложение, но без координат точки назначения — это известное
+    // ограничение, не баг нашей интеграции. Если когда-то Citymobil
+    // опубликует schema (или universal link с params) — заменим здесь.
     if (await _canLaunch(Uri.parse('citymobil://'))) {
       out.add(_NavApp(
         id: 'citymobil',
@@ -233,21 +280,48 @@ class NavigatorPickerSheet {
 
   static Future<bool> _canLaunch(Uri uri) async {
     try {
-      return await url_launcher.canLaunchUrl(uri);
-    } catch (_) {
+      final ok = await url_launcher.canLaunchUrl(uri);
+      // Verbose-лог только для не-стандартных схем (taxi/navigators), чтобы
+      // не спамить maps.apple.com / https.
+      final scheme = uri.scheme.toLowerCase();
+      if (scheme.startsWith('yandex') ||
+          scheme == 'uber' ||
+          scheme == 'citymobil' ||
+          scheme == 'indriver' ||
+          scheme == 'dgis' ||
+          scheme == 'waze' ||
+          scheme == 'comgooglemaps') {
+        appLogger.d('[navigator] _canLaunch $scheme:// → $ok');
+      }
+      return ok;
+    } catch (e) {
+      appLogger.w('[navigator] _canLaunch FAILED for $uri: $e');
       return false;
     }
   }
 
   static Future<bool> _launch(String url) async {
+    appLogger.d('[navigator] _launch START url="$url"');
     final uri = Uri.tryParse(url);
-    if (uri == null) return false;
+    if (uri == null) {
+      appLogger.w('[navigator] _launch invalid URL: "$url"');
+      return false;
+    }
     try {
-      return await url_launcher.launchUrl(
+      final ok = await url_launcher.launchUrl(
         uri,
         mode: url_launcher.LaunchMode.externalApplication,
       );
-    } catch (_) {
+      appLogger.d(
+        '[navigator] _launch FINISH scheme=${uri.scheme} ok=$ok host=${uri.host} path=${uri.path}',
+      );
+      return ok;
+    } catch (e, st) {
+      appLogger.w(
+        '[navigator] _launch FAILED url="$url": $e',
+        error: e,
+        stackTrace: st,
+      );
       return false;
     }
   }

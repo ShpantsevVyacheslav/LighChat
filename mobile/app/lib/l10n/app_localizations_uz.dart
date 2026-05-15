@@ -797,6 +797,21 @@ class AppLocalizationsUz extends AppLocalizations {
   String get ringtone_tap_tone => 'Urish';
 
   @override
+  String get ringtone_lofi_keys => 'Lo-fi klavishlari';
+
+  @override
+  String get ringtone_tape_chime => 'Iliq qoʻngʻiroq';
+
+  @override
+  String get ringtone_dream_pad => 'Tushli ped';
+
+  @override
+  String get ringtone_chill_arp => 'Sokin arpeggio';
+
+  @override
+  String get ringtone_velvet_pulse => 'Baxmal puls';
+
+  @override
   String get ringtone_storage_original => 'Asl';
 
   @override

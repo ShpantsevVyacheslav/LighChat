@@ -787,6 +787,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ringtone_tap_tone => 'Tap tone';
 
   @override
+  String get ringtone_lofi_keys => 'Lo-fi keys';
+
+  @override
+  String get ringtone_tape_chime => 'Tape chime';
+
+  @override
+  String get ringtone_dream_pad => 'Dream pad';
+
+  @override
+  String get ringtone_chill_arp => 'Chill arp';
+
+  @override
+  String get ringtone_velvet_pulse => 'Velvet pulse';
+
+  @override
   String get ringtone_storage_original => 'Original';
 
   @override
