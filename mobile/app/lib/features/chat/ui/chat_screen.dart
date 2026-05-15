@@ -3637,22 +3637,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   /// Phase 8: пользователь вставил стикер/memoji/genmoji через системную
   /// emoji-клавиатуру в нативном UITextView. Swift сохранил каждое
   /// изображение в tmp PNG-файл и удалил attachment-run из attributedText.
-  /// Здесь добавляем файлы в pendingAttachments с префиксом `sticker_`,
-  /// чтобы receiver-side рендерил их как стикеры (без обычного bubble).
+  ///
+  /// Поведение как в iMessage: стикер уходит в чат **сразу** при тапе
+  /// на клавиатуре, минуя `pendingAttachments`. Используем тот же
+  /// pipeline что у drag&drop стикеров (`_sendDroppedStickers`):
+  /// downscale → upload в Storage с displayName-префиксом `sticker_*`
+  /// → отправка через `_sendStickerOrGifAttachment` (это ставит
+  /// флаг attachment.kind = sticker, и receiver-side рендерит без
+  /// обычного bubble).
   Future<void> _handleNativeStickerInsert(List<String> paths) async {
     if (paths.isEmpty || !mounted) return;
-    final added = <XFile>[];
+    final stickers = <XFile>[];
     for (final p in paths) {
       if (p.trim().isEmpty) continue;
-      final name =
-          'sticker_${DateTime.now().toUtc().microsecondsSinceEpoch}_'
-          '${added.length}.png';
-      added.add(XFile(p, name: name));
+      stickers.add(XFile(p));
     }
-    if (added.isEmpty || !mounted) return;
-    setState(() => _pendingAttachments.addAll(added));
-    _scheduleChatDraftSave();
-    _recomputeComposerLimits();
+    if (stickers.isEmpty) return;
+    await _sendDroppedStickers(stickers);
   }
 
   String _starredDocId(String conversationId, String messageId) {
