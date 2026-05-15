@@ -1917,6 +1917,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                         if (_stickersPanelOpen) {
                                           _closeStickersPanel();
                                         }
+                                        // Native composer (Phase 1+) держит
+                                        // firstResponder в Swift-UITextView.
+                                        // `primaryFocus.unfocus()` сбрасывает
+                                        // Flutter-focus, но если по какой-то
+                                        // причине Flutter primaryFocus указывает
+                                        // не на наш ChatComposer FocusNode
+                                        // (например когда нативная вкладка
+                                        // стикеров iOS активна) — клавиатура
+                                        // не закроется. Поэтому явно дёргаем
+                                        // оба focusNode'а, которые композер
+                                        // использует. Каждый из них через
+                                        // listener в NativeIosComposerField
+                                        // пошлёт `unfocus` в Swift, и
+                                        // UITextView вызовет
+                                        // `resignFirstResponder`.
+                                        _composerFocusNode.unfocus();
                                         FocusManager.instance.primaryFocus
                                             ?.unfocus();
                                       },

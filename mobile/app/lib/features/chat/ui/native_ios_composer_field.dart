@@ -162,6 +162,16 @@ class NativeIosComposerFieldState extends State<NativeIosComposerField> {
     unawaited(c.invokeMethod<void>('toggleFormat', {'tag': tag}));
   }
 
+  /// Запасной путь для tap-to-dismiss-keyboard: явно резигнит
+  /// firstResponder в UITextView без полагания на Flutter focusNode
+  /// listener (который иногда даёт гонку если Flutter primaryFocus
+  /// держит не наш focusNode).
+  void unfocus() {
+    final c = _channel;
+    if (c == null) return;
+    unawaited(c.invokeMethod<void>('unfocus'));
+  }
+
 
   Map<String, Object?> _styleArgs() {
     final ts = widget.textStyle;

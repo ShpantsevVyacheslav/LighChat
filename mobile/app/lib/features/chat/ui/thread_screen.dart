@@ -2452,6 +2452,13 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                             if (_stickersPanelOpen) {
                               _closeStickersPanel();
                             }
+                            // См. комментарий в chat_screen.dart: native
+                            // composer держит firstResponder в Swift,
+                            // primaryFocus сам по себе не всегда закрывает
+                            // клавиатуру. Явно дёргаем composer focusNode —
+                            // его listener в NativeIosComposerField шлёт
+                            // `unfocus` в UITextView.
+                            _composerFocus.unfocus();
                             FocusManager.instance.primaryFocus?.unfocus();
                           },
                           child: Column(
