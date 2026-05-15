@@ -1892,7 +1892,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get calendar_picker_web_subtitle =>
-      'Abrir en navegador para elegir cuenta';
+      'Abre la app si está instalada, si no — el navegador';
 
   @override
   String get ai_style_friendly => 'Más amigable';
@@ -5906,6 +5906,41 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get attach_scan => 'Escanear';
+
+  @override
+  String scanner_preview_title(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count páginas',
+      one: '$count página',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scanner_preview_send(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Enviar $count páginas',
+      one: 'Enviar página',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scanner_preview_add => 'Escanear otra página';
+
+  @override
+  String get scanner_preview_retake => 'Volver a escanear';
+
+  @override
+  String get scanner_preview_delete => 'Eliminar página';
+
+  @override
+  String get scanner_preview_empty =>
+      'Todas las páginas eliminadas. Toca + para escanear otra.';
 
   @override
   String get attach_circle => 'Circular';
@@ -10329,7 +10364,7 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get calendar_picker_web_subtitle =>
-      'Abrir en navegador para elegir cuenta';
+      'Abre la app si está instalada, si no — el navegador';
 
   @override
   String get ai_style_friendly => 'Más amigable';
@@ -14343,6 +14378,41 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get attach_scan => 'Escanear';
+
+  @override
+  String scanner_preview_title(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count páginas',
+      one: '$count página',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scanner_preview_send(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Enviar $count páginas',
+      one: 'Enviar página',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scanner_preview_add => 'Escanear otra página';
+
+  @override
+  String get scanner_preview_retake => 'Volver a escanear';
+
+  @override
+  String get scanner_preview_delete => 'Eliminar página';
+
+  @override
+  String get scanner_preview_empty =>
+      'Todas las páginas eliminadas. Toca + para escanear otra.';
 
   @override
   String get attach_circle => 'Circular';

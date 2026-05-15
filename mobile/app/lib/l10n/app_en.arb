@@ -897,7 +897,7 @@
   "navigator_picker_title": "Open in",
   "calendar_picker_title": "Add to calendar",
   "calendar_picker_native_subtitle": "System calendar with all your accounts",
-  "calendar_picker_web_subtitle": "Open in browser to choose account",
+  "calendar_picker_web_subtitle": "Opens the app if installed, otherwise web",
   "ai_style_friendly": "Friendlier",
   "ai_style_formal": "Formal",
   "ai_style_shorter": "Shorter",
@@ -2763,6 +2763,18 @@
   "attach_photo_video": "Photo/Video",
   "attach_files": "Files",
   "attach_scan": "Scan",
+  "scanner_preview_title": "{count, plural, one{{count} page} other{{count} pages}}",
+  "@scanner_preview_title": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "scanner_preview_send": "{count, plural, one{Send page} other{Send {count} pages}}",
+  "@scanner_preview_send": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "scanner_preview_add": "Scan another page",
+  "scanner_preview_retake": "Retake",
+  "scanner_preview_delete": "Delete page",
+  "scanner_preview_empty": "All pages deleted. Tap + to scan a new one.",
   "attach_circle": "Circle",
   "attach_location": "Location",
   "attach_poll": "Poll",

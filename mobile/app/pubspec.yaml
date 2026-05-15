@@ -221,6 +221,7 @@ flutter:
     - assets/lighchat_mark.png
     - assets/lighchat_wordmark.png
     - assets/google_icon.png
+    - assets/services/
     - assets/legal/ru/
     - assets/legal/en/
     - assets/wallpapers/

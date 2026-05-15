@@ -1879,7 +1879,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get calendar_picker_web_subtitle =>
-      'Открыть в браузере для выбора аккаунта';
+      'Откроется в приложении или браузере';
 
   @override
   String get ai_style_friendly => 'Дружелюбнее';
@@ -5859,6 +5859,43 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get attach_scan => 'Скан';
+
+  @override
+  String scanner_preview_title(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count страниц',
+      few: '$count страницы',
+      one: '$count страница',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scanner_preview_send(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Отправить $count страниц',
+      few: 'Отправить $count страницы',
+      one: 'Отправить страницу',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scanner_preview_add => 'Сканировать ещё страницу';
+
+  @override
+  String get scanner_preview_retake => 'Снять заново';
+
+  @override
+  String get scanner_preview_delete => 'Удалить страницу';
+
+  @override
+  String get scanner_preview_empty =>
+      'Все страницы удалены. Нажмите + чтобы отсканировать новую.';
 
   @override
   String get attach_circle => 'Кружок';

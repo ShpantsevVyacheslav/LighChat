@@ -1871,7 +1871,8 @@ class AppLocalizationsId extends AppLocalizations {
       'Kalender sistem dengan semua akun Anda';
 
   @override
-  String get calendar_picker_web_subtitle => 'Buka di browser untuk pilih akun';
+  String get calendar_picker_web_subtitle =>
+      'Buka aplikasi jika terpasang, jika tidak — peramban';
 
   @override
   String get ai_style_friendly => 'Lebih ramah';
@@ -5853,6 +5854,41 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get attach_scan => 'Pindai';
+
+  @override
+  String scanner_preview_title(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count halaman',
+      one: '$count halaman',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scanner_preview_send(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Kirim $count halaman',
+      one: 'Kirim halaman',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scanner_preview_add => 'Pindai halaman lagi';
+
+  @override
+  String get scanner_preview_retake => 'Pindai ulang';
+
+  @override
+  String get scanner_preview_delete => 'Hapus halaman';
+
+  @override
+  String get scanner_preview_empty =>
+      'Semua halaman dihapus. Ketuk + untuk memindai baru.';
 
   @override
   String get attach_circle => 'Lingkaran';

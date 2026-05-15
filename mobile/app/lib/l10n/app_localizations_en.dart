@@ -1864,7 +1864,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get calendar_picker_web_subtitle =>
-      'Open in browser to choose account';
+      'Opens the app if installed, otherwise web';
 
   @override
   String get ai_style_friendly => 'Friendlier';
@@ -5834,6 +5834,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get attach_scan => 'Scan';
+
+  @override
+  String scanner_preview_title(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pages',
+      one: '$count page',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scanner_preview_send(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Send $count pages',
+      one: 'Send page',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scanner_preview_add => 'Scan another page';
+
+  @override
+  String get scanner_preview_retake => 'Retake';
+
+  @override
+  String get scanner_preview_delete => 'Delete page';
+
+  @override
+  String get scanner_preview_empty =>
+      'All pages deleted. Tap + to scan a new one.';
 
   @override
   String get attach_circle => 'Circle';

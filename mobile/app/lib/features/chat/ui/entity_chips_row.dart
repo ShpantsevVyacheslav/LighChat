@@ -536,8 +536,7 @@ class _EntityChip extends StatelessWidget {
         onTap: () async {
           await ChatHaptics.instance.tick();
           // Адрес → picker навигатора (Apple Maps / Google Maps / Яндекс
-          // Карты/Навигатор / 2ГИС / Waze). Если установлен только один —
-          // открывается сразу без шита.
+          // Карты/Навигатор / 2ГИС / Waze + такси).
           if (data.entity.type == EntityType.address) {
             if (!context.mounted) return;
             await NavigatorPickerSheet.show(
@@ -546,9 +545,16 @@ class _EntityChip extends StatelessWidget {
             );
             return;
           }
+          // Дата → picker календарей (Apple / Google / Яндекс / Outlook).
+          // Изначально это было на long-press, но юзеры ожидают что
+          // основное действие — тап.
+          if (data.entity.type == EntityType.dateTime &&
+              onLongPressDate != null) {
+            onLongPressDate!();
+            return;
+          }
           await LocalEntityExtractor.instance.launchEntity(data.annotation);
         },
-        onLongPress: onLongPressDate,
         borderRadius: BorderRadius.circular(10),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),

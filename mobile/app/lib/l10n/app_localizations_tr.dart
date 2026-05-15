@@ -1876,7 +1876,8 @@ class AppLocalizationsTr extends AppLocalizations {
       'Tüm hesaplarınızla sistem takvimi';
 
   @override
-  String get calendar_picker_web_subtitle => 'Hesap seçmek için tarayıcıda aç';
+  String get calendar_picker_web_subtitle =>
+      'Yüklüyse uygulama, değilse tarayıcı';
 
   @override
   String get ai_style_friendly => 'Daha samimi';
@@ -5864,6 +5865,41 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get attach_scan => 'Tara';
+
+  @override
+  String scanner_preview_title(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sayfa',
+      one: '$count sayfa',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scanner_preview_send(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sayfa gönder',
+      one: 'Sayfa gönder',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scanner_preview_add => 'Başka sayfa tara';
+
+  @override
+  String get scanner_preview_retake => 'Yeniden tara';
+
+  @override
+  String get scanner_preview_delete => 'Sayfayı sil';
+
+  @override
+  String get scanner_preview_empty =>
+      'Tüm sayfalar silindi. Yeni taramak için + dokunun.';
 
   @override
   String get attach_circle => 'Daire';

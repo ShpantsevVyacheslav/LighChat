@@ -88,6 +88,7 @@ class NavigatorPickerSheet {
         icon: Icons.map_outlined,
         color: const Color(0xFF34A853),
         url: 'http://maps.apple.com/?q=$encoded',
+        assetPath: 'assets/services/apple_maps.png',
       ));
     }
 
@@ -104,6 +105,7 @@ class NavigatorPickerSheet {
         url: Platform.isIOS
             ? 'comgooglemaps://?q=$encoded&directionsmode=transit'
             : 'https://www.google.com/maps/dir/?api=1&destination=$encoded',
+        assetPath: 'assets/services/google_maps.png',
       ));
     }
 
@@ -115,6 +117,7 @@ class NavigatorPickerSheet {
         icon: Icons.location_on_rounded,
         color: const Color(0xFFFF3333),
         url: 'yandexmaps://maps.yandex.ru/?text=$encoded',
+        assetPath: 'assets/services/yandex_maps.png',
       ));
     }
 
@@ -126,6 +129,7 @@ class NavigatorPickerSheet {
         icon: Icons.navigation_rounded,
         color: const Color(0xFFFFCC00),
         url: 'yandexnavi://build_route_on_map?lat_to=0&lon_to=0&text=$encoded',
+        assetPath: 'assets/services/yandex_navi.png',
       ));
     }
 
@@ -137,6 +141,7 @@ class NavigatorPickerSheet {
         icon: Icons.place_outlined,
         color: const Color(0xFF6FCF5C),
         url: 'dgis://2gis.ru/search/$encoded',
+        assetPath: 'assets/services/2gis.png',
       ));
     }
 
@@ -148,6 +153,7 @@ class NavigatorPickerSheet {
         icon: Icons.alt_route_rounded,
         color: const Color(0xFF33CCFF),
         url: 'waze://?q=$encoded',
+        assetPath: 'assets/services/waze.png',
       ));
     }
 
@@ -167,6 +173,7 @@ class NavigatorPickerSheet {
         icon: Icons.local_taxi_rounded,
         color: const Color(0xFFFFCC00),
         url: yandexUrl,
+        assetPath: 'assets/services/yandex_go.png',
       ));
     }
 
@@ -185,6 +192,7 @@ class NavigatorPickerSheet {
         icon: Icons.local_taxi_outlined,
         color: const Color(0xFF000000),
         url: uberUrl.toString(),
+        assetPath: 'assets/services/uber.png',
       ));
     }
 
@@ -196,6 +204,7 @@ class NavigatorPickerSheet {
         icon: Icons.directions_car_rounded,
         color: const Color(0xFFC4FF00),
         url: 'indriver://',
+        assetPath: 'assets/services/indrive.png',
       ));
     }
 
@@ -208,6 +217,7 @@ class NavigatorPickerSheet {
         icon: Icons.local_taxi_rounded,
         color: const Color(0xFF00B86B),
         url: 'citymobil://',
+        assetPath: 'assets/services/citymobil.png',
       ));
     }
 
@@ -243,12 +253,17 @@ class _NavApp {
     required this.icon,
     required this.color,
     required this.url,
+    this.assetPath,
   });
   final String id;
   final String label;
   final IconData icon;
   final Color color;
   final String url;
+
+  /// Опциональный путь к брендовой иконке в assets/services/.
+  /// Если файл отсутствует — рисуем Material [icon] как fallback.
+  final String? assetPath;
 }
 
 class _PickerContent extends StatelessWidget {
@@ -451,15 +466,10 @@ class _NavTileState extends State<_NavTile> {
             ),
             child: Row(
               children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: widget.app.color.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Icon(widget.app.icon, color: widget.app.color, size: 20),
+                _ServiceLogo(
+                  assetPath: widget.app.assetPath,
+                  fallbackIcon: widget.app.icon,
+                  fallbackColor: widget.app.color,
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -483,6 +493,49 @@ class _NavTileState extends State<_NavTile> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Логотип сервиса 38×38: показывает PNG из assets/services/ если файл
+/// существует, иначе — Material иконку как fallback. Используется в
+/// navigator-picker и calendar-picker.
+class _ServiceLogo extends StatelessWidget {
+  const _ServiceLogo({
+    required this.assetPath,
+    required this.fallbackIcon,
+    required this.fallbackColor,
+  });
+
+  final String? assetPath;
+  final IconData fallbackIcon;
+  final Color fallbackColor;
+
+  @override
+  Widget build(BuildContext context) {
+    if (assetPath == null) return _fallbackTile();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(11),
+      child: Image.asset(
+        assetPath!,
+        width: 38,
+        height: 38,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => _fallbackTile(),
+      ),
+    );
+  }
+
+  Widget _fallbackTile() {
+    return Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(
+        color: fallbackColor.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(11),
+      ),
+      alignment: Alignment.center,
+      child: Icon(fallbackIcon, color: fallbackColor, size: 20),
     );
   }
 }

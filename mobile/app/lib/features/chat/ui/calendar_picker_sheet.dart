@@ -140,6 +140,9 @@ class _PickerContent extends StatelessWidget {
                     border: border,
                     fg: fg,
                     fgMuted: fgMuted,
+                    assetPath: Platform.isIOS
+                        ? 'assets/services/apple_calendar.png'
+                        : 'assets/services/google_calendar.png',
                     onTap: () async {
                       Navigator.of(context).maybePop();
                       unawaited(ChatHaptics.instance.selectionChanged());
@@ -155,12 +158,13 @@ class _PickerContent extends StatelessWidget {
                   _CalendarTile(
                     icon: Icons.calendar_month_rounded,
                     iconColor: const Color(0xFF1A73E8),
-                    label: 'Google Calendar (web)',
+                    label: 'Google Calendar',
                     subtitle: l10n.calendar_picker_web_subtitle,
                     cardBg: cardBg,
                     border: border,
                     fg: fg,
                     fgMuted: fgMuted,
+                    assetPath: 'assets/services/google_calendar.png',
                     onTap: () async {
                       Navigator.of(context).maybePop();
                       unawaited(ChatHaptics.instance.selectionChanged());
@@ -171,12 +175,13 @@ class _PickerContent extends StatelessWidget {
                   _CalendarTile(
                     icon: Icons.event_note_rounded,
                     iconColor: const Color(0xFFFF3333),
-                    label: 'Яндекс.Календарь',
+                    label: 'Яндекс Календарь',
                     subtitle: l10n.calendar_picker_web_subtitle,
                     cardBg: cardBg,
                     border: border,
                     fg: fg,
                     fgMuted: fgMuted,
+                    assetPath: 'assets/services/yandex_calendar.png',
                     onTap: () async {
                       Navigator.of(context).maybePop();
                       unawaited(ChatHaptics.instance.selectionChanged());
@@ -193,6 +198,7 @@ class _PickerContent extends StatelessWidget {
                     border: border,
                     fg: fg,
                     fgMuted: fgMuted,
+                    assetPath: 'assets/services/outlook_calendar.png',
                     onTap: () async {
                       Navigator.of(context).maybePop();
                       unawaited(ChatHaptics.instance.selectionChanged());
@@ -253,25 +259,42 @@ class _PickerContent extends StatelessWidget {
   }
 
   static String _buildYandexUrl(cal.Event e) {
-    // У Яндекс.Календаря нет публичного render-deeplink с предзаполнением
-    // как у Google. Открываем create-форму с params в hash:
-    //   https://calendar.yandex.ru/?event[name]=...&event[start]=...
+    // Yandex Calendar event create endpoint принимает date/time/duration
+    // в локальной таймзоне. Формат:
+    //  https://calendar.yandex.ru/event/new?
+    //    name=TITLE
+    //    &date=YYYY-MM-DD            (local date)
+    //    &time_start=HH:MM
+    //    &time_end=HH:MM
+    //    &place=LOCATION
+    //    &description=DESCR
+    final start = e.startDate;
+    final end = e.endDate;
+    final dateStr =
+        '${start.year.toString().padLeft(4, '0')}'
+        '-${start.month.toString().padLeft(2, '0')}'
+        '-${start.day.toString().padLeft(2, '0')}';
     final params = <String, String>{
       'name': e.title,
-      'start': e.startDate.millisecondsSinceEpoch.toString(),
-      'end': e.endDate.millisecondsSinceEpoch.toString(),
+      'date': dateStr,
     };
+    if (!e.allDay) {
+      params['time_start'] =
+          '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
+      params['time_end'] =
+          '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
+    }
     if (e.description != null && e.description!.isNotEmpty) {
-      params['descr'] = e.description!;
+      params['description'] = e.description!;
     }
     if (e.location != null && e.location!.isNotEmpty) {
       params['place'] = e.location!;
     }
     final q = params.entries
         .map((m) =>
-            '${Uri.encodeQueryComponent('event[${m.key}]')}=${Uri.encodeQueryComponent(m.value)}')
+            '${Uri.encodeQueryComponent(m.key)}=${Uri.encodeQueryComponent(m.value)}')
         .join('&');
-    return 'https://calendar.yandex.ru/event?$q';
+    return 'https://calendar.yandex.ru/event/new?$q';
   }
 
   static String _buildOutlookUrl(cal.Event e) {
@@ -308,6 +331,7 @@ class _CalendarTile extends StatefulWidget {
     required this.fg,
     required this.fgMuted,
     required this.onTap,
+    this.assetPath,
   });
 
   final IconData icon;
@@ -319,6 +343,10 @@ class _CalendarTile extends StatefulWidget {
   final Color fg;
   final Color fgMuted;
   final Future<void> Function() onTap;
+
+  /// Опциональный путь к брендовой иконке в assets/services/.
+  /// Если файл отсутствует — рисуем Material [icon] как fallback.
+  final String? assetPath;
 
   @override
   State<_CalendarTile> createState() => _CalendarTileState();
@@ -351,15 +379,10 @@ class _CalendarTileState extends State<_CalendarTile> {
             ),
             child: Row(
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: widget.iconColor.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(widget.icon, color: widget.iconColor, size: 22),
+                _CalendarServiceLogo(
+                  assetPath: widget.assetPath,
+                  fallbackIcon: widget.icon,
+                  fallbackColor: widget.iconColor,
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -398,6 +421,48 @@ class _CalendarTileState extends State<_CalendarTile> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Логотип сервиса 40×40 для calendar-picker. Грузит PNG из
+/// assets/services/, при отсутствии файла рисует Material иконку.
+class _CalendarServiceLogo extends StatelessWidget {
+  const _CalendarServiceLogo({
+    required this.assetPath,
+    required this.fallbackIcon,
+    required this.fallbackColor,
+  });
+
+  final String? assetPath;
+  final IconData fallbackIcon;
+  final Color fallbackColor;
+
+  @override
+  Widget build(BuildContext context) {
+    if (assetPath == null) return _fallback();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.asset(
+        assetPath!,
+        width: 40,
+        height: 40,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => _fallback(),
+      ),
+    );
+  }
+
+  Widget _fallback() {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: fallbackColor.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      alignment: Alignment.center,
+      child: Icon(fallbackIcon, color: fallbackColor, size: 22),
     );
   }
 }

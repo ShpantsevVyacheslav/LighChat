@@ -1883,7 +1883,7 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get calendar_picker_web_subtitle =>
-      'Hisobni tanlash uchun brauzerda ochish';
+      'Ilova oʻrnatilgan boʻlsa — u, boʻlmasa — brauzer';
 
   @override
   String get ai_style_friendly => 'Doʻstona';
@@ -5890,6 +5890,40 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get attach_scan => 'Skanerlash';
+
+  @override
+  String scanner_preview_title(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sahifa',
+      one: '$count sahifa',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scanner_preview_send(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sahifani yuborish',
+      one: 'Sahifani yuborish',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scanner_preview_add => 'Yana sahifa skanerlash';
+
+  @override
+  String get scanner_preview_retake => 'Qaytadan skanerlash';
+
+  @override
+  String get scanner_preview_delete => 'Sahifani oʻchirish';
+
+  @override
+  String get scanner_preview_empty => 'Barcha sahifalar oʻchirildi. + bosing.';
 
   @override
   String get attach_circle => 'Doira';

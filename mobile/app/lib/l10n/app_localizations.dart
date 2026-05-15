@@ -3337,7 +3337,7 @@ abstract class AppLocalizations {
   /// No description provided for @calendar_picker_web_subtitle.
   ///
   /// In ru, this message translates to:
-  /// **'Открыть в браузере для выбора аккаунта'**
+  /// **'Откроется в приложении или браузере'**
   String get calendar_picker_web_subtitle;
 
   /// No description provided for @ai_style_friendly.
@@ -10305,6 +10305,42 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Скан'**
   String get attach_scan;
+
+  /// No description provided for @scanner_preview_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count, plural, one{{count} страница} few{{count} страницы} other{{count} страниц}}'**
+  String scanner_preview_title(int count);
+
+  /// No description provided for @scanner_preview_send.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count, plural, one{Отправить страницу} few{Отправить {count} страницы} other{Отправить {count} страниц}}'**
+  String scanner_preview_send(int count);
+
+  /// No description provided for @scanner_preview_add.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сканировать ещё страницу'**
+  String get scanner_preview_add;
+
+  /// No description provided for @scanner_preview_retake.
+  ///
+  /// In ru, this message translates to:
+  /// **'Снять заново'**
+  String get scanner_preview_retake;
+
+  /// No description provided for @scanner_preview_delete.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить страницу'**
+  String get scanner_preview_delete;
+
+  /// No description provided for @scanner_preview_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Все страницы удалены. Нажмите + чтобы отсканировать новую.'**
+  String get scanner_preview_empty;
 
   /// No description provided for @attach_circle.
   ///

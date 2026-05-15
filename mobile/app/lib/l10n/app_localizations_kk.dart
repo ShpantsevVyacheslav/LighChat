@@ -1876,7 +1876,7 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get calendar_picker_web_subtitle =>
-      'Тіркелгіні таңдау үшін браузерде ашу';
+      'Қолданба орнатылған болса — оны, әйтпесе браузерді ашады';
 
   @override
   String get ai_style_friendly => 'Жайлырақ';
@@ -5866,6 +5866,40 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get attach_scan => 'Сканерлеу';
+
+  @override
+  String scanner_preview_title(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count бет',
+      one: '$count бет',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scanner_preview_send(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count бетті жіберу',
+      one: 'Бетті жіберу',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scanner_preview_add => 'Тағы бір бет';
+
+  @override
+  String get scanner_preview_retake => 'Қайта сканерлеу';
+
+  @override
+  String get scanner_preview_delete => 'Бетті жою';
+
+  @override
+  String get scanner_preview_empty => 'Барлық беттер жойылды. + басыңыз.';
 
   @override
   String get attach_circle => 'Кружок';

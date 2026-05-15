@@ -544,7 +544,12 @@ class _ChatComposerState extends State<ChatComposer> {
       minLines: 1,
       maxLines: inStickerSearchMode ? 1 : 6,
       keyboardType: TextInputType.multiline,
-      textAlignVertical: TextAlignVertical.center,
+      // При многострочном тексте центрирование «прижимает» курсор к
+      // визуальному центру растущего поля, что выглядит как «прыжки» при
+      // переносах. Используем top — каретка остаётся в начале строки.
+      textAlignVertical: inStickerSearchMode
+          ? TextAlignVertical.center
+          : TextAlignVertical.top,
       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: fg),
       onChanged: inStickerSearchMode ? widget.onStickersSearchChanged : null,
       // В режиме поиска стикеров — кнопка Search на клавиатуре закрывает
@@ -752,7 +757,12 @@ class _ChatComposerState extends State<ChatComposer> {
                     ],
                     Expanded(
                       child: Container(
-                        height: _kComposerControlSize,
+                        // minHeight (вместо height) даёт композеру вырасти
+                        // вертикально при переносах строк до maxLines TextField
+                        // (см. _buildComposerTextField — там maxLines:6).
+                        constraints: const BoxConstraints(
+                          minHeight: _kComposerControlSize,
+                        ),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(14),
                           color: Colors.black.withValues(
@@ -764,12 +774,7 @@ class _ChatComposerState extends State<ChatComposer> {
                           border: Border.all(color: fg.withValues(alpha: 0.18)),
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            minHeight: _kComposerControlSize,
-                          ),
-                          child: _buildComposerTextField(),
-                        ),
+                        child: _buildComposerTextField(),
                       ),
                     ),
                     if (!widget.stickersPanelHideSideButtons ||

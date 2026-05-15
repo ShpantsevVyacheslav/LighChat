@@ -98,6 +98,7 @@ import 'smart_reply_chips.dart';
 import '../data/apple_intelligence.dart';
 import '../data/chat_haptics.dart';
 import '../data/document_scanner.dart';
+import 'document_scanner_preview_screen.dart';
 import 'ai_text_action_sheet.dart';
 import 'thread_route_payload.dart';
 import 'secret_chat_secure_scope.dart';
@@ -5706,7 +5707,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         try {
           final paths = await DocumentScanner.instance.scan();
           if (!mounted || paths.isEmpty) return;
-          final add = paths
+          // Preview screen — пользователь может удалить страницы,
+          // переупорядочить, переснять отдельную, добавить ещё.
+          final curated = await DocumentScannerPreviewScreen.open(
+            context,
+            initialPaths: paths,
+          );
+          if (!mounted || curated == null || curated.isEmpty) return;
+          final add = curated
               .map((p) => XFile(p, name: p.split(Platform.pathSeparator).last))
               .toList();
           setState(() => _pendingAttachments.addAll(add));

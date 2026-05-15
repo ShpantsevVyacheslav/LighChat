@@ -1882,7 +1882,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get calendar_picker_web_subtitle =>
-      'Abrir no navegador para escolher conta';
+      'Abre o app se instalado, senão — navegador';
 
   @override
   String get ai_style_friendly => 'Mais amigável';
@@ -5891,6 +5891,41 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get attach_scan => 'Digitalizar';
+
+  @override
+  String scanner_preview_title(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count páginas',
+      one: '$count página',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scanner_preview_send(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Enviar $count páginas',
+      one: 'Enviar página',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scanner_preview_add => 'Digitalizar mais uma página';
+
+  @override
+  String get scanner_preview_retake => 'Refazer';
+
+  @override
+  String get scanner_preview_delete => 'Excluir página';
+
+  @override
+  String get scanner_preview_empty =>
+      'Todas as páginas foram excluídas. Toque em + para digitalizar.';
 
   @override
   String get attach_circle => 'Nota em vídeo';
@@ -10305,7 +10340,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get calendar_picker_web_subtitle =>
-      'Abrir no navegador para escolher conta';
+      'Abre o app se instalado, senão — navegador';
 
   @override
   String get ai_style_friendly => 'Mais amigável';
@@ -14314,6 +14349,41 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get attach_scan => 'Digitalizar';
+
+  @override
+  String scanner_preview_title(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count páginas',
+      one: '$count página',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scanner_preview_send(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Enviar $count páginas',
+      one: 'Enviar página',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scanner_preview_add => 'Digitalizar mais uma página';
+
+  @override
+  String get scanner_preview_retake => 'Refazer';
+
+  @override
+  String get scanner_preview_delete => 'Excluir página';
+
+  @override
+  String get scanner_preview_empty =>
+      'Todas as páginas foram excluídas. Toque em + para digitalizar.';
 
   @override
   String get attach_circle => 'Nota em vídeo';
