@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:add_2_calendar/add_2_calendar.dart' as cal;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
@@ -140,9 +141,7 @@ class _PickerContent extends StatelessWidget {
                     border: border,
                     fg: fg,
                     fgMuted: fgMuted,
-                    assetPath: Platform.isIOS
-                        ? 'assets/services/apple_calendar.png'
-                        : 'assets/services/google_calendar.png',
+                    assetPath: 'assets/services/calendar.svg',
                     onTap: () async {
                       Navigator.of(context).maybePop();
                       unawaited(ChatHaptics.instance.selectionChanged());
@@ -164,7 +163,7 @@ class _PickerContent extends StatelessWidget {
                     border: border,
                     fg: fg,
                     fgMuted: fgMuted,
-                    assetPath: 'assets/services/google_calendar.png',
+                    assetPath: 'assets/services/calendar.svg',
                     onTap: () async {
                       Navigator.of(context).maybePop();
                       unawaited(ChatHaptics.instance.selectionChanged());
@@ -181,7 +180,7 @@ class _PickerContent extends StatelessWidget {
                     border: border,
                     fg: fg,
                     fgMuted: fgMuted,
-                    assetPath: 'assets/services/yandex_calendar.png',
+                    assetPath: 'assets/services/calendar.svg',
                     onTap: () async {
                       Navigator.of(context).maybePop();
                       unawaited(ChatHaptics.instance.selectionChanged());
@@ -198,7 +197,7 @@ class _PickerContent extends StatelessWidget {
                     border: border,
                     fg: fg,
                     fgMuted: fgMuted,
-                    assetPath: 'assets/services/outlook_calendar.png',
+                    assetPath: 'assets/services/calendar.svg',
                     onTap: () async {
                       Navigator.of(context).maybePop();
                       unawaited(ChatHaptics.instance.selectionChanged());
@@ -441,14 +440,23 @@ class _CalendarServiceLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (assetPath == null) return _fallback();
+    final isSvg = assetPath!.toLowerCase().endsWith('.svg');
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: Image.asset(
-        assetPath!,
+      child: SizedBox(
         width: 40,
         height: 40,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => _fallback(),
+        child: isSvg
+            ? SvgPicture.asset(
+                assetPath!,
+                fit: BoxFit.cover,
+                placeholderBuilder: (_) => _fallback(),
+              )
+            : Image.asset(
+                assetPath!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => _fallback(),
+              ),
       ),
     );
   }

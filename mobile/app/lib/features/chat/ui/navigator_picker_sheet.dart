@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geocoding/geocoding.dart' as geo;
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
@@ -88,7 +89,7 @@ class NavigatorPickerSheet {
         icon: Icons.map_outlined,
         color: const Color(0xFF34A853),
         url: 'http://maps.apple.com/?q=$encoded',
-        assetPath: 'assets/services/apple_maps.png',
+        assetPath: 'assets/services/pin.svg',
       ));
     }
 
@@ -105,7 +106,7 @@ class NavigatorPickerSheet {
         url: Platform.isIOS
             ? 'comgooglemaps://?q=$encoded&directionsmode=transit'
             : 'https://www.google.com/maps/dir/?api=1&destination=$encoded',
-        assetPath: 'assets/services/google_maps.png',
+        assetPath: 'assets/services/pin.svg',
       ));
     }
 
@@ -117,7 +118,7 @@ class NavigatorPickerSheet {
         icon: Icons.location_on_rounded,
         color: const Color(0xFFFF3333),
         url: 'yandexmaps://maps.yandex.ru/?text=$encoded',
-        assetPath: 'assets/services/yandex_maps.png',
+        assetPath: 'assets/services/pin.svg',
       ));
     }
 
@@ -129,7 +130,7 @@ class NavigatorPickerSheet {
         icon: Icons.navigation_rounded,
         color: const Color(0xFFFFCC00),
         url: 'yandexnavi://build_route_on_map?lat_to=0&lon_to=0&text=$encoded',
-        assetPath: 'assets/services/yandex_navi.png',
+        assetPath: 'assets/services/arrow.svg',
       ));
     }
 
@@ -141,7 +142,7 @@ class NavigatorPickerSheet {
         icon: Icons.place_outlined,
         color: const Color(0xFF6FCF5C),
         url: 'dgis://2gis.ru/search/$encoded',
-        assetPath: 'assets/services/2gis.png',
+        assetPath: 'assets/services/pin.svg',
       ));
     }
 
@@ -153,7 +154,7 @@ class NavigatorPickerSheet {
         icon: Icons.alt_route_rounded,
         color: const Color(0xFF33CCFF),
         url: 'waze://?q=$encoded',
-        assetPath: 'assets/services/waze.png',
+        assetPath: 'assets/services/arrow.svg',
       ));
     }
 
@@ -173,7 +174,7 @@ class NavigatorPickerSheet {
         icon: Icons.local_taxi_rounded,
         color: const Color(0xFFFFCC00),
         url: yandexUrl,
-        assetPath: 'assets/services/yandex_go.png',
+        assetPath: 'assets/services/car.svg',
       ));
     }
 
@@ -192,7 +193,7 @@ class NavigatorPickerSheet {
         icon: Icons.local_taxi_outlined,
         color: const Color(0xFF000000),
         url: uberUrl.toString(),
-        assetPath: 'assets/services/uber.png',
+        assetPath: 'assets/services/car.svg',
       ));
     }
 
@@ -204,7 +205,7 @@ class NavigatorPickerSheet {
         icon: Icons.directions_car_rounded,
         color: const Color(0xFFC4FF00),
         url: 'indriver://',
-        assetPath: 'assets/services/indrive.png',
+        assetPath: 'assets/services/car.svg',
       ));
     }
 
@@ -217,7 +218,7 @@ class NavigatorPickerSheet {
         icon: Icons.local_taxi_rounded,
         color: const Color(0xFF00B86B),
         url: 'citymobil://',
-        assetPath: 'assets/services/citymobil.png',
+        assetPath: 'assets/services/car.svg',
       ));
     }
 
@@ -514,14 +515,23 @@ class _ServiceLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (assetPath == null) return _fallbackTile();
+    final isSvg = assetPath!.toLowerCase().endsWith('.svg');
     return ClipRRect(
       borderRadius: BorderRadius.circular(11),
-      child: Image.asset(
-        assetPath!,
+      child: SizedBox(
         width: 38,
         height: 38,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => _fallbackTile(),
+        child: isSvg
+            ? SvgPicture.asset(
+                assetPath!,
+                fit: BoxFit.cover,
+                placeholderBuilder: (_) => _fallbackTile(),
+              )
+            : Image.asset(
+                assetPath!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => _fallbackTile(),
+              ),
       ),
     );
   }

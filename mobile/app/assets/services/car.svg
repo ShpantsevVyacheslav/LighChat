@@ -1,0 +1,13 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="carBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8FE0B5"/>
+      <stop offset="1" stop-color="#4FB87E"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="24" fill="url(#carBg)"/>
+  <path d="M22 56 L27 44 Q31 36 41 36 L59 36 Q69 36 73 44 L78 56 L78 66 Q78 70 74 70 L70 70 Q70 76 64 76 Q58 76 58 70 L42 70 Q42 76 36 76 Q30 76 30 70 L26 70 Q22 70 22 66 Z" fill="white"/>
+  <circle cx="36" cy="68" r="4" fill="#4FB87E"/>
+  <circle cx="64" cy="68" r="4" fill="#4FB87E"/>
+  <path d="M32 56 L36 46 Q38 42 42 42 L58 42 Q62 42 64 46 L68 56 Z" fill="rgba(79,184,126,0.18)"/>
+</svg>

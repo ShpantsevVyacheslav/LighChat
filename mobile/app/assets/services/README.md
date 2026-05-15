@@ -1,35 +1,21 @@
-# Service brand icons
+# Service category icons
 
-Place square PNG/SVG logos (≥128×128 PNG, transparent background recommended)
-of each external service we deeplink to. Files are picked up by
-`NavigatorPickerSheet` and `CalendarPickerSheet` via the `assetPath` field —
-if a file with the expected name exists, it's rendered via `Image.asset`
-inside a 38–40pt rounded tile; otherwise the widget falls back to the
-current Material icon.
+4 generic category icons in LighChat premium style — used by
+`NavigatorPickerSheet` and `CalendarPickerSheet` to visually mark service
+tiles. The brand identity is conveyed by the **label** next to the icon,
+not by the icon itself.
 
-Expected filenames (lower_snake_case + `.png`):
+| File | Used for |
+|---|---|
+| `pin.svg` | Map services (Apple Maps, Google Maps, Yandex Maps, 2GIS) |
+| `arrow.svg` | Turn-by-turn navigators (Yandex Navi, Waze) |
+| `car.svg` | Taxi services (Yandex Go, Uber, inDrive, Citymobil) |
+| `calendar.svg` | Calendars (Apple, Google, Yandex, Outlook) |
 
-Maps & Navigation:
-- `apple_maps.png`
-- `google_maps.png`
-- `yandex_maps.png`
-- `yandex_navi.png`
-- `2gis.png`
-- `waze.png`
+Each is an original LighChat-designed SVG: rounded square background with
+brand-neutral accent gradient + a white category glyph (drop pin / paper-
+plane arrow / sedan silhouette / month grid card).
 
-Taxi:
-- `yandex_go.png`
-- `uber.png`
-- `indrive.png`
-- `citymobil.png`
-
-Calendars:
-- `apple_calendar.png`
-- `google_calendar.png`
-- `yandex_calendar.png`
-- `outlook_calendar.png`
-
-License note: use only logos from the corresponding service's
-press-kit / brand guidelines page. Each brand is the trademark of
-its owner; we use icons solely as link affordances to the respective
-services.
+The picker widgets render via `SvgPicture.asset` with a placeholder
+fallback to a Material icon. Files can be swapped out with denser/darker
+designs without changing any Dart code.
