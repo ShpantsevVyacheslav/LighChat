@@ -374,15 +374,15 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
     final next = _computeVisibleDayLabel();
     if (next == null) return;
     if (next != _stickyDayLabel) {
-      final scrollPx = widget.scrollController.hasClients
-          ? widget.scrollController.offset.toStringAsFixed(1)
-          : '<none>';
-      final msg =
-          '[sticky-day] LABEL CHANGE "$_stickyDayLabel" → "$next" scroll=$scrollPx topOverlayOffset=${widget.topOverlayOffset}';
-      appLogger.d(msg);
-      // Дополнительно — в native NSLog, чтобы лог гарантированно
-      // оказался в Xcode Console рядом с [NavBarOverlay] логами.
-      NativeNavBarFacade.instance.nativeLog(msg);
+      if (kDebugMode) {
+        final scrollPx = widget.scrollController.hasClients
+            ? widget.scrollController.offset.toStringAsFixed(1)
+            : '<none>';
+        final msg =
+            '[sticky-day] LABEL CHANGE "$_stickyDayLabel" → "$next" scroll=$scrollPx topOverlayOffset=${widget.topOverlayOffset}';
+        appLogger.d(msg);
+        NativeNavBarFacade.instance.nativeLog(msg);
+      }
       setState(() => _stickyDayLabel = next);
     }
   }
@@ -454,23 +454,28 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
     DateTime? belowLineDate;
 
     final l10n = AppLocalizations.of(context)!;
-    final logBuf = StringBuffer(
-      '[sticky-day-compute] line=$stickyLineY buf=$nearBelowBuffer reversed=${widget.reversed} groups=${groups.length} headers=',
-    );
+    // Verbose log buffer строим ТОЛЬКО в debug-сборках — функция
+    // дёргается каждый кадр скролла, иначе release-консоль завалена
+    // тысячами строк sticky-day-compute (+native bridge call'ы дорогие).
+    final logBuf = kDebugMode
+        ? StringBuffer(
+            '[sticky-day-compute] line=$stickyLineY buf=$nearBelowBuffer reversed=${widget.reversed} groups=${groups.length} headers=',
+          )
+        : null;
     for (final g in groups) {
       final dk = ChatMessageList.dayKey(g.first.createdAt);
       final ctx = _dayStartKeys[dk]?.currentContext;
       if (ctx == null) {
-        logBuf.write(' $dk:noctx');
+        logBuf?.write(' $dk:noctx');
         continue;
       }
       final ro = ctx.findRenderObject();
       if (ro is! RenderBox || !ro.hasSize || !ro.attached) {
-        logBuf.write(' $dk:noro');
+        logBuf?.write(' $dk:noro');
         continue;
       }
       final y = ro.localToGlobal(Offset.zero, ancestor: vp).dy;
-      logBuf.write(' $dk@${y.toStringAsFixed(0)}');
+      logBuf?.write(' $dk@${y.toStringAsFixed(0)}');
       if (y > stickyLineY && y - stickyLineY < nearBelowBuffer) {
         // Маркер ниже линии и в пределах буфера → день начинается
         // прямо под капсулой, его и берём.
@@ -491,15 +496,17 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
     final picked = belowLineLabel ?? aboveLineLabel;
     final pickedY = belowLineLabel != null ? belowLineMinY : aboveLineMaxY;
     final pickedDate = belowLineDate ?? aboveLineDate;
-    final pickedFrom = belowLineLabel != null ? "below" : "above";
-    logBuf.write(
-      ' → picked=${picked ?? "null"}@${(pickedY == -double.infinity || pickedY == double.infinity) ? "none" : pickedY.toStringAsFixed(0)}'
-      ' from=$pickedFrom'
-      ' pickedDate=${pickedDate?.toLocal().toIso8601String() ?? "null"}',
-    );
-    final logMsg = logBuf.toString();
-    appLogger.d(logMsg);
-    NativeNavBarFacade.instance.nativeLog(logMsg);
+    if (logBuf != null) {
+      final pickedFrom = belowLineLabel != null ? "below" : "above";
+      logBuf.write(
+        ' → picked=${picked ?? "null"}@${(pickedY == -double.infinity || pickedY == double.infinity) ? "none" : pickedY.toStringAsFixed(0)}'
+        ' from=$pickedFrom'
+        ' pickedDate=${pickedDate?.toLocal().toIso8601String() ?? "null"}',
+      );
+      final logMsg = logBuf.toString();
+      appLogger.d(logMsg);
+      NativeNavBarFacade.instance.nativeLog(logMsg);
+    }
 
     // Fallback: ни один header не прошёл линию ⇒ мы выше topmost'а,
     // т.е. показываем САМЫЙ СТАРЫЙ день (top of conversation в

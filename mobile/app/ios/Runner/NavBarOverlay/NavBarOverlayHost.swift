@@ -123,9 +123,20 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
   /// system-reserved area под Dynamic Island. -6pt — pill'ы чуть-чуть
   /// заходят в DI clearance, но не прижимаются к status bar items.
   private static let navBarTopGap: CGFloat = -6
-  /// Структурное логирование для отладки overlay'я. Включается через
-  /// `defaults write … NavBarOverlayDebug 1` или хардкодом ниже.
-  private static let debugLog: Bool = true
+  /// Структурное логирование для отладки overlay'я. В release-сборке
+  /// выключено по умолчанию — тысячи `[tab-anim]` / `[sticky-day]` /
+  /// `MethodChannel<-` строк заваливают Xcode Console. Включается через
+  /// `defaults write … NavBarOverlayDebug 1` (force-on в любой сборке).
+  private static let debugLog: Bool = {
+    if UserDefaults.standard.bool(forKey: "NavBarOverlayDebug") {
+      return true
+    }
+    #if DEBUG
+      return true
+    #else
+      return false
+    #endif
+  }()
 
   func attach(to vc: UIViewController) {
     flutterVC = vc
@@ -1034,7 +1045,21 @@ final class NavBarOverlayHost: NSObject, UINavigationBarDelegate,
     }
 
     if let raw = avatarUrl, !raw.isEmpty {
-      if let url = URL(string: raw) {
+      // SVG отлично рендерится в Flutter (`SvgPicture.network`), но
+      // нативный `UIImage(data:)` его не парсит. Если URL очевидно
+      // ссылается на SVG (DiceBear / `format=svg` / `.svg` extension) —
+      // даже не пытаемся качать, сразу fallback на gradient + initial.
+      let looksLikeSvg: Bool = {
+        let lower = raw.lowercased()
+        return lower.contains("/svg") ||
+          lower.hasSuffix(".svg") ||
+          lower.contains("format=svg")
+      }()
+      if looksLikeSvg {
+        Self.log("makeTitleView avatarUrl is SVG → using fallback gradient + initial")
+        lastAvatarUrl = nil
+        cachedAvatarImage = nil
+      } else if let url = URL(string: raw) {
         Self.log("makeTitleView avatarUrl='\(raw)' → URL parsed OK")
         // Уже загружали этот URL → отдаём из кэша, без сетевого запроса.
         if lastAvatarUrl == url, let cached = cachedAvatarImage {
