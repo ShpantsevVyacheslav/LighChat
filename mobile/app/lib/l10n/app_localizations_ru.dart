@@ -7293,6 +7293,18 @@ class AppLocalizationsRu extends AppLocalizations {
   String get share_location_send => 'Отправить';
 
   @override
+  String get share_location_action_send_once => 'Отправить один раз';
+
+  @override
+  String get share_location_action_for_one_hour => 'На один час';
+
+  @override
+  String get share_location_action_until_end_of_day => 'До конца дня';
+
+  @override
+  String get share_location_action_indefinitely => 'Бессрочно';
+
+  @override
   String get photo_source_gallery => 'Галерея';
 
   @override

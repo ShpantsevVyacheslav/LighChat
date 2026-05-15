@@ -7296,6 +7296,18 @@ class AppLocalizationsId extends AppLocalizations {
   String get share_location_send => 'Kirim';
 
   @override
+  String get share_location_action_send_once => 'Kirim sekali';
+
+  @override
+  String get share_location_action_for_one_hour => 'Selama satu jam';
+
+  @override
+  String get share_location_action_until_end_of_day => 'Sampai akhir hari';
+
+  @override
+  String get share_location_action_indefinitely => 'Tanpa batas waktu';
+
+  @override
   String get photo_source_gallery => 'Galeri';
 
   @override

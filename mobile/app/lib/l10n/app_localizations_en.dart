@@ -7268,6 +7268,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get share_location_send => 'Send';
 
   @override
+  String get share_location_action_send_once => 'Send Once';
+
+  @override
+  String get share_location_action_for_one_hour => 'For One Hour';
+
+  @override
+  String get share_location_action_until_end_of_day => 'Until End of Day';
+
+  @override
+  String get share_location_action_indefinitely => 'Indefinitely';
+
+  @override
   String get photo_source_gallery => 'Gallery';
 
   @override

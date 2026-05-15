@@ -12880,6 +12880,30 @@ abstract class AppLocalizations {
   /// **'Отправить'**
   String get share_location_send;
 
+  /// No description provided for @share_location_action_send_once.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить один раз'**
+  String get share_location_action_send_once;
+
+  /// No description provided for @share_location_action_for_one_hour.
+  ///
+  /// In ru, this message translates to:
+  /// **'На один час'**
+  String get share_location_action_for_one_hour;
+
+  /// No description provided for @share_location_action_until_end_of_day.
+  ///
+  /// In ru, this message translates to:
+  /// **'До конца дня'**
+  String get share_location_action_until_end_of_day;
+
+  /// No description provided for @share_location_action_indefinitely.
+  ///
+  /// In ru, this message translates to:
+  /// **'Бессрочно'**
+  String get share_location_action_indefinitely;
+
   /// No description provided for @photo_source_gallery.
   ///
   /// In ru, this message translates to:

@@ -7301,6 +7301,18 @@ class AppLocalizationsKk extends AppLocalizations {
   String get share_location_send => 'Жіберу';
 
   @override
+  String get share_location_action_send_once => 'Бір рет жіберу';
+
+  @override
+  String get share_location_action_for_one_hour => 'Бір сағатқа';
+
+  @override
+  String get share_location_action_until_end_of_day => 'Күн соңына дейін';
+
+  @override
+  String get share_location_action_indefinitely => 'Шектеусіз';
+
+  @override
   String get photo_source_gallery => 'Галерея';
 
   @override

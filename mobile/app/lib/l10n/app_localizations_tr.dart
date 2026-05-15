@@ -7298,6 +7298,18 @@ class AppLocalizationsTr extends AppLocalizations {
   String get share_location_send => 'Gönder';
 
   @override
+  String get share_location_action_send_once => 'Bir kez gönder';
+
+  @override
+  String get share_location_action_for_one_hour => 'Bir saat boyunca';
+
+  @override
+  String get share_location_action_until_end_of_day => 'Gün sonuna kadar';
+
+  @override
+  String get share_location_action_indefinitely => 'Süresiz';
+
+  @override
   String get photo_source_gallery => 'Galeri';
 
   @override

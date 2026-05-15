@@ -7337,6 +7337,18 @@ class AppLocalizationsPt extends AppLocalizations {
   String get share_location_send => 'Enviar';
 
   @override
+  String get share_location_action_send_once => 'Enviar uma vez';
+
+  @override
+  String get share_location_action_for_one_hour => 'Por uma hora';
+
+  @override
+  String get share_location_action_until_end_of_day => 'Até o fim do dia';
+
+  @override
+  String get share_location_action_indefinitely => 'Indefinidamente';
+
+  @override
   String get photo_source_gallery => 'Galeria';
 
   @override
@@ -15978,6 +15990,18 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get share_location_send => 'Enviar';
+
+  @override
+  String get share_location_action_send_once => 'Enviar uma vez';
+
+  @override
+  String get share_location_action_for_one_hour => 'Por uma hora';
+
+  @override
+  String get share_location_action_until_end_of_day => 'Até o fim do dia';
+
+  @override
+  String get share_location_action_indefinitely => 'Indefinidamente';
 
   @override
   String get photo_source_gallery => 'Galeria';

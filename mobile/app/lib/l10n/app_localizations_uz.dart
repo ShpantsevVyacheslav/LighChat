@@ -7333,6 +7333,18 @@ class AppLocalizationsUz extends AppLocalizations {
   String get share_location_send => 'Yuborish';
 
   @override
+  String get share_location_action_send_once => 'Bir marta yuborish';
+
+  @override
+  String get share_location_action_for_one_hour => 'Bir soatga';
+
+  @override
+  String get share_location_action_until_end_of_day => 'Kun oxirigacha';
+
+  @override
+  String get share_location_action_indefinitely => 'Vaqt cheklovsiz';
+
+  @override
   String get photo_source_gallery => 'Galereya';
 
   @override
