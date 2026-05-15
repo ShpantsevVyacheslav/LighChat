@@ -249,8 +249,14 @@ final class VoiceTranscriberBridge: NSObject {
             + "text=\"\(fullPreview)\"")
         if !output.text.isEmpty {
           if autoDetect {
+            // Передаём ОСТАВШИЕСЯ fallback-локали — если NLLang
+            // обманулся (ASR форсировал чужое аудио в свой язык),
+            // maybeReRun сможет проверить avg-confidence сегментов и
+            // принудительно перейти на следующего кандидата.
+            let remaining = Array(candidates.suffix(from: index + 1))
             self?.maybeReRunWithDetectedLanguage(
               originalLocale: locale, originalOutput: output,
+              remainingFallbacks: remaining,
               url: url, result: result)
           } else {
             Self.log("→ autoDetect=false, accepting first non-empty result")
@@ -414,12 +420,14 @@ final class VoiceTranscriberBridge: NSObject {
   private func maybeReRunWithDetectedLanguage(
     originalLocale: Locale,
     originalOutput: RecognitionOutput,
+    remainingFallbacks: [Locale],
     url: URL,
     result: @escaping FlutterResult
   ) {
     let originalCode = (originalLocale.languageCode ?? "").lowercased()
     let originalText = originalOutput.text
     let originalSegs = originalOutput.segments
+    let originalAvgConf = Self.averageSegmentConfidence(originalSegs)
     let langRecognizer = NLLanguageRecognizer()
     langRecognizer.processString(originalText)
     let hypotheses = langRecognizer.languageHypotheses(withMaximum: 3)
@@ -429,6 +437,7 @@ final class VoiceTranscriberBridge: NSObject {
       "maybeReRun analyzing originalLocale=\(originalLocale.identifier) "
         + "originalCode=\(originalCode) "
         + "textLen=\(originalText.count) "
+        + "avgSegConf=\(String(format: "%.3f", originalAvgConf)) "
         + "dominant=\(dominantLang)")
     Self.log(
       "NLLanguageRecognizer top hypotheses: "
@@ -442,6 +451,33 @@ final class VoiceTranscriberBridge: NSObject {
         "detectedLanguage": originalCode,
         "segments": originalSegs,
       ])
+    }
+
+    // ── Forced-fallback: ASR struggling ─────────────────────────────
+    // Сценарий-боль: системный UI=en, но юзер записал русский голос. SFSpeech
+    // на en-US натягивает русскую фонетику в английские слова-frankenstein-ы
+    // («Thanks just Prem… schedule schedule… bullshit fuck»). Текст реально
+    // английский — NLLanguageRecognizer честно отвечает en=0.997. Эвристика
+    // «text-lang ≠ recognizer-lang → re-run» проваливается.
+    //
+    // Спасает avg-confidence от самого SFSpeech: на чужом языке segment-
+    // конфидансы лежат в районе 0.0-0.35 (ASR сам не уверен). На родном —
+    // 0.6+. Если у нас остались непробованные fallback-локали и средний
+    // confidence < 0.45 — насильно пробуем первый fallback независимо от
+    // NLLang-результата.
+    if originalAvgConf < 0.45, let forced = remainingFallbacks.first {
+      let forcedCode = (forced.languageCode ?? "").lowercased()
+      if forcedCode != originalCode {
+        Self.log(
+          "→ DECISION: ASR struggling (avgConf=\(String(format: "%.3f", originalAvgConf)) < 0.45) "
+            + "and fallback=\(forced.identifier) available → forced rerun (ignoring NLLang)")
+        forceRerun(
+          newLocale: forced, url: url,
+          originalText: originalText, originalSegs: originalSegs,
+          originalCode: originalCode, originalAvgConf: originalAvgConf,
+          result: result)
+        return
+      }
     }
     guard let (topLang, confidence) = sorted.first else {
       Self.log("→ DECISION: no hypotheses → keepOriginal (\(originalCode))")
@@ -509,6 +545,95 @@ final class VoiceTranscriberBridge: NSObject {
         keepOriginal()
       }
     }
+  }
+
+  /// Прогон с явно указанной (forced) локалью + сравнение avg-confidence.
+  /// Если новый прогон даёт более уверенный результат — берём его,
+  /// иначе оставляем оригинал. Это страховка от ситуации, когда forced-
+  /// fallback тоже не подходит и тоже отдаёт мусор (например fallback
+  /// был не тем языком, что в записи).
+  private func forceRerun(
+    newLocale: Locale, url: URL,
+    originalText: String, originalSegs: [[String: Any]],
+    originalCode: String, originalAvgConf: Double,
+    result: @escaping FlutterResult
+  ) {
+    func keepOriginal() {
+      result([
+        "text": originalText,
+        "detectedLanguage": originalCode,
+        "segments": originalSegs,
+      ])
+    }
+    guard let newRecognizer = makeRecognizer(locale: newLocale) else {
+      Self.log(
+        "→ forced fallback recognizer unavailable for \(newLocale.identifier), keeping original")
+      keepOriginal()
+      return
+    }
+    Self.log(
+      "→ forced rerun with locale=\(newLocale.identifier) "
+        + "(original avgConf=\(String(format: "%.3f", originalAvgConf)))")
+    performRecognition(recognizer: newRecognizer, url: url) { outcome in
+      switch outcome {
+      case .success(let secondary):
+        if secondary.text.isEmpty {
+          Self.log(
+            "→ forced rerun returned empty, keeping original (\(originalCode))")
+          keepOriginal()
+          return
+        }
+        let secondaryAvgConf = Self.averageSegmentConfidence(secondary.segments)
+        Self.log(
+          "→ forced rerun success: locale=\(newLocale.identifier) "
+            + "textLen=\(secondary.text.count) "
+            + "avgConf=\(String(format: "%.3f", secondaryAvgConf)) "
+            + "(original avgConf=\(String(format: "%.3f", originalAvgConf)))")
+        // Берём новый результат если он явно увереннее. Дельта 0.05
+        // буферит шум: иногда оба прогона выходят в район 0.3-0.4 и
+        // выбирать произвольно нельзя.
+        if secondaryAvgConf > originalAvgConf + 0.05 {
+          let finalLang = newLocale.languageCode ?? originalCode
+          Self.log("→ picking forced-rerun result (higher confidence)")
+          result([
+            "text": secondary.text,
+            "detectedLanguage": finalLang,
+            "segments": secondary.segments,
+          ])
+        } else {
+          Self.log("→ forced-rerun not confident enough, keeping original")
+          keepOriginal()
+        }
+      case .failure(let err):
+        Self.log(
+          "→ forced rerun failed [\(err.domain) \(err.code)] \(err.localizedDescription), "
+            + "keeping original")
+        keepOriginal()
+      }
+    }
+  }
+
+  /// Среднее значение `confidence` по сегментам. Сегменты — массив словарей
+  /// со ключами `text`/`start`/`duration`/`confidence` (см. RecognitionOutput).
+  /// Сегменты с confidence=0 НЕ исключаются: 0 это тоже сигнал «ASR не
+  /// уверен». Если массив пуст — возвращаем 0 (ASR ничего не услышал).
+  private static func averageSegmentConfidence(_ segments: [[String: Any]]) -> Double {
+    if segments.isEmpty { return 0 }
+    var sum: Double = 0
+    var count = 0
+    for s in segments {
+      if let c = s["confidence"] as? Double {
+        sum += c
+        count += 1
+      } else if let c = s["confidence"] as? Float {
+        sum += Double(c)
+        count += 1
+      } else if let c = s["confidence"] as? NSNumber {
+        sum += c.doubleValue
+        count += 1
+      }
+    }
+    return count > 0 ? sum / Double(count) : 0
   }
 
   /// Из множества поддерживаемых локалей Apple Speech выбираем ту, которая
