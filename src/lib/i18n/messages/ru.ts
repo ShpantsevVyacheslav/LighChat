@@ -2282,8 +2282,12 @@ export const messagesRu = {
       mountainsMist: 'Туманные горы',
       pineDeer: 'Олень в лесу',
       fujiWave: 'Фудзи и волна',
-      fujiNatural: 'Фудзияма на рассвете',
       sakuraBranch: 'Ветка сакуры',
+      mistyForest: 'Туманный лес',
+      autumnLeaves: 'Осенние листья',
+      galaxyNebula: 'Туманность галактики',
+      rainBokeh: 'Дождь и боке',
+      bambooZen: 'Бамбуковая роща',
     },
     bubbleRadius: {
       rounded: 'Скруглённые',

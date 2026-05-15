@@ -23,8 +23,12 @@ export type BuiltinWallpaperSlug =
   | 'mountains-mist'
   | 'pine-deer'
   | 'fuji-wave'
-  | 'fuji-natural'
-  | 'sakura-branch';
+  | 'sakura-branch'
+  | 'misty-forest'
+  | 'autumn-leaves'
+  | 'galaxy-nebula'
+  | 'rain-bokeh'
+  | 'bamboo-zen';
 
 export interface BuiltinWallpaper {
   slug: BuiltinWallpaperSlug;
@@ -138,18 +142,46 @@ export const BUILTIN_WALLPAPERS: readonly BuiltinWallpaper[] = [
     previewGradient: 'linear-gradient(180deg, #FAE8C8 0%, #DAE8F4 100%)',
   },
   {
-    slug: 'fuji-natural',
-    labelKey: 'fujiNatural',
-    light: '/wallpapers/fuji-natural-light.webp',
-    dark: '/wallpapers/fuji-natural-dark.webp',
-    previewGradient: 'linear-gradient(180deg, #FCD7C3 0%, #DCE8F0 100%)',
-  },
-  {
     slug: 'sakura-branch',
     labelKey: 'sakuraBranch',
     light: '/wallpapers/sakura-branch-light.webp',
     dark: '/wallpapers/sakura-branch-dark.webp',
     previewGradient: 'linear-gradient(180deg, #FFEBF0 0%, #EBE8FA 100%)',
+  },
+  {
+    slug: 'misty-forest',
+    labelKey: 'mistyForest',
+    light: '/wallpapers/misty-forest-light.webp',
+    dark: '/wallpapers/misty-forest-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #DCDED9 0%, #B4C3C3 100%)',
+  },
+  {
+    slug: 'autumn-leaves',
+    labelKey: 'autumnLeaves',
+    light: '/wallpapers/autumn-leaves-light.webp',
+    dark: '/wallpapers/autumn-leaves-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #FCDCAF 0%, #F4C396 100%)',
+  },
+  {
+    slug: 'galaxy-nebula',
+    labelKey: 'galaxyNebula',
+    light: '/wallpapers/galaxy-nebula-light.webp',
+    dark: '/wallpapers/galaxy-nebula-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #D2D7EB 0%, #B4C3DE 100%)',
+  },
+  {
+    slug: 'rain-bokeh',
+    labelKey: 'rainBokeh',
+    light: '/wallpapers/rain-bokeh-light.webp',
+    dark: '/wallpapers/rain-bokeh-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #BEC8DC 0%, #A0AFC8 100%)',
+  },
+  {
+    slug: 'bamboo-zen',
+    labelKey: 'bambooZen',
+    light: '/wallpapers/bamboo-zen-light.webp',
+    dark: '/wallpapers/bamboo-zen-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #EBF0DC 0%, #C3D7C3 100%)',
   },
 ] as const;
 

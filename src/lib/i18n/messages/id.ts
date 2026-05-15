@@ -2265,8 +2265,12 @@ export const messagesId = {
       mountainsMist: 'Gunung Berkabut',
       pineDeer: 'Rusa Hutan',
       fujiWave: 'Fuji & Ombak',
-      fujiNatural: 'Gunung Fuji Saat Fajar',
       sakuraBranch: 'Cabang Sakura',
+      mistyForest: 'Hutan Berkabut',
+      autumnLeaves: 'Daun Musim Gugur',
+      galaxyNebula: 'Nebula Galaksi',
+      rainBokeh: 'Hujan & Bokeh',
+      bambooZen: 'Hutan Bambu',
     },
     bubbleRadius: {
       rounded: 'Membulat',

@@ -2265,8 +2265,12 @@ export const messagesTr = {
       mountainsMist: 'Sisli Dağlar',
       pineDeer: 'Orman Geyiği',
       fujiWave: 'Fuji ve Dalga',
-      fujiNatural: 'Şafakta Fuji Dağı',
       sakuraBranch: 'Sakura Dalı',
+      mistyForest: 'Sisli Orman',
+      autumnLeaves: 'Sonbahar Yaprakları',
+      galaxyNebula: 'Galaksi Bulutsusu',
+      rainBokeh: 'Yağmur ve Bokeh',
+      bambooZen: 'Bambu Korusu',
     },
     bubbleRadius: {
       rounded: 'Yuvarlatılmış',

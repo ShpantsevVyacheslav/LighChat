@@ -1891,8 +1891,11 @@ class _ChatPreviewCard extends StatelessWidget {
     final fg = dark ? Colors.white : scheme.onSurface;
     final isSquare = bubbleRadius == 'square';
     final metaColor = fg.withValues(alpha: dark ? 0.48 : 0.56);
+    // Высота 460 даёт соотношение ≈3:4 на стандартных мобильных ширинах,
+    // чтобы вертикальный wallpaper (1440×2880, 1:2) показывался почти
+    // целиком при `BoxFit.cover` — без сильной обрезки сверху/снизу.
     return Container(
-      height: 300,
+      height: 460,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: fg.withValues(alpha: dark ? 0.15 : 0.12)),

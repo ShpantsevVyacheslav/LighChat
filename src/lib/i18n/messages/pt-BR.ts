@@ -2265,8 +2265,12 @@ export const messagesPtBr = {
       mountainsMist: 'Montanhas enevoadas',
       pineDeer: 'Cervo da floresta',
       fujiWave: 'Fuji e a onda',
-      fujiNatural: 'Monte Fuji ao amanhecer',
       sakuraBranch: 'Galho de sakura',
+      mistyForest: 'Floresta enevoada',
+      autumnLeaves: 'Folhas de outono',
+      galaxyNebula: 'Nebulosa galáctica',
+      rainBokeh: 'Chuva e bokeh',
+      bambooZen: 'Bambuzal',
     },
     bubbleRadius: {
       rounded: 'Arredondados',

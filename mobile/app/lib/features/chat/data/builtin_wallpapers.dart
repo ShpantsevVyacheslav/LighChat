@@ -169,16 +169,6 @@ const List<BuiltinWallpaper> kBuiltinWallpapers = <BuiltinWallpaper>[
     ),
   ),
   BuiltinWallpaper(
-    slug: 'fuji-natural',
-    lightAsset: 'assets/wallpapers/fuji-natural-light.webp',
-    darkAsset: 'assets/wallpapers/fuji-natural-dark.webp',
-    previewGradient: LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [Color(0xFFFCD7C3), Color(0xFFDCE8F0)],
-    ),
-  ),
-  BuiltinWallpaper(
     slug: 'sakura-branch',
     lightAsset: 'assets/wallpapers/sakura-branch-light.webp',
     darkAsset: 'assets/wallpapers/sakura-branch-dark.webp',
@@ -186,6 +176,56 @@ const List<BuiltinWallpaper> kBuiltinWallpapers = <BuiltinWallpaper>[
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       colors: [Color(0xFFFFEBF0), Color(0xFFEBE8FA)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'misty-forest',
+    lightAsset: 'assets/wallpapers/misty-forest-light.webp',
+    darkAsset: 'assets/wallpapers/misty-forest-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFDCDED9), Color(0xFFB4C3C3)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'autumn-leaves',
+    lightAsset: 'assets/wallpapers/autumn-leaves-light.webp',
+    darkAsset: 'assets/wallpapers/autumn-leaves-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFCDCAF), Color(0xFFF4C396)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'galaxy-nebula',
+    lightAsset: 'assets/wallpapers/galaxy-nebula-light.webp',
+    darkAsset: 'assets/wallpapers/galaxy-nebula-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFD2D7EB), Color(0xFFB4C3DE)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'rain-bokeh',
+    lightAsset: 'assets/wallpapers/rain-bokeh-light.webp',
+    darkAsset: 'assets/wallpapers/rain-bokeh-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFBEC8DC), Color(0xFFA0AFC8)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'bamboo-zen',
+    lightAsset: 'assets/wallpapers/bamboo-zen-light.webp',
+    darkAsset: 'assets/wallpapers/bamboo-zen-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFEBF0DC), Color(0xFFC3D7C3)],
     ),
   ),
 ];

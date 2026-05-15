@@ -2265,8 +2265,12 @@ export const messagesUz = {
       mountainsMist: 'Tumanli togʻlar',
       pineDeer: 'Oʻrmon bugʻusi',
       fujiWave: 'Fuji va toʻlqin',
-      fujiNatural: 'Tongda Fuji togʻi',
       sakuraBranch: 'Sakura shoxi',
+      mistyForest: 'Tumanli oʻrmon',
+      autumnLeaves: 'Kuzgi barglar',
+      galaxyNebula: 'Galaktika tumanligi',
+      rainBokeh: 'Yomgʻir va bokeh',
+      bambooZen: 'Bambuk oʻrmoni',
     },
     bubbleRadius: {
       rounded: 'Yumaloqlangan',

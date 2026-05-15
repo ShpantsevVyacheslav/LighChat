@@ -2280,8 +2280,12 @@ export const messagesEn = {
       mountainsMist: 'Misty Mountains',
       pineDeer: 'Forest Deer',
       fujiWave: 'Fuji & the Wave',
-      fujiNatural: 'Mt. Fuji at Dawn',
       sakuraBranch: 'Sakura Branch',
+      mistyForest: 'Misty Forest',
+      autumnLeaves: 'Autumn Leaves',
+      galaxyNebula: 'Galaxy Nebula',
+      rainBokeh: 'Rain & Bokeh',
+      bambooZen: 'Bamboo Grove',
     },
     bubbleRadius: {
       rounded: 'Rounded',
