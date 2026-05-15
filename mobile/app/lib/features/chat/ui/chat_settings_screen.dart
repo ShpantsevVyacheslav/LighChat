@@ -14,6 +14,7 @@ import '../../auth/ui/auth_glass.dart';
 import '../data/bottom_nav_icon_settings.dart';
 import '../data/animated_wallpapers.dart';
 import '../data/builtin_wallpapers.dart';
+import 'animated_wallpaper_layer.dart';
 import '../data/emoji_burst_animation_profile.dart';
 import '../data/new_chat_user_search.dart' show ruEnSubstringMatch;
 import '../../../l10n/app_localizations.dart';
@@ -1565,6 +1566,9 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                             context,
                             s.chatWallpaper,
                           ),
+                          animatedWallpaper: resolveAnimatedWallpaper(
+                            s.chatWallpaper,
+                          ),
                           incomingBubbleColor: incomingColor,
                           outgoingBubbleColor: outgoingColor,
                           bubbleRadius: s.bubbleRadius,
@@ -2133,6 +2137,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
 class _ChatPreviewCard extends StatelessWidget {
   const _ChatPreviewCard({
     required this.wallpaperDecoration,
+    required this.animatedWallpaper,
     required this.incomingBubbleColor,
     required this.outgoingBubbleColor,
     required this.bubbleRadius,
@@ -2141,6 +2146,10 @@ class _ChatPreviewCard extends StatelessWidget {
   });
 
   final BoxDecoration wallpaperDecoration;
+  /// Если выбран `animated:<slug>` — поверх preview-фона рисуется живой
+  /// painter через [AnimatedWallpaperLayer], такой же как в реальном
+  /// чате. Так пользователь сразу видит анимацию в карточке настроек.
+  final AnimatedWallpaper? animatedWallpaper;
   final Color incomingBubbleColor;
   final Color outgoingBubbleColor;
   final String bubbleRadius;
@@ -2170,6 +2179,11 @@ class _ChatPreviewCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Container(width: double.infinity, decoration: wallpaperDecoration),
+            if (animatedWallpaper != null)
+              AnimatedWallpaperLayer(
+                key: ValueKey('preview-${animatedWallpaper!.slug}'),
+                wallpaper: animatedWallpaper!,
+              ),
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(

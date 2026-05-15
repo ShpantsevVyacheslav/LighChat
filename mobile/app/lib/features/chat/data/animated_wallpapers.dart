@@ -63,6 +63,50 @@ const List<AnimatedWallpaper> kAnimatedWallpapers = <AnimatedWallpaper>[
     ),
     durationMs: 4200,
   ),
+  AnimatedWallpaper(
+    slug: 'milky-way',
+    lightAsset: 'assets/wallpapers/animated-milky-way-light.webp',
+    darkAsset: 'assets/wallpapers/animated-milky-way-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFF04061C), Color(0xFF0A0C20)],
+    ),
+    durationMs: 3600,
+  ),
+  AnimatedWallpaper(
+    slug: 'wave-motion',
+    lightAsset: 'assets/wallpapers/animated-wave-motion-light.webp',
+    darkAsset: 'assets/wallpapers/animated-wave-motion-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFF0A1730), Color(0xFF081B36)],
+    ),
+    durationMs: 4800,
+  ),
+  AnimatedWallpaper(
+    slug: 'rain',
+    lightAsset: 'assets/wallpapers/animated-rain-light.webp',
+    darkAsset: 'assets/wallpapers/animated-rain-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFF0E1622), Color(0xFF181E2E)],
+    ),
+    durationMs: 4000,
+  ),
+  AnimatedWallpaper(
+    slug: 'fireflies',
+    lightAsset: 'assets/wallpapers/animated-fireflies-light.webp',
+    darkAsset: 'assets/wallpapers/animated-fireflies-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFF080F12), Color(0xFF0E1518)],
+    ),
+    durationMs: 5000,
+  ),
 ];
 
 bool isAnimatedWallpaperValue(String? value) =>

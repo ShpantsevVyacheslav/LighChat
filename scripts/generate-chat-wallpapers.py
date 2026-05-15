@@ -3715,6 +3715,82 @@ def concept_animated_falling_star(theme):
     return bg.convert("RGB")
 
 
+def concept_animated_milky_way(theme):
+    """Preview для Млечного пути — тёмное небо без самой полосы."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (215, 225, 245), (180, 200, 230))
+        density = 200
+        star_color = (60, 80, 120)
+    else:
+        bg = vertical_gradient((W, H), (4, 6, 18), (10, 12, 32))
+        density = 600
+        star_color = (255, 255, 255)
+    bg.paste(starfield((W, H), density=density, color=star_color, seed=88),
+             (0, 0),
+             starfield((W, H), density=density, color=star_color, seed=88))
+    return bg.convert("RGB")
+
+
+def concept_animated_wave_motion(theme):
+    """Preview для движения волн — статичное море с горизонтом + солнце."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (220, 235, 245), (180, 210, 230))
+        sea_color = (40, 95, 140)
+        sun_color = (255, 220, 175)
+    else:
+        bg = vertical_gradient((W, H), (8, 14, 32), (12, 22, 44))
+        sea_color = (8, 24, 50)
+        sun_color = (240, 235, 250)
+    sun = radial_glow((W, H), (int(W * 0.50), int(H * 0.30)), int(H * 0.13),
+                      sun_color, alpha=200)
+    bg.paste(sun, (0, 0), sun)
+    if theme == "dark":
+        bg.paste(starfield((W, H), density=140, seed=21), (0, 0),
+                 starfield((W, H), density=140, seed=21))
+    sea = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(sea)
+    sd.rectangle([0, int(H * 0.55), W, H], fill=sea_color + (255,))
+    bg.paste(sea, (0, 0), sea)
+    return bg.convert("RGB")
+
+
+def concept_animated_rain(theme):
+    """Preview для дождя — мрачный градиент-небо с тёмной землёй."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (165, 178, 195), (135, 150, 170))
+        ground = (95, 110, 130)
+    else:
+        bg = vertical_gradient((W, H), (12, 18, 32), (22, 30, 48))
+        ground = (8, 14, 28)
+    # Слабая «земля» внизу
+    g = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(g)
+    gd.rectangle([0, int(H * 0.85), W, H], fill=ground + (255,))
+    bg.paste(g, (0, 0), g)
+    return bg.convert("RGB")
+
+
+def concept_animated_fireflies(theme):
+    """Preview для светлячков — тёмный лесной фон с силуэтами деревьев."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (35, 50, 60), (55, 70, 80))
+        forest = (12, 22, 28)
+    else:
+        bg = vertical_gradient((W, H), (6, 12, 16), (12, 22, 24))
+        forest = (4, 8, 12)
+    # Силуэты деревьев на нижней половине — лес
+    rng = random.Random(63)
+    pines = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    pd = ImageDraw.Draw(pines)
+    for x_frac in (0.05, 0.15, 0.28, 0.45, 0.62, 0.78, 0.92):
+        x = int(W * x_frac) + rng.randint(-15, 15)
+        y = int(H * 0.92) + rng.randint(-10, 10)
+        sz = rng.randint(int(W * 0.10), int(W * 0.16))
+        draw_pine(pd, x, y, sz * 2, forest, alpha=255, layers=5)
+    bg.paste(pines, (0, 0), pines)
+    return bg.convert("RGB")
+
+
 def concept_animated_lighthouse_beam(theme):
     """Preview для свечения маяка — ночное море со звёздами и маяк по
     центру (без луча; его рисует painter поверх)."""
@@ -3800,6 +3876,10 @@ CONCEPTS = {
     "clean-galaxy": concept_clean_galaxy,
     "animated-falling-star": concept_animated_falling_star,
     "animated-lighthouse-beam": concept_animated_lighthouse_beam,
+    "animated-milky-way": concept_animated_milky_way,
+    "animated-wave-motion": concept_animated_wave_motion,
+    "animated-rain": concept_animated_rain,
+    "animated-fireflies": concept_animated_fireflies,
 }
 
 

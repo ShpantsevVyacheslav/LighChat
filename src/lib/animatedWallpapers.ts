@@ -10,7 +10,13 @@
  */
 export const ANIMATED_WALLPAPER_PREFIX = 'animated:';
 
-export type AnimatedWallpaperSlug = 'falling-star' | 'lighthouse-beam';
+export type AnimatedWallpaperSlug =
+  | 'falling-star'
+  | 'lighthouse-beam'
+  | 'milky-way'
+  | 'wave-motion'
+  | 'rain'
+  | 'fireflies';
 
 export interface AnimatedWallpaper {
   slug: AnimatedWallpaperSlug;
@@ -38,6 +44,34 @@ export const ANIMATED_WALLPAPERS: readonly AnimatedWallpaper[] = [
     light: '/wallpapers/animated-lighthouse-beam-light.webp',
     dark: '/wallpapers/animated-lighthouse-beam-dark.webp',
     previewGradient: 'linear-gradient(180deg, #0E1626 0%, #182840 100%)',
+  },
+  {
+    slug: 'milky-way',
+    labelKey: 'milkyWay',
+    light: '/wallpapers/animated-milky-way-light.webp',
+    dark: '/wallpapers/animated-milky-way-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #04061C 0%, #0A0C20 100%)',
+  },
+  {
+    slug: 'wave-motion',
+    labelKey: 'waveMotion',
+    light: '/wallpapers/animated-wave-motion-light.webp',
+    dark: '/wallpapers/animated-wave-motion-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #0A1730 0%, #081B36 100%)',
+  },
+  {
+    slug: 'rain',
+    labelKey: 'rain',
+    light: '/wallpapers/animated-rain-light.webp',
+    dark: '/wallpapers/animated-rain-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #0E1622 0%, #181E2E 100%)',
+  },
+  {
+    slug: 'fireflies',
+    labelKey: 'fireflies',
+    light: '/wallpapers/animated-fireflies-light.webp',
+    dark: '/wallpapers/animated-fireflies-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #080F12 0%, #0E1518 100%)',
   },
 ] as const;
 
