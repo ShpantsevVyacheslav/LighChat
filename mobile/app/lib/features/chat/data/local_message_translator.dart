@@ -31,6 +31,20 @@ class LocalMessageTranslator {
   /// уже не нужно пересчитывать. Лениво открывается при первом обращении.
   Future<Database>? _dbFuture;
 
+  /// Все короткие коды, для которых у ML Kit есть `TranslateLanguage`.
+  /// Используется UI translation-sheet для построения picker-а target.
+  /// Возвращается в стабильном порядке: сначала «топ» (en/ru/es/...), потом
+  /// остальные алфавитом.
+  List<String> supportedLanguageCodes() {
+    const ordered = <String>[
+      'en', 'ru', 'es', 'pt', 'tr', 'id', 'de', 'fr', 'it', 'zh', 'ja',
+      'ar', 'uk', 'be', 'pl', 'cs', 'nl', 'sv', 'no', 'fi', 'da', 'el',
+      'he', 'th', 'vi', 'hi', 'ko', 'ro', 'hu', 'bg', 'ca', 'hr', 'sk',
+      'sl', 'lv', 'lt', 'et',
+    ];
+    return ordered;
+  }
+
   /// Проверяет, поддерживает ли ML Kit указанный язык.
   ///
   /// На входе ожидается короткий ISO-код (`'ru'`, `'en'`, `'kk'` и т.п.).

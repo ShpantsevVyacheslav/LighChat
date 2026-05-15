@@ -4006,19 +4006,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   /// - определённый язык надёжен и отличается от UI-локали,
   /// - ML Kit поддерживает пару.
   Future<bool> _canTranslateMessage(String rawText) async {
+    // Кнопка всегда видна для непустых сообщений: пользователь сам решает
+    // на какой язык перевести (даже если язык совпадает с UI). Если язык
+    // не определён или не поддерживается ML Kit — кнопка всё равно есть,
+    // sheet сам разрулит fallback (en→ru или ru→en).
     final stripped = rawText.contains('<')
         ? messageHtmlToPlainText(rawText)
         : rawText;
-    final clean = stripped.trim();
-    if (clean.length < 2) return false;
-    final detection =
-        await LocalTextLanguageDetector.instance.detect(clean);
-    if (!detection.isReliable) return false;
-    if (!mounted) return false;
-    final ui = Localizations.localeOf(context).languageCode.toLowerCase();
-    if (detection.language == ui) return false;
-    return LocalMessageTranslator.instance
-        .supportsPair(from: detection.language, to: ui);
+    return stripped.trim().length >= 2;
   }
 
   /// Показывает bottom-sheet с переводом сообщения и кнопкой «Copy».
@@ -4034,15 +4029,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         await LocalTextLanguageDetector.instance.detect(original);
     if (!mounted) return;
     final ui = Localizations.localeOf(context).languageCode.toLowerCase();
-    final from = detection.language;
-    if (from.isEmpty || from == ui) return;
+    // Резолвим from: detected → ui → en. Если не поддерживается ML Kit —
+    // sheet нарисует ошибку и даст выбрать другой source.
+    var from = detection.language;
+    if (from.isEmpty ||
+        !LocalMessageTranslator.instance.supportsLanguage(from)) {
+      from = LocalMessageTranslator.instance.supportsLanguage(ui) ? ui : 'en';
+    }
+    // Резолвим target. Если from == ui — берём 'en' (а если ui сам english,
+    // то 'ru' как разумный второй язык). Иначе — ui, если он поддерживается,
+    // иначе 'en'.
+    String to;
+    if (from == ui) {
+      to = ui == 'en' ? 'ru' : 'en';
+    } else {
+      to = LocalMessageTranslator.instance.supportsLanguage(ui) ? ui : 'en';
+    }
+    if (to == from) to = from == 'en' ? 'ru' : 'en';
 
     await MessageTranslationSheet.show(
       context,
       messageId: m.id,
       originalText: original,
       from: from,
-      to: ui,
+      to: to,
     );
   }
 

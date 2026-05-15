@@ -1,15 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../data/chat_haptics.dart';
 import '../data/local_message_translator.dart';
 
 /// Bottom sheet с переводом текстового сообщения. On-device через ML Kit;
 /// кэшируется в SQLite, повторный показ — мгновенный.
 ///
-/// Дизайн намеренно использует **собственную нейтральную палитру** и не
-/// наследует цвета чат-обоев/темы. Это сделано для того, чтобы шторка
-/// читалась одинаково в любом чате с любыми обоями.
+/// Сценарии:
+///  - язык сообщения != UI → переводим на UI
+///  - язык сообщения == UI → переводим на «второй язык» (для русского/прочих
+///    это `en`, для английского — `ru`)
+///  - в любом случае пользователь может вручную поменять source/target
+///    через picker-чипы и кнопку swap
 class MessageTranslationSheet extends StatefulWidget {
   const MessageTranslationSheet({
     super.key,
@@ -24,8 +30,6 @@ class MessageTranslationSheet extends StatefulWidget {
   final String from;
   final String to;
 
-  /// Показать как modal bottom sheet с принудительно прозрачным фоном —
-  /// мы рисуем свой rounded-контейнер с собственной палитрой.
   static Future<void> show(
     BuildContext context, {
     required String messageId,
@@ -53,6 +57,8 @@ class MessageTranslationSheet extends StatefulWidget {
 }
 
 class _MessageTranslationSheetState extends State<MessageTranslationSheet> {
+  late String _from;
+  late String _to;
   String? _translated;
   String? _error;
   TranslationPhase? _phase;
@@ -61,6 +67,8 @@ class _MessageTranslationSheetState extends State<MessageTranslationSheet> {
   @override
   void initState() {
     super.initState();
+    _from = widget.from;
+    _to = widget.to;
     WidgetsBinding.instance.addPostFrameCallback((_) => _translate());
   }
 
@@ -69,13 +77,14 @@ class _MessageTranslationSheetState extends State<MessageTranslationSheet> {
       _busy = true;
       _phase = TranslationPhase.translating;
       _error = null;
+      _translated = null;
     });
     try {
       final result = await LocalMessageTranslator.instance.translate(
-        cacheKey: 'text|${widget.messageId}|${widget.from}→${widget.to}',
+        cacheKey: 'text|${widget.messageId}|$_from→$_to',
         text: widget.originalText,
-        from: widget.from,
-        to: widget.to,
+        from: _from,
+        to: _to,
         onPhase: (p) {
           if (!mounted) return;
           setState(() => _phase = p);
@@ -99,6 +108,48 @@ class _MessageTranslationSheetState extends State<MessageTranslationSheet> {
         });
       }
     }
+  }
+
+  void _changeFrom(String code) {
+    if (code == _from) return;
+    if (code == _to) {
+      // выбор source == текущему target → swap
+      setState(() {
+        _from = code;
+        _to = widget.from == code ? widget.to : _swapFallback(code);
+      });
+    } else {
+      setState(() => _from = code);
+    }
+    unawaited(ChatHaptics.instance.selectionChanged());
+    _translate();
+  }
+
+  void _changeTo(String code) {
+    if (code == _to) return;
+    if (code == _from) {
+      setState(() {
+        _to = code;
+        _from = _swapFallback(code);
+      });
+    } else {
+      setState(() => _to = code);
+    }
+    unawaited(ChatHaptics.instance.selectionChanged());
+    _translate();
+  }
+
+  String _swapFallback(String taken) => taken == 'en' ? 'ru' : 'en';
+
+  void _swap() {
+    if (_from == _to) return;
+    setState(() {
+      final tmp = _from;
+      _from = _to;
+      _to = tmp;
+    });
+    unawaited(ChatHaptics.instance.tick());
+    _translate();
   }
 
   @override
@@ -134,17 +185,29 @@ class _MessageTranslationSheetState extends State<MessageTranslationSheet> {
                         children: [
                           _LanguageCard(
                             palette: palette,
-                            languageCode: widget.from,
+                            languageCode: _from,
                             text: widget.originalText,
                             muted: true,
+                            onTapPill: () => _showLanguagePicker(
+                              context: context,
+                              palette: palette,
+                              current: _from,
+                              onPick: _changeFrom,
+                            ),
                           ),
-                          _Arrow(palette: palette),
+                          _SwapButton(palette: palette, onTap: _swap),
                           _LanguageCard(
                             palette: palette,
-                            languageCode: widget.to,
+                            languageCode: _to,
                             text: _translated ?? '',
                             placeholder: _busyOrErrorPlaceholder(l10n),
                             muted: false,
+                            onTapPill: () => _showLanguagePicker(
+                              context: context,
+                              palette: palette,
+                              current: _to,
+                              onPick: _changeTo,
+                            ),
                           ),
                         ],
                       ),
@@ -160,6 +223,7 @@ class _MessageTranslationSheetState extends State<MessageTranslationSheet> {
                       final messenger = ScaffoldMessenger.maybeOf(context);
                       await Clipboard.setData(
                           ClipboardData(text: _translated ?? ''));
+                      unawaited(ChatHaptics.instance.success());
                       messenger?.showSnackBar(
                         SnackBar(
                           duration: const Duration(milliseconds: 1200),
@@ -192,6 +256,164 @@ class _MessageTranslationSheetState extends State<MessageTranslationSheet> {
     }
     return null;
   }
+
+  Future<void> _showLanguagePicker({
+    required BuildContext context,
+    required _SheetPalette palette,
+    required String current,
+    required void Function(String) onPick,
+  }) async {
+    final langs = LocalMessageTranslator.instance.supportedLanguageCodes();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: Container(
+            color: palette.sheetBg,
+            child: SafeArea(
+              top: false,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(ctx).size.height * 0.6,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 10),
+                    _DragHandle(color: palette.dragHandle),
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        itemCount: langs.length,
+                        itemBuilder: (_, i) {
+                          final code = langs[i];
+                          final selected = code == current;
+                          return Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.of(ctx).maybePop();
+                                onPick(code);
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 14,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? palette.accent.withValues(alpha: 0.12)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 38,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 3,
+                                      ),
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: palette.langPillBg,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        code.toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.5,
+                                          color: palette.langPillText,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        _languageDisplayName(code),
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: palette.bodyColor,
+                                        ),
+                                      ),
+                                    ),
+                                    if (selected)
+                                      Icon(
+                                        Icons.check_rounded,
+                                        size: 20,
+                                        color: palette.accent,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  static String _languageDisplayName(String code) {
+    const names = <String, String>{
+      'en': 'English',
+      'ru': 'Русский',
+      'es': 'Español',
+      'pt': 'Português',
+      'tr': 'Türkçe',
+      'id': 'Indonesia',
+      'de': 'Deutsch',
+      'fr': 'Français',
+      'it': 'Italiano',
+      'zh': '中文',
+      'ja': '日本語',
+      'ar': 'العربية',
+      'uk': 'Українська',
+      'be': 'Беларуская',
+      'pl': 'Polski',
+      'cs': 'Čeština',
+      'nl': 'Nederlands',
+      'sv': 'Svenska',
+      'no': 'Norsk',
+      'fi': 'Suomi',
+      'da': 'Dansk',
+      'el': 'Ελληνικά',
+      'he': 'עברית',
+      'th': 'ไทย',
+      'vi': 'Tiếng Việt',
+      'hi': 'हिन्दी',
+      'ko': '한국어',
+      'ro': 'Română',
+      'hu': 'Magyar',
+      'bg': 'Български',
+      'ca': 'Català',
+      'hr': 'Hrvatski',
+      'sk': 'Slovenčina',
+      'sl': 'Slovenščina',
+      'lv': 'Latviešu',
+      'lt': 'Lietuvių',
+      'et': 'Eesti',
+    };
+    return names[code] ?? code.toUpperCase();
+  }
 }
 
 class _SheetPalette {
@@ -207,52 +429,53 @@ class _SheetPalette {
     required this.langPillBg,
     required this.langPillText,
     required this.accent,
+    required this.accentSoft,
     required this.accentOn,
     required this.divider,
     required this.errorColor,
     required this.iconColor,
   });
 
-  /// Нейтральные палитры — не наследуют тон от чата/обоев.
-  /// Для светлой темы: cool gray; для тёмной: near-black с акцентом цвета.
   static _SheetPalette forBrightness(bool isDark) {
     if (isDark) {
-      const accent = Color(0xFF7C8DFF); // спокойный нейтральный синий-индиго
-      return const _SheetPalette(
-        sheetBg: Color(0xFF15171C),
-        cardBg: Color(0xFF1E2127),
-        cardBgMuted: Color(0xFF1A1C22),
-        cardBorder: Color(0x14FFFFFF),
-        dragHandle: Color(0x33FFFFFF),
-        titleColor: Color(0xFFEDEEF2),
-        bodyColor: Color(0xFFE6E7EA),
-        mutedTextColor: Color(0xFFA0A4AD),
-        langPillBg: Color(0xFF262A33),
-        langPillText: Color(0xFFB5BBC6),
+      const accent = Color(0xFF7C8DFF);
+      return _SheetPalette(
+        sheetBg: const Color(0xFF15171C),
+        cardBg: const Color(0xFF1E2127),
+        cardBgMuted: const Color(0xFF1A1C22),
+        cardBorder: const Color(0x14FFFFFF),
+        dragHandle: const Color(0x33FFFFFF),
+        titleColor: const Color(0xFFEDEEF2),
+        bodyColor: const Color(0xFFE6E7EA),
+        mutedTextColor: const Color(0xFFA0A4AD),
+        langPillBg: const Color(0xFF262A33),
+        langPillText: const Color(0xFFB5BBC6),
         accent: accent,
-        accentOn: Color(0xFF0E1115),
-        divider: Color(0x1AFFFFFF),
-        errorColor: Color(0xFFFF8A80),
-        iconColor: Color(0xFFB5BBC6),
+        accentSoft: accent.withValues(alpha: 0.14),
+        accentOn: const Color(0xFF0E1115),
+        divider: const Color(0x1AFFFFFF),
+        errorColor: const Color(0xFFFF8A80),
+        iconColor: const Color(0xFFB5BBC6),
       );
     }
     const accent = Color(0xFF4F5BD5);
-    return const _SheetPalette(
-      sheetBg: Color(0xFFF5F6F8),
-      cardBg: Color(0xFFFFFFFF),
-      cardBgMuted: Color(0xFFEFF1F4),
-      cardBorder: Color(0x0F000000),
-      dragHandle: Color(0x33000000),
-      titleColor: Color(0xFF14161A),
-      bodyColor: Color(0xFF1A1C22),
-      mutedTextColor: Color(0xFF5C6470),
-      langPillBg: Color(0xFFE7EAF0),
-      langPillText: Color(0xFF454B57),
+    return _SheetPalette(
+      sheetBg: const Color(0xFFF5F6F8),
+      cardBg: const Color(0xFFFFFFFF),
+      cardBgMuted: const Color(0xFFEFF1F4),
+      cardBorder: const Color(0x0F000000),
+      dragHandle: const Color(0x33000000),
+      titleColor: const Color(0xFF14161A),
+      bodyColor: const Color(0xFF1A1C22),
+      mutedTextColor: const Color(0xFF5C6470),
+      langPillBg: const Color(0xFFE7EAF0),
+      langPillText: const Color(0xFF454B57),
       accent: accent,
+      accentSoft: accent.withValues(alpha: 0.12),
       accentOn: Colors.white,
-      divider: Color(0x14000000),
-      errorColor: Color(0xFFD32F2F),
-      iconColor: Color(0xFF5C6470),
+      divider: const Color(0x14000000),
+      errorColor: const Color(0xFFD32F2F),
+      iconColor: const Color(0xFF5C6470),
     );
   }
 
@@ -267,6 +490,7 @@ class _SheetPalette {
   final Color langPillBg;
   final Color langPillText;
   final Color accent;
+  final Color accentSoft;
   final Color accentOn;
   final Color divider;
   final Color errorColor;
@@ -301,7 +525,7 @@ class _Header extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: palette.accent.withValues(alpha: 0.12),
+            color: palette.accentSoft,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
@@ -331,6 +555,7 @@ class _LanguageCard extends StatelessWidget {
     required this.languageCode,
     required this.text,
     required this.muted,
+    required this.onTapPill,
     this.placeholder,
   });
 
@@ -338,6 +563,7 @@ class _LanguageCard extends StatelessWidget {
   final String languageCode;
   final String text;
   final bool muted;
+  final VoidCallback onTapPill;
   final Widget? placeholder;
 
   @override
@@ -353,20 +579,40 @@ class _LanguageCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: palette.langPillBg,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              languageCode.toUpperCase(),
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.6,
-                color: palette.langPillText,
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTapPill,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: palette.langPillBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      languageCode.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                        color: palette.langPillText,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.expand_more_rounded,
+                      size: 14,
+                      color: palette.langPillText,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -391,26 +637,43 @@ class _LanguageCard extends StatelessWidget {
   }
 }
 
-class _Arrow extends StatelessWidget {
-  const _Arrow({required this.palette});
+class _SwapButton extends StatelessWidget {
+  const _SwapButton({required this.palette, required this.onTap});
   final _SheetPalette palette;
+  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Center(
-        child: Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            color: palette.cardBg,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: palette.cardBorder, width: 1),
-          ),
-          child: Icon(
-            Icons.arrow_downward_rounded,
-            size: 16,
-            color: palette.iconColor,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: palette.cardBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: palette.cardBorder, width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: palette.accent.withValues(alpha: 0.18),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.swap_vert_rounded,
+                size: 22,
+                color: palette.accent,
+              ),
+            ),
           ),
         ),
       ),
@@ -442,8 +705,7 @@ class _InlineStatus extends StatelessWidget {
             height: 16,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor:
-                  AlwaysStoppedAnimation<Color>(palette.accent),
+              valueColor: AlwaysStoppedAnimation<Color>(palette.accent),
             ),
           ),
           const SizedBox(width: 10),
@@ -485,54 +747,182 @@ class _Actions extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: TextButton.icon(
-            onPressed: canCopy ? () => onCopy() : null,
-            style: TextButton.styleFrom(
-              foregroundColor: palette.bodyColor,
-              disabledForegroundColor: palette.mutedTextColor.withValues(
-                alpha: 0.5,
-              ),
-              backgroundColor: palette.cardBg,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: BorderSide(color: palette.cardBorder, width: 1),
-              ),
-            ),
-            icon: Icon(
-              Icons.copy_all_outlined,
-              size: 18,
-              color: canCopy ? palette.iconColor : palette.mutedTextColor,
-            ),
-            label: Text(
-              copyLabel,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+          flex: 5,
+          child: _PrimaryActionButton(
+            palette: palette,
+            label: copyLabel,
+            icon: Icons.copy_all_rounded,
+            enabled: canCopy,
+            onTap: canCopy ? () => onCopy() : null,
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: FilledButton(
-            onPressed: onClose,
-            style: FilledButton.styleFrom(
-              backgroundColor: palette.accent,
-              foregroundColor: palette.accentOn,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              textStyle: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            child: Text(closeLabel),
+          flex: 4,
+          child: _GhostActionButton(
+            palette: palette,
+            label: closeLabel,
+            onTap: onClose,
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Premium «filled-glass» кнопка: gradient + soft shadow + scale on press.
+/// Используется как primary CTA («Скопировать»).
+class _PrimaryActionButton extends StatefulWidget {
+  const _PrimaryActionButton({
+    required this.palette,
+    required this.label,
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final _SheetPalette palette;
+  final String label;
+  final IconData icon;
+  final bool enabled;
+  final Future<void> Function()? onTap;
+
+  @override
+  State<_PrimaryActionButton> createState() => _PrimaryActionButtonState();
+}
+
+class _PrimaryActionButtonState extends State<_PrimaryActionButton> {
+  bool _pressed = false;
+
+  void _setPressed(bool v) {
+    if (_pressed == v) return;
+    setState(() => _pressed = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.palette;
+    final disabled = !widget.enabled || widget.onTap == null;
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 110),
+      scale: _pressed && !disabled ? 0.97 : 1,
+      curve: Curves.easeOut,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: disabled ? null : () => widget.onTap!.call(),
+          onTapDown: (_) => _setPressed(true),
+          onTapUp: (_) => _setPressed(false),
+          onTapCancel: () => _setPressed(false),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: disabled
+                  ? null
+                  : LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        p.accent.withValues(alpha: 0.92),
+                        p.accent,
+                      ],
+                    ),
+              color: disabled ? p.cardBgMuted : null,
+              boxShadow: disabled
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: p.accent.withValues(alpha: 0.35),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+            ),
+            alignment: Alignment.center,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  widget.icon,
+                  size: 18,
+                  color: disabled ? p.mutedTextColor : p.accentOn,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.1,
+                    color: disabled ? p.mutedTextColor : p.accentOn,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Тонкая «ghost» кнопка для secondary action («Закрыть»). Без фона, только
+/// контур + лёгкий accent text. Premium-look за счёт отсутствия лишнего.
+class _GhostActionButton extends StatefulWidget {
+  const _GhostActionButton({
+    required this.palette,
+    required this.label,
+    required this.onTap,
+  });
+
+  final _SheetPalette palette;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  State<_GhostActionButton> createState() => _GhostActionButtonState();
+}
+
+class _GhostActionButtonState extends State<_GhostActionButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.palette;
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 110),
+      scale: _pressed ? 0.97 : 1,
+      curve: Curves.easeOut,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onTap,
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapUp: (_) => setState(() => _pressed = false),
+          onTapCancel: () => setState(() => _pressed = false),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: p.cardBg,
+              border: Border.all(color: p.cardBorder, width: 1),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              widget.label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.1,
+                color: p.bodyColor,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
