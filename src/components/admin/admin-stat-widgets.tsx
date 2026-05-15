@@ -17,22 +17,48 @@ export function StatCard({ icon: Icon, label, value, color }: { icon: React.Elem
 export function MiniBarChart({ data, label }: { data: { date: string; value: number }[]; label: string }) {
   if (data.length === 0) return null;
   const max = Math.max(...data.map((d) => d.value), 1);
+  // Если данных много (>14), число над столбцом сделает график шумным;
+  // оставляем подписи только при <=14 столбцах. На длинных диапазонах
+  // — только подсветка тултипа по hover, плюс ось снизу.
+  const showInlineValues = data.length <= 14;
+  // Минимальная видимая высота для bar'а со значением 0: показываем
+  // тонкую серую полоску, чтобы день не выглядел «пропавшим».
+  const ZERO_HEIGHT_PCT = 2;
 
   return (
     <div className="space-y-2">
       <p className="text-sm font-medium">{label}</p>
-      <div className="flex items-end gap-[2px] h-[80px]">
-        {data.map((d) => (
-          <div
-            key={d.date}
-            className="flex-1 bg-primary/20 hover:bg-primary/40 transition-colors rounded-t-sm relative group"
-            style={{ height: `${Math.max((d.value / max) * 100, 4)}%` }}
-          >
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-popover text-popover-foreground text-[10px] px-1.5 py-0.5 rounded shadow whitespace-nowrap z-10">
-              {d.date}: {d.value}
+      <div className="flex items-end gap-[2px] h-[100px] relative">
+        {data.map((d) => {
+          const isZero = d.value === 0;
+          const heightPct = isZero ? ZERO_HEIGHT_PCT : Math.max((d.value / max) * 100, 8);
+          return (
+            <div
+              key={d.date}
+              className="flex-1 flex flex-col items-center justify-end h-full group"
+              title={`${d.date}: ${d.value}`}
+            >
+              {/* Inline-значение над столбцом, если позволяет ширина */}
+              {showInlineValues && (
+                <span
+                  className={`text-[10px] leading-none mb-0.5 ${
+                    isZero ? 'text-muted-foreground/60' : 'font-medium text-foreground'
+                  }`}
+                >
+                  {d.value}
+                </span>
+              )}
+              <div
+                className={`w-full rounded-t-sm transition-colors ${
+                  isZero
+                    ? 'bg-muted-foreground/20'
+                    : 'bg-primary/30 hover:bg-primary/60'
+                }`}
+                style={{ height: `${heightPct}%` }}
+              />
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       {data.length > 0 && (
         <div className="flex justify-between text-[10px] text-muted-foreground">
