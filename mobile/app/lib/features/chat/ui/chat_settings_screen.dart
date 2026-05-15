@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image/image.dart' as img;
@@ -149,17 +150,48 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
 
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _previewKey = GlobalKey();
+  /// Маркер раздела «Эмодзи эффекты» — после него настройки больше
+  /// не влияют на превью, поэтому sticky-превью «отлипает».
+  final GlobalKey _emojiSectionKey = GlobalKey();
+  bool _hidePreview = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _scrollController.addListener(_handleScrollForPreviewVisibility);
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_handleScrollForPreviewVisibility);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Вызывается на каждый scroll-tick — переключает `_hidePreview`,
+  /// когда раздел «Эмодзи эффекты» дошёл до верха viewport. С этого
+  /// момента превью больше не нужно (последующие настройки на него
+  /// не влияют), и его место отдаётся под содержимое.
+  ///
+  /// Гистерезис ±18px — чтобы исключить дрожание sticky-флага вокруг
+  /// порога при медленном скролле.
+  void _handleScrollForPreviewVisibility() {
+    if (!_scrollController.hasClients) return;
+    final ctx = _emojiSectionKey.currentContext;
+    if (ctx == null) return;
+    final ro = ctx.findRenderObject();
+    if (ro is! RenderBox) return;
+    final viewport = RenderAbstractViewport.maybeOf(ro);
+    if (viewport == null) return;
+    final revealOffset = viewport.getOffsetToReveal(ro, 0.0).offset;
+    final offset = _scrollController.offset;
+    final shouldHide = _hidePreview
+        ? offset >= revealOffset - 18
+        : offset >= revealOffset + 18;
+    if (shouldHide != _hidePreview) {
+      setState(() => _hidePreview = shouldHide);
+    }
   }
 
   /// Применить выбор обоев + сохранить + проскроллить к превью. Общая
@@ -1585,9 +1617,13 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                   controller: _scrollController,
                   slivers: [
                     SliverPersistentHeader(
-                      pinned: true,
+                      // pinned: после раздела «Эмодзи эффекты» (т.е. когда
+                      // _hidePreview == true) слой превью схлопывается
+                      // в высоту 0 и перестаёт быть прикреплённым —
+                      // освобождает место под последующие настройки.
+                      pinned: !_hidePreview,
                       delegate: _PreviewHeaderDelegate(
-                        height: 374,
+                        height: _hidePreview ? 0 : 374,
                         background: dark
                             ? const Color(0xFF04070C)
                             : scheme.surface,
@@ -1949,6 +1985,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       ),
                       const SizedBox(height: 20),
                       Text(
+                        key: _emojiSectionKey,
                         l10n.chat_settings_emoji_effects,
                         style: TextStyle(
                           fontSize: _kBlockTitleSize,
@@ -2212,7 +2249,21 @@ class _PreviewHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(color: background, height: height, child: child);
+    // Когда высота == 0 (превью «отлипло» — после раздела эмодзи), не
+    // рендерим child вообще, чтобы не было overflow и invisible
+    // занимаемого места painter'ом анимации.
+    return Container(
+      color: background,
+      height: height,
+      child: height <= 0
+          ? null
+          : ClipRect(child: OverflowBox(
+              alignment: Alignment.topCenter,
+              minHeight: 0,
+              maxHeight: height,
+              child: child,
+            )),
+    );
   }
 
   @override
