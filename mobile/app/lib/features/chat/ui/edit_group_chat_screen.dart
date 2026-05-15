@@ -125,6 +125,7 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
     required ValueChanged<bool> onChanged,
   }) {
     final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: _hPad, vertical: 8),
       child: Row(
@@ -154,10 +155,17 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
             ),
           ),
           const SizedBox(width: 12),
-          Switch(
+          // Цвета и форма — те же, что у [NotificationSettingsSwitchRow] в
+          // экране «Уведомления»: единый язык для toggle'ов настроек.
+          Switch.adaptive(
             value: value,
             onChanged: _busy ? null : onChanged,
-            activeThumbColor: scheme.primary,
+            activeThumbColor: Colors.white,
+            activeTrackColor: const Color(0xFF2F86FF),
+            inactiveThumbColor: (dark ? Colors.white : scheme.surface)
+                .withValues(alpha: dark ? 0.9 : 1),
+            inactiveTrackColor: (dark ? Colors.white : scheme.onSurface)
+                .withValues(alpha: 0.2),
           ),
         ],
       ),
@@ -214,29 +222,54 @@ class _EditGroupChatScreenState extends ConsumerState<EditGroupChatScreen> {
             Expanded(
               child: SizedBox(
                 height: 48,
-                child: FilledButton(
-                  onPressed: _busy ? null : onSave,
-                  style: FilledButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                child: DecoratedBox(
+                  // Тот же gradient, что у кнопки «Сохранить» в
+                  // [profile_screen.dart] — единый visual-язык для primary
+                  // CTA в edit-формах (профиль / группа).
+                  decoration: BoxDecoration(
+                    gradient: _busy
+                        ? LinearGradient(
+                            colors: [
+                              Colors.white.withValues(alpha: 0.18),
+                              Colors.white.withValues(alpha: 0.18),
+                            ],
+                          )
+                        : const LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              Color(0xFF2E86FF),
+                              Color(0xFF5F90FF),
+                              Color(0xFF9A18FF),
+                            ],
+                          ),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  child: _busy
-                      ? SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: scheme.onPrimary,
+                  child: TextButton(
+                    onPressed: _busy ? null : onSave,
+                    style: TextButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: _busy
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            l10n.edit_group_save,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
                           ),
-                        )
-                      : Text(
-                          l10n.edit_group_save,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                          ),
-                        ),
+                  ),
                 ),
               ),
             ),

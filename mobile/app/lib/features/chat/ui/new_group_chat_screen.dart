@@ -746,7 +746,11 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                                     style: NewChatUserPickerRowStyle.list,
                                     enabled: !_busy,
                                     selected: false,
-                                    selectionTrailing: true,
+                                    // Чекбокс справа не нужен: тап по строке
+                                    // мгновенно переносит пользователя в блок
+                                    // «Участники» выше и убирает его из pool,
+                                    // так что галочка выбора всегда «впрок».
+                                    selectionTrailing: false,
                                     onTap: () {
                                       setState(() {
                                         _selectedIds.add(p.id);
@@ -777,7 +781,11 @@ class _NewGroupChatScreenState extends ConsumerState<NewGroupChatScreen> {
                                     style: NewChatUserPickerRowStyle.list,
                                     enabled: !_busy,
                                     selected: false,
-                                    selectionTrailing: true,
+                                    // Чекбокс справа не нужен: тап по строке
+                                    // мгновенно переносит пользователя в блок
+                                    // «Участники» выше и убирает его из pool,
+                                    // так что галочка выбора всегда «впрок».
+                                    selectionTrailing: false,
                                     onTap: () {
                                       setState(() {
                                         _selectedIds.add(p.id);
