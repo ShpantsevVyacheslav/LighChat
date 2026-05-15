@@ -115,6 +115,7 @@ class ChatScreen extends ConsumerStatefulWidget {
     super.key,
     required this.conversationId,
     this.initialSharePayload,
+    this.initialAnchorMessageId,
   });
 
   final String conversationId;
@@ -125,6 +126,10 @@ class ChatScreen extends ConsumerStatefulWidget {
   /// `initState` (один раз — не реагирует на дальнейшие push'ы того же
   /// route, т.к. это разные экземпляры `ChatScreen`).
   final ShareIntentPayload? initialSharePayload;
+
+  /// Если != null — после первой загрузки списка скроллим к этому сообщению
+  /// с flash-highlight. Используется при deep-link из Spotlight на pin.
+  final String? initialAnchorMessageId;
 
   @override
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
@@ -464,6 +469,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         _scheduleChatDraftSave();
+      });
+    }
+    // Spotlight deep-link на pinned-сообщение: после того как список
+    // прогрузится, скроллим к якорю с flash-highlight. Делаем через
+    // microdelay чтобы дождаться первой пачки сообщений из Firestore.
+    final anchor = widget.initialAnchorMessageId;
+    if (anchor != null && anchor.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        // Несколько попыток с интервалом, т.к. список рендерится постепенно.
+        for (var i = 0; i < 8; i++) {
+          if (!mounted) return;
+          if (_sortedAscCache.any((m) => m.id == anchor)) {
+            _scrollToMessageId(anchor);
+            return;
+          }
+          await Future<void>.delayed(const Duration(milliseconds: 400));
+        }
       });
     }
   }

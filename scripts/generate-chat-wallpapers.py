@@ -2851,6 +2851,556 @@ def concept_bunny_meadow(theme):
     return bg.convert("RGB")
 
 
+# ---------------------------------------------------------------------------
+# 3D-style concepts (extra set 5)
+# ---------------------------------------------------------------------------
+#
+# «3D-обои» здесь — это не настоящий рейтрейсинг, а имитация объёма
+# через слой-шейдинг: базовый цвет + размытый highlight сверху-слева +
+# размытая ambient-тень снизу-справа + drop-shadow под объектом. Этого
+# хватает, чтобы плоские формы читались как объёмные сферы / цилиндры.
+
+
+def shaded_sphere(size, base_color, highlight=(255, 255, 255),
+                  shadow_dark=None, light_pos=(0.32, 0.30),
+                  highlight_alpha=190, shadow_alpha=180):
+    """Сфера с псевдо-3D shading: базовый круг, размытый highlight в
+    `light_pos` (доли диаметра, 0..1) и размытая ambient-тень с
+    противоположной стороны. Возвращает RGBA-Image размером `size`."""
+    w, h = size
+    if shadow_dark is None:
+        shadow_dark = (
+            max(0, base_color[0] - 60),
+            max(0, base_color[1] - 60),
+            max(0, base_color[2] - 60),
+        )
+    # Базовый круг
+    layer = Image.new("RGBA", size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    d.ellipse([0, 0, w - 1, h - 1], fill=base_color + (255,))
+    # Sphere mask — для clipping highlight/shadow в пределах круга
+    sphere_mask = Image.new("L", size, 0)
+    smd = ImageDraw.Draw(sphere_mask)
+    smd.ellipse([0, 0, w - 1, h - 1], fill=255)
+    # Ambient shadow — большое пятно снизу-справа
+    sh = Image.new("RGBA", size, (0, 0, 0, 0))
+    shd = ImageDraw.Draw(sh)
+    sx = int(w * (1 - light_pos[0] + 0.1))
+    sy = int(h * (1 - light_pos[1] + 0.1))
+    shd.ellipse([sx - w // 2, sy - h // 2, sx + w // 2, sy + h // 2],
+                fill=shadow_dark + (shadow_alpha,))
+    sh = sh.filter(ImageFilter.GaussianBlur(radius=max(8, w // 8)))
+    sh.putalpha(_mul_alpha(sh.split()[-1], sphere_mask))
+    layer = Image.alpha_composite(layer, sh)
+    # Highlight — небольшое яркое пятно сверху-слева
+    hl = Image.new("RGBA", size, (0, 0, 0, 0))
+    hld = ImageDraw.Draw(hl)
+    hx = int(w * light_pos[0])
+    hy = int(h * light_pos[1])
+    hr = int(min(w, h) * 0.18)
+    hld.ellipse([hx - hr, hy - hr, hx + hr, hy + hr],
+                fill=highlight + (highlight_alpha,))
+    hl = hl.filter(ImageFilter.GaussianBlur(radius=max(6, hr // 2)))
+    hl.putalpha(_mul_alpha(hl.split()[-1], sphere_mask))
+    layer = Image.alpha_composite(layer, hl)
+    # Тонкий specular — маленькая яркая «капля»
+    spec = Image.new("RGBA", size, (0, 0, 0, 0))
+    spd = ImageDraw.Draw(spec)
+    spr = max(3, int(min(w, h) * 0.05))
+    spd.ellipse([hx - spr, hy - spr, hx + spr, hy + spr],
+                fill=(255, 255, 255, 240))
+    spec = spec.filter(ImageFilter.GaussianBlur(radius=max(2, spr // 3)))
+    spec.putalpha(_mul_alpha(spec.split()[-1], sphere_mask))
+    layer = Image.alpha_composite(layer, spec)
+    return layer
+
+
+def _mul_alpha(a, b):
+    """Поэлементное умножение двух L-каналов как масок (0..255 × 0..255)."""
+    pa = a.load()
+    pb = b.load()
+    out = Image.new("L", a.size, 0)
+    po = out.load()
+    for y in range(a.size[1]):
+        for x in range(a.size[0]):
+            po[x, y] = (pa[x, y] * pb[x, y]) // 255
+    return out
+
+
+def drop_shadow_for(layer, offset=(0, 12), blur=18, alpha=150):
+    """Возвращает RGBA-Image той же геометрии, что и `layer`, но с
+    размытой тенью под формой (берётся alpha канал layer как маска)."""
+    w, h = layer.size
+    shadow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    a = layer.split()[-1].point(lambda v: int(v * alpha / 255))
+    shadow.paste(Image.new("RGBA", (w, h), (0, 0, 0, 255)),
+                 (offset[0], offset[1]), a)
+    return shadow.filter(ImageFilter.GaussianBlur(radius=blur))
+
+
+def draw_planet_3d(size, base, light_pos=(0.30, 0.28),
+                    bands=None, ring=None, ring_color=None):
+    """Объёмная планета: shaded_sphere + опциональные горизонтальные
+    полосы (Юпитер) и кольцо (Сатурн)."""
+    w, h = size
+    # bands шире чем sphere, чтобы можно было кадрировать после
+    layer = shaded_sphere(size, base, light_pos=light_pos)
+    if bands:
+        # Полосы — горизонтальные полупрозрачные линии разной плотности
+        bd_layer = Image.new("RGBA", size, (0, 0, 0, 0))
+        bd = ImageDraw.Draw(bd_layer)
+        for y_frac, h_frac, color, alpha in bands:
+            y = int(h * y_frac)
+            bh = max(2, int(h * h_frac))
+            bd.rectangle([0, y, w, y + bh], fill=color + (alpha,))
+        # Замаскировать в круг
+        sphere_mask = Image.new("L", size, 0)
+        smd = ImageDraw.Draw(sphere_mask)
+        smd.ellipse([0, 0, w - 1, h - 1], fill=255)
+        bd_layer.putalpha(_mul_alpha(bd_layer.split()[-1], sphere_mask))
+        bd_layer = bd_layer.filter(ImageFilter.GaussianBlur(radius=2))
+        layer = Image.alpha_composite(layer, bd_layer)
+    if ring is not None:
+        # Кольцо — эллипс шире планеты, тоньше по высоте
+        rw, rh = int(w * 1.7), int(h * 0.4)
+        ring_layer = Image.new("RGBA", (rw, rh), (0, 0, 0, 0))
+        rd = ImageDraw.Draw(ring_layer)
+        rd.ellipse([0, 0, rw - 1, rh - 1],
+                   outline=(ring_color or (200, 175, 130)) + (220,),
+                   width=max(6, h // 30))
+        # Внутренняя тонкая линия
+        rd.ellipse([int(rw * 0.08), int(rh * 0.18),
+                    int(rw * 0.92), int(rh * 0.82)],
+                   outline=(ring_color or (180, 155, 110)) + (180,),
+                   width=max(3, h // 60))
+        # Наложить кольцо так, чтобы заднее (верхнее) полукольцо было ЗА
+        # планетой, а переднее (нижнее) — ПЕРЕД ней.
+        # Заднее: только верхняя половина ring_layer.
+        ring_back = ring_layer.crop((0, 0, rw, rh // 2))
+        ring_front = ring_layer.crop((0, rh // 2, rw, rh))
+        out = Image.new("RGBA", (rw, h + rh), (0, 0, 0, 0))
+        # Верхняя половина кольца
+        out.paste(ring_back,
+                  ((rw - rw) // 2, (h + rh) // 2 - rh // 2),
+                  ring_back)
+        # Планета по центру
+        out.paste(layer, ((rw - w) // 2, rh // 2), layer)
+        # Нижняя половина кольца
+        out.paste(ring_front,
+                  ((rw - rw) // 2, (h + rh) // 2),
+                  ring_front)
+        return out
+    return layer
+
+
+def concept_lighthouse_3d(theme):
+    """Объёмный маяк на скале: сама башня с боковой тенью, drop-shadow
+    под скалой, мощный конический луч прожектора в небо."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (250, 218, 188), (200, 220, 240))
+        rock_color = (60, 75, 110)
+        body_color = (245, 240, 230)
+        coral = CORAL
+        beam_color = (255, 220, 150)
+        sea_color = (90, 140, 175)
+    else:
+        bg = vertical_gradient((W, H), (8, 14, 30), (18, 26, 50))
+        rock_color = (12, 22, 40)
+        body_color = (220, 200, 175)
+        coral = CORAL
+        beam_color = (255, 200, 130)
+        sea_color = (16, 44, 78)
+    # Звёзды (dark)
+    if theme == "dark":
+        bg.paste(starfield((W, H), density=180, seed=33), (0, 0),
+                 starfield((W, H), density=180, seed=33))
+    # Мощный луч прожектора — большой треугольник с blur
+    beam = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    bd = ImageDraw.Draw(beam)
+    beam_origin = (int(W * 0.50), int(H * 0.32))
+    bd.polygon([
+        beam_origin,
+        (int(W * -0.25), int(H * -0.05)),
+        (int(W * 1.25), int(H * -0.05)),
+    ], fill=beam_color + (130,))
+    beam = beam.filter(ImageFilter.GaussianBlur(radius=80))
+    bg.paste(beam, (0, 0), beam)
+    # Море
+    sea = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(sea)
+    sd.rectangle([0, int(H * 0.66), W, H], fill=sea_color + (255,))
+    bg.paste(sea, (0, 0), sea)
+    # Блики на воде — несколько светлых горизонтальных штрихов
+    glints = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(glints)
+    glint_color = (255, 230, 170) if theme == "light" else (200, 220, 250)
+    rng = random.Random(7)
+    for _ in range(40):
+        gx = rng.randint(0, W)
+        gy = rng.randint(int(H * 0.68), int(H * 0.92))
+        gw = rng.randint(40, 120)
+        gd.line([(gx, gy), (gx + gw, gy)],
+                fill=glint_color + (rng.randint(80, 160),), width=2)
+    glints = glints.filter(ImageFilter.GaussianBlur(radius=2))
+    bg.paste(glints, (0, 0), glints)
+    # Скала со shading
+    rock_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    rd = ImageDraw.Draw(rock_layer)
+    rd.polygon([
+        (int(W * 0.25), int(H * 0.74)),
+        (int(W * 0.40), int(H * 0.65)),
+        (int(W * 0.60), int(H * 0.65)),
+        (int(W * 0.78), int(H * 0.74)),
+        (int(W * 0.85), int(H * 0.84)),
+        (int(W * 0.15), int(H * 0.84)),
+    ], fill=rock_color + (255,))
+    # Тень слева у скалы
+    rock_shadow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    rsd = ImageDraw.Draw(rock_shadow)
+    dark_rock = (max(0, rock_color[0] - 25), max(0, rock_color[1] - 25),
+                 max(0, rock_color[2] - 25))
+    rsd.polygon([
+        (int(W * 0.40), int(H * 0.65)),
+        (int(W * 0.50), int(H * 0.66)),
+        (int(W * 0.42), int(H * 0.84)),
+        (int(W * 0.15), int(H * 0.84)),
+        (int(W * 0.25), int(H * 0.74)),
+    ], fill=dark_rock + (200,))
+    rock_shadow = rock_shadow.filter(ImageFilter.GaussianBlur(radius=20))
+    rock_layer = Image.alpha_composite(rock_layer, rock_shadow)
+    bg.paste(rock_layer, (0, 0), rock_layer)
+    # Маяк (используем существующий draw_lighthouse) + drop shadow под ним
+    lh_w = int(W * 0.30)
+    lh_h = int(lh_w * LH_LIGHTHOUSE)
+    lh = draw_lighthouse((lh_w, lh_h), navy=NAVY_DARK, coral=coral,
+                         body=body_color)
+    # Боковая тень — копия маяка с тёмным фоном и сильным offset
+    lh_shadow = drop_shadow_for(lh, offset=(20, 10), blur=18, alpha=160)
+    bg.paste(lh_shadow,
+             (int(W * 0.50 - lh_w / 2) + 4, int(H * 0.66) - lh_h + 8),
+             lh_shadow)
+    bg.paste(lh, (int(W * 0.50 - lh_w / 2), int(H * 0.66) - lh_h), lh)
+    # Coral glow вокруг фонарной комнаты — символ света
+    lamp_glow = radial_glow(
+        (W, H),
+        (int(W * 0.50), int(H * 0.66) - int(lh_h * 0.715)),
+        int(H * 0.10), CORAL, alpha=200,
+    )
+    bg.paste(lamp_glow, (0, 0), lamp_glow)
+    return bg.convert("RGB")
+
+
+def concept_crab_3d(theme):
+    """Объёмный крабик на песке: круглое тело со shading, тень, песок
+    с текстурой-«крупой»."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (245, 220, 195), (220, 230, 235))
+        sand_color = (235, 210, 165)
+        sand_dark = (200, 175, 130)
+        body_base = (240, 130, 50)
+        eye_white = (255, 255, 255)
+        pupil = (28, 30, 50)
+    else:
+        bg = vertical_gradient((W, H), (10, 18, 36), (22, 28, 50))
+        sand_color = (40, 34, 50)
+        sand_dark = (22, 18, 32)
+        body_base = (220, 110, 50)
+        eye_white = (240, 240, 240)
+        pupil = (10, 14, 28)
+    if theme == "dark":
+        bg.paste(starfield((W, H), density=140, seed=12), (0, 0),
+                 starfield((W, H), density=140, seed=12))
+    # Песок (нижняя половина)
+    sand_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    sld = ImageDraw.Draw(sand_layer)
+    sld.rectangle([0, int(H * 0.55), W, H], fill=sand_color + (255,))
+    bg.paste(sand_layer, (0, 0), sand_layer)
+    # Текстура песка — мелкие тёмные точки
+    grain = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(grain)
+    rng = random.Random(57)
+    for _ in range(800):
+        gx = rng.randint(0, W)
+        gy = rng.randint(int(H * 0.55), H)
+        gd.ellipse([gx - 2, gy - 2, gx + 2, gy + 2],
+                   fill=sand_dark + (90,))
+    bg.paste(grain, (0, 0), grain)
+    # Размер крабика по центру
+    crab_w = int(W * 0.50)
+    crab_h = int(crab_w * 0.85)
+    crab_cx = int(W * 0.50)
+    crab_cy = int(H * 0.62)
+    # Тень под крабом — тёмный овал на песке
+    shadow_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    shd = ImageDraw.Draw(shadow_layer)
+    shd.ellipse([crab_cx - crab_w // 2 - 20, crab_cy + crab_h // 4,
+                 crab_cx + crab_w // 2 + 20, crab_cy + crab_h // 2 + 30],
+                fill=(0, 0, 0, 130))
+    shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(radius=22))
+    bg.paste(shadow_layer, (0, 0), shadow_layer)
+    # Тело — объёмная сфера-полусфера (купол)
+    body_size = (crab_w, crab_h)
+    body = shaded_sphere(body_size, body_base, light_pos=(0.32, 0.28))
+    # Только верхняя половина тела (купол)
+    body_top = body.crop((0, 0, crab_w, crab_h // 2 + crab_h // 8))
+    bg.paste(body_top,
+             (crab_cx - crab_w // 2, crab_cy - crab_h // 2),
+             body_top)
+    # Линия рта снизу купола (полоса для контура)
+    mouth = ImageDraw.Draw(bg.convert("RGBA"))
+    bg = bg.convert("RGBA")
+    md = ImageDraw.Draw(bg)
+    md.arc([crab_cx - crab_w // 2 + 10,
+            crab_cy - 5,
+            crab_cx + crab_w // 2 - 10,
+            crab_cy + crab_h // 4],
+           start=180, end=360,
+           fill=(max(0, body_base[0] - 80),
+                 max(0, body_base[1] - 50),
+                 max(0, body_base[2] - 30), 200),
+           width=4)
+    # Клешни — два маленьких объёмных шара по сторонам
+    claw_size = int(crab_w * 0.35)
+    for side in (-1, 1):
+        claw = shaded_sphere((claw_size, claw_size), body_base,
+                             light_pos=(0.32 if side > 0 else 0.55, 0.28))
+        cx_pos = crab_cx + side * (crab_w // 2 + claw_size // 5)
+        cy_pos = crab_cy - claw_size // 4
+        # Тень под клешнёй
+        cs = drop_shadow_for(claw, offset=(0, 8), blur=10, alpha=140)
+        bg.paste(cs,
+                 (cx_pos - claw_size // 2, cy_pos - claw_size // 2),
+                 cs)
+        bg.paste(claw,
+                 (cx_pos - claw_size // 2, cy_pos - claw_size // 2),
+                 claw)
+        # «Защип» клешни — небольшой треугольник к крабу
+        d2 = ImageDraw.Draw(bg)
+        d2.polygon([
+            (cx_pos - side * claw_size // 2, cy_pos),
+            (cx_pos + side * claw_size // 4, cy_pos - claw_size // 5),
+            (cx_pos + side * claw_size // 4, cy_pos + claw_size // 5),
+        ], fill=(max(0, body_base[0] - 30),
+                 max(0, body_base[1] - 20),
+                 max(0, body_base[2] - 10), 255))
+    # Лапки — 3 пары снизу из-под купола
+    leg_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ld = ImageDraw.Draw(leg_layer)
+    leg_color = (max(0, body_base[0] - 20), max(0, body_base[1] - 10),
+                 max(0, body_base[2] - 5))
+    leg_top_y = crab_cy + crab_h // 8
+    for side in (-1, 1):
+        for i, x_off_frac in enumerate((0.10, 0.22, 0.34)):
+            x_top = crab_cx + side * int(crab_w * x_off_frac)
+            x_bot = x_top + side * int(crab_w * 0.10)
+            y_bot = leg_top_y + int(crab_h * 0.30 + i * crab_h * 0.05)
+            ld.line([(x_top, leg_top_y), (x_bot, y_bot)],
+                    fill=leg_color + (255,), width=int(crab_w * 0.025))
+    bg.paste(leg_layer, (0, 0), leg_layer)
+    # Глаза — два белых кружка с тёмным зрачком на куполе
+    eye_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ed = ImageDraw.Draw(eye_layer)
+    eye_r = int(crab_w * 0.05)
+    for side in (-1, 1):
+        ex = crab_cx + side * int(crab_w * 0.13)
+        ey = crab_cy - int(crab_h * 0.15)
+        # Стебелёк
+        ed.line([(ex, ey + eye_r), (ex, ey + eye_r * 3)],
+                fill=leg_color + (255,), width=max(2, eye_r // 4))
+        # Глаз
+        ed.ellipse([ex - eye_r, ey - eye_r, ex + eye_r, ey + eye_r],
+                   fill=eye_white + (255,))
+        # Зрачок
+        ed.ellipse([ex - eye_r // 2, ey - eye_r // 2,
+                    ex + eye_r // 2, ey + eye_r // 2],
+                   fill=pupil + (255,))
+        # Блик
+        ed.ellipse([ex - eye_r // 3, ey - eye_r // 2,
+                    ex - eye_r // 6, ey - eye_r // 4],
+                   fill=(255, 255, 255, 220))
+    bg.paste(eye_layer, (0, 0), eye_layer)
+    return bg.convert("RGB")
+
+
+def concept_cosmos_3d(theme):
+    """Объёмный космос: большая газовая планета с полосами и кольцом,
+    маленький спутник, туманность, звёзды."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (210, 220, 240), (180, 200, 232))
+        nebula = [((255, 200, 220), 110), ((200, 220, 255), 90)]
+        planet_base = (255, 165, 90)
+        bands = [
+            (0.20, 0.04, (210, 130, 70), 130),
+            (0.32, 0.05, (220, 150, 90), 110),
+            (0.45, 0.04, (180, 100, 50), 140),
+            (0.58, 0.06, (240, 180, 110), 100),
+            (0.72, 0.04, (200, 120, 60), 130),
+            (0.84, 0.05, (220, 140, 80), 110),
+        ]
+        ring_color = (215, 195, 155)
+        moon_base = (215, 220, 230)
+        star_color = (60, 70, 100)
+        density = 240
+    else:
+        bg = vertical_gradient((W, H), (4, 6, 18), (10, 8, 32))
+        nebula = [((180, 100, 200), 220), ((80, 200, 230), 180),
+                   ((220, 130, 180), 200)]
+        planet_base = (240, 150, 80)
+        bands = [
+            (0.20, 0.04, (200, 110, 60), 160),
+            (0.32, 0.05, (220, 140, 80), 140),
+            (0.45, 0.04, (170, 80, 40), 170),
+            (0.58, 0.06, (235, 170, 100), 130),
+            (0.72, 0.04, (190, 100, 50), 160),
+            (0.84, 0.05, (215, 130, 70), 140),
+        ]
+        ring_color = (210, 185, 140)
+        moon_base = (200, 205, 215)
+        star_color = (255, 255, 255)
+        density = 600
+    # Туманность — несколько крупных пятен
+    rng = random.Random(91)
+    for cx_frac, cy_frac, r_frac, palette_idx in [
+        (0.25, 0.22, 0.32, 0),
+        (0.78, 0.18, 0.26, min(1, len(nebula) - 1)),
+        (0.55, 0.40, 0.30, min(2, len(nebula) - 1) if len(nebula) > 2 else 0),
+    ]:
+        color, alpha = nebula[palette_idx % len(nebula)]
+        glow = radial_glow((W, H),
+                           (int(W * cx_frac), int(H * cy_frac)),
+                           int(H * r_frac), color, alpha=alpha)
+        bg.paste(glow, (0, 0), glow)
+    # Звёзды
+    bg.paste(starfield((W, H), density=density, color=star_color, seed=33),
+             (0, 0),
+             starfield((W, H), density=density, color=star_color, seed=33))
+    # Большая планета с полосами и кольцом
+    planet_d = int(W * 0.55)
+    planet = draw_planet_3d((planet_d, planet_d), planet_base,
+                             light_pos=(0.30, 0.28),
+                             bands=bands, ring=True,
+                             ring_color=ring_color)
+    # planet с кольцом возвращает image шире чем planet_d (rw=1.7×)
+    pw, ph = planet.size
+    bg.paste(planet,
+             (int(W * 0.55 - pw / 2), int(H * 0.50 - ph / 2)),
+             planet)
+    # Спутник — маленькая луна слева снизу
+    moon_d = int(W * 0.14)
+    moon = shaded_sphere((moon_d, moon_d), moon_base,
+                          light_pos=(0.30, 0.28))
+    moon_shadow = drop_shadow_for(moon, offset=(0, 10), blur=12, alpha=140)
+    bg.paste(moon_shadow, (int(W * 0.18), int(H * 0.78)), moon_shadow)
+    bg.paste(moon, (int(W * 0.18), int(H * 0.78)), moon)
+    # Несколько крошечных астероидов справа
+    rng2 = random.Random(202)
+    for _ in range(7):
+        ax = rng2.randint(int(W * 0.05), int(W * 0.95))
+        ay = rng2.randint(int(H * 0.85), int(H * 0.98))
+        ar = rng2.randint(int(W * 0.008), int(W * 0.018))
+        asteroid = shaded_sphere((ar * 2, ar * 2), (140, 130, 120),
+                                  light_pos=(0.30, 0.30))
+        bg.paste(asteroid, (ax - ar, ay - ar), asteroid)
+    return bg.convert("RGB")
+
+
+def concept_ocean_3d(theme):
+    """Объёмная морская волна: несколько слоёв с глубиной, пенный
+    гребень, брызги, маяк вдалеке."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (215, 232, 248), (180, 210, 230))
+        deep = (35, 105, 160)
+        mid = (60, 145, 195)
+        light = (130, 195, 235)
+        foam = (250, 252, 255)
+        sky_warm = (255, 220, 175)
+        lh_navy = NAVY
+        lh_body = (245, 240, 230)
+    else:
+        bg = vertical_gradient((W, H), (8, 18, 38), (12, 30, 60))
+        deep = (10, 36, 70)
+        mid = (24, 70, 120)
+        light = (60, 130, 185)
+        foam = (200, 230, 245)
+        sky_warm = (255, 200, 130)
+        lh_navy = NAVY_DARK
+        lh_body = (220, 200, 175)
+    # Тёплый рассвет в небе
+    sun = radial_glow((W, H), (int(W * 0.72), int(H * 0.20)), int(H * 0.15),
+                      sky_warm, alpha=200)
+    bg.paste(sun, (0, 0), sun)
+    # Маяк вдалеке (мини)
+    lh_w = int(W * 0.06)
+    lh_h = int(lh_w * LH_LIGHTHOUSE)
+    lh = draw_lighthouse((lh_w, lh_h), navy=lh_navy, coral=CORAL,
+                         body=lh_body)
+    bg.paste(lh, (int(W * 0.18), int(H * 0.40) - lh_h), lh)
+    # Глубокий слой воды (дальний горизонт)
+    horizon = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    hd = ImageDraw.Draw(horizon)
+    hd.rectangle([0, int(H * 0.40), W, H], fill=deep + (255,))
+    bg.paste(horizon, (0, 0), horizon)
+    # 3 слоя волн с увеличивающейся глубиной (front к нижу)
+    for i, (top_y, color, fade) in enumerate([
+        (0.46, mid, 220),
+        (0.58, light, 230),
+        (0.72, mid, 245),
+    ]):
+        layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        ld = ImageDraw.Draw(layer)
+        pts = []
+        for x in range(0, W + 30, 30):
+            wave = math.sin((x / W) * math.pi * (3 + i * 1.0) + i) \
+                   * (H * 0.012)
+            pts.append((x, int(H * top_y + wave)))
+        pts.extend([(W, H), (0, H)])
+        ld.polygon(pts, fill=color + (fade,))
+        bg.paste(layer, (0, 0), layer)
+    # Большая 3D-волна на переднем плане — глянцевая, с пеной
+    big_wave = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    bwd = ImageDraw.Draw(big_wave)
+    crest = [
+        (-0.05, 0.86),
+        (0.10, 0.80),
+        (0.25, 0.74),
+        (0.42, 0.68),
+        (0.60, 0.62),
+        (0.74, 0.56),
+        (0.84, 0.50),
+        (0.92, 0.48),
+        (1.02, 0.52),
+    ]
+    body_pts = [(int(W * x), int(H * y)) for x, y in crest]
+    body_pts.extend([(int(W * 1.05), int(H)), (int(W * -0.05), int(H))])
+    bwd.polygon(body_pts, fill=deep + (255,))
+    # Глянцевый highlight на гребне (полосой)
+    for off, alpha in [(0.01, 230), (0.04, 170), (0.08, 110), (0.13, 70)]:
+        line_pts = [(int(W * x), int(H * (y + off))) for x, y in crest[1:-1]]
+        bwd.line(line_pts, fill=foam + (alpha,),
+                 width=max(4, int(W * 0.005)))
+    # Пенный гребень (толстая белая полоса)
+    crest_pts = [(int(W * x), int(H * y)) for x, y in crest]
+    bwd.line(crest_pts, fill=foam + (255,), width=max(8, int(W * 0.012)))
+    bg.paste(big_wave, (0, 0), big_wave)
+    # Брызги над пенным гребнем
+    spray = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    spd = ImageDraw.Draw(spray)
+    rng = random.Random(11)
+    for _ in range(120):
+        x_frac = rng.uniform(0.20, 1.0)
+        # crest_y по линейной интерполяции
+        crest_y = 0.86 - (x_frac - (-0.05)) / (0.92 + 0.05) * (0.86 - 0.48)
+        y_off = rng.uniform(0.005, 0.16)
+        sx = int(W * x_frac)
+        sy = int(H * (crest_y - y_off))
+        sr = rng.randint(int(W * 0.003), int(W * 0.010))
+        a = int(255 * (1.0 - y_off / 0.18))
+        spd.ellipse([sx - sr, sy - sr, sx + sr, sy + sr],
+                    fill=foam + (max(60, a),))
+    bg.paste(spray, (0, 0), spray)
+    return bg.convert("RGB")
+
+
 CONCEPTS = {
     "lighthouse-dawn": concept_lighthouse_dawn,
     "keeper-watch": concept_keeper_watch,
@@ -2883,6 +3433,10 @@ CONCEPTS = {
     "panda-bamboo": concept_panda_bamboo,
     "owl-night": concept_owl_night,
     "bunny-meadow": concept_bunny_meadow,
+    "lighthouse-3d": concept_lighthouse_3d,
+    "crab-3d": concept_crab_3d,
+    "cosmos-3d": concept_cosmos_3d,
+    "ocean-3d": concept_ocean_3d,
 }
 
 

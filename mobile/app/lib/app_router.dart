@@ -563,12 +563,18 @@ GoRouter createRouter() {
           final extra = state.extra;
           final sharePayload =
               extra is ShareIntentPayload ? extra : null;
+          // Spotlight deep-link на pinned message: `?anchor=<messageId>`.
+          // ChatScreen после загрузки списка сообщений скроллит к нему
+          // с flash-highlight.
+          final anchor = state.uri.queryParameters['anchor'];
           return CupertinoPage<void>(
             key: state.pageKey,
             name: state.name,
             child: ChatScreen(
               conversationId: conversationId,
               initialSharePayload: sharePayload,
+              initialAnchorMessageId:
+                  (anchor == null || anchor.isEmpty) ? null : anchor,
             ),
           );
         },

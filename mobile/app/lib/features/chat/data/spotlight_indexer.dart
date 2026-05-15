@@ -84,8 +84,9 @@ class SpotlightIndexer {
     }
   }
 
-  /// Convenience: построить SpotlightItem из списка conversations и проиндексировать.
-  /// Сами вырезаем сервисные/пустые/не-видимые чаты, остальное — index.
+  /// Convenience: построить SpotlightItem из списка conversations + их
+  /// pinned messages и проиндексировать одним пакетом. Сами вырезаем
+  /// сервисные/пустые чаты, остальное — index.
   Future<void> indexConversations({
     required List<ConversationWithId> conversations,
     required String currentUserId,
@@ -111,6 +112,30 @@ class SpotlightIndexer {
         subtitle: preview.isEmpty ? null : preview,
         keywords: keywords.toList(growable: false),
       ));
+
+      // Pinned messages: каждое pinned-сообщение → отдельный
+      // SpotlightItem с uid `pin:<convId>:<msgId>`. При тапе в Spotlight
+      // юзер попадает в чат с якорем на это сообщение (см. main.dart).
+      final pins = c.data.pinnedMessages;
+      if (pins != null) {
+        for (final p in pins) {
+          final pinText = p.text.trim();
+          if (pinText.isEmpty) continue;
+          items.add(SpotlightItem(
+            uid: 'pin:${c.id}:${p.messageId}',
+            // В title — текст пина (обрезанный), это то по чему юзер ищет.
+            title: pinText.length > 80
+                ? '${pinText.substring(0, 77)}…'
+                : pinText,
+            // В subtitle — контекст: «📌 в чате с <X>» / «📌 <автор> в <группа>»
+            subtitle: '📌 ${p.senderName.trim()} · $title',
+            keywords: [
+              ...keywords,
+              if (p.senderName.trim().isNotEmpty) p.senderName.trim(),
+            ],
+          ));
+        }
+      }
     }
     await index(items);
   }

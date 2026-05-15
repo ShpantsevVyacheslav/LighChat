@@ -160,13 +160,17 @@ class NavigatorPickerSheet {
 
     // === Taxi ===
 
-    // Яндекс Go (бывш. Yandex Taxi). Требует end-lat/end-lon — без
-    // координат маршрут не строится. Если геокодинг не удался —
-    // открываем без destination (юзер сам введёт).
+    // Яндекс Go. Документированная partner-схема `yandextaxi://route?...`
+    // с appmetrica_tracking_id работает только если у нас зарегистрирован
+    // партнёрский кабинет (этого ещё нет). Без него используем deeplink
+    // через универсальный redirector m.yandex.ru — открывает приложение
+    // если установлено и подставляет destination координатами.
     if (await _canLaunch(Uri.parse('yandextaxi://'))) {
       final yandexUrl = coords != null
-          ? 'yandextaxi://route?end-lat=${coords.lat}&end-lon=${coords.lon}'
-              '&ref=lighchat&appmetrica_tracking_id=1178268795219780156'
+          ? 'https://3.redirect.appmetrica.yandex.com/route'
+              '?end-lat=${coords.lat}'
+              '&end-lon=${coords.lon}'
+              '&ref=lighchat'
           : 'yandextaxi://';
       out.add(_NavApp(
         id: 'yandex_go',
