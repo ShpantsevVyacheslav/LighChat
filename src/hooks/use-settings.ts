@@ -33,6 +33,9 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   quietHoursEnabled: false,
   quietHoursStart: "23:00",
   quietHoursEnd: "07:00",
+  messageRingtoneId: null,
+  callRingtoneId: null,
+  meetingHandRaiseSoundEnabled: true,
 };
 
 export const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {

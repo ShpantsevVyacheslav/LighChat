@@ -1072,6 +1072,12 @@ export type NotificationSettings = {
   quietHoursEnd: string;
   /** IANA TZ для интерпретации тихих часов на сервере (подставляется с клиента). */
   quietHoursTimeZone?: string;
+  /** Id пресета мелодии для новых сообщений (см. ringtone-presets.ts); null/undefined — пресет по умолчанию. */
+  messageRingtoneId?: string | null;
+  /** Id пресета мелодии для входящих звонков; null/undefined — оригинальный audio/ringtone.mp3 из Storage. */
+  callRingtoneId?: string | null;
+  /** Лёгкий «пинг» при поднятии руки другим участником видеоконференции. */
+  meetingHandRaiseSoundEnabled?: boolean;
 };
 
 /**

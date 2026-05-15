@@ -32,6 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getWebRtcIceConfig } from '@/lib/webrtc-ice-servers';
 import { logger } from '@/lib/logger';
 import { useI18n } from '@/hooks/use-i18n';
+import { getRingtonePreset, ringtoneUrl as ringtonePresetUrl } from '@/lib/ringtone-presets';
 
 interface AudioCallOverlayProps {
   currentUser: User;
@@ -192,20 +193,24 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
   }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
   // --- 1. INITIALIZATION: FETCH RINGTONES ---
+  const callRingtoneId = currentUser.notificationSettings?.callRingtoneId ?? null;
   useEffect(() => {
     if (!storage) return;
+    const presetForRingtone = getRingtonePreset(callRingtoneId);
     const fetchAudio = async () => {
         try {
-            const ringtoneUrl = await getDownloadURL(storageRef(storage, 'audio/ringtone.mp3'));
+            const ringtone = presetForRingtone
+              ? ringtonePresetUrl(presetForRingtone)
+              : await getDownloadURL(storageRef(storage, 'audio/ringtone.mp3'));
             const ringbackUrl = await getDownloadURL(storageRef(storage, 'audio/ringback.mp3'));
-            setStorageUrls({ ringtone: ringtoneUrl, ringback: ringbackUrl });
+            setStorageUrls({ ringtone, ringback: ringbackUrl });
         } catch {
             logger.warn('webrtc', 'Audio files not found in Storage (audio/ringtone.mp3, audio/ringback.mp3). Upload them to enable call sounds.');
             setStorageUrls({ ringtone: null, ringback: null });
         }
     };
     fetchAudio();
-  }, [storage]);
+  }, [storage, callRingtoneId]);
 
   // --- 2. CLEANUP LOGIC ---
   const handleCleanup = useCallback(() => {

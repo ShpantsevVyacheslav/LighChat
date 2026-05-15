@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart';
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 
 import '../../app_router.dart';
+import '../chat/data/message_notification_player.dart';
 import 'push_foreground_suppression.dart';
 import 'push_local_notifications_facade.dart';
 import 'push_native_call_service.dart';
@@ -65,6 +66,8 @@ class PushMessagingService {
       return;
     }
     final convId = conversationIdFromPushData(flat);
+    bool playCustomRingtone = false;
+    String? customRingtoneId;
     try {
       final userSnap = await FirebaseFirestore.instance
           .collection('users')
@@ -91,10 +94,28 @@ class PushMessagingService {
       )) {
         return;
       }
+      final ns = userData['notificationSettings'];
+      if (ns is Map) {
+        final soundEnabled = ns['soundEnabled'] != false;
+        final backendSilent = flat['silent'] == '1' || flat['silent'] == 'true';
+        if (soundEnabled && !backendSilent) {
+          final rid = ns['messageRingtoneId'];
+          customRingtoneId = rid is String && rid.isNotEmpty ? rid : null;
+          playCustomRingtone = true;
+        }
+      }
     } catch (_) {
       // при ошибке чтения — показываем уведомление
     }
-    await PushLocalNotificationsFacade.showFromRemoteMessage(message);
+    await PushLocalNotificationsFacade.showFromRemoteMessage(
+      message,
+      forceSilent: playCustomRingtone,
+    );
+    if (playCustomRingtone) {
+      unawaited(
+        MessageNotificationPlayer.instance.play(ringtoneId: customRingtoneId),
+      );
+    }
   }
 
   Future<void> start({required String uid}) async {

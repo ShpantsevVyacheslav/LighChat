@@ -749,6 +749,46 @@ class AppLocalizationsRu extends AppLocalizations {
       'Показывать текст сообщения в уведомлении.';
 
   @override
+  String get notifications_message_ringtone_label => 'Мелодия сообщений';
+
+  @override
+  String get notifications_call_ringtone_label => 'Мелодия звонков';
+
+  @override
+  String get notifications_meeting_hand_raise_title => 'Звук поднятия руки';
+
+  @override
+  String get notifications_meeting_hand_raise_subtitle =>
+      'Лёгкий сигнал, когда участник конференции поднимает руку.';
+
+  @override
+  String get ringtone_default => 'По умолчанию';
+
+  @override
+  String get ringtone_classic_chime => 'Классический перезвон';
+
+  @override
+  String get ringtone_gentle_bells => 'Мягкие колокольчики';
+
+  @override
+  String get ringtone_marimba_tap => 'Маримба';
+
+  @override
+  String get ringtone_soft_pulse => 'Мягкий пульс';
+
+  @override
+  String get ringtone_ascending_chord => 'Восходящий аккорд';
+
+  @override
+  String get ringtone_preview_play => 'Прослушать';
+
+  @override
+  String get ringtone_picker_messages_title => 'Мелодия сообщений';
+
+  @override
+  String get ringtone_picker_calls_title => 'Мелодия звонков';
+
+  @override
   String get notifications_section_quiet_hours => 'Тихие часы';
 
   @override

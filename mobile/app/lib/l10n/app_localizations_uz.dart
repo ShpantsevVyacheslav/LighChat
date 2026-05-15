@@ -751,6 +751,46 @@ class AppLocalizationsUz extends AppLocalizations {
       'Bildirishnomalarda xabar matnini koʻrsatish.';
 
   @override
+  String get notifications_message_ringtone_label => 'Xabar ohangi';
+
+  @override
+  String get notifications_call_ringtone_label => 'Qoʻngʻiroq ohangi';
+
+  @override
+  String get notifications_meeting_hand_raise_title => 'Qoʻl koʻtarish ovozi';
+
+  @override
+  String get notifications_meeting_hand_raise_subtitle =>
+      'Ishtirokchi qoʻlini koʻtarganda yumshoq signal.';
+
+  @override
+  String get ringtone_default => 'Standart';
+
+  @override
+  String get ringtone_classic_chime => 'Klassik jiringlash';
+
+  @override
+  String get ringtone_gentle_bells => 'Yumshoq qoʻngʻiroqlar';
+
+  @override
+  String get ringtone_marimba_tap => 'Marimba';
+
+  @override
+  String get ringtone_soft_pulse => 'Yumshoq puls';
+
+  @override
+  String get ringtone_ascending_chord => 'Koʻtarilayotgan akkord';
+
+  @override
+  String get ringtone_preview_play => 'Tinglash';
+
+  @override
+  String get ringtone_picker_messages_title => 'Xabar ohangi';
+
+  @override
+  String get ringtone_picker_calls_title => 'Qoʻngʻiroq ohangi';
+
+  @override
   String get notifications_section_quiet_hours => 'Tinch soatlar';
 
   @override

@@ -749,6 +749,46 @@ class AppLocalizationsPt extends AppLocalizations {
       'Mostrar o texto da mensagem nas notificações.';
 
   @override
+  String get notifications_message_ringtone_label => 'Toque das mensagens';
+
+  @override
+  String get notifications_call_ringtone_label => 'Toque das chamadas';
+
+  @override
+  String get notifications_meeting_hand_raise_title => 'Som de mão levantada';
+
+  @override
+  String get notifications_meeting_hand_raise_subtitle =>
+      'Sinal suave quando um participante levanta a mão.';
+
+  @override
+  String get ringtone_default => 'Padrão';
+
+  @override
+  String get ringtone_classic_chime => 'Carrilhão clássico';
+
+  @override
+  String get ringtone_gentle_bells => 'Sininhos suaves';
+
+  @override
+  String get ringtone_marimba_tap => 'Marimba';
+
+  @override
+  String get ringtone_soft_pulse => 'Pulso suave';
+
+  @override
+  String get ringtone_ascending_chord => 'Acorde ascendente';
+
+  @override
+  String get ringtone_preview_play => 'Ouvir';
+
+  @override
+  String get ringtone_picker_messages_title => 'Toque das mensagens';
+
+  @override
+  String get ringtone_picker_calls_title => 'Toque das chamadas';
+
+  @override
   String get notifications_section_quiet_hours => 'Horário silencioso';
 
   @override
@@ -9213,6 +9253,46 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get notifications_preview_subtitle =>
       'Mostrar o texto da mensagem nas notificações.';
+
+  @override
+  String get notifications_message_ringtone_label => 'Toque das mensagens';
+
+  @override
+  String get notifications_call_ringtone_label => 'Toque das chamadas';
+
+  @override
+  String get notifications_meeting_hand_raise_title => 'Som de mão levantada';
+
+  @override
+  String get notifications_meeting_hand_raise_subtitle =>
+      'Sinal suave quando um participante levanta a mão.';
+
+  @override
+  String get ringtone_default => 'Padrão';
+
+  @override
+  String get ringtone_classic_chime => 'Carrilhão clássico';
+
+  @override
+  String get ringtone_gentle_bells => 'Sininhos suaves';
+
+  @override
+  String get ringtone_marimba_tap => 'Marimba';
+
+  @override
+  String get ringtone_soft_pulse => 'Pulso suave';
+
+  @override
+  String get ringtone_ascending_chord => 'Acorde ascendente';
+
+  @override
+  String get ringtone_preview_play => 'Ouvir';
+
+  @override
+  String get ringtone_picker_messages_title => 'Toque das mensagens';
+
+  @override
+  String get ringtone_picker_calls_title => 'Toque das chamadas';
 
   @override
   String get notifications_section_quiet_hours => 'Horário silencioso';

@@ -746,6 +746,46 @@ class AppLocalizationsKk extends AppLocalizations {
       'Показывать текст хабарламалар в уведомлении.';
 
   @override
+  String get notifications_message_ringtone_label => 'Хабарлама әуені';
+
+  @override
+  String get notifications_call_ringtone_label => 'Қоңырау әуені';
+
+  @override
+  String get notifications_meeting_hand_raise_title => 'Қол көтеру дыбысы';
+
+  @override
+  String get notifications_meeting_hand_raise_subtitle =>
+      'Қатысушы қолын көтергенде жеңіл сигнал.';
+
+  @override
+  String get ringtone_default => 'Әдепкі';
+
+  @override
+  String get ringtone_classic_chime => 'Классикалық қоңырау';
+
+  @override
+  String get ringtone_gentle_bells => 'Жұмсақ қоңыраулар';
+
+  @override
+  String get ringtone_marimba_tap => 'Маримба';
+
+  @override
+  String get ringtone_soft_pulse => 'Жұмсақ пульс';
+
+  @override
+  String get ringtone_ascending_chord => 'Көтеріңкі аккорд';
+
+  @override
+  String get ringtone_preview_play => 'Тыңдау';
+
+  @override
+  String get ringtone_picker_messages_title => 'Хабарлама әуені';
+
+  @override
+  String get ringtone_picker_calls_title => 'Қоңырау әуені';
+
+  @override
   String get notifications_section_quiet_hours => 'Тихие сағаты';
 
   @override

@@ -741,6 +741,46 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show message text in notifications.';
 
   @override
+  String get notifications_message_ringtone_label => 'Message ringtone';
+
+  @override
+  String get notifications_call_ringtone_label => 'Call ringtone';
+
+  @override
+  String get notifications_meeting_hand_raise_title => 'Raise-hand sound';
+
+  @override
+  String get notifications_meeting_hand_raise_subtitle =>
+      'Soft ping when a participant raises their hand.';
+
+  @override
+  String get ringtone_default => 'Default';
+
+  @override
+  String get ringtone_classic_chime => 'Classic chime';
+
+  @override
+  String get ringtone_gentle_bells => 'Gentle bells';
+
+  @override
+  String get ringtone_marimba_tap => 'Marimba tap';
+
+  @override
+  String get ringtone_soft_pulse => 'Soft pulse';
+
+  @override
+  String get ringtone_ascending_chord => 'Ascending chord';
+
+  @override
+  String get ringtone_preview_play => 'Preview';
+
+  @override
+  String get ringtone_picker_messages_title => 'Message ringtone';
+
+  @override
+  String get ringtone_picker_calls_title => 'Call ringtone';
+
+  @override
   String get notifications_section_quiet_hours => 'Quiet hours';
 
   @override

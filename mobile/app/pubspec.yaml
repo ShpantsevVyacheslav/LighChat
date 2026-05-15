@@ -225,6 +225,8 @@ flutter:
     - assets/legal/ru/
     - assets/legal/en/
     - assets/wallpapers/
+    - assets/audio/ringtones/
+    - assets/audio/conference/
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

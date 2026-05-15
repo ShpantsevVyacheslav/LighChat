@@ -20,6 +20,7 @@ import '../data/meeting_models.dart';
 import '../data/meeting_peer_stats.dart';
 import '../data/meeting_pip_controller.dart';
 import '../data/meeting_providers.dart';
+import '../data/meeting_hand_raise_player.dart';
 import '../data/meeting_webrtc.dart';
 import '../data/virtual_background_controller.dart';
 import 'meeting_controls.dart';
@@ -120,6 +121,16 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
   /// Кэш участников для разрешения активного спикера по `getStats` (тик WebRTC).
   List<MeetingParticipant> _participantsSnapshot = const [];
 
+  /// Предыдущее состояние «руки» по uid — нужно для детекции перехода
+  /// false→true и проигрывания короткого «пинга».
+  final Map<String, bool> _lastHandRaisedByUid = <String, bool>{};
+
+  /// Глобальная настройка `meetingHandRaiseSoundEnabled`. Один раз читаем
+  /// из Firestore при бутстрапе; обновления через настройки увидим при
+  /// следующем входе в комнату.
+  bool _handRaiseSoundEnabled = true;
+  bool _suppressFirstHandSync = true;
+
   /// Участник с максимальной аудио-активностью (подсветка плитки).
   String? _activeSpeakerId;
 
@@ -145,6 +156,7 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
       if (!mounted) return;
       Navigator.of(context).maybePop();
     };
+    unawaited(_loadHandRaiseSoundSetting());
     _bootstrap();
   }
 
@@ -290,6 +302,50 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
     await webrtc.syncPeers(remoteIds);
   }
 
+  void _syncHandRaiseSound(List<MeetingParticipant> participants) {
+    var anyTransition = false;
+    final seenIds = <String>{};
+    for (final p in participants) {
+      seenIds.add(p.id);
+      final prev = _lastHandRaisedByUid[p.id] ?? false;
+      _lastHandRaisedByUid[p.id] = p.isHandRaised;
+      if (p.id == widget.selfUid) continue;
+      if (!prev && p.isHandRaised) {
+        anyTransition = true;
+      }
+    }
+    // Удаляем покинувших, чтобы карта не росла бесконтрольно.
+    _lastHandRaisedByUid.removeWhere((id, _) => !seenIds.contains(id));
+
+    if (_suppressFirstHandSync) {
+      _suppressFirstHandSync = false;
+      return;
+    }
+    if (anyTransition && _handRaiseSoundEnabled) {
+      unawaited(MeetingHandRaisePlayer.instance.play());
+    }
+  }
+
+  Future<void> _loadHandRaiseSoundSetting() async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.selfUid)
+          .get();
+      final ns = snap.data()?['notificationSettings'];
+      if (ns is Map) {
+        final v = ns['meetingHandRaiseSoundEnabled'];
+        if (mounted) {
+          setState(() {
+            _handRaiseSoundEnabled = v != false;
+          });
+        }
+      }
+    } catch (_) {
+      // оставляем дефолт true
+    }
+  }
+
   Future<void> _applyForceMuteFlags(MeetingParticipant self) async {
     final webrtc = _webrtc;
     if (webrtc == null) return;
@@ -405,6 +461,7 @@ class _MeetingRoomScreenState extends ConsumerState<MeetingRoomScreen> {
               final fresh = _filterFresh(participants);
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _syncPeersFromParticipants(fresh);
+                _syncHandRaiseSound(fresh);
                 final self = fresh.firstWhere(
                   (p) => p.id == widget.selfUid,
                   orElse: () => MeetingParticipant(

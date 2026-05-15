@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BellRing, RotateCcw } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
+import { RingtonePicker } from "@/components/settings/RingtonePicker";
 
 export default function NotificationSettingsPage() {
   const { user, isLoading } = useAuth();
@@ -97,6 +98,41 @@ export default function NotificationSettingsPage() {
             <Switch
               checked={notificationSettings.showPreview}
               onCheckedChange={(v) => handleUpdate({ showPreview: v })}
+              disabled={notificationSettings.muteAll}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Label className="text-sm font-medium">{t('notifications.messageRingtoneLabel')}</Label>
+              <p className="text-xs text-muted-foreground">{t('notifications.messageRingtoneHint')}</p>
+            </div>
+            <RingtonePicker
+              value={notificationSettings.messageRingtoneId ?? null}
+              onChange={(v) => handleUpdate({ messageRingtoneId: v })}
+              disabled={notificationSettings.muteAll || !notificationSettings.soundEnabled}
+              ariaLabel={t('notifications.messageRingtoneLabel')}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Label className="text-sm font-medium">{t('notifications.callRingtoneLabel')}</Label>
+              <p className="text-xs text-muted-foreground">{t('notifications.callRingtoneHint')}</p>
+            </div>
+            <RingtonePicker
+              value={notificationSettings.callRingtoneId ?? null}
+              onChange={(v) => handleUpdate({ callRingtoneId: v })}
+              disabled={notificationSettings.muteAll || !notificationSettings.soundEnabled}
+              ariaLabel={t('notifications.callRingtoneLabel')}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Label className="text-sm font-medium">{t('notifications.meetingHandRaiseLabel')}</Label>
+              <p className="text-xs text-muted-foreground">{t('notifications.meetingHandRaiseHint')}</p>
+            </div>
+            <Switch
+              checked={notificationSettings.meetingHandRaiseSoundEnabled !== false}
+              onCheckedChange={(v) => handleUpdate({ meetingHandRaiseSoundEnabled: v })}
               disabled={notificationSettings.muteAll}
             />
           </div>

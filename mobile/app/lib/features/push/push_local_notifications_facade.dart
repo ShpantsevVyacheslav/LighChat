@@ -122,11 +122,14 @@ class PushLocalNotificationsFacade {
     return DateTime.now().millisecondsSinceEpoch & 0x7fffffff;
   }
 
-  static Future<void> showFromRemoteMessage(RemoteMessage message) async {
+  static Future<void> showFromRemoteMessage(
+    RemoteMessage message, {
+    bool forceSilent = false,
+  }) async {
     final m = message.data.map((k, v) => MapEntry(k, v?.toString() ?? ''));
     final title = m['title']?.isNotEmpty == true ? m['title']! : 'LighChat';
     final body = m['body'] ?? '';
-    final silent = m['silent'] == '1' || m['silent'] == 'true';
+    final silent = forceSilent || m['silent'] == '1' || m['silent'] == 'true';
     final channelId = silent ? _channelSilent.id : _channelSound.id;
     final conversationId = m['conversationId'] ?? '';
     final senderUid = m['senderUid'] ?? '';

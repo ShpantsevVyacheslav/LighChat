@@ -1354,6 +1354,84 @@ abstract class AppLocalizations {
   /// **'Показывать текст сообщения в уведомлении.'**
   String get notifications_preview_subtitle;
 
+  /// No description provided for @notifications_message_ringtone_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мелодия сообщений'**
+  String get notifications_message_ringtone_label;
+
+  /// No description provided for @notifications_call_ringtone_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мелодия звонков'**
+  String get notifications_call_ringtone_label;
+
+  /// No description provided for @notifications_meeting_hand_raise_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Звук поднятия руки'**
+  String get notifications_meeting_hand_raise_title;
+
+  /// No description provided for @notifications_meeting_hand_raise_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Лёгкий сигнал, когда участник конференции поднимает руку.'**
+  String get notifications_meeting_hand_raise_subtitle;
+
+  /// No description provided for @ringtone_default.
+  ///
+  /// In ru, this message translates to:
+  /// **'По умолчанию'**
+  String get ringtone_default;
+
+  /// No description provided for @ringtone_classic_chime.
+  ///
+  /// In ru, this message translates to:
+  /// **'Классический перезвон'**
+  String get ringtone_classic_chime;
+
+  /// No description provided for @ringtone_gentle_bells.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мягкие колокольчики'**
+  String get ringtone_gentle_bells;
+
+  /// No description provided for @ringtone_marimba_tap.
+  ///
+  /// In ru, this message translates to:
+  /// **'Маримба'**
+  String get ringtone_marimba_tap;
+
+  /// No description provided for @ringtone_soft_pulse.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мягкий пульс'**
+  String get ringtone_soft_pulse;
+
+  /// No description provided for @ringtone_ascending_chord.
+  ///
+  /// In ru, this message translates to:
+  /// **'Восходящий аккорд'**
+  String get ringtone_ascending_chord;
+
+  /// No description provided for @ringtone_preview_play.
+  ///
+  /// In ru, this message translates to:
+  /// **'Прослушать'**
+  String get ringtone_preview_play;
+
+  /// No description provided for @ringtone_picker_messages_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мелодия сообщений'**
+  String get ringtone_picker_messages_title;
+
+  /// No description provided for @ringtone_picker_calls_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мелодия звонков'**
+  String get ringtone_picker_calls_title;
+
   /// No description provided for @notifications_section_quiet_hours.
   ///
   /// In ru, this message translates to:

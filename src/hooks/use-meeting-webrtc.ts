@@ -19,6 +19,7 @@ import {
   summarizeSignalPayload,
 } from '@/lib/meeting-webrtc-logger';
 import { normalizeInboundSignalForSimplePeer } from '@/lib/meeting-signaling-normalize';
+import { HAND_RAISE_SOUND_URL } from '@/lib/ringtone-presets';
 import { watchPeerStats, type PeerConnectionQuality } from '@/lib/webrtc/peer-stats';
 import type { Instance as SimplePeerInstance } from 'simple-peer';
 
@@ -138,6 +139,25 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
 
   const peers = useRef<Record<string, SimplePeerInstance>>({});
   const creatingPeers = useRef<Set<string>>(new Set());
+  const handRaiseSoundEnabledRef = useRef<boolean>(
+    currentUser.notificationSettings?.meetingHandRaiseSoundEnabled !== false,
+  );
+  useEffect(() => {
+    handRaiseSoundEnabledRef.current =
+      currentUser.notificationSettings?.meetingHandRaiseSoundEnabled !== false;
+  }, [currentUser.notificationSettings?.meetingHandRaiseSoundEnabled]);
+
+  const playHandRaisePing = useCallback(() => {
+    if (!handRaiseSoundEnabledRef.current) return;
+    if (typeof window === 'undefined') return;
+    try {
+      const audio = new Audio(HAND_RAISE_SOUND_URL);
+      audio.volume = 0.6;
+      void audio.play().catch(() => {});
+    } catch {
+      // Audio API недоступен — молча игнорируем.
+    }
+  }, []);
   /** Сигналы (SDP/ICE), пришедшие пока simple-peer ещё создаётся — иначе теряются и связь не поднимается. */
   const pendingSignalsByPeerRef = useRef<Record<string, unknown[]>>({});
   const rawStreamRef = useRef<MediaStream | null>(null);
@@ -1164,7 +1184,16 @@ export function useMeetingWebRTC(meeting: Meeting, currentUser: User, initialSet
           if (currentUser.id < remoteId) setupPeer(remoteId, true);
         } else if (change.type === 'modified') {
           mlog.v('participants', `doc modified ${remoteId}`);
-          setParticipants(prev => ({ ...prev, [remoteId]: { ...prev[remoteId], ...change.doc.data() } as ParticipantState }));
+          const newData = change.doc.data();
+          setParticipants(prev => {
+            const prevP = prev[remoteId];
+            const wasRaised = prevP?.isHandRaised === true;
+            const nowRaised = newData.isHandRaised === true;
+            if (!wasRaised && nowRaised) {
+              playHandRaisePing();
+            }
+            return { ...prev, [remoteId]: { ...prevP, ...newData } as ParticipantState };
+          });
         } else if (change.type === 'removed') {
           mlog.info('participants', `doc removed ${remoteId}`);
           setParticipants(prev => { const next = { ...prev }; delete next[remoteId]; return next; });

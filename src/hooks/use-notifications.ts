@@ -8,6 +8,11 @@ import {
   parseConversationIdFromDashboardChatLink,
   shouldSuppressForegroundChatPush,
 } from '@/lib/push-notification-policy';
+import {
+  DEFAULT_MESSAGE_RINGTONE_ID,
+  getRingtonePreset,
+  ringtoneUrl,
+} from '@/lib/ringtone-presets';
 import { useToast } from './use-toast';
 import {
   ensureFcmServiceWorkerRegistered,
@@ -119,6 +124,22 @@ export function useNotifications() {
               }
               if (shouldSuppressForegroundChatPush({ userData, chatPrefs })) {
                 return;
+              }
+              const ns = (userData.notificationSettings ?? {}) as Record<string, unknown>;
+              if (ns.soundEnabled !== false) {
+                const ringtoneId = typeof ns.messageRingtoneId === 'string' && ns.messageRingtoneId
+                  ? ns.messageRingtoneId
+                  : DEFAULT_MESSAGE_RINGTONE_ID;
+                const preset = getRingtonePreset(ringtoneId) ?? getRingtonePreset(DEFAULT_MESSAGE_RINGTONE_ID);
+                if (preset) {
+                  try {
+                    const audio = new Audio(ringtoneUrl(preset));
+                    audio.volume = 0.9;
+                    void audio.play().catch(() => {});
+                  } catch {
+                    // Audio API недоступен или play() rejected — toast всё ещё показываем.
+                  }
+                }
               }
             } catch (e) {
               logger.warn('notifications', 'foreground policy', e);

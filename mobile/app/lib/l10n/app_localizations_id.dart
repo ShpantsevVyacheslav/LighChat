@@ -748,6 +748,46 @@ class AppLocalizationsId extends AppLocalizations {
       'Tampilkan Pesan text in Notifikasi.';
 
   @override
+  String get notifications_message_ringtone_label => 'Nada dering pesan';
+
+  @override
+  String get notifications_call_ringtone_label => 'Nada dering panggilan';
+
+  @override
+  String get notifications_meeting_hand_raise_title => 'Suara angkat tangan';
+
+  @override
+  String get notifications_meeting_hand_raise_subtitle =>
+      'Sinyal lembut saat peserta mengangkat tangan.';
+
+  @override
+  String get ringtone_default => 'Bawaan';
+
+  @override
+  String get ringtone_classic_chime => 'Dentang klasik';
+
+  @override
+  String get ringtone_gentle_bells => 'Lonceng lembut';
+
+  @override
+  String get ringtone_marimba_tap => 'Marimba';
+
+  @override
+  String get ringtone_soft_pulse => 'Denyut lembut';
+
+  @override
+  String get ringtone_ascending_chord => 'Akor naik';
+
+  @override
+  String get ringtone_preview_play => 'Pratinjau';
+
+  @override
+  String get ringtone_picker_messages_title => 'Nada dering pesan';
+
+  @override
+  String get ringtone_picker_calls_title => 'Nada dering panggilan';
+
+  @override
   String get notifications_section_quiet_hours => 'Quiet jam';
 
   @override

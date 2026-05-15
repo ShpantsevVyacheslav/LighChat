@@ -752,6 +752,46 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bildirimlerde mesaj metnini göster.';
 
   @override
+  String get notifications_message_ringtone_label => 'Mesaj zil sesi';
+
+  @override
+  String get notifications_call_ringtone_label => 'Arama zil sesi';
+
+  @override
+  String get notifications_meeting_hand_raise_title => 'El kaldırma sesi';
+
+  @override
+  String get notifications_meeting_hand_raise_subtitle =>
+      'Bir katılımcı el kaldırdığında çalan hafif ses.';
+
+  @override
+  String get ringtone_default => 'Varsayılan';
+
+  @override
+  String get ringtone_classic_chime => 'Klasik çan sesi';
+
+  @override
+  String get ringtone_gentle_bells => 'Yumuşak çanlar';
+
+  @override
+  String get ringtone_marimba_tap => 'Marimba';
+
+  @override
+  String get ringtone_soft_pulse => 'Yumuşak nabız';
+
+  @override
+  String get ringtone_ascending_chord => 'Yükselen akor';
+
+  @override
+  String get ringtone_preview_play => 'Dinle';
+
+  @override
+  String get ringtone_picker_messages_title => 'Mesaj zil sesi';
+
+  @override
+  String get ringtone_picker_calls_title => 'Arama zil sesi';
+
+  @override
   String get notifications_section_quiet_hours => 'Sessiz saatler';
 
   @override
