@@ -29,7 +29,12 @@ export type BuiltinWallpaperSlug =
   | 'autumn-leaves'
   | 'galaxy-nebula'
   | 'rain-bokeh'
-  | 'bamboo-zen';
+  | 'bamboo-zen'
+  | 'arctic-aurora'
+  | 'desert-dunes'
+  | 'city-skyline'
+  | 'neon-grid'
+  | 'lavender-field';
 
 export interface BuiltinWallpaper {
   slug: BuiltinWallpaperSlug;
@@ -190,6 +195,41 @@ export const BUILTIN_WALLPAPERS: readonly BuiltinWallpaper[] = [
     light: '/wallpapers/bamboo-zen-light.webp',
     dark: '/wallpapers/bamboo-zen-dark.webp',
     previewGradient: 'linear-gradient(180deg, #EBF0DC 0%, #C3D7C3 100%)',
+  },
+  {
+    slug: 'arctic-aurora',
+    labelKey: 'arcticAurora',
+    light: '/wallpapers/arctic-aurora-light.webp',
+    dark: '/wallpapers/arctic-aurora-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #D7E6F5 0%, #EBF0F5 100%)',
+  },
+  {
+    slug: 'desert-dunes',
+    labelKey: 'desertDunes',
+    light: '/wallpapers/desert-dunes-light.webp',
+    dark: '/wallpapers/desert-dunes-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #FCC382 0%, #FCDCAF 100%)',
+  },
+  {
+    slug: 'city-skyline',
+    labelKey: 'citySkyline',
+    light: '/wallpapers/city-skyline-light.webp',
+    dark: '/wallpapers/city-skyline-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #F5E1C3 0%, #D7DCEB 100%)',
+  },
+  {
+    slug: 'neon-grid',
+    labelKey: 'neonGrid',
+    light: '/wallpapers/neon-grid-light.webp',
+    dark: '/wallpapers/neon-grid-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #FADCE6 0%, #DCC3EB 100%)',
+  },
+  {
+    slug: 'lavender-field',
+    labelKey: 'lavenderField',
+    light: '/wallpapers/lavender-field-light.webp',
+    dark: '/wallpapers/lavender-field-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #FCD7CD 0%, #DCC8E6 100%)',
   },
 ] as const;
 

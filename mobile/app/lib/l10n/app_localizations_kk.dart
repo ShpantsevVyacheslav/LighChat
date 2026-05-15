@@ -4688,6 +4688,9 @@ class AppLocalizationsKk extends AppLocalizations {
   String get chat_settings_builtin_wallpapers_heading => 'Брендтік тұсқағаздар';
 
   @override
+  String get chat_settings_show_all_wallpapers => 'Барлық обойларды көрсету';
+
+  @override
   String get chat_settings_emoji_effects => 'Эффекты эмодзи';
 
   @override

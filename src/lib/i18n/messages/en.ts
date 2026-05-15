@@ -2287,6 +2287,11 @@ export const messagesEn = {
       galaxyNebula: 'Galaxy Nebula',
       rainBokeh: 'Rain & Bokeh',
       bambooZen: 'Bamboo Grove',
+      arcticAurora: 'Arctic Aurora',
+      desertDunes: 'Desert Dunes',
+      citySkyline: 'City Skyline',
+      neonGrid: 'Neon Grid',
+      lavenderField: 'Lavender Field',
     },
     bubbleRadius: {
       rounded: 'Rounded',

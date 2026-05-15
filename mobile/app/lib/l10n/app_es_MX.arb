@@ -2365,6 +2365,7 @@
   "chat_settings_chat_background": "Fondo del chat",
   "chat_settings_background_hint": "Elige una foto de la galería o personaliza",
   "chat_settings_builtin_wallpapers_heading": "Fondos de marca",
+  "chat_settings_show_all_wallpapers": "Ver todos los fondos",
   "chat_settings_emoji_effects": "Efectos de emoji",
   "chat_settings_emoji_description": "Perfil de animación para explosión de emoji a pantalla completa al tocar en el chat.",
   "chat_settings_emoji_lite": "Lite: carga mínima, más fluido en dispositivos de gama baja.",

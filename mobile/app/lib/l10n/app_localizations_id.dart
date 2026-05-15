@@ -4673,6 +4673,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_settings_builtin_wallpapers_heading => 'Wallpaper bermerek';
 
   @override
+  String get chat_settings_show_all_wallpapers => 'Lihat semua wallpaper';
+
+  @override
   String get chat_settings_emoji_effects => 'Efek emoji';
 
   @override

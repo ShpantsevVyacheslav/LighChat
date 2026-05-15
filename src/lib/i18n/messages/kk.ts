@@ -2272,6 +2272,11 @@ export const messagesKk = {
       galaxyNebula: 'Галактика тұмандығы',
       rainBokeh: 'Жаңбыр және боке',
       bambooZen: 'Бамбук тоғайы',
+      arcticAurora: 'Поляр шұғыласы',
+      desertDunes: 'Шөл құмтөбелері',
+      citySkyline: 'Қала силуэті',
+      neonGrid: 'Неон тор',
+      lavenderField: 'Лаванда даласы',
     },
     bubbleRadius: {
       rounded: 'Дөңгелектенген',

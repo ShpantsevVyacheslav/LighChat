@@ -2289,6 +2289,11 @@ export const messagesRu = {
       galaxyNebula: 'Туманность галактики',
       rainBokeh: 'Дождь и боке',
       bambooZen: 'Бамбуковая роща',
+      arcticAurora: 'Северное сияние',
+      desertDunes: 'Песчаные дюны',
+      citySkyline: 'Силуэт города',
+      neonGrid: 'Неоновая сетка',
+      lavenderField: 'Лавандовое поле',
     },
     bubbleRadius: {
       rounded: 'Скруглённые',

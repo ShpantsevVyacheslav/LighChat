@@ -8212,6 +8212,12 @@ abstract class AppLocalizations {
   /// **'Фирменные обои'**
   String get chat_settings_builtin_wallpapers_heading;
 
+  /// No description provided for @chat_settings_show_all_wallpapers.
+  ///
+  /// In ru, this message translates to:
+  /// **'Показать все'**
+  String get chat_settings_show_all_wallpapers;
+
   /// No description provided for @chat_settings_emoji_effects.
   ///
   /// In ru, this message translates to:

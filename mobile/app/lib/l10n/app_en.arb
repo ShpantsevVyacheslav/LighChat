@@ -2389,6 +2389,7 @@
   "chat_settings_chat_background": "Chat background",
   "chat_settings_background_hint": "Choose a photo from gallery or customize",
   "chat_settings_builtin_wallpapers_heading": "Branded wallpapers",
+  "chat_settings_show_all_wallpapers": "Show all wallpapers",
   "chat_settings_emoji_effects": "Emoji effects",
   "chat_settings_emoji_description": "Animation profile for fullscreen emoji burst on tap in chat.",
   "chat_settings_emoji_lite": "Lite: minimal load, smoothest on low-end devices.",

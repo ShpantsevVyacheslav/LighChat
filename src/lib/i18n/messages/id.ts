@@ -2272,6 +2272,11 @@ export const messagesId = {
       galaxyNebula: 'Nebula Galaksi',
       rainBokeh: 'Hujan & Bokeh',
       bambooZen: 'Hutan Bambu',
+      arcticAurora: 'Aurora Arktik',
+      desertDunes: 'Bukit Pasir',
+      citySkyline: 'Siluet Kota',
+      neonGrid: 'Kisi Neon',
+      lavenderField: 'Ladang Lavender',
     },
     bubbleRadius: {
       rounded: 'Membulat',

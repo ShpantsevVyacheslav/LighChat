@@ -238,6 +238,56 @@ const List<BuiltinWallpaper> kBuiltinWallpapers = <BuiltinWallpaper>[
       colors: [Color(0xFFEBF0DC), Color(0xFFC3D7C3)],
     ),
   ),
+  BuiltinWallpaper(
+    slug: 'arctic-aurora',
+    lightAsset: 'assets/wallpapers/arctic-aurora-light.webp',
+    darkAsset: 'assets/wallpapers/arctic-aurora-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFD7E6F5), Color(0xFFEBF0F5)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'desert-dunes',
+    lightAsset: 'assets/wallpapers/desert-dunes-light.webp',
+    darkAsset: 'assets/wallpapers/desert-dunes-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFCC382), Color(0xFFFCDCAF)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'city-skyline',
+    lightAsset: 'assets/wallpapers/city-skyline-light.webp',
+    darkAsset: 'assets/wallpapers/city-skyline-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFF5E1C3), Color(0xFFD7DCEB)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'neon-grid',
+    lightAsset: 'assets/wallpapers/neon-grid-light.webp',
+    darkAsset: 'assets/wallpapers/neon-grid-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFADCE6), Color(0xFFDCC3EB)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'lavender-field',
+    lightAsset: 'assets/wallpapers/lavender-field-light.webp',
+    darkAsset: 'assets/wallpapers/lavender-field-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFCD7CD), Color(0xFFDCC8E6)],
+    ),
+  ),
 ];
 
 bool isBuiltinWallpaperValue(String? value) =>

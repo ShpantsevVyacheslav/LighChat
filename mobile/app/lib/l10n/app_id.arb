@@ -2365,6 +2365,7 @@
   "chat_settings_chat_background": "Obrolan Latar belakang",
   "chat_settings_background_hint": "Pilih a Foto from Galeri atau customize",
   "chat_settings_builtin_wallpapers_heading": "Wallpaper bermerek",
+  "chat_settings_show_all_wallpapers": "Lihat semua wallpaper",
   "chat_settings_emoji_effects": "Efek emoji",
   "chat_settings_emoji_description": "Animation Profil for fullscreen Emoji burst on tap in Obrolan.",
   "chat_settings_emoji_lite": "Lite: minimal load, smoothest on low-end Perangkat.",

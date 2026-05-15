@@ -2272,6 +2272,11 @@ export const messagesEsMx = {
       galaxyNebula: 'Nebulosa galáctica',
       rainBokeh: 'Lluvia y bokeh',
       bambooZen: 'Bosque de bambú',
+      arcticAurora: 'Aurora boreal',
+      desertDunes: 'Dunas del desierto',
+      citySkyline: 'Silueta urbana',
+      neonGrid: 'Cuadrícula neón',
+      lavenderField: 'Campo de lavanda',
     },
     bubbleRadius: {
       rounded: 'Redondeadas',

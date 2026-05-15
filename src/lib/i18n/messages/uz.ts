@@ -2272,6 +2272,11 @@ export const messagesUz = {
       galaxyNebula: 'Galaktika tumanligi',
       rainBokeh: 'Yomgʻir va bokeh',
       bambooZen: 'Bambuk oʻrmoni',
+      arcticAurora: 'Shimoliy nur',
+      desertDunes: 'Choʻl qumlari',
+      citySkyline: 'Shahar silueti',
+      neonGrid: 'Neon panjara',
+      lavenderField: 'Lavanda dalasi',
     },
     bubbleRadius: {
       rounded: 'Yumaloqlangan',

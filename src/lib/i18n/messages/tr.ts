@@ -2272,6 +2272,11 @@ export const messagesTr = {
       galaxyNebula: 'Galaksi Bulutsusu',
       rainBokeh: 'Yağmur ve Bokeh',
       bambooZen: 'Bambu Korusu',
+      arcticAurora: 'Kuzey Işıkları',
+      desertDunes: 'Kum Tepeleri',
+      citySkyline: 'Şehir Silueti',
+      neonGrid: 'Neon Izgara',
+      lavenderField: 'Lavanta Tarlası',
     },
     bubbleRadius: {
       rounded: 'Yuvarlatılmış',

@@ -2365,6 +2365,11 @@ CONCEPTS = {
     "galaxy-nebula": concept_galaxy_nebula,
     "rain-bokeh": concept_rain_bokeh,
     "bamboo-zen": concept_bamboo_zen,
+    "arctic-aurora": concept_arctic_aurora,
+    "desert-dunes": concept_desert_dunes,
+    "city-skyline": concept_city_skyline,
+    "neon-grid": concept_neon_grid,
+    "lavender-field": concept_lavender_field,
 }
 
 

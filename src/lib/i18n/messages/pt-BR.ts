@@ -2272,6 +2272,11 @@ export const messagesPtBr = {
       galaxyNebula: 'Nebulosa galáctica',
       rainBokeh: 'Chuva e bokeh',
       bambooZen: 'Bambuzal',
+      arcticAurora: 'Aurora boreal',
+      desertDunes: 'Dunas do deserto',
+      citySkyline: 'Silhueta da cidade',
+      neonGrid: 'Grade de néon',
+      lavenderField: 'Campo de lavanda',
     },
     bubbleRadius: {
       rounded: 'Arredondados',

@@ -4707,6 +4707,9 @@ class AppLocalizationsUz extends AppLocalizations {
       'Brendli devor qogʻozlari';
 
   @override
+  String get chat_settings_show_all_wallpapers => 'Barcha oboylarni koʻrsatish';
+
+  @override
   String get chat_settings_emoji_effects => 'Emoji effektlari';
 
   @override

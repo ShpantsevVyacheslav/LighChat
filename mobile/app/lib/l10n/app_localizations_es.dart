@@ -4721,6 +4721,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get chat_settings_builtin_wallpapers_heading => 'Fondos de marca';
 
   @override
+  String get chat_settings_show_all_wallpapers => 'Ver todos los fondos';
+
+  @override
   String get chat_settings_emoji_effects => 'Efectos de emoji';
 
   @override
@@ -13126,6 +13129,9 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get chat_settings_builtin_wallpapers_heading => 'Fondos de marca';
+
+  @override
+  String get chat_settings_show_all_wallpapers => 'Ver todos los fondos';
 
   @override
   String get chat_settings_emoji_effects => 'Efectos de emoji';

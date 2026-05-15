@@ -4690,6 +4690,9 @@ class AppLocalizationsTr extends AppLocalizations {
       'Marka duvar kâğıtları';
 
   @override
+  String get chat_settings_show_all_wallpapers => 'Tüm duvar kâğıtları';
+
+  @override
   String get chat_settings_emoji_effects => 'Emoji efektleri';
 
   @override

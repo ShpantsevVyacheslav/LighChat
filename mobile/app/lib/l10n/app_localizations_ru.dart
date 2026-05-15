@@ -4687,6 +4687,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chat_settings_builtin_wallpapers_heading => 'Фирменные обои';
 
   @override
+  String get chat_settings_show_all_wallpapers => 'Показать все';
+
+  @override
   String get chat_settings_emoji_effects => 'Эффекты эмодзи';
 
   @override

@@ -4659,6 +4659,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chat_settings_builtin_wallpapers_heading => 'Branded wallpapers';
 
   @override
+  String get chat_settings_show_all_wallpapers => 'Show all wallpapers';
+
+  @override
   String get chat_settings_emoji_effects => 'Emoji effects';
 
   @override

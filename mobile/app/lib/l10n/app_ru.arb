@@ -2445,6 +2445,7 @@
   "chat_settings_chat_background": "Фон чата",
   "chat_settings_background_hint": "Выберите фото из галереи или настройте",
   "chat_settings_builtin_wallpapers_heading": "Фирменные обои",
+  "chat_settings_show_all_wallpapers": "Показать все",
   "chat_settings_emoji_effects": "Эффекты эмодзи",
   "chat_settings_emoji_description": "Профиль анимации fullscreen-эмодзи при тапе по одиночному эмодзи в чате.",
   "chat_settings_emoji_lite": "Lite: минимум нагрузки и максимально плавно на слабых устройствах.",
