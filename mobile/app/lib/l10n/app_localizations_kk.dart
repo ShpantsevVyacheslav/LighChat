@@ -1865,6 +1865,9 @@ class AppLocalizationsKk extends AppLocalizations {
   String get ai_status_unknown => 'Apple Intelligence қазір қол жетімді емес.';
 
   @override
+  String get navigator_picker_title => 'Қайда ашу';
+
+  @override
   String get ai_style_friendly => 'Жайлырақ';
 
   @override

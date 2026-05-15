@@ -874,6 +874,7 @@
   "ai_status_device_not_eligible": "Бұл құрылғы Apple Intelligence қолдамайды.",
   "ai_status_unsupported_os": "Apple Intelligence iOS 26 немесе одан жаңасын талап етеді.",
   "ai_status_unknown": "Apple Intelligence қазір қол жетімді емес.",
+  "navigator_picker_title": "Қайда ашу",
   "ai_style_friendly": "Жайлырақ",
   "ai_style_formal": "Ресми",
   "ai_style_shorter": "Қысқарақ",

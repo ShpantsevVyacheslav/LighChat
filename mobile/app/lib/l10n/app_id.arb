@@ -874,6 +874,7 @@
   "ai_status_device_not_eligible": "Perangkat ini tidak mendukung Apple Intelligence.",
   "ai_status_unsupported_os": "Apple Intelligence butuh iOS 26 atau lebih baru.",
   "ai_status_unknown": "Apple Intelligence saat ini tidak tersedia.",
+  "navigator_picker_title": "Buka di",
   "ai_style_friendly": "Lebih ramah",
   "ai_style_formal": "Formal",
   "ai_style_shorter": "Lebih pendek",

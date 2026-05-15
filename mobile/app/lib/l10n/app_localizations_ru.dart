@@ -1868,6 +1868,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get ai_status_unknown => 'Apple Intelligence сейчас недоступен.';
 
   @override
+  String get navigator_picker_title => 'Открыть в';
+
+  @override
   String get ai_style_friendly => 'Дружелюбнее';
 
   @override

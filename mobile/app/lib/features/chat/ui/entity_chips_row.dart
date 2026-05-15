@@ -4,6 +4,8 @@ import 'package:google_mlkit_entity_extraction/google_mlkit_entity_extraction.da
 
 import '../data/chat_haptics.dart';
 import '../data/local_entity_extractor.dart';
+import '../data/user_profile.dart';
+import 'navigator_picker_sheet.dart';
 
 /// Ряд кликабельных «чипов» под сообщением — quick-actions для
 /// распознанных сущностей.
@@ -22,6 +24,7 @@ class EntityChipsRow extends StatefulWidget {
     required this.languageHint,
     required this.isMine,
     this.attachmentLabels = const <String>[],
+    this.knownProfiles = const <UserProfile>[],
   });
 
   final String text;
@@ -32,6 +35,13 @@ class EntityChipsRow extends StatefulWidget {
   /// события календаря, чтобы пользователь видел контекст «к этому событию
   /// прикреплены такие-то файлы».
   final List<String> attachmentLabels;
+
+  /// Известные профили (участники чата + контакты), у которых есть email.
+  /// При long-press на дате ищем в тексте упомянутые имена и подставляем
+  /// их email-ы в Event.invitees (Android) / description (iOS).
+  ///
+  /// Без сетевых запросов — берём из локальных моделей и кэша.
+  final List<UserProfile> knownProfiles;
 
   @override
   State<EntityChipsRow> createState() => _EntityChipsRowState();
@@ -129,10 +139,15 @@ class _EntityChipsRowState extends State<EntityChipsRow> {
 
     final location = _findAddress(_annotations);
 
-    // 2) Участники: emails из аннотаций → в description как list (iOS/Android
-    //    система не позволяет программно добавить invitees, юзер вручную их
-    //    тапнет в нативном UI после открытия события).
-    final attendees = _findEmails(_annotations);
+    // 2) Участники: emails из ML Kit аннотаций + matched-by-name из
+    //    knownProfiles. «давай созвонимся с Аней завтра» → в чате есть
+    //    профиль «Богдашко Алина» с email alina.bogdashko@... → подставляем.
+    //    Android: уходит в Intent.EXTRA_EMAIL (auto-invitees в Google Calendar).
+    //    iOS: попадает в description (EKEventStore не разрешает программно).
+    final attendees = <String>{
+      ..._findEmails(_annotations),
+      ..._matchProfilesByName(widget.text, widget.knownProfiles),
+    }.toList(growable: false);
 
     // 3) Повторение: detect by keyword («каждый день/неделю/месяц/год»,
     //    «daily/weekly/monthly/yearly», «every Monday», «по пятницам»).
@@ -171,6 +186,41 @@ class _EntityChipsRowState extends State<EntityChipsRow> {
     } catch (_) {
       await ChatHaptics.instance.error();
     }
+  }
+
+  /// Ищем в тексте сообщения упоминания участников из [profiles] по имени.
+  /// Возвращаем email-ы тех, чьё имя нашлось хотя бы по одному токену.
+  /// Token = первое слово, второе слово, etc. — чтобы «Аня» матчилось
+  /// с «Анна Иванова» (если первый токен «Анна» начинается с того же
+  /// корня) и «Иванова» матчилось с фамилией.
+  static List<String> _matchProfilesByName(
+    String text,
+    List<UserProfile> profiles,
+  ) {
+    if (profiles.isEmpty) return const [];
+    final lower = text.toLowerCase();
+    // Делим текст на слова (буквы Unicode), чтобы матчить по границе слова.
+    final words = lower
+        .split(RegExp(r'[^\p{L}\p{N}]+', unicode: true))
+        .where((w) => w.length >= 3)
+        .toSet();
+    if (words.isEmpty) return const [];
+    final out = <String>{};
+    for (final p in profiles) {
+      final email = (p.email ?? '').trim();
+      if (email.isEmpty) continue;
+      final tokens = p.name
+          .toLowerCase()
+          .split(RegExp(r'[^\p{L}\p{N}]+', unicode: true))
+          .where((t) => t.length >= 3)
+          .toList();
+      // Полное совпадение хотя бы одного из имён/фамилий — добавляем.
+      // Игнорируем «короткие хвосты» (≤2 символа) чтобы избежать ложных
+      // срабатываний на «и», «ом» и т.п.
+      final matched = tokens.any((t) => words.contains(t));
+      if (matched) out.add(email);
+    }
+    return out.toList(growable: false);
   }
 
   /// Извлекает email-адреса из аннотаций ML Kit.
@@ -401,6 +451,17 @@ class _EntityChip extends StatelessWidget {
       child: InkWell(
         onTap: () async {
           await ChatHaptics.instance.tick();
+          // Адрес → picker навигатора (Apple Maps / Google Maps / Яндекс
+          // Карты/Навигатор / 2ГИС / Waze). Если установлен только один —
+          // открывается сразу без шита.
+          if (data.entity.type == EntityType.address) {
+            if (!context.mounted) return;
+            await NavigatorPickerSheet.show(
+              context: context,
+              address: data.annotation.text,
+            );
+            return;
+          }
           await LocalEntityExtractor.instance.launchEntity(data.annotation);
         },
         onLongPress: onLongPressDate,

@@ -2265,6 +2265,7 @@ export const messagesEsMx = {
       mountainsMist: 'Montañas brumosas',
       pineDeer: 'Ciervo del bosque',
       fujiWave: 'Fuji y la ola',
+      fujiNatural: 'Monte Fuji al amanecer',
       sakuraBranch: 'Rama de sakura',
       mistyForest: 'Bosque brumoso',
       autumnLeaves: 'Hojas de otoño',

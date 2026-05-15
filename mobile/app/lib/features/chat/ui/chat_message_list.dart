@@ -1592,6 +1592,12 @@ class _ChatMessageBubble extends StatelessWidget {
                 for (final a in message.attachments)
                   if (a.name.trim().isNotEmpty) a.name.trim(),
               ],
+              knownProfiles: [
+                for (final p in (profileMap ?? const {}).values)
+                  if ((p.email ?? '').trim().isNotEmpty &&
+                      p.name.trim().isNotEmpty)
+                    p,
+              ],
             ),
             if (linkPreviewUrl != null) ...[
               const SizedBox(height: 10),

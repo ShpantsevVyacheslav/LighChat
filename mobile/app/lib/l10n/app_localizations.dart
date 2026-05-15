@@ -3316,6 +3316,12 @@ abstract class AppLocalizations {
   /// **'Apple Intelligence сейчас недоступен.'**
   String get ai_status_unknown;
 
+  /// No description provided for @navigator_picker_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть в'**
+  String get navigator_picker_title;
+
   /// No description provided for @ai_style_friendly.
   ///
   /// In ru, this message translates to:

@@ -1881,6 +1881,9 @@ class AppLocalizationsEs extends AppLocalizations {
       'Apple Intelligence no está disponible ahora.';
 
   @override
+  String get navigator_picker_title => 'Abrir en';
+
+  @override
   String get ai_style_friendly => 'Más amigable';
 
   @override
@@ -10283,6 +10286,9 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   @override
   String get ai_status_unknown =>
       'Apple Intelligence no está disponible ahora.';
+
+  @override
+  String get navigator_picker_title => 'Abrir en';
 
   @override
   String get ai_style_friendly => 'Más amigable';

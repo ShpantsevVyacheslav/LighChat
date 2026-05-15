@@ -4,6 +4,14 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>comgooglemaps</string>
+		<string>yandexmaps</string>
+		<string>yandexnavi</string>
+		<string>dgis</string>
+		<string>waze</string>
+	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>LighChat использует локальную сеть для установки прямых peer-to-peer соединений при голосовых и видеозвонках, что улучшает качество связи и снижает задержку.</string>
 	<key>CFBundleDevelopmentRegion</key>

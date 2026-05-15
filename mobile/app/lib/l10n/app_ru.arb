@@ -894,6 +894,7 @@
   "ai_status_device_not_eligible": "Это устройство не поддерживает Apple Intelligence.",
   "ai_status_unsupported_os": "Apple Intelligence требует iOS 26 или новее.",
   "ai_status_unknown": "Apple Intelligence сейчас недоступен.",
+  "navigator_picker_title": "Открыть в",
   "ai_style_friendly": "Дружелюбнее",
   "ai_style_formal": "Формально",
   "ai_style_shorter": "Короче",

@@ -1866,6 +1866,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get ai_status_unknown => 'Apple Intelligence şu anda kullanılamıyor.';
 
   @override
+  String get navigator_picker_title => 'Şurada aç';
+
+  @override
   String get ai_style_friendly => 'Daha samimi';
 
   @override

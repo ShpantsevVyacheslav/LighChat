@@ -169,6 +169,16 @@ const List<BuiltinWallpaper> kBuiltinWallpapers = <BuiltinWallpaper>[
     ),
   ),
   BuiltinWallpaper(
+    slug: 'fuji-natural',
+    lightAsset: 'assets/wallpapers/fuji-natural-light.webp',
+    darkAsset: 'assets/wallpapers/fuji-natural-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFCD7C3), Color(0xFFDCE8F0)],
+    ),
+  ),
+  BuiltinWallpaper(
     slug: 'sakura-branch',
     lightAsset: 'assets/wallpapers/sakura-branch-light.webp',
     darkAsset: 'assets/wallpapers/sakura-branch-dark.webp',

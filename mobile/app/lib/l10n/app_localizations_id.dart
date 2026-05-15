@@ -1861,6 +1861,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get ai_status_unknown => 'Apple Intelligence saat ini tidak tersedia.';
 
   @override
+  String get navigator_picker_title => 'Buka di';
+
+  @override
   String get ai_style_friendly => 'Lebih ramah';
 
   @override

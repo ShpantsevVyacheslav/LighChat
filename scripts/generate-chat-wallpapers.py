@@ -1415,53 +1415,287 @@ def concept_pine_deer(theme):
 
 
 def concept_fuji_wave(theme):
-    """Хокусай-style: Mt. Fuji вдалеке + бирюзовая волна на переднем плане.
+    """Реалистичная Фудзияма + ветка сакуры на переднем плане.
 
-    Цвет волны намеренно контрастен Фудзи (морской бирюзовый vs серо-синяя
-    гора), чтобы не сливались. Волна в нижней трети, Фудзи в верхней
-    половине.
+    Композиция отсылает к классической фотографии Фудзи-сан: большая
+    заснеженная гора по центру, тёмный лес у подножия, небо в дневной/
+    закатной палитре, и крупная цветущая ветвь сакуры в верхнем правом
+    углу как обрамление сцены.
     """
     if theme == "light":
-        bg = vertical_gradient((W, H), (250, 232, 200), (218, 232, 244))
-        sky_color = (255, 190, 120)
-        fuji_body = (95, 110, 145)
-        fuji_snow = (248, 248, 252)
-        # Бирюзово-морской — отличается от серо-синей Фудзи
-        wave_deep = (38, 130, 170)
-        wave_foam = (248, 252, 255)
-        wave_spray = (220, 240, 250)
+        bg = vertical_gradient((W, H), (210, 230, 240), (235, 240, 232))
+        fuji_body = (155, 165, 185)
+        fuji_shadow = (110, 122, 145)
+        fuji_snow = (252, 252, 254)
+        fuji_snow_dim = (215, 222, 235)
+        fuji_erosion = (90, 100, 130)
+        forest_back = (95, 120, 95)
+        forest_front = (40, 65, 50)
+        cloud_color = (255, 255, 255)
+        sakura_branch = (95, 50, 40)
+        sakura_blossom = (255, 175, 200)
+        sakura_dark = (220, 130, 165)
     else:
-        bg = vertical_gradient((W, H), (14, 24, 46), (24, 38, 60))
-        sky_color = (255, 200, 130)
-        fuji_body = (50, 65, 100)
-        fuji_snow = (210, 220, 240)
-        wave_deep = (30, 105, 165)
-        wave_foam = (200, 230, 245)
-        wave_spray = (170, 210, 235)
-    sun = radial_glow((W, H), (int(W * 0.62), int(H * 0.32)), int(H * 0.16),
-                      sky_color, alpha=210)
-    bg.paste(sun, (0, 0), sun)
-    # Фудзи — повыше, поменьше, чтобы не залезала на волну
-    fuji_size = (int(W * 0.50), int(H * 0.30))
-    fuji_layer = draw_fuji(fuji_size, snow=fuji_snow, body=fuji_body,
-                           trim=(40, 55, 90))
+        bg = vertical_gradient((W, H), (12, 22, 42), (22, 30, 50))
+        fuji_body = (60, 75, 110)
+        fuji_shadow = (32, 42, 70)
+        fuji_snow = (215, 225, 245)
+        fuji_snow_dim = (155, 170, 195)
+        fuji_erosion = (15, 25, 50)
+        forest_back = (28, 42, 38)
+        forest_front = (10, 18, 22)
+        cloud_color = (140, 160, 195)
+        sakura_branch = (40, 25, 30)
+        sakura_blossom = (235, 150, 185)
+        sakura_dark = (185, 100, 145)
+    # Тонкая дымка вокруг подножия — как утренний туман на референсе
+    haze = radial_glow((W, H), (int(W * 0.50), int(H * 0.55)), int(W * 0.55),
+                       cloud_color, alpha=110)
+    bg.paste(haze, (0, 0), haze)
+    # Сама Фудзи — крупная, занимает верх 60% высоты, 90% ширины
+    fuji_size = (int(W * 0.95), int(H * 0.65))
+    fuji_layer = draw_fuji_natural(fuji_size, body=fuji_body,
+                                    shadow=fuji_shadow, snow=fuji_snow,
+                                    snow_dim=fuji_snow_dim,
+                                    erosion=fuji_erosion)
     bg.paste(fuji_layer,
-             (int(W * 0.50 - fuji_size[0] / 2), int(H * 0.20)),
+             (int(W * 0.50 - fuji_size[0] / 2), int(H * 0.10)),
              fuji_layer)
-    # Дальние полосы тумана между Фудзи и горизонтом
-    for y_frac, alpha in [(0.42, 100), (0.54, 70)]:
-        mist = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        md = ImageDraw.Draw(mist)
-        mc = (255, 255, 255) if theme == "light" else (90, 110, 140)
-        md.rectangle([0, int(H * y_frac), W, int(H * (y_frac + 0.025))],
-                     fill=mc + (alpha,))
-        mist = mist.filter(ImageFilter.GaussianBlur(radius=30))
-        bg.paste(mist, (0, 0), mist)
-    # Большая волна на переднем плане
-    wave = draw_great_wave((W, H), deep=wave_deep, foam=wave_foam,
-                           spray=wave_spray)
-    bg.paste(wave, (0, 0), wave)
+    # Лес у подножия — два яруса силуэтов
+    rng = random.Random(404)
+    pine_back = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    pbd = ImageDraw.Draw(pine_back)
+    for _ in range(22):
+        x = rng.randint(0, W)
+        y = int(H * 0.66) + rng.randint(-15, 15)
+        sz = rng.randint(int(W * 0.035), int(W * 0.060))
+        draw_pine(pbd, x, y, sz * 2, forest_back, alpha=215, layers=4)
+    bg.paste(pine_back, (0, 0), pine_back)
+    pine_front = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    pfd = ImageDraw.Draw(pine_front)
+    for x_frac in (0.02, 0.10, 0.18, 0.26, 0.36, 0.45, 0.55, 0.65, 0.75,
+                    0.83, 0.92, 0.98):
+        x = int(W * x_frac) + rng.randint(-12, 12)
+        y = int(H * 0.78) + rng.randint(-12, 12)
+        sz = rng.randint(int(W * 0.07), int(W * 0.12))
+        draw_pine(pfd, x, y, sz * 2, forest_front, alpha=255, layers=5)
+    bg.paste(pine_front, (0, 0), pine_front)
+    # Тёмная "земля" в самом низу — лес уходит за нижний край
+    ground = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(ground)
+    gd.rectangle([0, int(H * 0.86), W, H], fill=forest_front + (255,))
+    bg.paste(ground, (0, 0), ground)
+    # Большая ветвь сакуры — отзеркаленная draw_sakura_branch (исходит
+    # из правого верхнего угла, склоняется к центру)
+    sakura_layer = draw_sakura_branch((W, H), branch=sakura_branch,
+                                       blossom=sakura_blossom,
+                                       petal_dark=sakura_dark)
+    sakura_layer = sakura_layer.transpose(Image.FLIP_LEFT_RIGHT)
+    # Отрегулируем непрозрачность — чтобы ветвь не «съедала» Фудзи слишком
+    rmask = sakura_layer.split()[-1].point(lambda v: int(v * 0.92))
+    sakura_layer.putalpha(rmask)
+    bg.paste(sakura_layer, (0, 0), sakura_layer)
     return bg.convert("RGB")
+
+
+def draw_fuji_natural(size, body=(95, 110, 145), shadow=(60, 75, 110),
+                       snow=(248, 248, 252), snow_dim=(210, 220, 235),
+                       erosion=(50, 60, 90)):
+    """Натуральная Фудзияма: вогнутые склоны + плоская вершина (кратер) +
+    непрерывная снежная шапка с эрозийными «языками» по склонам.
+
+    Силуэт построен так, чтобы повторить характерный профиль реальной
+    Фудзи-сан: широкое основание, плавно крутеющие к вершине склоны
+    (вогнутая кривая), и плоский верх — кальдера. Снег покрывает
+    верхнюю треть как единая шапка, без видимого «шва» по центру.
+    """
+    w, h = size
+    layer = Image.new("RGBA", size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    # Силуэт Фудзи — вогнутый конус с широким основанием и плоской вершиной.
+    # Точки расставлены так, чтобы средняя часть склонов «выгибалась» вниз
+    # (как у настоящего вулканического конуса), а не была прямой линией.
+    body_pts = [
+        (int(w * -0.02), h),                     # левая база (за край холста)
+        (int(w * 0.04), int(h * 0.95)),          # подножие лево (пологое)
+        (int(w * 0.12), int(h * 0.86)),          # подъём начинается
+        (int(w * 0.22), int(h * 0.72)),          # склон лево-низ
+        (int(w * 0.30), int(h * 0.58)),          # склон лево-середина
+        (int(w * 0.36), int(h * 0.46)),          # склон лево-верх (выпрямление)
+        (int(w * 0.41), int(h * 0.34)),          # подход к вершине лево
+        (int(w * 0.44), int(h * 0.24)),          # последний крутой участок
+        (int(w * 0.46), int(h * 0.18)),          # вершина лево (плоская)
+        (int(w * 0.54), int(h * 0.18)),          # вершина право (плоская)
+        (int(w * 0.56), int(h * 0.24)),          # последний крутой участок
+        (int(w * 0.59), int(h * 0.34)),          # подход к вершине право
+        (int(w * 0.64), int(h * 0.46)),          # склон право-верх
+        (int(w * 0.70), int(h * 0.58)),          # склон право-середина
+        (int(w * 0.78), int(h * 0.72)),          # склон право-низ
+        (int(w * 0.88), int(h * 0.86)),          # подножие право
+        (int(w * 0.96), int(h * 0.95)),          # пологое
+        (int(w * 1.02), h),                      # правая база (за край холста)
+    ]
+    d.polygon(body_pts, fill=body + (255,))
+    # Снежная шапка — широкая «чаша», следующая за расширяющимся
+    # профилем горы; покрывает верхнюю треть. Многоточечный полигон
+    # повторяет body_pts на верхнем участке, чтобы снег ровно лежал
+    # на склонах без «башни».
+    snow_cap = [
+        (int(w * 0.46), int(h * 0.18)),    # верх лево
+        (int(w * 0.54), int(h * 0.18)),    # верх право
+        (int(w * 0.56), int(h * 0.24)),
+        (int(w * 0.59), int(h * 0.34)),
+        (int(w * 0.625), int(h * 0.42)),   # низ право
+        (int(w * 0.375), int(h * 0.42)),   # низ лево
+        (int(w * 0.41), int(h * 0.34)),
+        (int(w * 0.44), int(h * 0.24)),
+    ]
+    d.polygon(snow_cap, fill=snow + (255,))
+    # Языки снега — спускаются ниже основной шапки по бороздам эрозии
+    snow_tongues = [
+        # (top_x_left, top_x_right, top_y, tip_x, tip_y)
+        (0.555, 0.620, 0.41, 0.585, 0.55),   # правый главный
+        (0.490, 0.555, 0.41, 0.520, 0.50),   # правый внутренний
+        (0.605, 0.640, 0.41, 0.640, 0.50),   # правый внешний
+        (0.380, 0.445, 0.41, 0.415, 0.55),   # левый главный
+        (0.445, 0.510, 0.41, 0.480, 0.50),   # левый внутренний
+        (0.360, 0.395, 0.41, 0.360, 0.50),   # левый внешний
+    ]
+    for x_l, x_r, y_top, x_tip, y_tip in snow_tongues:
+        d.polygon([
+            (int(w * x_l), int(h * y_top)),
+            (int(w * x_r), int(h * y_top)),
+            (int(w * x_tip), int(h * y_tip)),
+        ], fill=snow + (255,))
+    # Лёгкая тень на правой стороне снега для объёма (мягкая, без линии)
+    snow_shadow = Image.new("RGBA", size, (0, 0, 0, 0))
+    ssd = ImageDraw.Draw(snow_shadow)
+    ssd.polygon([
+        (int(w * 0.50), int(h * 0.18)),
+        (int(w * 0.54), int(h * 0.18)),
+        (int(w * 0.59), int(h * 0.32)),
+        (int(w * 0.50), int(h * 0.32)),
+    ], fill=snow_dim + (60,))
+    snow_shadow = snow_shadow.filter(ImageFilter.GaussianBlur(radius=20))
+    layer = Image.alpha_composite(layer, snow_shadow)
+    d = ImageDraw.Draw(layer)
+    # Эрозийные борозды на тёмной части склона (ниже снега)
+    erosion_w = max(2, int(w * 0.003))
+    for top_x, top_y, bot_x, bot_y in [
+        # Правые
+        (0.59, 0.42, 0.72, 0.65),
+        (0.61, 0.45, 0.74, 0.65),
+        (0.63, 0.48, 0.76, 0.68),
+        (0.65, 0.52, 0.79, 0.72),
+        (0.68, 0.58, 0.83, 0.78),
+        # Левые (зеркально)
+        (0.41, 0.42, 0.28, 0.65),
+        (0.39, 0.45, 0.26, 0.65),
+        (0.37, 0.48, 0.24, 0.68),
+        (0.35, 0.52, 0.21, 0.72),
+        (0.32, 0.58, 0.17, 0.78),
+    ]:
+        d.line([(int(w * top_x), int(h * top_y)),
+                (int(w * bot_x), int(h * bot_y))],
+               fill=erosion + (110,), width=erosion_w)
+    return layer
+
+
+def concept_fuji_natural(theme):
+    """Натуральная Фудзияма: реалистичная гора + озеро/туман + мини-сосны.
+
+    Без стилизованной волны. Рассветное небо, мягкое солнце, отражение
+    Фудзи в озере на нижней четверти, тонкий туман на горизонте, мелкие
+    силуэты сосен по бокам.
+    """
+    if theme == "light":
+        bg = vertical_gradient((W, H), (252, 215, 195), (220, 232, 244))
+        sun_color = (255, 195, 130)
+        fuji_body = (105, 120, 155)
+        fuji_shadow = (70, 85, 120)
+        fuji_snow = (250, 250, 254)
+        fuji_snow_dim = (215, 222, 238)
+        fuji_erosion = (55, 65, 95)
+        lake = (155, 180, 205)
+        lake_reflect = (130, 155, 190)
+        pine_color = (45, 65, 60)
+    else:
+        bg = vertical_gradient((W, H), (8, 14, 30), (24, 30, 56))
+        sun_color = (240, 215, 250)  # лунный
+        fuji_body = (52, 65, 100)
+        fuji_shadow = (28, 38, 65)
+        fuji_snow = (200, 215, 240)
+        fuji_snow_dim = (140, 155, 185)
+        fuji_erosion = (12, 20, 42)
+        lake = (12, 22, 50)
+        lake_reflect = (28, 40, 70)
+        pine_color = (8, 16, 30)
+    # Солнце/луна слева от пика
+    sun = radial_glow((W, H), (int(W * 0.32), int(H * 0.22)), int(H * 0.13),
+                      sun_color, alpha=200)
+    bg.paste(sun, (0, 0), sun)
+    if theme == "dark":
+        bg.paste(starfield((W, H), density=220, seed=66), (0, 0),
+                 starfield((W, H), density=220, seed=66))
+    # Дальние холмы за Фудзи
+    hills_back = mountain_layer(
+        (W, H), 0.62,
+        [(0.0, 0.04), (0.15, 0.05), (0.30, 0.03), (0.45, 0.06),
+         (0.55, 0.05), (0.70, 0.04), (0.85, 0.06), (1.0, 0.04)],
+        (170, 185, 210) if theme == "light" else (45, 55, 90),
+        alpha=200, seed=2,
+    )
+    bg.paste(hills_back, (0, 0), hills_back)
+    # Горизонт — тонкая полоса тумана прямо под Фудзи
+    mist = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    md = ImageDraw.Draw(mist)
+    mc = (255, 255, 255) if theme == "light" else (90, 110, 150)
+    md.rectangle([0, int(H * 0.66), W, int(H * 0.71)], fill=mc + (100,))
+    mist = mist.filter(ImageFilter.GaussianBlur(radius=35))
+    bg.paste(mist, (0, 0), mist)
+    # Сама Фудзи — компактная по центру, занимает 70% ширины и 56% высоты
+    fuji_size = (int(W * 0.85), int(H * 0.58))
+    fuji_layer = draw_fuji_natural(fuji_size, body=fuji_body, shadow=fuji_shadow,
+                                    snow=fuji_snow, snow_dim=fuji_snow_dim,
+                                    erosion=fuji_erosion)
+    bg.paste(fuji_layer,
+             (int(W * 0.50 - fuji_size[0] / 2), int(H * 0.16)),
+             fuji_layer)
+    # Озеро (нижняя четверть)
+    lake_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ld = ImageDraw.Draw(lake_layer)
+    ld.rectangle([0, int(H * 0.78), W, H], fill=lake + (255,))
+    bg.paste(lake_layer, (0, 0), lake_layer)
+    # Отражение Фудзи в озере — перевёрнутая полу-прозрачная копия
+    fuji_reflect = fuji_layer.transpose(Image.FLIP_TOP_BOTTOM)
+    # Уменьшим высоту отражения
+    rh = int(fuji_size[1] * 0.4)
+    fuji_reflect = fuji_reflect.resize((fuji_size[0], rh),
+                                        resample=Image.BICUBIC)
+    # Применим прозрачность
+    rmask = fuji_reflect.split()[-1].point(lambda v: int(v * 0.45))
+    fuji_reflect.putalpha(rmask)
+    bg.paste(fuji_reflect,
+             (int(W * 0.50 - fuji_size[0] / 2), int(H * 0.78)),
+             fuji_reflect)
+    # Мягкая горизонтальная "рябь" поверх отражения
+    for y_frac in (0.82, 0.86, 0.90, 0.94, 0.98):
+        ripple = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        rd = ImageDraw.Draw(ripple)
+        rd.line([(0, int(H * y_frac)), (W, int(H * y_frac))],
+                fill=lake_reflect + (90,), width=2)
+        bg.paste(ripple, (0, 0), ripple)
+    # Силуэты сосен по бокам у воды
+    pine_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    pld = ImageDraw.Draw(pine_layer)
+    for x_frac in (0.04, 0.10, 0.92, 0.98):
+        x = int(W * x_frac)
+        y = int(H * 0.78)
+        sz = int(W * 0.06)
+        draw_pine(pld, x, y, sz * 2, pine_color, alpha=255, layers=4)
+    bg.paste(pine_layer, (0, 0), pine_layer)
+    return bg.convert("RGB")
+
 
 
 def concept_sakura_branch(theme):
@@ -1804,6 +2038,311 @@ def concept_bamboo_zen(theme):
     return bg.convert("RGB")
 
 
+# ---------------------------------------------------------------------------
+# Mood concepts (extra set 3)
+# ---------------------------------------------------------------------------
+
+
+def concept_arctic_aurora(theme):
+    """Северное сияние над снежной равниной + звёзды."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (215, 230, 245), (235, 240, 245))
+        snow_color = (240, 245, 250)
+        snow_shadow = (200, 215, 232)
+        aurora_palette = [(140, 220, 200), (170, 200, 240), (210, 180, 230)]
+        star_color = (90, 110, 150)
+        density = 80
+    else:
+        bg = vertical_gradient((W, H), (4, 8, 22), (10, 18, 38))
+        snow_color = (210, 225, 245)
+        snow_shadow = (90, 110, 140)
+        aurora_palette = [(80, 230, 170), (110, 170, 240), (200, 130, 230)]
+        star_color = (255, 255, 255)
+        density = 380
+    bg.paste(starfield((W, H), density=density, color=star_color, seed=44),
+             (0, 0),
+             starfield((W, H), density=density, color=star_color, seed=44))
+    # Полосы сияния — диагональные мягкие "ленты" разных цветов
+    bg.paste(aurora_bands((W, H), aurora_palette), (0, 0),
+             aurora_bands((W, H), aurora_palette))
+    # Снежная равнина — заснеженные холмы с тенями
+    snow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(snow)
+    sd.polygon([(0, int(H * 0.78)),
+                (int(W * 0.25), int(H * 0.72)),
+                (int(W * 0.55), int(H * 0.76)),
+                (int(W * 0.85), int(H * 0.70)),
+                (W, int(H * 0.78)),
+                (W, H), (0, H)], fill=snow_color + (255,))
+    # Тени складок снега
+    for x_frac, y_frac, w_frac, h_frac in [
+        (0.10, 0.84, 0.20, 0.04),
+        (0.35, 0.82, 0.25, 0.05),
+        (0.60, 0.86, 0.18, 0.04),
+        (0.78, 0.82, 0.22, 0.05),
+    ]:
+        sd.ellipse([int(W * x_frac), int(H * y_frac),
+                    int(W * (x_frac + w_frac)),
+                    int(H * (y_frac + h_frac))],
+                   fill=snow_shadow + (180,))
+    bg.paste(snow, (0, 0), snow)
+    return bg.convert("RGB")
+
+
+def concept_desert_dunes(theme):
+    """Песчаные дюны под закатным или ночным небом."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (252, 195, 130), (252, 220, 175))
+        sun_color = (255, 235, 175)
+        dune_palette = [
+            (240, 195, 140),
+            (220, 165, 110),
+            (190, 135, 85),
+            (155, 100, 65),
+        ]
+    else:
+        bg = vertical_gradient((W, H), (12, 18, 38), (32, 24, 50))
+        sun_color = (240, 215, 255)
+        dune_palette = [
+            (50, 38, 60),
+            (35, 25, 50),
+            (20, 14, 36),
+            (10, 6, 22),
+        ]
+    sun = radial_glow((W, H), (int(W * 0.50), int(H * 0.42)), int(H * 0.18),
+                      sun_color, alpha=210)
+    bg.paste(sun, (0, 0), sun)
+    if theme == "dark":
+        bg.paste(starfield((W, H), density=180, seed=22), (0, 0),
+                 starfield((W, H), density=180, seed=22))
+    # Дюны — несколько изогнутых полигонов с разной высотой и цветом
+    rng = random.Random(7)
+    for i, (base_y, color) in enumerate([
+        (0.55, dune_palette[0]),
+        (0.65, dune_palette[1]),
+        (0.78, dune_palette[2]),
+        (0.92, dune_palette[3]),
+    ]):
+        layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        ld = ImageDraw.Draw(layer)
+        # Извилистая верхняя кромка дюны
+        pts = [(0, H), (0, int(H * base_y))]
+        x = 0
+        while x <= W:
+            x += rng.randint(80, 180)
+            offset = rng.uniform(-0.04, 0.04)
+            pts.append((x, int(H * (base_y + offset))))
+        pts.extend([(W, int(H * base_y)), (W, H)])
+        ld.polygon(pts, fill=color + (255,))
+        bg.paste(layer, (0, 0), layer)
+    return bg.convert("RGB")
+
+
+def concept_city_skyline(theme):
+    """Силуэт ночного города — здания с окнами-огнями + луна."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (245, 225, 195), (215, 220, 235))
+        moon_color = (255, 235, 200)
+        building_back = (140, 145, 165)
+        building_front = (75, 80, 100)
+        window_color = (255, 215, 130)
+    else:
+        bg = vertical_gradient((W, H), (10, 14, 32), (22, 22, 50))
+        moon_color = (240, 235, 255)
+        building_back = (28, 32, 56)
+        building_front = (10, 14, 28)
+        window_color = (255, 200, 110)
+    moon = radial_glow((W, H), (int(W * 0.78), int(H * 0.20)), int(H * 0.10),
+                       moon_color, alpha=230)
+    bg.paste(moon, (0, 0), moon)
+    if theme == "dark":
+        bg.paste(starfield((W, H), density=160, seed=99), (0, 0),
+                 starfield((W, H), density=160, seed=99))
+    # Дальний план зданий — ниже, бледнее
+    rng = random.Random(2)
+    back_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    bd = ImageDraw.Draw(back_layer)
+    x = 0
+    while x < W:
+        bw = rng.randint(int(W * 0.05), int(W * 0.10))
+        bh = rng.randint(int(H * 0.10), int(H * 0.22))
+        bd.rectangle([x, int(H * 0.70) - bh, x + bw, int(H * 0.70)],
+                     fill=building_back + (220,))
+        x += bw + rng.randint(-4, 8)
+    bg.paste(back_layer, (0, 0), back_layer)
+    # Передний план — выше, темнее, с окнами
+    front_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    fd = ImageDraw.Draw(front_layer)
+    x = 0
+    while x < W:
+        bw = rng.randint(int(W * 0.07), int(W * 0.16))
+        bh = rng.randint(int(H * 0.18), int(H * 0.40))
+        top_y = int(H * 0.90) - bh
+        fd.rectangle([x, top_y, x + bw, int(H * 0.95)],
+                     fill=building_front + (255,))
+        # Окна — сетка маленьких квадратиков
+        win_size = max(4, int(W * 0.008))
+        win_gap = max(8, int(W * 0.018))
+        wy = top_y + win_gap
+        while wy < int(H * 0.90):
+            wx = x + win_gap
+            while wx + win_size < x + bw:
+                if rng.random() > 0.35:
+                    a = rng.randint(160, 240)
+                    fd.rectangle([wx, wy, wx + win_size, wy + win_size],
+                                 fill=window_color + (a,))
+                wx += win_gap
+            wy += win_gap
+        x += bw + rng.randint(-2, 6)
+    bg.paste(front_layer, (0, 0), front_layer)
+    # Земля
+    ground = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(ground)
+    gd.rectangle([0, int(H * 0.93), W, H], fill=building_front + (255,))
+    bg.paste(ground, (0, 0), ground)
+    return bg.convert("RGB")
+
+
+def concept_neon_grid(theme):
+    """Synthwave-style: фиолетово-розовый горизонт с неоновой сеткой
+    + солнце с горизонтальными линиями."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (250, 220, 230), (220, 195, 235))
+        sun_palette = [(255, 130, 180), (255, 195, 165)]
+        grid_color = (220, 110, 180)
+        grid_alpha = 130
+    else:
+        bg = vertical_gradient((W, H), (16, 4, 36), (8, 6, 26))
+        sun_palette = [(255, 100, 170), (255, 200, 120)]
+        grid_color = (255, 90, 200)
+        grid_alpha = 200
+    # Двуцветное «солнце»: верхняя половина одного цвета, нижняя — другого
+    sun_cx = int(W * 0.50)
+    sun_cy = int(H * 0.50)
+    sun_r = int(H * 0.18)
+    # Halo
+    halo = radial_glow((W, H), (sun_cx, sun_cy), int(sun_r * 1.5),
+                       sun_palette[0], alpha=210)
+    bg.paste(halo, (0, 0), halo)
+    sun_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(sun_layer)
+    # Верхняя половина круга — pinky
+    sd.chord([sun_cx - sun_r, sun_cy - sun_r,
+              sun_cx + sun_r, sun_cy + sun_r],
+             start=180, end=360, fill=sun_palette[0] + (255,))
+    # Нижняя — orange
+    sd.chord([sun_cx - sun_r, sun_cy - sun_r,
+              sun_cx + sun_r, sun_cy + sun_r],
+             start=0, end=180, fill=sun_palette[1] + (255,))
+    # Горизонтальные «полосы» в нижней половине солнца — эффект ретро
+    band_count = 8
+    for i in range(band_count):
+        y = sun_cy + int(i * sun_r / band_count) + 4
+        if y > sun_cy + sun_r:
+            break
+        thickness = max(2, sun_r // 30)
+        sd.rectangle([sun_cx - sun_r, y, sun_cx + sun_r, y + thickness],
+                     fill=bg.getpixel((sun_cx, y))[:3] + (255,))
+    bg.paste(sun_layer, (0, 0), sun_layer)
+    # Сетка перспективы — горизонтальные линии и сходящиеся вертикальные
+    grid = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(grid)
+    horizon = int(H * 0.62)
+    # Горизонтальные линии — становятся плотнее ближе к камере
+    for k in range(1, 16):
+        # Параметр t от 0 (горизонт) до 1 (низ)
+        t = (k / 15) ** 1.6
+        y = horizon + int((H - horizon) * t)
+        gd.line([(0, y), (W, y)],
+                fill=grid_color + (grid_alpha,),
+                width=max(2, int(H * 0.0025)))
+    # Вертикальные линии — сходятся к центру горизонта
+    vp_x = W // 2
+    for x_frac in [-1.0, -0.7, -0.45, -0.25, -0.1, 0.0, 0.1, 0.25, 0.45,
+                    0.7, 1.0]:
+        bx = int(W * (0.5 + x_frac))
+        gd.line([(bx, H), (vp_x, horizon)],
+                fill=grid_color + (grid_alpha,),
+                width=max(2, int(H * 0.002)))
+    bg.paste(grid, (0, 0), grid)
+    return bg.convert("RGB")
+
+
+def concept_lavender_field(theme):
+    """Поле лаванды — горизонтальные ряды лиловых «полос» уходят вдаль,
+    вверху мягкий закат."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (252, 215, 205), (220, 200, 230))
+        sun_color = (255, 215, 180)
+        rows = [
+            (180, 150, 195),
+            (160, 125, 180),
+            (135, 100, 160),
+            (110, 80, 140),
+            (90, 65, 120),
+            (70, 50, 100),
+        ]
+        path_color = (235, 220, 230)
+    else:
+        bg = vertical_gradient((W, H), (12, 14, 30), (24, 16, 38))
+        sun_color = (240, 200, 230)
+        rows = [
+            (90, 70, 130),
+            (75, 55, 115),
+            (60, 45, 100),
+            (45, 35, 85),
+            (30, 22, 65),
+            (18, 14, 48),
+        ]
+        path_color = (40, 30, 55)
+    sun = radial_glow((W, H), (int(W * 0.30), int(H * 0.25)), int(H * 0.16),
+                      sun_color, alpha=200)
+    bg.paste(sun, (0, 0), sun)
+    if theme == "dark":
+        bg.paste(starfield((W, H), density=140, seed=33), (0, 0),
+                 starfield((W, H), density=140, seed=33))
+    # Поле — несколько горизонтальных полос разной высоты и оттенка
+    base_y = 0.50
+    for i, color in enumerate(rows):
+        t = i / max(len(rows) - 1, 1)
+        top = base_y + t * (1 - base_y)
+        bot = top + 0.10 + t * 0.05
+        # Изогнутая верхняя кромка — небольшая волна
+        layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        ld = ImageDraw.Draw(layer)
+        pts = [(0, H)]
+        for x in range(0, W + 30, 30):
+            wave = math.sin((x / W) * math.pi * (2 + i * 0.5)) * (H * 0.005)
+            pts.append((x, int(H * top + wave)))
+        pts.extend([(W, int(H * top)), (W, H)])
+        ld.polygon(pts, fill=color + (255,))
+        bg.paste(layer, (0, 0), layer)
+        # Точки-кустики — мелкая текстура поверх каждого ряда
+        rng = random.Random(101 + i)
+        dots = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        dd = ImageDraw.Draw(dots)
+        for _ in range(int(60 + i * 30)):
+            dx = rng.randint(0, W)
+            dy = int(H * top) + rng.randint(int(H * 0.005),
+                                             int(H * (bot - top) * 0.9))
+            r = rng.randint(2, max(3, int(W * 0.005)))
+            shade = (max(0, color[0] - 30),
+                     max(0, color[1] - 30),
+                     max(0, color[2] - 25))
+            dd.ellipse([dx - r, dy - r, dx + r, dy + r],
+                       fill=shade + (200,))
+        bg.paste(dots, (0, 0), dots)
+    # Светлая дорожка по диагонали — ведёт от низа-центра к горизонту
+    path = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    pd = ImageDraw.Draw(path)
+    pd.polygon([(int(W * 0.45), int(H * 0.55)),
+                (int(W * 0.55), int(H * 0.55)),
+                (int(W * 0.78), H),
+                (int(W * 0.22), H)], fill=path_color + (180,))
+    bg.paste(path, (0, 0), path)
+    return bg.convert("RGB")
+
+
 CONCEPTS = {
     "lighthouse-dawn": concept_lighthouse_dawn,
     "keeper-watch": concept_keeper_watch,
@@ -1819,6 +2358,7 @@ CONCEPTS = {
     "mountains-mist": concept_mountains_mist,
     "pine-deer": concept_pine_deer,
     "fuji-wave": concept_fuji_wave,
+    "fuji-natural": concept_fuji_natural,
     "sakura-branch": concept_sakura_branch,
     "misty-forest": concept_misty_forest,
     "autumn-leaves": concept_autumn_leaves,

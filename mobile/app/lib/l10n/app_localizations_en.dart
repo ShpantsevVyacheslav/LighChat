@@ -1853,6 +1853,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Apple Intelligence is currently unavailable.';
 
   @override
+  String get navigator_picker_title => 'Open in';
+
+  @override
   String get ai_style_friendly => 'Friendlier';
 
   @override

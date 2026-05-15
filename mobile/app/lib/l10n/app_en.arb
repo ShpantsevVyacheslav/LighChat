@@ -894,6 +894,7 @@
   "ai_status_device_not_eligible": "This device doesn’t support Apple Intelligence.",
   "ai_status_unsupported_os": "Apple Intelligence requires iOS 26 or newer.",
   "ai_status_unknown": "Apple Intelligence is currently unavailable.",
+  "navigator_picker_title": "Open in",
   "ai_style_friendly": "Friendlier",
   "ai_style_formal": "Formal",
   "ai_style_shorter": "Shorter",

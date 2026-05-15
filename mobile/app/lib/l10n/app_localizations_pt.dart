@@ -1871,6 +1871,9 @@ class AppLocalizationsPt extends AppLocalizations {
       'O Apple Intelligence está indisponível agora.';
 
   @override
+  String get navigator_picker_title => 'Abrir em';
+
+  @override
   String get ai_style_friendly => 'Mais amigável';
 
   @override
@@ -10259,6 +10262,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get ai_status_unknown =>
       'O Apple Intelligence está indisponível agora.';
+
+  @override
+  String get navigator_picker_title => 'Abrir em';
 
   @override
   String get ai_style_friendly => 'Mais amigável';

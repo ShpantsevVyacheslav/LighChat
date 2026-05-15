@@ -1872,6 +1872,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get ai_status_unknown => 'Apple Intelligence hozircha mavjud emas.';
 
   @override
+  String get navigator_picker_title => 'Qayerda ochish';
+
+  @override
   String get ai_style_friendly => 'Doʻstona';
 
   @override

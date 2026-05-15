@@ -2265,6 +2265,7 @@ export const messagesKk = {
       mountainsMist: 'Тұманды таулар',
       pineDeer: 'Орман бұғысы',
       fujiWave: 'Фудзи мен толқын',
+      fujiNatural: 'Таңертеңгі Фудзияма',
       sakuraBranch: 'Сакура бұтағы',
       mistyForest: 'Тұманды орман',
       autumnLeaves: 'Күзгі жапырақтар',
