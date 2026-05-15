@@ -94,6 +94,7 @@ class ChatMessageList extends ConsumerStatefulWidget {
     this.pendingRetryAt = const <String, DateTime>{},
     this.topOverlayOffset = 4,
     this.onEmptyQuickGreet,
+    this.showEmptyState = true,
   });
 
   /// Y-сдвиг для floating date capsule. На iOS native bar — overlay поверх
@@ -105,6 +106,11 @@ class ChatMessageList extends ConsumerStatefulWidget {
   /// Колбэк для быстрого приветствия из empty-state placeholder.
   /// Если null — кнопка «Поздороваться» в карточке скрывается.
   final VoidCallback? onEmptyQuickGreet;
+
+  /// Показывать ли `EmptyMessagesPlaceholder` (карточка с хранителем
+  /// маяка) при пустом списке. В тредах не нужно — там пусто = в
+  /// ветке ещё нет ответов, и большая брендовая карточка лишняя.
+  final bool showEmptyState;
 
   final List<ChatMessage> messagesDesc;
   final String currentUserId;
@@ -659,7 +665,9 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
     final hasUserMessages = asc.any(
       (m) => !(m.senderId == '__system__' && m.systemEvent != null),
     );
-    if (!hasUserMessages && widget.outgoingMediaFooter == null) {
+    if (widget.showEmptyState &&
+        !hasUserMessages &&
+        widget.outgoingMediaFooter == null) {
       slivers.add(
         SliverFillRemaining(
           hasScrollBody: false,

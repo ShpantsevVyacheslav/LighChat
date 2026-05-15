@@ -2519,6 +2519,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                                   _hydratedParentCache ??
                                                   parent;
                                               return ChatMessageList(
+                                                // В треде empty-state с
+                                                // хранителем маяка не нужен.
+                                                showEmptyState: false,
                                                 messagesDesc:
                                                     buildDescWithOutboxMessages(
                                                       hydratedDesc:
