@@ -602,6 +602,10 @@ class ChatRepository {
     ReplyContext? replyTo,
     Map<String, Object?>? e2eeEnvelope,
     String? messageIdOverride,
+
+    /// См. одноимённый параметр в [sendTextMessage] — то же самое, но для
+    /// thread-сообщений.
+    String? voiceTranscript,
   }) async {
     final trimmed = text.trim();
     final hasE2ee = e2eeEnvelope != null;
@@ -647,12 +651,15 @@ class ChatRepository {
         messageIdOverride != null && messageIdOverride.trim().isNotEmpty
         ? threadCol.doc(messageIdOverride)
         : threadCol.doc();
+    final transcriptTrimmed = voiceTranscript?.trim() ?? '';
     final payload = <String, Object?>{
       'senderId': senderId,
       'createdAt': nowIso,
       'attachments': attachments.map((a) => a.toFirestoreMap()).toList(),
       if (!hasE2ee && trimmed.isNotEmpty) 'text': trimmed,
       if (hasE2ee) 'e2ee': e2eeEnvelope,
+      if (!hasE2ee && transcriptTrimmed.isNotEmpty)
+        'voiceTranscript': transcriptTrimmed,
     };
     if (replyTo != null) {
       payload['replyTo'] = <String, Object?>{
@@ -892,6 +899,18 @@ class ChatRepository {
     /// синхронизации значения превью не подхватится. Если не передан —
     /// используем текущее время как раньше.
     String? nowIsoOverride,
+
+    /// On-device транскрипт голосового сообщения, посчитанный отправителем
+    /// в [VoiceMessagePreviewBar] перед отправкой. Если задан и чат не
+    /// E2EE — пишется в Firestore-поле `voiceTranscript`. Получатель
+    /// читает его напрямую вместо повторного запуска ASR на своём
+    /// устройстве, экономя ~1-3s и заряд батареи.
+    ///
+    /// В E2EE-чатах transcript НЕ публикуется в plaintext в Firestore;
+    /// он остаётся только в локальном кэше отправителя. Cross-device
+    /// синк зашифрованного transcript-а — отдельная фича (см.
+    /// `voiceTranscriptCipher`).
+    String? voiceTranscript,
   }) async {
     final trimmed = text.trim();
     final hasE2ee = e2eeEnvelope != null;
@@ -900,6 +919,7 @@ class ChatRepository {
 
     // Phase 4: при E2EE записываем `e2ee.*` и placeholder-preview вместо
     // plaintext. `text` НЕ пишем (собеседник всё равно декодирует из envelope).
+    final transcriptTrimmed = voiceTranscript?.trim() ?? '';
     final payload = <String, Object?>{
       'senderId': senderId,
       'createdAt': nowIso,
@@ -907,6 +927,10 @@ class ChatRepository {
       if (attachments.isNotEmpty)
         'attachments': attachments.map((a) => a.toFirestoreMap()).toList(),
       if (hasE2ee) 'e2ee': e2eeEnvelope,
+      // voiceTranscript leak'аем только если чат не E2EE — иначе содержание
+      // голосового всё равно ушло бы plaintext-ом, что ломает контракт.
+      if (!hasE2ee && transcriptTrimmed.isNotEmpty)
+        'voiceTranscript': transcriptTrimmed,
     };
 
     if (replyTo != null) {

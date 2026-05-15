@@ -1097,6 +1097,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
           text: '',
           replyTo: replySnap,
           attachments: [uploaded],
+          voiceTranscript: rec.transcript,
         );
       }
       if (mounted) {

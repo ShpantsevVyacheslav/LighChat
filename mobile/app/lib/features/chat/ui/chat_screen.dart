@@ -5417,6 +5417,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           text: '',
           replyTo: _stripReplyPreviewByPolicy(_replyingTo, policy),
           attachments: [uploaded],
+          voiceTranscript: rec.transcript,
         );
       }
       if (mounted) {
