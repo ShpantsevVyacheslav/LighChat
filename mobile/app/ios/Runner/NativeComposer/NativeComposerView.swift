@@ -305,15 +305,21 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
     }
   }
 
-  /// Phase 4 Format sheet: переключает inline-формат (B/I/U/S/code) на
-  /// выделенном фрагменте — или на `typingAttributes` если нет selection
-  /// (= последующая печать пойдёт в этом стиле).
+  /// Phase 4-6 Format sheet: переключает inline-формат (B/I/U/S/code) или
+  /// animated effect (shake/nod/ripple/bloom/jitter/big/small) на
+  /// выделенном фрагменте — или на `typingAttributes` если нет selection.
   ///
   /// Внутри идёт через тот же font-traits/decoration механизм, что и
   /// системное меню iOS (`allowsEditingTextAttributes=true`) — после
   /// текстового изменения `textViewDidChange` сериализует attributed
   /// обратно в HTML и шлёт в Dart, всё совместимо.
   private func toggleFormat(tag: String) {
+    // Animated text effects (Phase 6) идут отдельной веткой: они
+    // мутируют только `effectKey`, не font traits.
+    if MentionAttributedString.knownEffects.contains(tag) {
+      toggleEffect(tag: tag)
+      return
+    }
     let selRange = textView.selectedRange
     let baseFont = self.baseFont
     let baseColor = self.baseColor
@@ -413,6 +419,64 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
       // ввод. UITextView сам применит их на новые символы.
       var ta = textView.typingAttributes
       mutateAttrs(&ta, shouldActivate: shouldActivate)
+      textView.typingAttributes = ta
+    }
+  }
+
+  /// Phase 6: animated effects (shake/nod/ripple/bloom/jitter/big/small).
+  /// Кладёт/убирает custom-атрибут `effectKey` на выделенном фрагменте
+  /// (или typingAttributes). Сериализация → `<span data-anim="X">…</span>`,
+  /// рендеринг на receiver-side через `AnimatedTextSpan` (Flutter).
+  ///
+  /// Toggle-семантика: если probe-runs уже имеют этот же эффект →
+  /// выключаем (NSRange нулится). Если другой эффект → заменяем. Если
+  /// нет эффекта → ставим.
+  private func toggleEffect(tag: String) {
+    let selRange = textView.selectedRange
+    let probeLoc = selRange.length > 0 ? selRange.location : max(0, selRange.location - 1)
+    let probeAttrs: [NSAttributedString.Key: Any] =
+      (probeLoc < textView.attributedText.length && probeLoc >= 0)
+      ? textView.attributedText.attributes(at: probeLoc, effectiveRange: nil)
+      : textView.typingAttributes
+    let activeEffect = probeAttrs[MentionAttributedString.effectKey] as? String
+    let nextEffect: String? = (activeEffect == tag) ? nil : tag
+
+    func patchAttrs(_ attrs: inout [NSAttributedString.Key: Any]) {
+      if let e = nextEffect {
+        attrs[MentionAttributedString.effectKey] = e
+        // Визуально подкрашиваем — semibold + accent, чтобы юзер видел
+        // что блок особый.
+        attrs[.font] = UIFont.systemFont(ofSize: baseFont.pointSize, weight: .semibold)
+        attrs[.foregroundColor] = accentColor
+      } else {
+        attrs.removeValue(forKey: MentionAttributedString.effectKey)
+        attrs[.font] = baseFont
+        attrs[.foregroundColor] = baseColor
+      }
+    }
+
+    if selRange.length > 0 {
+      let mut = NSMutableAttributedString(attributedString: textView.attributedText)
+      mut.enumerateAttributes(in: selRange, options: []) { attrs, range, _ in
+        var copy = attrs
+        patchAttrs(&copy)
+        mut.setAttributes(copy, range: range)
+      }
+      isApplyingRemoteText = true
+      textView.attributedText = mut
+      textView.selectedRange = selRange
+      isApplyingRemoteText = false
+      channel.invokeMethod(
+        "textChanged",
+        arguments: [
+          "text": currentPlainText(),
+          "selectionStart": textView.selectedRange.location,
+          "selectionEnd": textView.selectedRange.location
+            + textView.selectedRange.length,
+        ])
+    } else {
+      var ta = textView.typingAttributes
+      patchAttrs(&ta)
       textView.typingAttributes = ta
     }
   }

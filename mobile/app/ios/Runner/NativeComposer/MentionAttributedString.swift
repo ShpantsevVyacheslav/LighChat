@@ -25,6 +25,14 @@ enum MentionAttributedString {
   static let tokenEnd: Character = "\u{E001}"
   /// NSAttributedString key — храним полный mention-токен (со escape-символами).
   static let tokenKey = NSAttributedString.Key("lighchat.mentionToken")
+  /// NSAttributedString key — храним имя animated effect'а
+  /// (shake / nod / ripple / bloom / jitter / big / small).
+  /// Сериализуется как `<span data-anim="X">…</span>`, рендерится на
+  /// receiver-side через [AnimatedTextSpan].
+  static let effectKey = NSAttributedString.Key("lighchat.textEffect")
+  static let knownEffects: Set<String> = [
+    "shake", "nod", "ripple", "bloom", "jitter", "big", "small",
+  ]
 
   // MARK: - Render: rich-text → NSAttributedString
 
@@ -34,11 +42,20 @@ enum MentionAttributedString {
     let lexer = _Lexer(input: plain)
     let result = NSMutableAttributedString()
     var traits = _Traits()
+    var activeEffect: String?
     while let tok = lexer.next() {
       switch tok {
       case .text(let s):
-        let attrs = _attributes(
+        var attrs = _attributes(
           for: traits, baseFont: baseFont, baseColor: baseColor)
+        if let effect = activeEffect {
+          attrs[effectKey] = effect
+          // Визуально в редакторе показываем effect-run чуть отличным:
+          // semibold + accent цвет (анимация только на receiver-side).
+          attrs[.font] = UIFont.systemFont(
+            ofSize: baseFont.pointSize, weight: .semibold)
+          attrs[.foregroundColor] = accentColor
+        }
         result.append(NSAttributedString(string: s, attributes: attrs))
       case .mention(let full, let label):
         let attrs: [NSAttributedString.Key: Any] = [
@@ -53,6 +70,10 @@ enum MentionAttributedString {
         traits.apply(tag, opening: true)
       case .closeTag(let tag):
         traits.apply(tag, opening: false)
+      case .openEffect(let effect):
+        activeEffect = effect
+      case .closeEffect:
+        activeEffect = nil
       }
     }
     return result
@@ -91,45 +112,63 @@ enum MentionAttributedString {
   // MARK: - Serialize: NSAttributedString → rich-text
 
   /// Обход attributed string по runs, эмитим open/close tags при изменении
-  /// font traits, mention-runs выдаём как сохранённый токен.
+  /// font traits + animated effect spans, mention-runs выдаём как
+  /// сохранённый токен.
   static func serialize(_ attributed: NSAttributedString) -> String {
     var out = ""
     var prev = _Traits()
+    var prevEffect: String?
     let full = NSRange(location: 0, length: attributed.length)
 
-    func emitOpenClose(transition newTraits: _Traits) {
-      // Закрываем теги в обратном порядке (LIFO), открываем в естественном.
-      // Закрываемые = в prev но не в new.
+    func emitOpenClose(transition newTraits: _Traits, newEffect: String?) {
+      // Эффект-span ВНЕШНЕЕ обрамление: bold/italic внутри. Поэтому
+      // при смене эффекта закрываем сначала traits, потом сам эффект.
+      let effectChange = newEffect != prevEffect
+      if effectChange {
+        // Закрываем все активные traits (под эффектом нечего держать).
+        emitTraitsClose(_Traits())
+        if prevEffect != nil { out += "</span>" }
+        if let e = newEffect { out += "<span data-anim=\"\(e)\">" }
+        prevEffect = newEffect
+        prev = _Traits()
+      }
+      emitTraitsClose(newTraits)
+      emitTraitsOpen(newTraits)
+      prev = newTraits
+    }
+
+    func emitTraitsClose(_ newTraits: _Traits) {
       if prev.code && !newTraits.code { out += "</code>" }
       if prev.strikethrough && !newTraits.strikethrough { out += "</s>" }
       if prev.underline && !newTraits.underline { out += "</u>" }
       if prev.italic && !newTraits.italic { out += "</em>" }
       if prev.bold && !newTraits.bold { out += "</strong>" }
-      // Открываемые.
+    }
+    func emitTraitsOpen(_ newTraits: _Traits) {
       if !prev.bold && newTraits.bold { out += "<strong>" }
       if !prev.italic && newTraits.italic { out += "<em>" }
       if !prev.underline && newTraits.underline { out += "<u>" }
       if !prev.strikethrough && newTraits.strikethrough { out += "<s>" }
       if !prev.code && newTraits.code { out += "<code>" }
-      prev = newTraits
     }
 
     attributed.enumerateAttributes(in: full, options: []) { attrs, range, _ in
       let runStr = attributed.attributedSubstring(from: range).string
       if let token = attrs[tokenKey] as? String {
-        // Mention: закрываем все активные traits ПЕРЕД токеном (mention'ы
-        // не должны быть внутри <strong>/<em> — для send-pipeline'а
-        // ComposerHtmlEditing.prepareChatMessageHtmlForSend это безопаснее).
-        emitOpenClose(transition: _Traits())
+        // Mention: закрываем traits И effect span (mention не должен быть
+        // внутри `<span data-anim>` или `<strong>` — send-pipeline это не
+        // ожидает).
+        emitOpenClose(transition: _Traits(), newEffect: nil)
         out += token
         return
       }
       let traits = _Traits.fromAttributes(attrs)
-      emitOpenClose(transition: traits)
+      let effect = attrs[effectKey] as? String
+      emitOpenClose(transition: traits, newEffect: effect)
       out += _escapeHtml(runStr)
     }
     // Финальное закрытие.
-    emitOpenClose(transition: _Traits())
+    emitOpenClose(transition: _Traits(), newEffect: nil)
     return out
   }
 
@@ -146,7 +185,7 @@ enum MentionAttributedString {
         visible += (s as NSString).length
       case .mention(_, let label):
         visible += ("@\(label)" as NSString).length
-      case .openTag, .closeTag:
+      case .openTag, .closeTag, .openEffect, .closeEffect:
         break // теги не занимают visible space
       }
     }
@@ -182,12 +221,19 @@ private enum _Tok {
   case mention(full: String, label: String)
   case openTag(String)
   case closeTag(String)
+  case openEffect(String) // span data-anim="X" open
+  case closeEffect // </span> after a known data-anim open
 }
 
 private final class _Lexer {
   init(input: String) { self.input = input; self.i = input.startIndex }
   let input: String
   var i: String.Index
+  /// Stack глубины открытых `<span>` с известным `data-anim` — нужен
+  /// чтобы парный `</span>` правильно интерпретировать как
+  /// `.closeEffect` (если открывали с эффектом) или как закрытие
+  /// обычного span'а (игнорируем).
+  var spanEffectStack: [Bool] = []
 
   func next() -> _Tok? {
     guard i < input.endIndex else { return nil }
@@ -231,8 +277,8 @@ private final class _Lexer {
     let raw = String(input[input.index(after: i)..<gt])
     i = input.index(after: gt)
     let isClose = raw.hasPrefix("/")
-    var name = isClose ? String(raw.dropFirst()) : raw
-    // Атрибуты вырубаем — нас интересует только имя.
+    let body = isClose ? String(raw.dropFirst()) : raw
+    var name = body
     if let sp = name.firstIndex(of: " ") {
       name = String(name[..<sp])
     }
@@ -241,9 +287,54 @@ private final class _Lexer {
     if known.contains(name) {
       return isClose ? .closeTag(name) : .openTag(name)
     }
+    // `<span data-anim="X">…</span>` → animated effect run.
+    if name == "span" {
+      if isClose {
+        // Закрываем span. Если последний открытый был effect — emit closeEffect,
+        // иначе игнорируем (обычный span).
+        if let last = spanEffectStack.popLast(), last == true {
+          return .closeEffect
+        }
+        return nil // skip silently
+      }
+      // Open span — парсим атрибуты, ищем data-anim="X".
+      if let effect = _parseDataAnim(body),
+        MentionAttributedString.knownEffects.contains(effect)
+      {
+        spanEffectStack.append(true)
+        return .openEffect(effect)
+      }
+      spanEffectStack.append(false)
+      return nil // skip silently
+    }
     // Неизвестный тег (например `<span data-chat-mention=...>`) — на native
     // путях такого быть не должно, но если влетел — рендерим как текст.
     return .text(isClose ? "</\(name)>" : "<\(raw)>")
+  }
+
+  /// Возвращает значение `data-anim` атрибута из строки `span data-anim="X" …`.
+  /// Простой regex-free парсер: ищет `data-anim=`, потом значение в
+  /// кавычках или без.
+  private func _parseDataAnim(_ body: String) -> String? {
+    let lower = body.lowercased()
+    guard let range = lower.range(of: "data-anim=") else { return nil }
+    var rest = lower[range.upperBound...]
+    // Опционально кавычки `"` или `'`.
+    var quote: Character?
+    if let first = rest.first, first == "\"" || first == "'" {
+      quote = first
+      rest = rest.dropFirst()
+    }
+    var value = ""
+    for c in rest {
+      if let q = quote {
+        if c == q { break }
+      } else if c == " " || c == ">" {
+        break
+      }
+      value.append(c)
+    }
+    return value.isEmpty ? nil : value
   }
 
   private func scanText() -> _Tok? {

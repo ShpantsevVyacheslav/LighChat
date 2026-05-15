@@ -54,6 +54,10 @@ export function sanitizeMessageHtml(html: string | undefined | null): string {
       'data-chat-custom-emoji',
       'data-emoji-id',
       'data-emoji-src',
+      // Animated text effects (Phase 6 mobile/desktop). Web в этой
+      // итерации ещё не рендерит анимацию — текст показывается
+      // статически, но атрибут сохраняется для round-trip.
+      'data-anim',
     ],
     ALLOW_DATA_ATTR: false,
   });

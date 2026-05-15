@@ -39,7 +39,10 @@ bool _attrAllowed(String tag, String attrLower) {
           attrLower == 'data-user-id' ||
           attrLower == 'data-chat-custom-emoji' ||
           attrLower == 'data-emoji-id' ||
-          attrLower == 'data-emoji-src';
+          attrLower == 'data-emoji-src' ||
+          // Animated text effects (Phase 6): `<span data-anim="shake">…</span>`.
+          // Whitelist в receiver-side: `AnimatedTextSpan.knownEffects`.
+          attrLower == 'data-anim';
     default:
       return false;
   }

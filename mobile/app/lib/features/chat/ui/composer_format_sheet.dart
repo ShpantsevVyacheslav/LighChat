@@ -79,7 +79,7 @@ class _FormatSheetBody extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
               child: Row(
                 children: [
                   _Btn(
@@ -121,6 +121,28 @@ class _FormatSheetBody extends StatelessWidget {
                     fg: fg,
                     onTap: () => _emit('code'),
                   ),
+                ],
+              ),
+            ),
+            // Animated effects section (Phase 6). Toggle-семантика: тап
+            // снова по тому же эффекту → выключить. Эффекты применяются
+            // к selection (или typingAttributes), при отправке сообщения
+            // сериализуются в HTML `<span data-anim="X">…</span>` и
+            // рендерятся на receiver-side через `AnimatedTextSpan`.
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _SizeBtn(label: 'Big', fg: fg, onTap: () => _emit('big')),
+                  _SizeBtn(label: 'Small', fg: fg, onTap: () => _emit('small')),
+                  _EffectBtn(label: 'Shake', fg: fg, onTap: () => _emit('shake')),
+                  _EffectBtn(label: 'Nod', fg: fg, onTap: () => _emit('nod')),
+                  _EffectBtn(label: 'Ripple', fg: fg, onTap: () => _emit('ripple')),
+                  _EffectBtn(label: 'Bloom', fg: fg, onTap: () => _emit('bloom')),
+                  _EffectBtn(label: 'Jitter', fg: fg, onTap: () => _emit('jitter')),
                 ],
               ),
             ),
@@ -185,6 +207,90 @@ class _Btn extends StatelessWidget {
                     : (strike ? TextDecoration.lineThrough : null),
                 color: fg,
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// «Big» / «Small» — статические эффекты размера. Без анимации, поэтому
+/// рендерим лейбл сразу в нужном масштабе для preview.
+class _SizeBtn extends StatelessWidget {
+  const _SizeBtn({
+    required this.label,
+    required this.fg,
+    required this.onTap,
+  });
+  final String label;
+  final Color fg;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isBig = label == 'Big';
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: fg.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: isBig ? 16 : 11,
+              fontWeight: FontWeight.w700,
+              color: fg,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Animated effect buttons (Shake / Nod / Ripple / Bloom / Jitter).
+/// Лейбл показываем без preview-анимации — иначе sheet будет «дёргаться».
+/// Юзер увидит реальную анимацию когда выделит фрагмент и применит эффект.
+class _EffectBtn extends StatelessWidget {
+  const _EffectBtn({
+    required this.label,
+    required this.fg,
+    required this.onTap,
+  });
+  final String label;
+  final Color fg;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: fg.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: fg,
             ),
           ),
         ),

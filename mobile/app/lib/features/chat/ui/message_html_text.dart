@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../data/chat_link_normalization.dart';
 import '../data/link_preview_url_extractor.dart';
+import 'animated_text_span.dart';
 
 String messageHtmlToPlainText(String input) {
   var s = input;
@@ -42,6 +43,7 @@ class MessageHtmlRenderOpts {
     this.mentionLabelResolver,
     this.onLinkTap,
     this.mentionFallbackLabel,
+    this.disableAnimations = false,
   });
 
   final Color? linkColor;
@@ -54,6 +56,13 @@ class MessageHtmlRenderOpts {
 
   /// Localized fallback label for mentions without a name (e.g. "участник").
   final String? mentionFallbackLabel;
+
+  /// Если `true` — анимированные эффекты (`<span data-anim="…">`)
+  /// рендерятся как обычный статический текст. Используется для
+  /// accessibility-режима «уменьшить движение» (`MediaQuery.disableAnimations`)
+  /// и для контекстов где AnimationController дороговат (reply preview,
+  /// search results).
+  final bool disableAnimations;
 
   static const defaults = MessageHtmlRenderOpts();
 }
@@ -379,6 +388,30 @@ List<InlineSpan> _elementToSpans(
         child: _SpoilerInline(text: inner, style: st.toTextStyle(base, opts)),
       ),
     ];
+  }
+
+  // Animated text effect: `<span data-anim="shake|nod|ripple|bloom|jitter|big|small">…</span>`.
+  // Рендерим в [AnimatedTextSpan] — он сам строит AnimationController
+  // и кадрит эффект. Уважаем `disableAnimations` для accessibility:
+  // если у юзера системно выключены анимации, показываем text без эффекта.
+  if (tag == 'span') {
+    final anim = el.attributes['data-anim']?.toLowerCase();
+    if (AnimatedTextSpan.isKnown(anim) && anim != null) {
+      final inner = _flattenText(el);
+      if (inner.isNotEmpty) {
+        final style = st.toTextStyle(base, opts);
+        if (opts.disableAnimations) {
+          return [TextSpan(text: inner, style: style)];
+        }
+        return [
+          WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: AnimatedTextSpan(text: inner, style: style, effect: anim),
+          ),
+        ];
+      }
+    }
   }
 
   if (tag == 'p' || tag == 'div') {
