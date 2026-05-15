@@ -1830,7 +1830,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ai_action_failed =>
-      'Apple Intelligence is unavailable on this device.';
+      'Couldn’t process this text. The language may not be supported by on-device AI yet.';
 
   @override
   String get ai_status_model_not_ready =>

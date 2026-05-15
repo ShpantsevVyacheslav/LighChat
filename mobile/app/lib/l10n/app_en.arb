@@ -888,7 +888,7 @@
   "ai_action_rewrite": "Rewrite with AI",
   "ai_action_apply": "Apply",
   "ai_action_thinking": "Writing…",
-  "ai_action_failed": "Apple Intelligence is unavailable on this device.",
+  "ai_action_failed": "Couldn’t process this text. The language may not be supported by on-device AI yet.",
   "ai_status_model_not_ready": "Apple Intelligence model is still downloading. Try again in a minute.",
   "ai_status_not_enabled": "Apple Intelligence isn’t enabled in Settings.",
   "ai_status_device_not_eligible": "This device doesn’t support Apple Intelligence.",

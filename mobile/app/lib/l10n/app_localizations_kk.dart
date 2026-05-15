@@ -1843,7 +1843,8 @@ class AppLocalizationsKk extends AppLocalizations {
   String get ai_action_thinking => 'Жазып жатырмын…';
 
   @override
-  String get ai_action_failed => 'Apple Intelligence қол жетімді емес';
+  String get ai_action_failed =>
+      'Бұл мәтінді өңдеу мүмкін болмады. Тіл құрылғыдағы AI-да әлі қолдау таппауы мүмкін.';
 
   @override
   String get ai_status_model_not_ready =>

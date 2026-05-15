@@ -868,7 +868,7 @@
   "ai_action_rewrite": "Reescrever com IA",
   "ai_action_apply": "Aplicar",
   "ai_action_thinking": "Escrevendo…",
-  "ai_action_failed": "Apple Intelligence indisponível",
+  "ai_action_failed": "Não foi possível processar este texto. O idioma pode ainda não ser suportado pela IA no dispositivo.",
   "ai_status_model_not_ready": "O modelo do Apple Intelligence ainda está sendo baixado. Tente em um minuto.",
   "ai_status_not_enabled": "O Apple Intelligence não está ativado nas Configurações.",
   "ai_status_device_not_eligible": "Este dispositivo não suporta Apple Intelligence.",

@@ -3283,7 +3283,7 @@ abstract class AppLocalizations {
   /// No description provided for @ai_action_failed.
   ///
   /// In ru, this message translates to:
-  /// **'Apple Intelligence недоступен на этом устройстве'**
+  /// **'Не удалось обработать этот текст. Возможно, язык ещё не поддерживается on-device AI.'**
   String get ai_action_failed;
 
   /// No description provided for @ai_status_model_not_ready.

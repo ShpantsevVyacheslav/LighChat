@@ -868,7 +868,7 @@
   "ai_action_rewrite": "AI ile Yeniden Yaz",
   "ai_action_apply": "Uygula",
   "ai_action_thinking": "Yazıyor…",
-  "ai_action_failed": "Apple Intelligence kullanılamıyor",
+  "ai_action_failed": "Bu metin işlenemedi. Dil cihazdaki AI tarafından henüz desteklenmiyor olabilir.",
   "ai_status_model_not_ready": "Apple Intelligence modeli hâlâ indiriliyor. Bir dakika sonra tekrar deneyin.",
   "ai_status_not_enabled": "Apple Intelligence Ayarlar'da etkin değil.",
   "ai_status_device_not_eligible": "Bu cihaz Apple Intelligence'ı desteklemiyor.",

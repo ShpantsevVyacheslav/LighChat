@@ -1850,7 +1850,8 @@ class AppLocalizationsUz extends AppLocalizations {
   String get ai_action_thinking => 'Yozyapman…';
 
   @override
-  String get ai_action_failed => 'Apple Intelligence mavjud emas';
+  String get ai_action_failed =>
+      'Ushbu matnni qayta ishlab boʻlmadi. Til hozircha qurilmadagi AI tomonidan qoʻllab-quvvatlanmasligi mumkin.';
 
   @override
   String get ai_status_model_not_ready =>

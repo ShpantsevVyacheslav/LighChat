@@ -1844,7 +1844,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get ai_action_thinking => 'Yazıyor…';
 
   @override
-  String get ai_action_failed => 'Apple Intelligence kullanılamıyor';
+  String get ai_action_failed =>
+      'Bu metin işlenemedi. Dil cihazdaki AI tarafından henüz desteklenmiyor olabilir.';
 
   @override
   String get ai_status_model_not_ready =>

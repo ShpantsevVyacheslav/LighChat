@@ -1858,7 +1858,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get ai_action_thinking => 'Escribiendo…';
 
   @override
-  String get ai_action_failed => 'Apple Intelligence no disponible';
+  String get ai_action_failed =>
+      'No se pudo procesar este texto. Es posible que el idioma aún no esté soportado por la IA en el dispositivo.';
 
   @override
   String get ai_status_model_not_ready =>
@@ -10337,7 +10338,8 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get ai_action_thinking => 'Escribiendo…';
 
   @override
-  String get ai_action_failed => 'Apple Intelligence no disponible';
+  String get ai_action_failed =>
+      'No se pudo procesar este texto. Es posible que el idioma aún no esté soportado por la IA en el dispositivo.';
 
   @override
   String get ai_status_model_not_ready =>

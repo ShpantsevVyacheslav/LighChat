@@ -78,12 +78,18 @@ class AppleIntelligence {
 
   /// Детектит язык, и если он не нативно-поддерживаемый — гонит через
   /// bridge. Иначе — прямой вызов.
+  ///
+  /// Threshold confidence для bridge — 0.4 (а не 0.6 как у `isReliable`):
+  /// прямой AI-вызов на не-английском тексте всё равно вернёт null, поэтому
+  /// даже при умеренной уверенности детектора лучше попытаться bridge.
   Future<String?> _maybeViaBridge({
     required String text,
     required Future<String?> Function(String t) directCall,
   }) async {
     final det = await LocalTextLanguageDetector.instance.detect(text);
-    if (det.isReliable && !isLanguageSupportedNatively(det.language)) {
+    if (det.language.isNotEmpty &&
+        det.confidence >= 0.4 &&
+        !isLanguageSupportedNatively(det.language)) {
       return _viaTranslateBridge(
         text: text,
         sourceLang: det.language,
@@ -183,7 +189,9 @@ class AppleIntelligence {
   /// эмитим финальный результат одним событием.
   Stream<String> streamSummarize(String text) async* {
     final det = await LocalTextLanguageDetector.instance.detect(text);
-    if (det.isReliable && !isLanguageSupportedNatively(det.language)) {
+    if (det.language.isNotEmpty &&
+        det.confidence >= 0.4 &&
+        !isLanguageSupportedNatively(det.language)) {
       final result = await _viaTranslateBridge(
         text: text,
         sourceLang: det.language,
@@ -199,7 +207,9 @@ class AppleIntelligence {
   /// в [streamSummarize]).
   Stream<String> streamRewrite(String text, {String style = 'friendly'}) async* {
     final det = await LocalTextLanguageDetector.instance.detect(text);
-    if (det.isReliable && !isLanguageSupportedNatively(det.language)) {
+    if (det.language.isNotEmpty &&
+        det.confidence >= 0.4 &&
+        !isLanguageSupportedNatively(det.language)) {
       final result = await _viaTranslateBridge(
         text: text,
         sourceLang: det.language,

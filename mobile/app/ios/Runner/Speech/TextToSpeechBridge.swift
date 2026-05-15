@@ -157,13 +157,18 @@ final class TextToSpeechBridge: NSObject {
 
   /// Сообщает Dart-слою какое максимальное качество доступно для языка.
   /// Возвращает map `{ best: 'premium'|'enhanced'|'default'|'none',
-  /// hasEnhancedOrBetter: bool, voiceName: String? }`.
+  /// hasEnhancedOrBetter: bool, voiceName: String?, voiceLanguage: String? }`.
   /// Dart может показать пользователю tip: «качайте Enhanced в Настройках».
+  ///
+  /// Поля с nil-значениями просто не включаются в результат — Swift
+  /// `[String: Any]` не разрешает `nil` (требуется `[String: Any?]`
+  /// или NSNull); Flutter MethodChannel прозрачно мапит «отсутствующий
+  /// ключ» в Dart-`null`.
   private static func voiceQualityInfo(languageTag: String?)
     -> [String: Any]
   {
     guard let voice = pickBestVoice(languageTag: languageTag) else {
-      return ["best": "none", "hasEnhancedOrBetter": false, "voiceName": nil]
+      return ["best": "none", "hasEnhancedOrBetter": false]
     }
     let q = qualityRank(voice)
     let label: String
@@ -172,11 +177,12 @@ final class TextToSpeechBridge: NSObject {
     case 2: label = "enhanced"
     default: label = "default"
     }
-    return [
+    var dict: [String: Any] = [
       "best": label,
       "hasEnhancedOrBetter": q >= 2,
       "voiceName": voice.name,
       "voiceLanguage": voice.language,
     ]
+    return dict
   }
 }

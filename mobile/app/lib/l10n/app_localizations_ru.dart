@@ -1846,7 +1846,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get ai_action_failed =>
-      'Apple Intelligence недоступен на этом устройстве';
+      'Не удалось обработать этот текст. Возможно, язык ещё не поддерживается on-device AI.';
 
   @override
   String get ai_status_model_not_ready =>

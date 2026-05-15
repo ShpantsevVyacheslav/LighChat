@@ -888,7 +888,7 @@
   "ai_action_rewrite": "Переписать (AI)",
   "ai_action_apply": "Применить",
   "ai_action_thinking": "Пишу…",
-  "ai_action_failed": "Apple Intelligence недоступен на этом устройстве",
+  "ai_action_failed": "Не удалось обработать этот текст. Возможно, язык ещё не поддерживается on-device AI.",
   "ai_status_model_not_ready": "Модель Apple Intelligence ещё загружается. Попробуйте через минуту.",
   "ai_status_not_enabled": "Apple Intelligence не включён в Настройках.",
   "ai_status_device_not_eligible": "Это устройство не поддерживает Apple Intelligence.",

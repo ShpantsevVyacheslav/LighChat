@@ -1839,7 +1839,8 @@ class AppLocalizationsId extends AppLocalizations {
   String get ai_action_thinking => 'Menulis…';
 
   @override
-  String get ai_action_failed => 'Apple Intelligence tidak tersedia';
+  String get ai_action_failed =>
+      'Tidak dapat memproses teks ini. Bahasa mungkin belum didukung AI di perangkat.';
 
   @override
   String get ai_status_model_not_ready =>
