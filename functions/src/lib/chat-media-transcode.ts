@@ -98,7 +98,7 @@ function runFfmpegAudio(inputPath: string, outputPath: string): Promise<void> {
 
 async function downloadToFile(url: string, dest: string): Promise<number> {
   // SECURITY: `url` ultimately came from a chat participant via
-  // attachments[].url — same SSRF surface as transcribeVoiceMessage. Restrict
+  // attachments[].url — SSRF surface. Restrict
   // to Firebase Storage / signed-URL hosts and block resolution to private
   // IPs (cloud metadata, LAN, link-local). `redirect: 'error'` ensures a
   // 302 to a private host can't bypass the pre-flight check.

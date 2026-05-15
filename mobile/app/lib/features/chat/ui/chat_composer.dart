@@ -15,7 +15,6 @@ import 'composer_editing_banner.dart';
 import 'composer_formatting_toolbar.dart';
 import 'composer_link_preview.dart';
 import 'composer_pending_attachments_strip.dart';
-import 'composer_clipboard_selection_controls.dart';
 import 'composer_reply_banner.dart';
 import 'message_html_text.dart';
 import '../data/group_mention_candidates.dart';
@@ -535,9 +534,32 @@ class _ChatComposerState extends State<ChatComposer> {
       textCapitalization: TextCapitalization.sentences,
       cursorColor: scheme.primary,
       cursorHeight: _kComposerCursorHeight,
-      selectionControls: paste == null
-          ? null
-          : ComposerClipboardMaterialSelectionControls(onPaste: paste),
+      // Используем `contextMenuBuilder` (а не deprecated `selectionControls`),
+      // чтобы получить нативный AdaptiveToolbar: Cupertino-меню на iOS,
+      // Material-меню на Android. Override-им только Paste — он должен идти
+      // через [paste] callback, чтобы вставлялись файлы из буфера, а не
+      // только plain text.
+      contextMenuBuilder: (context, editableTextState) {
+        final buttonItems = editableTextState.contextMenuButtonItems;
+        final patched = paste == null
+            ? buttonItems
+            : buttonItems.map((item) {
+                if (item.type == ContextMenuButtonType.paste) {
+                  return ContextMenuButtonItem(
+                    onPressed: () {
+                      editableTextState.hideToolbar();
+                      unawaited(paste());
+                    },
+                    type: ContextMenuButtonType.paste,
+                  );
+                }
+                return item;
+              }).toList(growable: false);
+        return AdaptiveTextSelectionToolbar.buttonItems(
+          anchors: editableTextState.contextMenuAnchors,
+          buttonItems: patched,
+        );
+      },
       // В режиме поиска стикеров оставляем 1 строку (поле и так короткое).
       // В обычном composer-е разрешаем расти до 6 строк — дальше включается
       // внутренний скролл, чтобы половина экрана не уходила под composer.
@@ -635,19 +657,16 @@ class _ChatComposerState extends State<ChatComposer> {
     final showSendButton =
         !widget.stickersPanelOpen &&
         (_hasTypedText || widget.pendingAttachments.isNotEmpty);
-    final tightFooterMode =
-        widget.stickersPanelOpen || widget.hasFooterBelow;
-    return SafeArea(
-      top: false,
-      // Если под composer'ом уже что-то зарезервировано (шторка, клавиатура,
-      // удержанный «пол» транзишена) — SafeArea bottom не нужен, иначе
-      // composer добавит home-indicator и прыгнет вверх.
-      bottom: !tightFooterMode,
-      child: Padding(
-        // В «тесном» режиме нижний отступ 4 (как у шторки), иначе 10.
-        // Единая логика устраняет 6-пиксельный прыжок на переходах.
-        padding: EdgeInsets.fromLTRB(10, 8, 10, tightFooterMode ? 4 : 10),
-        child: Column(
+    // Bottom safe-area теперь полностью обслуживается footer'ом снаружи
+    // (chat_screen/thread_screen footerHeight включает `viewPadding.bottom`
+    // в `reduce(max)`). Внутри композера SafeArea bottom больше не
+    // переключаем — это был источник «прыжка»: на последнем кадре
+    // kb-анимации hasFooterBelow становился false, SafeArea bottom
+    // включался и подкидывал композер вверх на ~34pt после того, как
+    // он съезжал вниз вместе с клавиатурой.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+      child: Column(
           key: _composerColumnKey,
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -902,7 +921,7 @@ class _ChatComposerState extends State<ChatComposer> {
               ),
           ],
         ),
-      ),
     );
   }
 }
+

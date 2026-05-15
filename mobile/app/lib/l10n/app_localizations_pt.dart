@@ -1944,6 +1944,27 @@ class AppLocalizationsPt extends AppLocalizations {
   String get ai_style_proofread => 'Revisar';
 
   @override
+  String get ai_style_youth => 'Juvenil';
+
+  @override
+  String get ai_style_strict => 'Sério';
+
+  @override
+  String get ai_style_blatnoy => 'Marginal';
+
+  @override
+  String get ai_style_funny => 'Engraçado';
+
+  @override
+  String get ai_style_romantic => 'Romântico';
+
+  @override
+  String get ai_style_sarcastic => 'Sarcástico';
+
+  @override
+  String get ai_rewrite_picker_title => 'Estilo de reescrita';
+
+  @override
   String get voice_translate_action => 'Traduzir';
 
   @override
@@ -10458,6 +10479,27 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get ai_style_proofread => 'Revisar';
+
+  @override
+  String get ai_style_youth => 'Juvenil';
+
+  @override
+  String get ai_style_strict => 'Sério';
+
+  @override
+  String get ai_style_blatnoy => 'Marginal';
+
+  @override
+  String get ai_style_funny => 'Engraçado';
+
+  @override
+  String get ai_style_romantic => 'Romântico';
+
+  @override
+  String get ai_style_sarcastic => 'Sarcástico';
+
+  @override
+  String get ai_rewrite_picker_title => 'Estilo de reescrita';
 
   @override
   String get voice_translate_action => 'Traduzir';

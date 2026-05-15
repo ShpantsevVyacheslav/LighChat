@@ -3454,6 +3454,48 @@ abstract class AppLocalizations {
   /// **'Орфография'**
   String get ai_style_proofread;
 
+  /// No description provided for @ai_style_youth.
+  ///
+  /// In ru, this message translates to:
+  /// **'Молодёжный'**
+  String get ai_style_youth;
+
+  /// No description provided for @ai_style_strict.
+  ///
+  /// In ru, this message translates to:
+  /// **'Строгий'**
+  String get ai_style_strict;
+
+  /// No description provided for @ai_style_blatnoy.
+  ///
+  /// In ru, this message translates to:
+  /// **'По-блатному'**
+  String get ai_style_blatnoy;
+
+  /// No description provided for @ai_style_funny.
+  ///
+  /// In ru, this message translates to:
+  /// **'Шутливый'**
+  String get ai_style_funny;
+
+  /// No description provided for @ai_style_romantic.
+  ///
+  /// In ru, this message translates to:
+  /// **'Романтичный'**
+  String get ai_style_romantic;
+
+  /// No description provided for @ai_style_sarcastic.
+  ///
+  /// In ru, this message translates to:
+  /// **'Саркастичный'**
+  String get ai_style_sarcastic;
+
+  /// No description provided for @ai_rewrite_picker_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Стиль переписывания'**
+  String get ai_rewrite_picker_title;
+
   /// No description provided for @voice_translate_action.
   ///
   /// In ru, this message translates to:

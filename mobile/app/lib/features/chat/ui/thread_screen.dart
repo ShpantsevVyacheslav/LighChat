@@ -18,6 +18,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 import '../../../l10n/app_localizations.dart';
 
 import '../data/chat_media_gallery.dart';
+import '../data/keyboard_height_cache.dart';
 import '../data/e2ee_decryption_orchestrator.dart';
 import '../data/e2ee_attachment_send_helper.dart';
 import '../data/e2ee_data_type_policy.dart';
@@ -224,6 +225,15 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
       _pendingFocusMessageId = null;
     }
     _captureKeyboardHeight();
+    // Прогреваем `_lastKeyboardHeight` из персистентного кэша — см.
+    // chat_screen для деталей. Без этого первое открытие шторки стикеров
+    // в фресш-сессии получает 0.38 fallback вместо реальной высоты.
+    unawaited(KeyboardHeightCache.instance.read().then((v) {
+      if (!mounted || v == null || v <= 0) return;
+      if (_lastKeyboardHeight <= 0) {
+        setState(() => _lastKeyboardHeight = v);
+      }
+    }));
   }
 
   @override
@@ -253,6 +263,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
       return;
     }
     setState(() => _lastKeyboardHeight = height);
+    unawaited(KeyboardHeightCache.instance.write(height));
   }
 
   @override
@@ -2885,7 +2896,10 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                     final keyboardInset =
                                         MediaQuery.viewInsetsOf(context).bottom;
                                     final mq = MediaQuery.of(context);
-                                    final defaultH = mq.size.height * 0.42;
+                                    // См. chat_screen: 0.38 ≈ типичная iOS-
+                                    // клавиатура с QuickType. 0.42 был выше
+                                    // — шторка торчала над клавиатурой.
+                                    final defaultH = mq.size.height * 0.38;
                                     final fullScreenH = (mq.size.height * 0.92)
                                         .clamp(
                                           mq.size.height * 0.62,
@@ -2913,10 +2927,19 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                     // max(panelH, kbInset, floor). При
                                     // переходе panelH стабильно держит
                                     // место пока kbInset падает.
+                                    // viewPadding.bottom включаем в max,
+                                    // чтобы при закрытии клавиатуры footer
+                                    // никогда не падал ниже safe-area —
+                                    // см. chat_screen для деталей: иначе
+                                    // composer «отлетает» в самый низ и
+                                    // подпрыгивает на 34pt при последнем
+                                    // кадре kb-анимации.
+                                    final safeBottom = mq.viewPadding.bottom;
                                     final footerHeight = [
                                       panelHeight,
                                       keyboardInset,
                                       _stickersTransitionFooterFloor,
+                                      safeBottom,
                                     ].reduce((a, b) => a > b ? a : b);
                                     if (!_stickersPanelOpen) {
                                       // Без AnimatedSize (см. chat_screen):

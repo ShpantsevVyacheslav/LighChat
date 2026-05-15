@@ -1939,6 +1939,27 @@ class AppLocalizationsTr extends AppLocalizations {
   String get ai_style_proofread => 'Yazımı düzelt';
 
   @override
+  String get ai_style_youth => 'Gençlik';
+
+  @override
+  String get ai_style_strict => 'Sıkı';
+
+  @override
+  String get ai_style_blatnoy => 'Sokak dili';
+
+  @override
+  String get ai_style_funny => 'Eğlenceli';
+
+  @override
+  String get ai_style_romantic => 'Romantik';
+
+  @override
+  String get ai_style_sarcastic => 'Alaycı';
+
+  @override
+  String get ai_rewrite_picker_title => 'Yeniden yazma stili';
+
+  @override
   String get voice_translate_action => 'Çevir';
 
   @override

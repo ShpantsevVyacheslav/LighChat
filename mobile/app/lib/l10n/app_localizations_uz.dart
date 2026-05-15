@@ -1945,6 +1945,27 @@ class AppLocalizationsUz extends AppLocalizations {
   String get ai_style_proofread => 'Imloni tekshirish';
 
   @override
+  String get ai_style_youth => 'Yoshlar tili';
+
+  @override
+  String get ai_style_strict => 'Qatʼiy';
+
+  @override
+  String get ai_style_blatnoy => 'Koʻcha tili';
+
+  @override
+  String get ai_style_funny => 'Hazil';
+
+  @override
+  String get ai_style_romantic => 'Romantik';
+
+  @override
+  String get ai_style_sarcastic => 'Kinoyali';
+
+  @override
+  String get ai_rewrite_picker_title => 'Qayta yozish uslubi';
+
+  @override
   String get voice_translate_action => 'Tarjima qilish';
 
   @override

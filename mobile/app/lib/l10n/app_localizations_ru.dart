@@ -1940,6 +1940,27 @@ class AppLocalizationsRu extends AppLocalizations {
   String get ai_style_proofread => 'Орфография';
 
   @override
+  String get ai_style_youth => 'Молодёжный';
+
+  @override
+  String get ai_style_strict => 'Строгий';
+
+  @override
+  String get ai_style_blatnoy => 'По-блатному';
+
+  @override
+  String get ai_style_funny => 'Шутливый';
+
+  @override
+  String get ai_style_romantic => 'Романтичный';
+
+  @override
+  String get ai_style_sarcastic => 'Саркастичный';
+
+  @override
+  String get ai_rewrite_picker_title => 'Стиль переписывания';
+
+  @override
   String get voice_translate_action => 'Перевести';
 
   @override

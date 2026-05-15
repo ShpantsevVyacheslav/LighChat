@@ -1938,6 +1938,27 @@ class AppLocalizationsKk extends AppLocalizations {
   String get ai_style_proofread => 'Емле';
 
   @override
+  String get ai_style_youth => 'Жастар тілі';
+
+  @override
+  String get ai_style_strict => 'Қатаң';
+
+  @override
+  String get ai_style_blatnoy => 'Көше жаргоны';
+
+  @override
+  String get ai_style_funny => 'Қалжыңды';
+
+  @override
+  String get ai_style_romantic => 'Романтикалық';
+
+  @override
+  String get ai_style_sarcastic => 'Мысқыл';
+
+  @override
+  String get ai_rewrite_picker_title => 'Қайта жазу стилі';
+
+  @override
   String get voice_translate_action => 'Аудару';
 
   @override

@@ -23,6 +23,7 @@ import 'package:lighchat_models/lighchat_models.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 
 import '../data/composer_clipboard_paste.dart';
+import '../data/keyboard_height_cache.dart';
 import '../data/share_intent_payload.dart';
 import '../data/sticker_downscale.dart';
 import '../data/sticker_drop_heuristic.dart';
@@ -444,6 +445,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     _scrollController.addListener(_onPinnedBarScrollSync);
     _controller.addListener(_scheduleChatDraftSave);
     _captureKeyboardHeight();
+    // Прогреваем `_lastKeyboardHeight` из персистентного кэша, чтобы при
+    // первом открытии панели стикеров (до того как клавиатура успеет
+    // подняться в этой сессии) шторка имела высоту = реальной клавиатуре
+    // прошлой сессии. Иначе сваливаемся на fallback `mq.size.height * 0.38`,
+    // который немного выше реальной iOS-клавиатуры и шторка торчит.
+    unawaited(KeyboardHeightCache.instance.read().then((v) {
+      if (!mounted || v == null || v <= 0) return;
+      if (_lastKeyboardHeight <= 0) {
+        setState(() => _lastKeyboardHeight = v);
+      }
+    }));
     unawaited(AppleIntelligence.instance.isAvailable().then((v) {
       if (mounted) setState(() => _aiAvailable = v);
     }));
@@ -522,6 +534,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       return;
     }
     setState(() => _lastKeyboardHeight = height);
+    unawaited(KeyboardHeightCache.instance.write(height));
   }
 
   void _scheduleChatDraftSave() {
@@ -2819,8 +2832,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                               context,
                                             ).bottom;
                                         final mq = MediaQuery.of(context);
+                                        // 0.38 ≈ типичная iOS-клавиатура с
+                                        // QuickType bar (~336/932 на iPhone
+                                        // Pro). 0.42 был ощутимо выше —
+                                        // шторка торчала над клавиатурой
+                                        // при первом открытии. Используем
+                                        // только когда нет ни замеренного
+                                        // _lastKeyboardHeight в этой сессии,
+                                        // ни персистентного кэша.
                                         final defaultH =
-                                            mq.size.height * 0.42;
+                                            mq.size.height * 0.38;
                                         // fullScreen-режим панели стикеров:
                                         // ограничиваем сверху safe-area
                                         // top (status bar + Dynamic Island)
@@ -2858,15 +2879,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                         // вычитается автоматически. Поэтому
                                         // footer должен сам зарезервировать
                                         // место под клавиатуру/шторку:
-                                        //   footer = max(panelH, kbInset, floor)
-                                        // При переходе keyboard↔panel
-                                        // panelH стабильно держит footer,
-                                        // даже когда kbInset падает с 290→0,
-                                        // и composer стоит на месте.
+                                        //   footer = max(panelH, kbInset, floor, safeBottom)
+                                        // viewPadding.bottom (home-indicator)
+                                        // включаем в max, чтобы при закрытии
+                                        // клавиатуры footer никогда не падал
+                                        // ниже safe-area — иначе composer
+                                        // «отлетал» в самый низ и затем
+                                        // подпрыгивал на 34pt вверх, когда
+                                        // SafeArea внутри композера срабатывал
+                                        // на последнем кадре анимации.
+                                        final safeBottom = mq.viewPadding.bottom;
                                         final footerHeight = [
                                           panelHeight,
                                           keyboardInset,
                                           _stickersTransitionFooterFloor,
+                                          safeBottom,
                                         ].reduce((a, b) => a > b ? a : b);
                                         if (!_stickersPanelOpen) {
                                           // БЕЗ AnimatedSize: при переходе

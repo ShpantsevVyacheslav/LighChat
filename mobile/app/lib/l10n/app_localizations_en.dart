@@ -1925,6 +1925,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ai_style_proofread => 'Proofread';
 
   @override
+  String get ai_style_youth => 'Youth slang';
+
+  @override
+  String get ai_style_strict => 'Strict';
+
+  @override
+  String get ai_style_blatnoy => 'Streetwise';
+
+  @override
+  String get ai_style_funny => 'Funny';
+
+  @override
+  String get ai_style_romantic => 'Romantic';
+
+  @override
+  String get ai_style_sarcastic => 'Sarcastic';
+
+  @override
+  String get ai_rewrite_picker_title => 'Rewrite style';
+
+  @override
   String get voice_translate_action => 'Translate';
 
   @override

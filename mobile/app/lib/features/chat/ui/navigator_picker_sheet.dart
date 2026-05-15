@@ -160,16 +160,18 @@ class NavigatorPickerSheet {
 
     // === Taxi ===
 
-    // Яндекс Go. Документированная partner-схема `yandextaxi://route?...`
-    // с appmetrica_tracking_id работает только если у нас зарегистрирован
-    // партнёрский кабинет (этого ещё нет). Без него используем deeplink
-    // через универсальный redirector m.yandex.ru — открывает приложение
-    // если установлено и подставляет destination координатами.
+    // Яндекс Go. Документированная схема `yandextaxi://route?...`. БЕЗ
+    // `appmetrica_tracking_id` приложение игнорирует параметры маршрута
+    // и открывается на главный экран. ID `1178268795219780156` — публичный
+    // demo-tracking, который Яндекс разрешает использовать без регистрации
+    // партнёрского кабинета (используется в их же ссылках с maps.yandex.ru).
     if (await _canLaunch(Uri.parse('yandextaxi://'))) {
+      const trackingId = '1178268795219780156';
       final yandexUrl = coords != null
-          ? 'https://3.redirect.appmetrica.yandex.com/route'
+          ? 'yandextaxi://route'
               '?end-lat=${coords.lat}'
               '&end-lon=${coords.lon}'
+              '&appmetrica_tracking_id=$trackingId'
               '&ref=lighchat'
           : 'yandextaxi://';
       out.add(_NavApp(

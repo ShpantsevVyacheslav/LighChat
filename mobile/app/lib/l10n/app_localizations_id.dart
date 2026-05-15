@@ -1934,6 +1934,27 @@ class AppLocalizationsId extends AppLocalizations {
   String get ai_style_proofread => 'Periksa';
 
   @override
+  String get ai_style_youth => 'Anak muda';
+
+  @override
+  String get ai_style_strict => 'Tegas';
+
+  @override
+  String get ai_style_blatnoy => 'Bahasa preman';
+
+  @override
+  String get ai_style_funny => 'Lucu';
+
+  @override
+  String get ai_style_romantic => 'Romantis';
+
+  @override
+  String get ai_style_sarcastic => 'Sarkastis';
+
+  @override
+  String get ai_rewrite_picker_title => 'Gaya penulisan ulang';
+
+  @override
   String get voice_translate_action => 'Terjemahkan';
 
   @override

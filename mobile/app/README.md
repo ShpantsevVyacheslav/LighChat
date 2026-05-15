@@ -19,8 +19,8 @@ samples, guidance on mobile development, and a full API reference.
 ## Voice message transcription (Show text)
 
 - **Client UI**: the button lives in `lib/features/chat/ui/message_voice_attachment.dart` and requests transcription on demand.
-- **Backend**: transcription is performed server-side via Firebase Cloud Functions callable `transcribeVoiceMessage` (`us-central1`).
-- **API keys**: **do not** add any OpenAI (or other provider) key to the mobile app. The provider key is configured on the server as `OPENAI_API_KEY` (Cloud Functions env/secret).
+- **Engine**: transcription runs **on-device** via native speech recognition. iOS uses `SFSpeechRecognizer` (Apple Speech Framework); Android 13+ uses `SpeechRecognizer.createOnDeviceSpeechRecognizer`. No network, no API keys, no server. Works in E2EE chats since plaintext audio never leaves the device.
+- **Implementation**: Dart wrapper `lib/features/chat/data/local_voice_transcriber.dart` + native bridges `ios/Runner/Speech/VoiceTranscriberBridge.swift` and `android/app/src/main/kotlin/com/lighchat/lighchat_mobile/VoiceTranscriberBridge.kt`. MethodChannel: `lighchat/voice_transcribe`. See `docs/arcitecture/05-integrations.md` for the full contract.
 
 ## Android build: `flutter_windowmanager` + AGP namespace
 

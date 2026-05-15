@@ -1955,6 +1955,27 @@ class AppLocalizationsEs extends AppLocalizations {
   String get ai_style_proofread => 'Corregir';
 
   @override
+  String get ai_style_youth => 'Juvenil';
+
+  @override
+  String get ai_style_strict => 'Estricto';
+
+  @override
+  String get ai_style_blatnoy => 'Callejero';
+
+  @override
+  String get ai_style_funny => 'Divertido';
+
+  @override
+  String get ai_style_romantic => 'Romántico';
+
+  @override
+  String get ai_style_sarcastic => 'Sarcástico';
+
+  @override
+  String get ai_rewrite_picker_title => 'Estilo de reescritura';
+
+  @override
   String get voice_translate_action => 'Traducir';
 
   @override
@@ -10484,6 +10505,27 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get ai_style_proofread => 'Corregir';
+
+  @override
+  String get ai_style_youth => 'Juvenil';
+
+  @override
+  String get ai_style_strict => 'Estricto';
+
+  @override
+  String get ai_style_blatnoy => 'Callejero';
+
+  @override
+  String get ai_style_funny => 'Chistoso';
+
+  @override
+  String get ai_style_romantic => 'Romántico';
+
+  @override
+  String get ai_style_sarcastic => 'Sarcástico';
+
+  @override
+  String get ai_rewrite_picker_title => 'Estilo de reescritura';
 
   @override
   String get voice_translate_action => 'Traducir';

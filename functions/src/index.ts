@@ -35,7 +35,6 @@ export { requestMeetingAccess, respondToMeetingRequest } from './triggers/http/m
 export { checkGroupInvitesAllowed } from './triggers/http/checkGroupInvitesAllowed';
 export { retryChatMediaTranscode } from './triggers/http/retryChatMediaTranscode';
 export { deleteAccount } from './triggers/http/deleteAccount';
-export { transcribeVoiceMessage } from './triggers/http/transcribeVoiceMessage';
 export { setSecretChatPin } from './triggers/http/setSecretChatPin';
 export { unlockSecretChat } from './triggers/http/unlockSecretChat';
 export { updateSecretChatSettings } from './triggers/http/updateSecretChatSettings';

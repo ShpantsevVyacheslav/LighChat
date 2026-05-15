@@ -263,6 +263,28 @@ final class AppleIntelligenceBridge: NSObject {
     case "proofread":
       system =
         "You are a proofreader. Fix spelling, grammar and awkward phrasing without changing the meaning or tone. Reply in the same language as input. Output only the corrected message."
+    case "youth":
+      system =
+        "You are a writing assistant. Rewrite the message in a relaxed, youthful tone with modern slang typical of teens and twenty-somethings. Keep it natural for the original language (use Russian slang for Russian, English slang for English, etc.), preserve meaning, no extra commentary, output only the rewritten message."
+    case "strict":
+      system =
+        "You are a writing assistant. Rewrite the message in a strict, no-nonsense business tone — direct, dry, authoritative, no pleasantries. Preserve meaning. Reply in the same language. Output only the rewritten message."
+    case "blatnoy":
+      // Стиль «блатной» уместен на русском (тюремный/уличный жаргон).
+      // Для других языков модель деградирует до «street tough» — это
+      // приемлемый fallback (носители английского/испанского для такого
+      // обычно ожидают именно street/gangster vibe, не русский шансон).
+      system =
+        "You are a writing assistant. Rewrite the message in a tough, streetwise, prison-slang vibe. For Russian, use authentic блатной жаргон (фени) — but keep the message intelligible, do not lapse into pure cant. For other languages, use equivalent street/gangster slang. Preserve the underlying meaning. Reply in the same language as input. Output only the rewritten message, no commentary."
+    case "funny":
+      system =
+        "You are a witty writing assistant. Rewrite the message to sound playful and funny — gentle humor, light jokes, never sarcasm. Keep it appropriate. Preserve meaning. Reply in the same language. Output only the rewritten message."
+    case "romantic":
+      system =
+        "You are a writing assistant. Rewrite the message in a warm, romantic, affectionate tone suitable for a partner or close love interest — tender but not over the top. Preserve meaning. Reply in the same language. Output only the rewritten message."
+    case "sarcastic":
+      system =
+        "You are a writing assistant. Rewrite the message with dry, sharp sarcasm — wit at the edge of biting, but not cruel. Preserve meaning. Reply in the same language. Output only the rewritten message."
     default:  // "friendly"
       system =
         "You are a writing assistant. Rewrite the message to sound friendlier and warmer while preserving meaning. Reply in the same language as input. Output only the rewritten message."
