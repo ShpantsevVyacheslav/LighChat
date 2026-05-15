@@ -1,4 +1,6 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+
+import { resolveGeoFromIp } from "../../lib/geoip-resolve";
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import { hashNonceForStorage } from "./requestQrLogin";
@@ -52,6 +54,12 @@ export type ConfirmQrLoginDeps = {
   createCustomToken: (uid: string) => Promise<string>;
   /** Текущая дата (для тестирования истечения сессий). */
   now?: () => Date;
+  /**
+   * Геолокация approve-источника (текущий вход админа на старом устройстве).
+   * onCall-обёртка резолвит её через `resolveGeoFromIp` по IP запроса. В
+   * тестах можно передать фейковые значения.
+   */
+  approverGeo?: { country: string; city: string };
 };
 
 const APPROVED_TOKEN_TTL_SEC = 60; // окно использования customToken
@@ -201,8 +209,15 @@ export async function runConfirmQrLogin(
   try {
     const newDeviceId = typeof docData.deviceId === "string" ? docData.deviceId : "";
     if (newDeviceId.length >= 4 && /^[A-Za-z0-9_-]+$/.test(newDeviceId)) {
-      const country = typeof docData.country === "string" ? docData.country : "";
-      const city = typeof docData.city === "string" ? docData.city : "";
+      // Приоритет: 1) гео в qrLoginSessions doc (если клиент-источник
+      // его положил, обычно пустое), 2) гео текущего approve-вызова
+      // (`approverGeo`, резолв по IP на сервере). Логика H-003:
+      // публичный session-doc больше не хранит IP, поэтому резолв
+      // делаем в момент confirm'а.
+      const docCountry = typeof docData.country === "string" ? docData.country : "";
+      const docCity = typeof docData.city === "string" ? docData.city : "";
+      const country = docCountry || deps.approverGeo?.country || "";
+      const city = docCity || deps.approverGeo?.city || "";
       await db.doc(`users/${uid}/devices/${newDeviceId}`).set({
         lastLoginAt: approvedAtIso,
         lastLoginCountry: country,
@@ -224,11 +239,24 @@ export async function runConfirmQrLogin(
 }
 
 export const confirmQrLogin = onCall(
-  { region: "us-central1", enforceAppCheck: false, cors: true },
+  {
+    region: "us-central1",
+    enforceAppCheck: false,
+    cors: true,
+    // 512 MiB под lazy-загружаемую geoip-lite базу (~30 MB).
+    memory: "512MiB",
+  },
   async (request) => {
     if (!request.auth?.uid) {
       throw new HttpsError("unauthenticated", "Sign in to approve a new device.");
     }
+    const headers = request.rawRequest?.headers ?? {};
+    const xff = headers["x-forwarded-for"];
+    const ipFromXff = typeof xff === "string" ?
+      xff.split(",")[0]?.trim() ?? "" :
+      Array.isArray(xff) ? xff[0]?.trim() ?? "" : "";
+    const ip = request.rawRequest?.ip || ipFromXff || "";
+    const approverGeo = resolveGeoFromIp({ ip });
     try {
       return await runConfirmQrLogin(
         request.auth.uid,
@@ -237,6 +265,7 @@ export const confirmQrLogin = onCall(
           db: admin.firestore(),
           createCustomToken: (uid: string) =>
             admin.auth().createCustomToken(uid, { qrLogin: true }),
+          approverGeo,
         }
       );
     } catch (e) {

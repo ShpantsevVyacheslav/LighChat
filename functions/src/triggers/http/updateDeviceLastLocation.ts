@@ -2,6 +2,8 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 
+import { resolveGeoFromIp } from "../../lib/geoip-resolve";
+
 /**
  * Обновляет «последний вход» (`lastLoginAt`/`lastLoginCity`/`lastLoginCountry`/`lastLoginIp`)
  * для устройства пользователя на основе GeoIP-заголовков, которые Google Cloud
@@ -103,7 +105,14 @@ export async function runUpdateDeviceLastLocation(
 }
 
 export const updateDeviceLastLocation = onCall(
-  { region: "us-central1", enforceAppCheck: false, cors: true },
+  {
+    region: "us-central1",
+    enforceAppCheck: false,
+    cors: true,
+    // 512 MiB нужно, чтобы lazy-загруженная geoip-lite база (~30 MB)
+    // помещалась в RAM без OOM. Дефолт 256 MiB на 2nd-gen тесновато.
+    memory: "512MiB",
+  },
   async (request): Promise<UpdateDeviceLastLocationResult> => {
     const uid = request.auth?.uid;
     if (!uid) {
@@ -115,12 +124,21 @@ export const updateDeviceLastLocation = onCall(
       xff.split(",")[0]?.trim() ?? "" :
       Array.isArray(xff) ? xff[0]?.trim() ?? "" : "";
     const ip = request.rawRequest?.ip || ipFromXff || "";
-    const country = typeof headers["x-appengine-country"] === "string" ?
+    // На Cloud Run 2nd gen `x-appengine-*` заголовков нет, поэтому
+    // основной путь — offline GeoIP-резолв из `geoip-lite`. Если в
+    // будущем поставим Cloud Load Balancer с client-geo header rules,
+    // resolveGeoFromIp отдаст приоритет header'ам.
+    const headerCountry = typeof headers["x-appengine-country"] === "string" ?
       headers["x-appengine-country"] :
       "";
-    const city = typeof headers["x-appengine-city"] === "string" ?
+    const headerCity = typeof headers["x-appengine-city"] === "string" ?
       headers["x-appengine-city"] :
       "";
+    const { country, city } = resolveGeoFromIp({
+      ip,
+      headerCountry,
+      headerCity,
+    });
     try {
       return await runUpdateDeviceLastLocation(
         admin.firestore(),
