@@ -221,15 +221,18 @@ private final class SubjectLiftViewController: UIViewController {
         let analysis = try await self.analyzer.analyze(
           self.image,
           configuration: ImageAnalyzer.Configuration([.visualLookUp]))
+        // interaction.analysis нужно ставить на main; subjects — async
+        // property, читаем её на main thread после установки analysis.
         await MainActor.run {
           self.interaction.analysis = analysis
+        }
+        let subjects = await self.interaction.subjects
+        await MainActor.run {
           self.spinner.stopAnimating()
           self.spinner.isHidden = true
-          if self.interaction.subjects.isEmpty {
-            self.hintLabel.text = "Объекты не найдены"
-          } else {
-            self.hintLabel.text = "Нажми на объект чтобы вырезать"
-          }
+          self.hintLabel.text = subjects.isEmpty
+            ? "Объекты не найдены"
+            : "Нажми на объект чтобы вырезать"
         }
       } catch {
         await MainActor.run {
@@ -243,18 +246,24 @@ private final class SubjectLiftViewController: UIViewController {
 
   @objc private func handleTap(_ recognizer: UITapGestureRecognizer) {
     let point = recognizer.location(in: imageView)
-    // Точка в координатах imageView — нужно сконвертировать в координаты
-    // самого image (contentMode .scaleAspectFit добавляет «letterbox»-полосы).
+    // Точка в координатах imageView — `ImageAnalysisInteraction.subject(at:)`
+    // сам конвертит coord в координаты самого image (учитывая letterbox от
+    // contentMode .scaleAspectFit).
     Task { [weak self] in
       guard let self = self else { return }
-      if let subject = await self.interaction.subject(at: point) {
-        let lifted = await subject.image
-        await MainActor.run {
-          self.finish(with: lifted)
-        }
-      } else {
+      let subject = await self.interaction.subject(at: point)
+      guard let subject = subject else {
         await MainActor.run {
           self.hintLabel.text = "Тут нет объекта — нажми на другой"
+        }
+        return
+      }
+      do {
+        let lifted = try await subject.image
+        await MainActor.run { self.finish(with: lifted) }
+      } catch {
+        await MainActor.run {
+          self.hintLabel.text = "Не удалось вырезать объект"
         }
       }
     }
