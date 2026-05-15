@@ -1,3 +1,4 @@
+import 'package:add_2_calendar/add_2_calendar.dart' as cal;
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_entity_extraction/google_mlkit_entity_extraction.dart';
 
@@ -5,23 +6,32 @@ import '../data/chat_haptics.dart';
 import '../data/local_entity_extractor.dart';
 
 /// Ряд кликабельных «чипов» под сообщением — quick-actions для
-/// распознанных сущностей (телефон → позвонить, адрес → карта,
-/// email → mailto и т.п.). Лениво подгружает ML Kit модель при первом
-/// сообщении на этом языке.
+/// распознанных сущностей.
 ///
-/// Показывается только если ML Kit нашёл хотя бы одну actionable-сущность.
-/// На пустом / не-actionable тексте — ничего не рендерится.
+/// Tap:
+///  - phone → `tel:`, email → `mailto:`, url → browser, address → Maps,
+///    flight → web search
+/// Long-press:
+///  - **date** → нативное «Добавить в календарь» с предзаполненными
+///    title (из текста сообщения), startDate (из timestamp ML Kit) и
+///    description (полный текст + список вложений)
 class EntityChipsRow extends StatefulWidget {
   const EntityChipsRow({
     super.key,
     required this.text,
     required this.languageHint,
     required this.isMine,
+    this.attachmentLabels = const <String>[],
   });
 
   final String text;
   final String languageHint;
   final bool isMine;
+
+  /// Имена / краткие подписи вложений сообщения. Добавляются в description
+  /// события календаря, чтобы пользователь видел контекст «к этому событию
+  /// прикреплены такие-то файлы».
+  final List<String> attachmentLabels;
 
   @override
   State<EntityChipsRow> createState() => _EntityChipsRowState();
@@ -59,7 +69,6 @@ class _EntityChipsRowState extends State<EntityChipsRow> {
     final ann = _annotations;
     if (ann == null || ann.isEmpty) return const SizedBox.shrink();
 
-    // Берём только actionable-типы и убираем дубли (одинаковый text+type).
     final seen = <String>{};
     final chips = <_EntityChipData>[];
     for (final a in ann) {
@@ -84,10 +93,73 @@ class _EntityChipsRowState extends State<EntityChipsRow> {
         spacing: 6,
         runSpacing: 4,
         children: chips
-            .map((c) => _EntityChip(data: c, isMine: widget.isMine))
+            .map((c) => _EntityChip(
+                  data: c,
+                  isMine: widget.isMine,
+                  onLongPressDate: c.entity.type == EntityType.dateTime
+                      ? () => _addDateToCalendar(c)
+                      : null,
+                ))
             .toList(),
       ),
     );
+  }
+
+  Future<void> _addDateToCalendar(_EntityChipData c) async {
+    final entity = c.entity;
+    if (entity is! DateTimeEntity) return;
+    await ChatHaptics.instance.longPress();
+    final start = DateTime.fromMillisecondsSinceEpoch(entity.timestamp);
+    // Гранулярность DAY → all-day event; иначе час по умолчанию.
+    final allDay =
+        entity.dateTimeGranularity == DateTimeGranularity.day ||
+            entity.dateTimeGranularity == DateTimeGranularity.week ||
+            entity.dateTimeGranularity == DateTimeGranularity.month ||
+            entity.dateTimeGranularity == DateTimeGranularity.year;
+    final end = allDay
+        ? start.add(const Duration(days: 1))
+        : start.add(const Duration(hours: 1));
+
+    final title = _buildTitle(widget.text, c.annotation.text);
+    final description = _buildDescription(widget.text, widget.attachmentLabels);
+
+    final event = cal.Event(
+      title: title,
+      description: description.isEmpty ? null : description,
+      startDate: start,
+      endDate: end,
+      allDay: allDay,
+    );
+    try {
+      await cal.Add2Calendar.addEvent2Cal(event);
+      await ChatHaptics.instance.success();
+    } catch (_) {
+      await ChatHaptics.instance.error();
+    }
+  }
+
+  /// Берём текст сообщения, вычёркиваем матч даты — остаток становится
+  /// заголовком события. Если ничего не осталось — fallback на «Событие».
+  static String _buildTitle(String fullText, String dateMatch) {
+    var t = fullText.replaceFirst(dateMatch, '').trim();
+    t = t.replaceAll(RegExp(r'\s+'), ' ');
+    if (t.isEmpty) return 'Событие';
+    if (t.length > 100) t = '${t.substring(0, 97)}…';
+    return t;
+  }
+
+  static String _buildDescription(String fullText, List<String> attachments) {
+    final buf = StringBuffer();
+    final trimmed = fullText.trim();
+    if (trimmed.isNotEmpty) buf.writeln(trimmed);
+    if (attachments.isNotEmpty) {
+      if (buf.isNotEmpty) buf.writeln();
+      buf.writeln('Вложения:');
+      for (final a in attachments) {
+        buf.writeln('— $a');
+      }
+    }
+    return buf.toString().trim();
   }
 
   IconData? _iconFor(EntityType t) {
@@ -128,9 +200,17 @@ class _EntityChipData {
 }
 
 class _EntityChip extends StatelessWidget {
-  const _EntityChip({required this.data, required this.isMine});
+  const _EntityChip({
+    required this.data,
+    required this.isMine,
+    required this.onLongPressDate,
+  });
+
   final _EntityChipData data;
   final bool isMine;
+
+  /// Long-press handler — только для date-чипов. На остальных `null`.
+  final VoidCallback? onLongPressDate;
 
   @override
   Widget build(BuildContext context) {
@@ -143,6 +223,7 @@ class _EntityChip extends StatelessWidget {
           await ChatHaptics.instance.tick();
           await LocalEntityExtractor.instance.launchEntity(data.annotation);
         },
+        onLongPress: onLongPressDate,
         borderRadius: BorderRadius.circular(10),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),

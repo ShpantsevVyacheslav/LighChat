@@ -1588,6 +1588,10 @@ class _ChatMessageBubble extends StatelessWidget {
               text: displayPlain,
               languageHint: uiLang,
               isMine: isMine,
+              attachmentLabels: [
+                for (final a in message.attachments)
+                  if (a.name.trim().isNotEmpty) a.name.trim(),
+              ],
             ),
             if (linkPreviewUrl != null) ...[
               const SizedBox(height: 10),

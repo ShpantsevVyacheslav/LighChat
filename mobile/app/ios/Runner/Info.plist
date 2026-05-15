@@ -55,6 +55,10 @@
 	<string>Чтобы снимать фото и видео для сообщений в чате</string>
 	<key>NSContactsUsageDescription</key>
 	<string>Чтобы находить знакомых и синхронизировать контакты из телефонной книги</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>Чтобы быстро добавить дату из сообщения в ваш календарь — долгий тап на дате</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Чтобы быстро добавить дату из сообщения в ваш календарь — долгий тап на дате</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Для разблокировки секретных чатов и подтверждения действий в хранилище</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
