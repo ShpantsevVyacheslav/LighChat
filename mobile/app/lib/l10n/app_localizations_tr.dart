@@ -1847,6 +1847,25 @@ class AppLocalizationsTr extends AppLocalizations {
   String get ai_action_failed => 'Apple Intelligence kullanılamıyor';
 
   @override
+  String get ai_status_model_not_ready =>
+      'Apple Intelligence modeli hâlâ indiriliyor. Bir dakika sonra tekrar deneyin.';
+
+  @override
+  String get ai_status_not_enabled =>
+      'Apple Intelligence Ayarlar\'da etkin değil.';
+
+  @override
+  String get ai_status_device_not_eligible =>
+      'Bu cihaz Apple Intelligence\'ı desteklemiyor.';
+
+  @override
+  String get ai_status_unsupported_os =>
+      'Apple Intelligence iOS 26 veya üstünü gerektirir.';
+
+  @override
+  String get ai_status_unknown => 'Apple Intelligence şu anda kullanılamıyor.';
+
+  @override
   String get ai_style_friendly => 'Daha samimi';
 
   @override

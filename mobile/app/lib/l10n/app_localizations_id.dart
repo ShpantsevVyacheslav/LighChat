@@ -1842,6 +1842,25 @@ class AppLocalizationsId extends AppLocalizations {
   String get ai_action_failed => 'Apple Intelligence tidak tersedia';
 
   @override
+  String get ai_status_model_not_ready =>
+      'Model Apple Intelligence masih diunduh. Coba lagi sebentar.';
+
+  @override
+  String get ai_status_not_enabled =>
+      'Apple Intelligence belum diaktifkan di Pengaturan.';
+
+  @override
+  String get ai_status_device_not_eligible =>
+      'Perangkat ini tidak mendukung Apple Intelligence.';
+
+  @override
+  String get ai_status_unsupported_os =>
+      'Apple Intelligence butuh iOS 26 atau lebih baru.';
+
+  @override
+  String get ai_status_unknown => 'Apple Intelligence saat ini tidak tersedia.';
+
+  @override
   String get ai_style_friendly => 'Lebih ramah';
 
   @override

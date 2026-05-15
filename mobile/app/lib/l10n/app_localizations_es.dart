@@ -1861,6 +1861,26 @@ class AppLocalizationsEs extends AppLocalizations {
   String get ai_action_failed => 'Apple Intelligence no disponible';
 
   @override
+  String get ai_status_model_not_ready =>
+      'La modelo de Apple Intelligence aún se descarga. Inténtalo en un minuto.';
+
+  @override
+  String get ai_status_not_enabled =>
+      'Apple Intelligence no está activado en Ajustes.';
+
+  @override
+  String get ai_status_device_not_eligible =>
+      'Este dispositivo no admite Apple Intelligence.';
+
+  @override
+  String get ai_status_unsupported_os =>
+      'Apple Intelligence requiere iOS 26 o más reciente.';
+
+  @override
+  String get ai_status_unknown =>
+      'Apple Intelligence no está disponible ahora.';
+
+  @override
   String get ai_style_friendly => 'Más amigable';
 
   @override
@@ -10243,6 +10263,26 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get ai_action_failed => 'Apple Intelligence no disponible';
+
+  @override
+  String get ai_status_model_not_ready =>
+      'La modelo de Apple Intelligence aún se descarga. Inténtalo en un minuto.';
+
+  @override
+  String get ai_status_not_enabled =>
+      'Apple Intelligence no está activado en Ajustes.';
+
+  @override
+  String get ai_status_device_not_eligible =>
+      'Este dispositivo no admite Apple Intelligence.';
+
+  @override
+  String get ai_status_unsupported_os =>
+      'Apple Intelligence requiere iOS 26 o más reciente.';
+
+  @override
+  String get ai_status_unknown =>
+      'Apple Intelligence no está disponible ahora.';
 
   @override
   String get ai_style_friendly => 'Más amigable';

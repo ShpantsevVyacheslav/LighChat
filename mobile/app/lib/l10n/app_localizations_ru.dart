@@ -1849,6 +1849,25 @@ class AppLocalizationsRu extends AppLocalizations {
       'Apple Intelligence недоступен на этом устройстве';
 
   @override
+  String get ai_status_model_not_ready =>
+      'Модель Apple Intelligence ещё загружается. Попробуйте через минуту.';
+
+  @override
+  String get ai_status_not_enabled =>
+      'Apple Intelligence не включён в Настройках.';
+
+  @override
+  String get ai_status_device_not_eligible =>
+      'Это устройство не поддерживает Apple Intelligence.';
+
+  @override
+  String get ai_status_unsupported_os =>
+      'Apple Intelligence требует iOS 26 или новее.';
+
+  @override
+  String get ai_status_unknown => 'Apple Intelligence сейчас недоступен.';
+
+  @override
   String get ai_style_friendly => 'Дружелюбнее';
 
   @override

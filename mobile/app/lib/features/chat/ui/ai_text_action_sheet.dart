@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../data/apple_intelligence.dart';
 import '../data/chat_haptics.dart';
 
 /// Premium bottom-sheet для AI-действий (TL;DR / Rewrite / Digest).
@@ -97,6 +98,7 @@ class _AiTextActionSheetState extends State<AiTextActionSheet> {
   String? _result;
   bool _busy = false;
   bool _failed = false;
+  String? _failureStatus;
 
   @override
   void initState() {
@@ -111,15 +113,43 @@ class _AiTextActionSheetState extends State<AiTextActionSheet> {
     setState(() {
       _busy = true;
       _failed = false;
+      _failureStatus = null;
       _result = null;
     });
     final out = await widget.run(_styleId);
+    String? status;
+    if (out == null) {
+      // Узнаём детальную причину — модель ещё качается / выключено в
+      // Настройках / устройство не поддерживает.
+      status = await AppleIntelligence.instance.availabilityStatus();
+    }
     if (!mounted) return;
     setState(() {
       _busy = false;
       _failed = out == null;
+      _failureStatus = status;
       _result = out;
     });
+  }
+
+  String _failureMessage(AppLocalizations l10n) {
+    switch (_failureStatus) {
+      case 'modelNotReady':
+        return l10n.ai_status_model_not_ready;
+      case 'appleIntelligenceNotEnabled':
+        return l10n.ai_status_not_enabled;
+      case 'deviceNotEligible':
+        return l10n.ai_status_device_not_eligible;
+      case 'unsupportedOs':
+      case 'sdkMissing':
+        return l10n.ai_status_unsupported_os;
+      case 'available':
+        // Модель доступна, но run вернул null — значит run-метод сам
+        // упал. Показываем общую ошибку.
+        return l10n.ai_action_failed;
+      default:
+        return l10n.ai_status_unknown;
+    }
   }
 
   void _changeStyle(String id) {
@@ -192,7 +222,7 @@ class _AiTextActionSheetState extends State<AiTextActionSheet> {
                               busy: _busy,
                               failed: _failed,
                               busyLabel: l10n.ai_action_thinking,
-                              failedLabel: l10n.ai_action_failed,
+                              failedLabel: _failureMessage(l10n),
                             ),
                           ],
                         ),

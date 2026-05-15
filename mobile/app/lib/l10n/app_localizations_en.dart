@@ -1833,6 +1833,26 @@ class AppLocalizationsEn extends AppLocalizations {
       'Apple Intelligence is unavailable on this device.';
 
   @override
+  String get ai_status_model_not_ready =>
+      'Apple Intelligence model is still downloading. Try again in a minute.';
+
+  @override
+  String get ai_status_not_enabled =>
+      'Apple Intelligence isn’t enabled in Settings.';
+
+  @override
+  String get ai_status_device_not_eligible =>
+      'This device doesn’t support Apple Intelligence.';
+
+  @override
+  String get ai_status_unsupported_os =>
+      'Apple Intelligence requires iOS 26 or newer.';
+
+  @override
+  String get ai_status_unknown =>
+      'Apple Intelligence is currently unavailable.';
+
+  @override
   String get ai_style_friendly => 'Friendlier';
 
   @override

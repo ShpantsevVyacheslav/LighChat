@@ -37,6 +37,9 @@ final class AppleIntelligenceBridge: NSObject {
     case "isAvailable":
       result(Self.isFoundationModelsAvailable())
 
+    case "availabilityStatus":
+      result(Self.availabilityStatus())
+
     case "summarizeText":
       let text = (args["text"] as? String ?? "")
         .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -75,10 +78,49 @@ final class AppleIntelligenceBridge: NSObject {
     #if canImport(FoundationModels)
       if #available(iOS 26.0, *) {
         let model = SystemLanguageModel.default
-        if case .available = model.availability { return true }
+        let avail = model.availability
+        if case .available = avail { return true }
+        NSLog("%@ availability check: %@", logTag, "\(avail)")
+      } else {
+        NSLog("%@ iOS < 26 — Foundation Models not present", logTag)
       }
+    #else
+      NSLog("%@ FoundationModels framework absent in SDK", logTag)
     #endif
     return false
+  }
+
+  /// Подробный статус модели — для UI «почему AI не работает». Возвращает
+  /// один из: `available`, `appleIntelligenceNotEnabled`, `modelNotReady`,
+  /// `deviceNotEligible`, `unsupportedOs`, `sdkMissing`, `unknown`.
+  static func availabilityStatus() -> String {
+    #if canImport(FoundationModels)
+      if #available(iOS 26.0, *) {
+        let model = SystemLanguageModel.default
+        switch model.availability {
+        case .available:
+          return "available"
+        case .unavailable(let reason):
+          let r = "\(reason)".lowercased()
+          if r.contains("appleintelligencenotenabled") {
+            return "appleIntelligenceNotEnabled"
+          }
+          if r.contains("modelnotready") || r.contains("downloading") {
+            return "modelNotReady"
+          }
+          if r.contains("devicenoteligible") {
+            return "deviceNotEligible"
+          }
+          NSLog("%@ unknown unavailability reason: %@", logTag, r)
+          return "unknown"
+        @unknown default:
+          return "unknown"
+        }
+      }
+      return "unsupportedOs"
+    #else
+      return "sdkMissing"
+    #endif
   }
 
   private static func rewritePrompt(style: String, text: String)

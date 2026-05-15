@@ -3286,6 +3286,36 @@ abstract class AppLocalizations {
   /// **'Apple Intelligence недоступен на этом устройстве'**
   String get ai_action_failed;
 
+  /// No description provided for @ai_status_model_not_ready.
+  ///
+  /// In ru, this message translates to:
+  /// **'Модель Apple Intelligence ещё загружается. Попробуйте через минуту.'**
+  String get ai_status_model_not_ready;
+
+  /// No description provided for @ai_status_not_enabled.
+  ///
+  /// In ru, this message translates to:
+  /// **'Apple Intelligence не включён в Настройках.'**
+  String get ai_status_not_enabled;
+
+  /// No description provided for @ai_status_device_not_eligible.
+  ///
+  /// In ru, this message translates to:
+  /// **'Это устройство не поддерживает Apple Intelligence.'**
+  String get ai_status_device_not_eligible;
+
+  /// No description provided for @ai_status_unsupported_os.
+  ///
+  /// In ru, this message translates to:
+  /// **'Apple Intelligence требует iOS 26 или новее.'**
+  String get ai_status_unsupported_os;
+
+  /// No description provided for @ai_status_unknown.
+  ///
+  /// In ru, this message translates to:
+  /// **'Apple Intelligence сейчас недоступен.'**
+  String get ai_status_unknown;
+
   /// No description provided for @ai_style_friendly.
   ///
   /// In ru, this message translates to:

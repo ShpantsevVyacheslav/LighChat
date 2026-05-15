@@ -1846,6 +1846,25 @@ class AppLocalizationsKk extends AppLocalizations {
   String get ai_action_failed => 'Apple Intelligence қол жетімді емес';
 
   @override
+  String get ai_status_model_not_ready =>
+      'Apple Intelligence моделі әлі жүктеліп жатыр. Сәлден кейін қайталаңыз.';
+
+  @override
+  String get ai_status_not_enabled =>
+      'Apple Intelligence Параметрлерде қосылмаған.';
+
+  @override
+  String get ai_status_device_not_eligible =>
+      'Бұл құрылғы Apple Intelligence қолдамайды.';
+
+  @override
+  String get ai_status_unsupported_os =>
+      'Apple Intelligence iOS 26 немесе одан жаңасын талап етеді.';
+
+  @override
+  String get ai_status_unknown => 'Apple Intelligence қазір қол жетімді емес.';
+
+  @override
   String get ai_style_friendly => 'Жайлырақ';
 
   @override

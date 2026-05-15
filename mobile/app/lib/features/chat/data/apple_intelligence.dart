@@ -28,6 +28,20 @@ class AppleIntelligence {
     return _availableCache!;
   }
 
+  /// Детальный статус — для отображения причины «почему недоступен».
+  /// Значения: `available`, `appleIntelligenceNotEnabled`, `modelNotReady`,
+  /// `deviceNotEligible`, `unsupportedOs`, `sdkMissing`, `unknown`.
+  Future<String> availabilityStatus() async {
+    try {
+      final s = await _channel.invokeMethod<String>('availabilityStatus');
+      return s ?? 'unknown';
+    } on MissingPluginException {
+      return 'sdkMissing';
+    } on PlatformException {
+      return 'unknown';
+    }
+  }
+
   /// Резюмирует текст одним-двумя предложениями на том же языке.
   /// Возвращает `null`, если LLM недоступен или вернул пусто.
   Future<String?> summarize(String text) async {

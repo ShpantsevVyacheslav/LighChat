@@ -1853,6 +1853,25 @@ class AppLocalizationsUz extends AppLocalizations {
   String get ai_action_failed => 'Apple Intelligence mavjud emas';
 
   @override
+  String get ai_status_model_not_ready =>
+      'Apple Intelligence modeli yuklanmoqda. Bir daqiqadan keyin yana urinib koʻring.';
+
+  @override
+  String get ai_status_not_enabled =>
+      'Apple Intelligence Sozlamalarda yoqilmagan.';
+
+  @override
+  String get ai_status_device_not_eligible =>
+      'Bu qurilma Apple Intelligence-ni qoʻllab-quvvatlamaydi.';
+
+  @override
+  String get ai_status_unsupported_os =>
+      'Apple Intelligence iOS 26 yoki yangiroq talab qiladi.';
+
+  @override
+  String get ai_status_unknown => 'Apple Intelligence hozircha mavjud emas.';
+
+  @override
   String get ai_style_friendly => 'Doʻstona';
 
   @override
