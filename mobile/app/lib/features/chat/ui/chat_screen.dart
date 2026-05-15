@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:lighchat_mobile/core/app_logger.dart';
+import 'package:lighchat_mobile/platform/native_nav_bar/nav_bar_config.dart';
 import 'package:lighchat_mobile/platform/native_nav_bar/native_nav_bar_facade.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart' show DateFormat;
@@ -3957,10 +3958,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   void _exitSelection() {
     setState(() => _selectedMessageIds.clear());
+    // ChatHeader rebuild перевыставит native bar в нормальную конфигурацию
+    // (ничего вручную не вызываем).
+  }
+
+  /// При входе в selection-режим Scaffold показывает Flutter
+  /// `ChatSelectionAppBar`, но native iOS bar (из NavBarOverlayHost) остаётся
+  /// с конфигом обычного чата — `ChatHeader` больше не рендерится и не
+  /// перевыставляет конфиг. Два бара накладываются и body «съезжает». Явно
+  /// гасим native bar здесь.
+  void _hideNativeBarForSelectionIfNeeded() {
+    if (!NativeNavBarFacade.instance.isSupported) return;
+    unawaited(
+      NativeNavBarFacade.instance.setTopBar(const NavBarTopConfig.hidden()),
+    );
   }
 
   void _toggleMessageSelected(ChatMessage m) {
     if (m.id.startsWith(kLocalOutboxMessageIdPrefix)) return;
+    final wasEmpty = _selectedMessageIds.isEmpty;
     setState(() {
       if (_selectedMessageIds.contains(m.id)) {
         _selectedMessageIds.remove(m.id);
@@ -3968,6 +3984,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         _selectedMessageIds.add(m.id);
       }
     });
+    if (wasEmpty && _selectedMessageIds.isNotEmpty) {
+      _hideNativeBarForSelectionIfNeeded();
+    }
   }
 
   bool _canBulkDeleteFor(List<ChatMessage> msgs, String uid) {
@@ -4558,7 +4577,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         unawaited(ChatHaptics.instance.success());
         context.push('/chats/forward', extra: <ChatMessage>[m]);
       case MessageMenuActionType.select:
+        final wasEmpty = _selectedMessageIds.isEmpty;
         setState(() => _selectedMessageIds.add(m.id));
+        if (wasEmpty) _hideNativeBarForSelectionIfNeeded();
       case MessageMenuActionType.delete:
         await _confirmDeleteMessages([m]);
       case MessageMenuActionType.react:
