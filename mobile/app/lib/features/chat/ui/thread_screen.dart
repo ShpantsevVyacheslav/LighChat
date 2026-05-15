@@ -1320,6 +1320,12 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
       case ComposerAttachmentAction.poll:
         unawaited(_sendChatPollThread(uid));
         break;
+      case ComposerAttachmentAction.scanDocument:
+        // В тредах сканер документов пока не нужен — оставляем no-op,
+        // пользователь может прикрепить уже отсканированный файл через
+        // обычный deviceFiles. Если попросят — добавим тот же flow что и
+        // в основном чате.
+        break;
     }
   }
 
