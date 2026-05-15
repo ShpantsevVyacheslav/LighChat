@@ -2,16 +2,37 @@ import Flutter
 import Foundation
 import UIKit
 
-/// Subclass `UITextView` с перехватом `paste(_:)`. Если в pasteboard'е
-/// есть изображения/файлы (не только текст), отдаём control в Dart: тот
-/// прочитает `super_clipboard` payload (включая HEIC, PNG, web-images,
-/// drag&drop URI) и зашлёт в send-pipeline композера как attachment.
-/// Plain-text-only paste идёт штатным путём `super.paste(sender)`.
+/// Subclass `UITextView` с перехватом `paste(_:)` (Phase 2) и
+/// `deleteBackward()` (Phase 3 — атомарное удаление mention-чипа).
 final class ComposerTextView: UITextView {
   /// Вызывается, когда `paste` детектит файловое содержимое (не только
   /// текст). Возвращает `true` чтобы перехватить и заблокировать
   /// дефолтную вставку, `false` — пускаем `super.paste`.
   var onPasteRequest: (() -> Bool)?
+
+  override func deleteBackward() {
+    // Атомарное удаление mention-чипа: если курсор стоит сразу за
+    // mention-run'ом, backspace должен удалить ВЕСЬ runrange (как чип),
+    // а не один символ из «@Имя».
+    let cursor = selectedRange.location
+    if selectedRange.length == 0, cursor > 0 {
+      let probe = cursor - 1
+      var effective = NSRange(location: NSNotFound, length: 0)
+      let attr = attributedText.attribute(
+        MentionAttributedString.tokenKey, at: probe,
+        longestEffectiveRange: &effective,
+        in: NSRange(location: 0, length: attributedText.length))
+      if attr != nil, effective.location != NSNotFound {
+        let mut = NSMutableAttributedString(attributedString: attributedText)
+        mut.deleteCharacters(in: effective)
+        attributedText = mut
+        selectedRange = NSRange(location: effective.location, length: 0)
+        delegate?.textViewDidChange?(self)
+        return
+      }
+    }
+    super.deleteBackward()
+  }
 
   override func paste(_ sender: Any?) {
     let pb = UIPasteboard.general
@@ -58,6 +79,11 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
   private var isApplyingRemoteText = false
   /// Запомненный contentSize чтобы не спамить Dart одинаковыми значениями.
   private var lastReportedHeight: CGFloat = 0
+  /// Стили mention-чипа — нужны для render-функции, синхронизируются с
+  /// `applyArgs` (изменения цвета акцента / шрифта).
+  private var baseFont: UIFont = .systemFont(ofSize: 16, weight: .medium)
+  private var baseColor: UIColor = .label
+  private var accentColor: UIColor = UIColor.systemBlue
 
   init(
     frame: CGRect, viewId: Int64, args: [String: Any],
@@ -137,14 +163,17 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
       : weight >= 500 ? .medium
       : .regular
     textView.font = .systemFont(ofSize: fontSize, weight: uiWeight)
+    baseFont = textView.font ?? baseFont
     hintLabel.font = textView.font
 
     if let fgHex = args["textColorHex"] as? String,
       let fg = UIColor.fromHex(fgHex)
     {
       textView.textColor = fg
+      baseColor = fg
     } else {
       textView.textColor = .label
+      baseColor = .label
     }
     if let hintHex = args["hintColorHex"] as? String,
       let hint = UIColor.fromHex(hintHex)
@@ -157,17 +186,46 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
       let cursor = UIColor.fromHex(cursorHex)
     {
       textView.tintColor = cursor
+      // Используем cursor-color как accent для mention-чипа: единый
+      // стиль (в чате primary == cursor == mention accent).
+      accentColor = cursor
     }
 
     hintLabel.text = (args["hint"] as? String) ?? ""
 
     if let initial = args["initialText"] as? String, !initial.isEmpty {
       isApplyingRemoteText = true
-      textView.text = initial
+      applyPlainText(initial)
       isApplyingRemoteText = false
+    } else {
+      // Style мог измениться — переотрисуем существующий attributedText
+      // в новых цветах/шрифте (например смена темы).
+      let current = MentionAttributedString.serialize(textView.attributedText)
+      if !current.isEmpty {
+        isApplyingRemoteText = true
+        applyPlainText(current)
+        isApplyingRemoteText = false
+      }
     }
     updateHintVisibility()
     notifyContentHeightIfChanged()
+  }
+
+  /// Заменяет `attributedText` целиком на render плейн-строки с
+  /// mention-токенами. Caller отвечает за `isApplyingRemoteText` flag.
+  private func applyPlainText(_ plain: String) {
+    textView.attributedText = MentionAttributedString.render(
+      plain: plain,
+      baseFont: baseFont,
+      baseColor: baseColor,
+      accentColor: accentColor)
+  }
+
+  /// Возвращает текущий плейн-текст с mention-токенами (для отправки в
+  /// Dart). Identical форматом тому, что `MentionTokenCodec.buildToken`
+  /// генерит в pure-Flutter путях.
+  private func currentPlainText() -> String {
+    MentionAttributedString.serialize(textView.attributedText)
   }
 
   // MARK: - Method handler
@@ -177,17 +235,35 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
     case "setText":
       let map = call.arguments as? [String: Any] ?? [:]
       let text = (map["text"] as? String) ?? ""
-      if textView.text != text {
+      // Опциональный курсор в plain-text-offset'ах (так живёт Dart
+      // `controller.selection.baseOffset`). Если задан — конвертируем в
+      // visible offset attributed-string'а через
+      // `plainOffsetToVisible`, иначе сохраняем прежнюю позицию.
+      let plainSel = (map["selectionStart"] as? NSNumber)?.intValue
+      if currentPlainText() != text {
         let prevRange = textView.selectedRange
         isApplyingRemoteText = true
-        textView.text = text
-        // Стараемся сохранить курсор, но не выходим за конец нового текста.
-        let cap = (text as NSString).length
-        let newLoc = min(prevRange.location, cap)
-        textView.selectedRange = NSRange(location: newLoc, length: 0)
+        applyPlainText(text)
+        let cap = textView.attributedText.length
+        let target: Int
+        if let p = plainSel {
+          target = min(
+            MentionAttributedString.plainOffsetToVisible(
+              plain: text, plainOffset: p), cap)
+        } else {
+          target = min(prevRange.location, cap)
+        }
+        textView.selectedRange = NSRange(location: target, length: 0)
         isApplyingRemoteText = false
         updateHintVisibility()
         notifyContentHeightIfChanged()
+      } else if let p = plainSel {
+        // Текст не изменился, но Dart передал новый cursor → применим.
+        let cap = textView.attributedText.length
+        let target = min(
+          MentionAttributedString.plainOffsetToVisible(
+            plain: text, plainOffset: p), cap)
+        textView.selectedRange = NSRange(location: target, length: 0)
       }
       result(nil)
     case "focus":
@@ -221,7 +297,7 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
     channel.invokeMethod(
       "textChanged",
       arguments: [
-        "text": textView.text ?? "",
+        "text": currentPlainText(),
         "selectionStart": textView.selectedRange.location,
         "selectionEnd": textView.selectedRange.location
           + textView.selectedRange.length,
@@ -249,7 +325,7 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
   // MARK: - Hint label
 
   private func updateHintVisibility() {
-    let empty = (textView.text ?? "").isEmpty
+    let empty = textView.attributedText.length == 0
     hintLabel.isHidden = !empty
   }
 

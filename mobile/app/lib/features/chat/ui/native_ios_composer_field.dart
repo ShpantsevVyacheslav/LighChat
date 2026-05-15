@@ -111,7 +111,15 @@ class _NativeIosComposerFieldState extends State<NativeIosComposerField> {
     if (_suppressControllerListener) return;
     final c = _channel;
     if (c == null) return;
-    unawaited(c.invokeMethod<void>('setText', {'text': widget.controller.text}));
+    // Передаём selection в plain-text offsets'ах — native сам мапит в
+    // visible offsets attributed-string'а (для корректной позиции
+    // курсора после вставки mention-токена, который «сжимается» в
+    // `@label` в attributed-представлении).
+    final sel = widget.controller.selection;
+    unawaited(c.invokeMethod<void>('setText', {
+      'text': widget.controller.text,
+      if (sel.isValid && sel.isCollapsed) 'selectionStart': sel.baseOffset,
+    }));
   }
 
   void _onFocusChanged() {
@@ -129,6 +137,7 @@ class _NativeIosComposerFieldState extends State<NativeIosComposerField> {
     if (c == null) return;
     unawaited(c.invokeMethod<void>('setStyle', _styleArgs()));
   }
+
 
   Map<String, Object?> _styleArgs() {
     final ts = widget.textStyle;
