@@ -189,8 +189,16 @@ def soft_limit(audio: np.ndarray, threshold: float = 0.92) -> np.ndarray:
 # ============================================================================
 # Pitch reference
 # ============================================================================
+C2 = 65.41
+C3 = 130.81
+D3 = 146.83
+F3 = 174.61
+G3 = 196.00
+A3 = 220.00
 C4 = 261.63
+D4 = 293.66
 E4 = 329.63
+F4 = 349.23
 G4 = 392.00
 A4 = 440.00
 B4 = 493.88
@@ -200,9 +208,70 @@ E5 = 659.25
 F5 = 698.46
 G5 = 783.99
 A5 = 880.00
+B5 = 987.77
 C6 = 1046.50
 E6 = 1318.51
 G6 = 1567.98
+
+
+# ============================================================================
+# Lo-fi helpers — Rhodes-like FM, warm LP filter, tape saturation, chord stack
+# ============================================================================
+
+def rhodes_note(freq: float, duration: float, decay: float = 2.4,
+                attack: float = 0.008, mod_decay_mult: float = 2.4) -> np.ndarray:
+    """FM Rhodes-like timbre: carrier sine modulated by sine envelope-driven
+    by faster decay → классический «pluck» с теплым sustain."""
+    t = t_axis(duration)
+    env = np.exp(-decay * t)
+    mod_env = np.exp(-decay * mod_decay_mult * t)
+    mod = np.sin(2 * np.pi * freq * t) * 2.0 * mod_env
+    sig = np.sin(2 * np.pi * freq * t + mod) * env
+    a_n = int(attack * SR)
+    if a_n:
+        sig[:a_n] *= np.linspace(0.0, 1.0, a_n) ** 1.5
+    return sig
+
+
+def lp_filter(audio: np.ndarray, alpha: float = 0.18) -> np.ndarray:
+    """One-pole low-pass: y[n] = α·x[n] + (1-α)·y[n-1]. Малое α — теплее.
+
+    Используется на массивах ~30–150k семплов — скорость нормально через
+    np.empty + loop в numpy-векторизации не получится из-за рекурсии."""
+    out = np.empty_like(audio)
+    out[0] = audio[0]
+    one_minus = 1.0 - alpha
+    for i in range(1, len(audio)):
+        out[i] = alpha * audio[i] + one_minus * out[i - 1]
+    return out
+
+
+def tape_saturate(audio: np.ndarray, drive: float = 1.5, mix: float = 0.55) -> np.ndarray:
+    """Tape-like soft clipping (tanh) с wet/dry mix — даёт «винтажную»
+    окраску без сильного искажения."""
+    sat = np.tanh(audio * drive) / drive
+    return audio * (1.0 - mix) + sat * mix
+
+
+def chord_stack(freqs, duration: float, attack: float = 0.04,
+                release: float = 0.5, decay: float = 0.0,
+                timbre: str = 'sine') -> np.ndarray:
+    """Полифонический аккорд: сумма голосов с общим ADR-конвертом."""
+    t = t_axis(duration)
+    sig = np.zeros_like(t)
+    for f in freqs:
+        if timbre == 'rhodes':
+            sig = sig + rhodes_note(f, duration, decay=max(decay, 1.2))
+        elif timbre == 'pad':
+            sig = sig + np.sin(2 * np.pi * f * t) + 0.30 * np.sin(2 * np.pi * f * 2 * t) \
+                  + 0.12 * np.sin(2 * np.pi * f * 3 * t)
+        else:
+            sig = sig + np.sin(2 * np.pi * f * t)
+    sig /= max(len(freqs), 1)
+    env = _envelope(len(t), attack, release)
+    if decay > 0:
+        env = env * np.exp(-decay * t * 0.3)
+    return sig * env
 
 
 # ============================================================================
@@ -297,6 +366,60 @@ def msg_tap_tone() -> np.ndarray:
     b = soft_tone(A5, 0.20, attack=0.005, release=0.14)
     out = np.concatenate([a, silence(0.06), b])
     return normalize(edge_fades(out), -5.0)
+
+
+# --- Lo-fi family (полифоничные, тёплые, кинематографичные) ---
+
+def msg_lofi_keys() -> np.ndarray:
+    # Короткий Rhodes Cmaj7 stab — мягкая профессиональная клавиша.
+    chord = chord_stack([C4, E4, G4, B4], 0.95, attack=0.012, release=0.4,
+                        timbre='rhodes', decay=1.6)
+    sig = tape_saturate(lp_filter(chord, alpha=0.22), drive=1.4, mix=0.55)
+    return normalize(edge_fades(sig), -5.0)
+
+
+def msg_tape_chime() -> np.ndarray:
+    # Тёплый bell с vibrato + tape saturation. Однонотный, но «дорогой».
+    t = t_axis(0.85)
+    vibrato = 1.0 + 0.005 * np.sin(2 * np.pi * 5.0 * t)
+    bell = bell_fm(E5, 0.85, mod_ratio=2.0, mod_index=2.0, decay=3.6) * vibrato
+    bell = lp_filter(bell, alpha=0.30)
+    sig = tape_saturate(bell, drive=1.3, mix=0.5)
+    return normalize(edge_fades(sig), -5.0)
+
+
+def msg_dream_pad() -> np.ndarray:
+    # Воздушный pad Fmaj9, медленный attack — для мечтательного уведомления.
+    chord = chord_stack([F4, A4, C5, E5, G5], 1.0, attack=0.18, release=0.5,
+                        timbre='pad', decay=0.6)
+    sig = lp_filter(chord, alpha=0.28) * 0.85
+    return normalize(edge_fades(sig, fade_in_ms=12, fade_out_ms=80), -5.5)
+
+
+def msg_chill_arp() -> np.ndarray:
+    # Короткое арпеджио Dm9: D5 → F5 → A5, Rhodes, lo-fi.
+    n = int(0.95 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    for f, start in ((D5, 0.0), (F5, 0.16), (A5, 0.32)):
+        tone = rhodes_note(f, 0.7, decay=2.0)
+        s = int(start * SR)
+        end = min(s + len(tone), n)
+        buf[s:end] += tone[: end - s] * 0.85
+    buf = tape_saturate(lp_filter(buf, alpha=0.24), drive=1.3, mix=0.5)
+    return normalize(edge_fades(buf), -5.0)
+
+
+def msg_velvet_pulse() -> np.ndarray:
+    # Один теплый Fmaj9 удар + sub-нота под ним. Бархатистый short hit.
+    chord = chord_stack([F4, A4, C5, E5], 0.75, attack=0.02, release=0.35,
+                        timbre='rhodes', decay=2.0)
+    sub = rhodes_note(F3, 0.75, decay=2.6) * 0.55
+    n = max(len(chord), len(sub))
+    buf = np.zeros(n, dtype=np.float64)
+    buf[: len(chord)] += chord
+    buf[: len(sub)] += sub
+    sig = tape_saturate(lp_filter(buf, alpha=0.22), drive=1.5, mix=0.5)
+    return normalize(edge_fades(sig), -5.0)
 
 
 # ============================================================================
@@ -496,6 +619,110 @@ def call_tap_tone() -> np.ndarray:
     return normalize(edge_fades(buf, fade_out_ms=100.0), -5.0)
 
 
+# --- Lo-fi family (длиннее, мелодичнее, кинематографичный профессиональный фид) ---
+
+def call_lofi_keys() -> np.ndarray:
+    # Rhodes-progressия Cmaj7 → Fmaj9 → Am7 → G — классический лофи-loop.
+    progression = [
+        ([C4, E4, G4, B4], 0.00, 0.85),   # Cmaj7
+        ([F4, A4, C5, E5], 0.75, 0.85),   # Fmaj9 (без 9 для краткости)
+        ([A3, C4, E4, G4], 1.50, 0.85),   # Am7
+        ([G3, B4, D5, F5], 2.25, 0.95),   # G7
+    ]
+    n = int(3.4 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    for chord, start, dur in progression:
+        block = chord_stack(chord, dur, attack=0.020, release=0.40,
+                            timbre='rhodes', decay=1.4)
+        s = int(start * SR)
+        end = min(s + len(block), n)
+        buf[s:end] += block[: end - s] * 0.85
+    sig = tape_saturate(lp_filter(buf, alpha=0.20), drive=1.5, mix=0.55)
+    return normalize(edge_fades(sig, fade_out_ms=150.0), -4.8)
+
+
+def call_tape_chime() -> np.ndarray:
+    # Серия мягких bell-аккордов через tape-фильтр + vibrato.
+    n = int(3.2 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    sequence = [
+        ([C5, E5, G5], 0.00, 1.4),
+        ([D5, F5, A5], 0.60, 1.4),
+        ([E5, G5, B5], 1.20, 1.4),
+        ([C5, E5, G5], 1.80, 1.6),
+    ]
+    for chord, start, dur in sequence:
+        block = chord_stack(chord, dur, attack=0.010, release=0.45,
+                            timbre='rhodes', decay=1.6)
+        s = int(start * SR)
+        end = min(s + len(block), n)
+        buf[s:end] += block[: end - s] * 0.6
+    # Лёгкий vibrato на финальной фазе.
+    t = np.arange(n) / SR
+    buf = buf * (1.0 + 0.004 * np.sin(2 * np.pi * 4.5 * t))
+    sig = tape_saturate(lp_filter(buf, alpha=0.26), drive=1.3, mix=0.5)
+    return normalize(edge_fades(sig, fade_out_ms=180.0), -4.8)
+
+
+def call_dream_pad() -> np.ndarray:
+    # Sustained ambient pad: Fmaj9 → Cmaj7 → Dm9 длинный crossfade.
+    n = int(3.6 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    pads = [
+        ([F4, A4, C5, E5, G5], 0.00, 2.0),
+        ([C4, E4, G4, B4, D5], 1.40, 2.0),
+        ([D4, F4, A4, C5, E5], 2.50, 1.6),
+    ]
+    for chord, start, dur in pads:
+        block = chord_stack(chord, dur, attack=0.25, release=0.7,
+                            timbre='pad', decay=0.5)
+        s = int(start * SR)
+        end = min(s + len(block), n)
+        buf[s:end] += block[: end - s] * 0.55
+    sig = lp_filter(buf, alpha=0.22)
+    return normalize(edge_fades(sig, fade_in_ms=20, fade_out_ms=240.0), -5.2)
+
+
+def call_chill_arp() -> np.ndarray:
+    # Арпеджио Dm9 → Am7 → Fmaj7 в верхнем регистре, Rhodes lo-fi.
+    pattern = [
+        # (note, start)
+        (D5, 0.00), (F5, 0.18), (A5, 0.36), (C6, 0.54),
+        (A5, 0.78), (E5, 0.96), (C5, 1.14),
+        (E5, 1.40), (G5, 1.58), (B5, 1.76),
+        (G5, 2.00), (E5, 2.18), (C5, 2.36),
+        (F5, 2.60), (A5, 2.78), (C6, 2.96),
+    ]
+    n = int(3.5 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    for f, start in pattern:
+        tone = rhodes_note(f, 0.60, decay=2.2)
+        s = int(start * SR)
+        end = min(s + len(tone), n)
+        buf[s:end] += tone[: end - s] * 0.7
+    sig = tape_saturate(lp_filter(buf, alpha=0.24), drive=1.3, mix=0.5)
+    return normalize(edge_fades(sig, fade_out_ms=160.0), -5.0)
+
+
+def call_velvet_pulse() -> np.ndarray:
+    # Пульсирующий Fmaj9 на четверти + sub-bass F2, тёплый и кинематографичный.
+    n = int(3.4 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    beats = [0.00, 0.55, 1.10, 1.65, 2.20, 2.75]
+    for start in beats:
+        chord = chord_stack([F4, A4, C5, E5], 0.50, attack=0.015,
+                            release=0.30, timbre='rhodes', decay=2.4)
+        s = int(start * SR)
+        end = min(s + len(chord), n)
+        buf[s:end] += chord[: end - s] * 0.7
+    # Sub-bass F3 длинный.
+    sub_t = t_axis(3.2)
+    sub = np.sin(2 * np.pi * F3 * sub_t) * 0.32 * _envelope(len(sub_t), 0.15, 0.6)
+    buf[: len(sub)] += sub
+    sig = tape_saturate(lp_filter(buf, alpha=0.22), drive=1.4, mix=0.55)
+    return normalize(edge_fades(sig, fade_out_ms=180.0), -4.8)
+
+
 # ============================================================================
 # Hand-raise ping (unchanged: short, polite, quiet)
 # ============================================================================
@@ -561,6 +788,9 @@ def _ensure_irs() -> None:
 # Какие пресеты лучше воспринимаются с уменьшенным reverb (сухие/деревянные).
 _DRY_PRESETS = {"marimba_tap", "wood_block", "tap_tone"}
 
+# Lo-fi пресеты — больше реверба для атмосферности, меньше limiter punch.
+_LOFI_PRESETS = {"lofi_keys", "tape_chime", "dream_pad", "chill_arp", "velvet_pulse"}
+
 
 def emit(rel_path: str, audio: np.ndarray) -> None:
     """Apply post-processing (reverb → stereo widening → soft limit), encode."""
@@ -584,6 +814,9 @@ def emit(rel_path: str, audio: np.ndarray) -> None:
     preset_id = Path(rel_path).stem
     if preset_id in _DRY_PRESETS:
         wet *= 0.5
+    elif preset_id in _LOFI_PRESETS:
+        # Lo-fi любит чуть больше пространства.
+        wet = min(wet * 1.25, 0.40)
 
     processed = apply_reverb(audio, ir, wet=wet)
     processed = widen_stereo(processed, delay_ms=delay_ms, gain_r=0.86)
@@ -614,6 +847,11 @@ def main() -> int:
     emit("ringtones/messages/sparkle", msg_sparkle())
     emit("ringtones/messages/airy_note", msg_airy_note())
     emit("ringtones/messages/tap_tone", msg_tap_tone())
+    emit("ringtones/messages/lofi_keys", msg_lofi_keys())
+    emit("ringtones/messages/tape_chime", msg_tape_chime())
+    emit("ringtones/messages/dream_pad", msg_dream_pad())
+    emit("ringtones/messages/chill_arp", msg_chill_arp())
+    emit("ringtones/messages/velvet_pulse", msg_velvet_pulse())
 
     print("\nCalls (longer, mellow):")
     emit("ringtones/calls/classic_chime", call_classic_chime())
@@ -626,6 +864,11 @@ def main() -> int:
     emit("ringtones/calls/sparkle", call_sparkle())
     emit("ringtones/calls/airy_note", call_airy_note())
     emit("ringtones/calls/tap_tone", call_tap_tone())
+    emit("ringtones/calls/lofi_keys", call_lofi_keys())
+    emit("ringtones/calls/tape_chime", call_tape_chime())
+    emit("ringtones/calls/dream_pad", call_dream_pad())
+    emit("ringtones/calls/chill_arp", call_chill_arp())
+    emit("ringtones/calls/velvet_pulse", call_velvet_pulse())
 
     print("\nConference ping:")
     emit("conference/hand_raise", hand_raise_ping())

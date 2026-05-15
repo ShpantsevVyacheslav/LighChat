@@ -34,6 +34,11 @@ export const RINGTONE_PRESETS: readonly RingtonePreset[] = [
   { id: "sparkle", fileName: "sparkle.mp3", labelKey: "ringtone_sparkle" },
   { id: "airy_note", fileName: "airy_note.mp3", labelKey: "ringtone_airy_note" },
   { id: "tap_tone", fileName: "tap_tone.mp3", labelKey: "ringtone_tap_tone" },
+  { id: "lofi_keys", fileName: "lofi_keys.mp3", labelKey: "ringtone_lofi_keys" },
+  { id: "tape_chime", fileName: "tape_chime.mp3", labelKey: "ringtone_tape_chime" },
+  { id: "dream_pad", fileName: "dream_pad.mp3", labelKey: "ringtone_dream_pad" },
+  { id: "chill_arp", fileName: "chill_arp.mp3", labelKey: "ringtone_chill_arp" },
+  { id: "velvet_pulse", fileName: "velvet_pulse.mp3", labelKey: "ringtone_velvet_pulse" },
 ] as const;
 
 export const DEFAULT_MESSAGE_RINGTONE_ID = "classic_chime";

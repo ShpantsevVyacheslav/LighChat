@@ -106,6 +106,18 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
     textView.spellCheckingType = .default
     textView.keyboardType = .default
     textView.returnKeyType = .default
+    // Phase 4: системное меню форматирования — Bold/Italic/Underline/
+    // Strikethrough появляются в long-press menu при выделении текста.
+    // Зачем: не нужен кастомный Flutter formatting toolbar, B/I/U
+    // прямо там же где Cut/Copy/Paste — стандартный iOS UX.
+    textView.allowsEditingTextAttributes = true
+    // iOS 18+: Apple Intelligence Writing Tools (Rewrite/Proofread/
+    // Summarize) в том же long-press меню. `.complete` запрашивает
+    // полный набор инструментов; на старых iOS свойство просто
+    // игнорируется.
+    if #available(iOS 18.0, *) {
+      textView.writingToolsBehavior = .complete
+    }
 
     hintLabel = UILabel(frame: .zero)
     hintLabel.translatesAutoresizingMaskIntoConstraints = false

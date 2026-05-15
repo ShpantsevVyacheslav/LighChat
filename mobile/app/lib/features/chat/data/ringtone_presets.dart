@@ -41,6 +41,11 @@ const List<RingtonePreset> kRingtonePresets = <RingtonePreset>[
   RingtonePreset(id: 'sparkle', fileName: 'sparkle.mp3', labelKey: 'ringtone_sparkle'),
   RingtonePreset(id: 'airy_note', fileName: 'airy_note.mp3', labelKey: 'ringtone_airy_note'),
   RingtonePreset(id: 'tap_tone', fileName: 'tap_tone.mp3', labelKey: 'ringtone_tap_tone'),
+  RingtonePreset(id: 'lofi_keys', fileName: 'lofi_keys.mp3', labelKey: 'ringtone_lofi_keys'),
+  RingtonePreset(id: 'tape_chime', fileName: 'tape_chime.mp3', labelKey: 'ringtone_tape_chime'),
+  RingtonePreset(id: 'dream_pad', fileName: 'dream_pad.mp3', labelKey: 'ringtone_dream_pad'),
+  RingtonePreset(id: 'chill_arp', fileName: 'chill_arp.mp3', labelKey: 'ringtone_chill_arp'),
+  RingtonePreset(id: 'velvet_pulse', fileName: 'velvet_pulse.mp3', labelKey: 'ringtone_velvet_pulse'),
 ];
 
 const String kDefaultMessageRingtoneId = 'classic_chime';

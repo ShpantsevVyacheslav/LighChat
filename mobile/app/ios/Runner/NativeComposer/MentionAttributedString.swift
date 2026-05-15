@@ -1,139 +1,162 @@
 import Foundation
 import UIKit
 
-/// Помощники работы с group-mention'ами в нативном composer'е.
+/// Помощники для conversion'а между «rich text» формата composer'а
+/// (inline HTML + mention-токены) и `NSAttributedString` (что показывает
+/// нативный UITextView).
 ///
-/// Mention в LighChat хранится как **inline-токен**:
-/// ```
-/// \u{E000}<base64url(json({userId, label}))>\u{E001}
-/// ```
-/// Это плоский (плейн-текстовый) формат, и его можно безопасно ноcить
-/// внутри UITextView. Но визуально мы хотим показывать `@Имя` в виде
-/// акцентного «чипа», а не сырых escape-символов.
+/// Rich-text формат — это то, что лежит в Dart `controller.text`:
+///  - `<strong>`/`<b>` `</strong>`/`</b>` — bold
+///  - `<em>`/`<i>` `</em>`/`</i>` — italic
+///  - `<u>` `</u>` — underline
+///  - `<s>`/`<del>`/`<strike>` `</s>`/`</del>`/`</strike>` — strikethrough
+///  - `<code>` `</code>` — monospace
+///  - HTML entities: `&amp; &lt; &gt; &quot; &nbsp; &#39;`
+///  - Mention-токены `\u{E000}<base64-json>\u{E001}` — рендерятся как `@label`
 ///
-/// Поэтому в native side держим **NSAttributedString**:
-///  - При `setText`: парсим токены, заменяем каждый attributed-substring'ом
-///    `@<label>` с custom-атрибутом `mentionTokenKey` (значение = весь
-///    оригинальный токен, для round-trip обратно в плейн).
-///  - При `textChanged`: обходим attributed string и сериализуем обратно:
-///    visible-runs возвращаем как есть, mention-runs выдаём как сохранённый
-///    токен. Dart side получает идентичный формат тому, что генерит
-///    `MentionTokenCodec.buildToken` в pure-Flutter путях.
-///  - На backspace через mention-чип удаляем весь runrange атомарно.
+/// Это плоский plain-text формат — никаких атрибутов, всё в строке. UITextView
+/// держит это в `attributedText` с font traits / decorations / custom keys,
+/// чтобы пользователь видел и редактировал визуальный chip и форматирование.
+///
+/// Имя `MentionAttributedString` оставлено historical — внутри парсер
+/// работает с полным HTML+mention rich-text'ом.
 enum MentionAttributedString {
   static let tokenStart: Character = "\u{E000}"
   static let tokenEnd: Character = "\u{E001}"
-  /// NSAttributedString key — храним полный токен (со escape-символами).
+  /// NSAttributedString key — храним полный mention-токен (со escape-символами).
   static let tokenKey = NSAttributedString.Key("lighchat.mentionToken")
 
-  /// Renders flat text-with-tokens into NSAttributedString. Текст без
-  /// токенов возвращается без атрибутов, токены — как акцентные «чипы».
+  // MARK: - Render: rich-text → NSAttributedString
+
   static func render(
     plain: String, baseFont: UIFont, baseColor: UIColor, accentColor: UIColor
   ) -> NSAttributedString {
+    let lexer = _Lexer(input: plain)
     let result = NSMutableAttributedString()
-    let baseAttrs: [NSAttributedString.Key: Any] = [
-      .font: baseFont,
-      .foregroundColor: baseColor,
-    ]
-    var i = plain.startIndex
-    while i < plain.endIndex {
-      if plain[i] == tokenStart {
-        // Ищем закрывающий tokenEnd.
-        if let endIdx = plain[i...].firstIndex(of: tokenEnd) {
-          let full = String(plain[i...endIdx])
-          let inner = String(plain[plain.index(after: i)..<endIdx])
-          if let decoded = decodeToken(b64: inner) {
-            let display = "@\(decoded.label)"
-            let mentionAttrs: [NSAttributedString.Key: Any] = [
-              .font: UIFont.systemFont(
-                ofSize: baseFont.pointSize, weight: .semibold),
-              .foregroundColor: accentColor,
-              tokenKey: full,
-            ]
-            result.append(NSAttributedString(string: display, attributes: mentionAttrs))
-            i = plain.index(after: endIdx)
-            continue
-          }
-        }
-      }
-      // Накапливаем «визуальный run» до следующего токен-маркера.
-      let runStart = i
-      while i < plain.endIndex && plain[i] != tokenStart {
-        i = plain.index(after: i)
-      }
-      let run = String(plain[runStart..<i])
-      if !run.isEmpty {
-        result.append(NSAttributedString(string: run, attributes: baseAttrs))
+    var traits = _Traits()
+    while let tok = lexer.next() {
+      switch tok {
+      case .text(let s):
+        let attrs = _attributes(
+          for: traits, baseFont: baseFont, baseColor: baseColor)
+        result.append(NSAttributedString(string: s, attributes: attrs))
+      case .mention(let full, let label):
+        let attrs: [NSAttributedString.Key: Any] = [
+          .font: UIFont.systemFont(
+            ofSize: baseFont.pointSize, weight: .semibold),
+          .foregroundColor: accentColor,
+          tokenKey: full,
+        ]
+        result.append(
+          NSAttributedString(string: "@\(label)", attributes: attrs))
+      case .openTag(let tag):
+        traits.apply(tag, opening: true)
+      case .closeTag(let tag):
+        traits.apply(tag, opening: false)
       }
     }
     return result
   }
 
-  /// Serialize NSAttributedString → flat text. Mention-runs выдаются как
-  /// исходные токены (значение `tokenKey`), остальное verbatim.
-  static func serialize(_ attributed: NSAttributedString) -> String {
-    var out = ""
-    let full = NSRange(location: 0, length: attributed.length)
-    attributed.enumerateAttribute(tokenKey, in: full) { value, range, _ in
-      if let token = value as? String {
-        out.append(token)
-      } else {
-        out.append(attributed.attributedSubstring(from: range).string)
+  private static func _attributes(
+    for traits: _Traits, baseFont: UIFont, baseColor: UIColor
+  ) -> [NSAttributedString.Key: Any] {
+    var font = baseFont
+    if traits.code {
+      // Monospace переопределяет base font целиком (как принято для code-блоков).
+      font = UIFont.monospacedSystemFont(
+        ofSize: baseFont.pointSize, weight: .regular)
+    }
+    if traits.bold || traits.italic {
+      var symbolic: UIFontDescriptor.SymbolicTraits = []
+      if traits.bold { symbolic.insert(.traitBold) }
+      if traits.italic { symbolic.insert(.traitItalic) }
+      if let desc = font.fontDescriptor.withSymbolicTraits(symbolic) {
+        font = UIFont(descriptor: desc, size: font.pointSize)
       }
     }
+    var attrs: [NSAttributedString.Key: Any] = [
+      .font: font,
+      .foregroundColor: baseColor,
+    ]
+    if traits.underline {
+      attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue
+    }
+    if traits.strikethrough {
+      attrs[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
+    }
+    return attrs
+  }
+
+  // MARK: - Serialize: NSAttributedString → rich-text
+
+  /// Обход attributed string по runs, эмитим open/close tags при изменении
+  /// font traits, mention-runs выдаём как сохранённый токен.
+  static func serialize(_ attributed: NSAttributedString) -> String {
+    var out = ""
+    var prev = _Traits()
+    let full = NSRange(location: 0, length: attributed.length)
+
+    func emitOpenClose(transition newTraits: _Traits) {
+      // Закрываем теги в обратном порядке (LIFO), открываем в естественном.
+      // Закрываемые = в prev но не в new.
+      if prev.code && !newTraits.code { out += "</code>" }
+      if prev.strikethrough && !newTraits.strikethrough { out += "</s>" }
+      if prev.underline && !newTraits.underline { out += "</u>" }
+      if prev.italic && !newTraits.italic { out += "</em>" }
+      if prev.bold && !newTraits.bold { out += "</strong>" }
+      // Открываемые.
+      if !prev.bold && newTraits.bold { out += "<strong>" }
+      if !prev.italic && newTraits.italic { out += "<em>" }
+      if !prev.underline && newTraits.underline { out += "<u>" }
+      if !prev.strikethrough && newTraits.strikethrough { out += "<s>" }
+      if !prev.code && newTraits.code { out += "<code>" }
+      prev = newTraits
+    }
+
+    attributed.enumerateAttributes(in: full, options: []) { attrs, range, _ in
+      let runStr = attributed.attributedSubstring(from: range).string
+      if let token = attrs[tokenKey] as? String {
+        // Mention: закрываем все активные traits ПЕРЕД токеном (mention'ы
+        // не должны быть внутри <strong>/<em> — для send-pipeline'а
+        // ComposerHtmlEditing.prepareChatMessageHtmlForSend это безопаснее).
+        emitOpenClose(transition: _Traits())
+        out += token
+        return
+      }
+      let traits = _Traits.fromAttributes(attrs)
+      emitOpenClose(transition: traits)
+      out += _escapeHtml(runStr)
+    }
+    // Финальное закрытие.
+    emitOpenClose(transition: _Traits())
     return out
   }
 
-  /// Конвертация offset'а из «плейн-текст с токенами» (как живёт в
-  /// Dart `controller.text` / `selection`) в offset attributed-string'а
-  /// («видимая» длина, где токен сжат в `@label`). Используется чтобы
-  /// корректно ставить курсор в нативном UITextView, когда Dart прислал
-  /// новое значение `controller.value`.
+  // MARK: - Plain offset → visible offset (для курсора)
+
   static func plainOffsetToVisible(plain: String, plainOffset: Int) -> Int {
     let ns = plain as NSString
     let clamped = max(0, min(plainOffset, ns.length))
-    let startUtf16 = tokenStart.utf16.first!
-    let endUtf16 = tokenEnd.utf16.first!
+    let lexer = _Lexer(input: ns.substring(with: NSRange(location: 0, length: clamped)))
     var visible = 0
-    var i = 0
-    while i < clamped {
-      let c = ns.character(at: i)
-      if c == startUtf16 {
-        var j = i + 1
-        while j < ns.length && ns.character(at: j) != endUtf16 {
-          j += 1
-        }
-        if j >= ns.length {
-          visible += 1
-          i += 1
-          continue
-        }
-        if clamped <= j {
-          return visible
-        }
-        let inner = ns.substring(
-          with: NSRange(location: i + 1, length: j - i - 1))
-        if let decoded = decodeToken(b64: inner) {
-          visible += ("@\(decoded.label)" as NSString).length
-        } else {
-          visible += (j - i + 1)
-        }
-        i = j + 1
-      } else {
-        visible += 1
-        i += 1
+    while let tok = lexer.next() {
+      switch tok {
+      case .text(let s):
+        visible += (s as NSString).length
+      case .mention(_, let label):
+        visible += ("@\(label)" as NSString).length
+      case .openTag, .closeTag:
+        break // теги не занимают visible space
       }
     }
     return visible
   }
 
-  /// Парсит inner-часть токена (между `` и ``).
-  /// `inner` — base64url-encoded JSON `{userId, label}`. Возвращает nil
-  /// на любом мусоре (тогда токен показывается как сырой текст).
+  // MARK: - Token decoder (для mention-токенов)
+
   static func decodeToken(b64 inner: String) -> (uid: String, label: String)? {
     guard !inner.isEmpty else { return nil }
-    // base64url → стандартный base64: `-` → `+`, `_` → `/`, paddding `=`.
     var standard = inner
       .replacingOccurrences(of: "-", with: "+")
       .replacingOccurrences(of: "_", with: "/")
@@ -150,4 +173,159 @@ enum MentionAttributedString {
       ((map["label"] as? String) ?? "").trimmingCharacters(in: .whitespaces)
     return (uid: uid, label: labelRaw.isEmpty ? "User" : labelRaw)
   }
+}
+
+// MARK: - Internal lexer / traits
+
+private enum _Tok {
+  case text(String)
+  case mention(full: String, label: String)
+  case openTag(String)
+  case closeTag(String)
+}
+
+private final class _Lexer {
+  init(input: String) { self.input = input; self.i = input.startIndex }
+  let input: String
+  var i: String.Index
+
+  func next() -> _Tok? {
+    guard i < input.endIndex else { return nil }
+    let c = input[i]
+    if c == MentionAttributedString.tokenStart {
+      return scanMention()
+    }
+    if c == "<" {
+      return scanTag()
+    }
+    return scanText()
+  }
+
+  private func scanMention() -> _Tok? {
+    guard let endIdx = input[i...].firstIndex(
+      of: MentionAttributedString.tokenEnd)
+    else {
+      // Незакрытый токен → отдаём как текст.
+      let s = String(input[i...])
+      i = input.endIndex
+      return .text(s)
+    }
+    let full = String(input[i...endIdx])
+    let inner = String(input[input.index(after: i)..<endIdx])
+    i = input.index(after: endIdx)
+    if let decoded = MentionAttributedString.decodeToken(b64: inner) {
+      return .mention(full: full, label: decoded.label)
+    }
+    // Битый токен → возвращаем как текст.
+    return .text(full)
+  }
+
+  private func scanTag() -> _Tok? {
+    // Поиск закрывающего '>'.
+    guard let gt = input[i...].firstIndex(of: ">") else {
+      // Битый тег → отдаём как текст до конца.
+      let s = String(input[i...])
+      i = input.endIndex
+      return .text(s)
+    }
+    let raw = String(input[input.index(after: i)..<gt])
+    i = input.index(after: gt)
+    let isClose = raw.hasPrefix("/")
+    var name = isClose ? String(raw.dropFirst()) : raw
+    // Атрибуты вырубаем — нас интересует только имя.
+    if let sp = name.firstIndex(of: " ") {
+      name = String(name[..<sp])
+    }
+    name = name.lowercased()
+    let known: Set<String> = ["strong", "b", "em", "i", "u", "s", "del", "strike", "code"]
+    if known.contains(name) {
+      return isClose ? .closeTag(name) : .openTag(name)
+    }
+    // Неизвестный тег (например `<span data-chat-mention=...>`) — на native
+    // путях такого быть не должно, но если влетел — рендерим как текст.
+    return .text(isClose ? "</\(name)>" : "<\(raw)>")
+  }
+
+  private func scanText() -> _Tok? {
+    var s = ""
+    while i < input.endIndex {
+      let c = input[i]
+      if c == "<" || c == MentionAttributedString.tokenStart { break }
+      // HTML entities — раскрываем при rendering, при serialize escape'им обратно.
+      if c == "&" {
+        if let semi = input[i...].firstIndex(of: ";") {
+          let entity = String(input[input.index(after: i)..<semi])
+          switch entity.lowercased() {
+          case "amp": s.append("&"); i = input.index(after: semi); continue
+          case "lt": s.append("<"); i = input.index(after: semi); continue
+          case "gt": s.append(">"); i = input.index(after: semi); continue
+          case "quot": s.append("\""); i = input.index(after: semi); continue
+          case "nbsp": s.append("\u{00A0}"); i = input.index(after: semi); continue
+          case "#39": s.append("'"); i = input.index(after: semi); continue
+          default: break
+          }
+        }
+      }
+      s.append(c)
+      i = input.index(after: i)
+    }
+    return s.isEmpty ? nil : .text(s)
+  }
+}
+
+private struct _Traits: Equatable {
+  var bold: Bool = false
+  var italic: Bool = false
+  var underline: Bool = false
+  var strikethrough: Bool = false
+  var code: Bool = false
+
+  mutating func apply(_ tag: String, opening: Bool) {
+    switch tag {
+    case "strong", "b": bold = opening
+    case "em", "i": italic = opening
+    case "u": underline = opening
+    case "s", "del", "strike": strikethrough = opening
+    case "code": code = opening
+    default: break
+    }
+  }
+
+  static func fromAttributes(
+    _ attrs: [NSAttributedString.Key: Any]
+  ) -> _Traits {
+    var t = _Traits()
+    if let font = attrs[.font] as? UIFont {
+      t.bold = font.fontDescriptor.symbolicTraits.contains(.traitBold)
+      t.italic = font.fontDescriptor.symbolicTraits.contains(.traitItalic)
+      // Monospace detect — fontName содержит "Mono".
+      let lower = font.fontName.lowercased()
+      if lower.contains("mono") {
+        t.code = true
+      }
+    }
+    if let u = attrs[.underlineStyle] as? Int, u != 0 {
+      t.underline = true
+    }
+    if let s = attrs[.strikethroughStyle] as? Int, s != 0 {
+      t.strikethrough = true
+    }
+    return t
+  }
+}
+
+private func _escapeHtml(_ s: String) -> String {
+  var out = ""
+  for c in s {
+    switch c {
+    case "&": out += "&amp;"
+    case "<": out += "&lt;"
+    case ">": out += "&gt;"
+    case "\"": out += "&quot;"
+    case "'": out += "&#39;"
+    case "\u{00A0}": out += "&nbsp;"
+    default: out.append(c)
+    }
+  }
+  return out
 }

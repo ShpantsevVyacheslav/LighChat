@@ -763,8 +763,14 @@ class _ChatComposerState extends State<ChatComposer> {
               onEditAt: (i) => unawaited(widget.onEditPending(i)),
               limitsState: widget.limitsState,
             ),
+            // Phase 4 native composer: B/I/U/S доступны через системное
+            // long-press меню iOS (allowsEditingTextAttributes=true) +
+            // Writing Tools (iOS 26+) — Flutter formatting toolbar
+            // становится избыточным. Скрываем его на iOS-native пути,
+            // оставляем для Flutter TextField (Android, ручной off-flag).
             if (widget.showFormattingToolbar &&
-                widget.onCloseFormattingToolbar != null) ...[
+                widget.onCloseFormattingToolbar != null &&
+                !_useNativeComposer) ...[
               ComposerFormattingToolbar(
                 controller: widget.controller,
                 focusNode: widget.focusNode,
