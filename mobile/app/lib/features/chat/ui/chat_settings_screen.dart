@@ -142,6 +142,12 @@ const double _kSectionTitleSize = 19;
 const double _kBlockTitleSize = 18;
 const double _kBodyTextSize = 14;
 const double _kMutedTextSize = 13;
+/// Полная высота sticky-превью (заголовок + spacing + 320 карточка +
+/// нижний padding). Совпадает с visual layout в `_PreviewHeaderDelegate`.
+const double _kPreviewMaxHeight = 374;
+/// Зона «выталкивания» — за столько пикселей скролла до раздела «Эмодзи
+/// эффекты» начинается плавное сжатие превью до 0.
+const double _kPreviewPushZone = 120;
 
 class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
   _EditableChatSettings? _state;
@@ -155,7 +161,13 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
   /// Маркер раздела «Эмодзи эффекты» — после него настройки больше
   /// не влияют на превью, поэтому sticky-превью «отлипает».
   final GlobalKey _emojiSectionKey = GlobalKey();
-  bool _hidePreview = false;
+  /// Текущая высота sticky-превью. Плавно интерполируется от
+  /// `_kPreviewMaxHeight` до 0 в зоне «выталкивания» (последние
+  /// `_kPreviewPushZone` пикселей скролла перед разделом «Эмодзи
+  /// эффекты»). Раздел иконок навигации естественно выталкивает
+  /// превью вверх без визуальных скачков.
+  double _previewHeight = _kPreviewMaxHeight;
+  bool get _previewHidden => _previewHeight <= 0.5;
   // Phase 1-3 native iOS composer (UITextView с системным меню и Writing
   // Tools). Хранится в SharedPreferences а не в server-side chatSettings —
   // это пер-устройство iOS-only фича, остальные платформы её скрывают.
@@ -183,13 +195,11 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
     super.dispose();
   }
 
-  /// Вызывается на каждый scroll-tick — переключает `_hidePreview`,
-  /// когда раздел «Эмодзи эффекты» дошёл до верха viewport. С этого
-  /// момента превью больше не нужно (последующие настройки на него
-  /// не влияют), и его место отдаётся под содержимое.
-  ///
-  /// Гистерезис ±18px — чтобы исключить дрожание sticky-флага вокруг
-  /// порога при медленном скролле.
+  /// Линейно интерполирует высоту превью в зависимости от того, как
+  /// близко раздел «Эмодзи эффекты» подошёл к верху viewport. За
+  /// `_kPreviewPushZone` пикселей до полного скрытия начинается плавное
+  /// «выталкивание» — раздел иконок навигации поднимает превью вверх
+  /// без визуальных скачков.
   void _handleScrollForPreviewVisibility() {
     if (!_scrollController.hasClients) return;
     final ctx = _emojiSectionKey.currentContext;
@@ -199,12 +209,13 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
     final viewport = RenderAbstractViewport.maybeOf(ro);
     if (viewport == null) return;
     final revealOffset = viewport.getOffsetToReveal(ro, 0.0).offset;
-    final offset = _scrollController.offset;
-    final shouldHide = _hidePreview
-        ? offset >= revealOffset - 18
-        : offset >= revealOffset + 18;
-    if (shouldHide != _hidePreview) {
-      setState(() => _hidePreview = shouldHide);
+    final scrollPos = _scrollController.offset;
+    final t = ((scrollPos - (revealOffset - _kPreviewPushZone)) /
+            _kPreviewPushZone)
+        .clamp(0.0, 1.0);
+    final newHeight = (1 - t) * _kPreviewMaxHeight;
+    if ((_previewHeight - newHeight).abs() > 0.5) {
+      setState(() => _previewHeight = newHeight);
     }
   }
 
@@ -395,11 +406,11 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
   /// превью всегда видно сверху, и автоскролл при изменении настроек
   /// не нужен (раньше он давал визуальный «прыжок» при каждом тапе).
   /// Возвращаемся к 0 только если превью уже отлипло
-  /// (`_hidePreview == true`) — то есть пользователь скроллил в раздел
+  /// (`_previewHidden == true`) — то есть пользователь скроллил в раздел
   /// «Дополнительно» / «Показать время» / «Авто-перевод», а оттуда
   /// меняет настройку, влияющую на превью.
   void _scrollToPreview() {
-    if (!_hidePreview) return;
+    if (!_previewHidden) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
       _scrollController.animateTo(
@@ -1632,13 +1643,16 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                   controller: _scrollController,
                   slivers: [
                     SliverPersistentHeader(
-                      // pinned: после раздела «Эмодзи эффекты» (т.е. когда
-                      // _hidePreview == true) слой превью схлопывается
-                      // в высоту 0 и перестаёт быть прикреплённым —
-                      // освобождает место под последующие настройки.
-                      pinned: !_hidePreview,
+                      // Превью плавно «выталкивается» разделом «Эмодзи
+                      // эффекты» — высота линейно интерполируется от
+                      // `_kPreviewMaxHeight` до 0 в зоне `_kPreviewPushZone`
+                      // (см. `_handleScrollForPreviewVisibility`). pinned
+                      // переключается на false только когда превью уже
+                      // схлопнуто, чтобы при дальнейшем скролле не
+                      // занимать места.
+                      pinned: !_previewHidden,
                       delegate: _PreviewHeaderDelegate(
-                        height: _hidePreview ? 0 : 374,
+                        height: _previewHeight,
                         background: dark
                             ? const Color(0xFF04070C)
                             : scheme.surface,
