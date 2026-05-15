@@ -225,7 +225,8 @@ flutter:
     - assets/legal/ru/
     - assets/legal/en/
     - assets/wallpapers/
-    - assets/audio/ringtones/
+    - assets/audio/ringtones/messages/
+    - assets/audio/ringtones/calls/
     - assets/audio/conference/
 
   # The following line ensures that the Material Icons font is
