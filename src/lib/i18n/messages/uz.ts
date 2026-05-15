@@ -2282,6 +2282,10 @@ export const messagesUz = {
       pandaBamboo: 'Panda va bambuk',
       owlNight: 'Tungi boyqush',
       bunnyMeadow: 'Oʻtloqdagi quyon',
+      lighthouse3d: 'Mayoq 3D',
+      crab3d: 'Qisqichbaqa 3D',
+      cosmos3d: 'Kosmos 3D',
+      ocean3d: 'Okean 3D',
     },
     bubbleRadius: {
       rounded: 'Yumaloqlangan',

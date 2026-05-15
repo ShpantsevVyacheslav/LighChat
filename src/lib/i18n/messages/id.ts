@@ -2282,6 +2282,10 @@ export const messagesId = {
       pandaBamboo: 'Panda & Bambu',
       owlNight: 'Burung Hantu Malam',
       bunnyMeadow: 'Kelinci di Padang',
+      lighthouse3d: 'Mercusuar 3D',
+      crab3d: 'Kepiting 3D',
+      cosmos3d: 'Kosmos 3D',
+      ocean3d: 'Lautan 3D',
     },
     bubbleRadius: {
       rounded: 'Membulat',

@@ -2282,6 +2282,10 @@ export const messagesEsMx = {
       pandaBamboo: 'Panda y bambú',
       owlNight: 'Búho nocturno',
       bunnyMeadow: 'Conejito en la pradera',
+      lighthouse3d: 'Faro 3D',
+      crab3d: 'Cangrejo 3D',
+      cosmos3d: 'Cosmos 3D',
+      ocean3d: 'Océano 3D',
     },
     bubbleRadius: {
       rounded: 'Redondeadas',

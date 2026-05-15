@@ -2282,6 +2282,10 @@ export const messagesPtBr = {
       pandaBamboo: 'Panda e bambu',
       owlNight: 'Coruja noturna',
       bunnyMeadow: 'Coelho na campina',
+      lighthouse3d: 'Farol 3D',
+      crab3d: 'Caranguejo 3D',
+      cosmos3d: 'Cosmos 3D',
+      ocean3d: 'Oceano 3D',
     },
     bubbleRadius: {
       rounded: 'Arredondados',

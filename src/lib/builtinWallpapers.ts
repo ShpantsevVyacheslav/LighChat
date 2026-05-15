@@ -39,7 +39,11 @@ export type BuiltinWallpaperSlug =
   | 'cute-fox'
   | 'panda-bamboo'
   | 'owl-night'
-  | 'bunny-meadow';
+  | 'bunny-meadow'
+  | 'lighthouse-3d'
+  | 'crab-3d'
+  | 'cosmos-3d'
+  | 'ocean-3d';
 
 export interface BuiltinWallpaper {
   slug: BuiltinWallpaperSlug;
@@ -270,6 +274,34 @@ export const BUILTIN_WALLPAPERS: readonly BuiltinWallpaper[] = [
     light: '/wallpapers/bunny-meadow-light.webp',
     dark: '/wallpapers/bunny-meadow-dark.webp',
     previewGradient: 'linear-gradient(180deg, #D7E8F5 0%, #C8E6C3 100%)',
+  },
+  {
+    slug: 'lighthouse-3d',
+    labelKey: 'lighthouse3d',
+    light: '/wallpapers/lighthouse-3d-light.webp',
+    dark: '/wallpapers/lighthouse-3d-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #FADCBC 0%, #C8DCF0 100%)',
+  },
+  {
+    slug: 'crab-3d',
+    labelKey: 'crab3d',
+    light: '/wallpapers/crab-3d-light.webp',
+    dark: '/wallpapers/crab-3d-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #F5DCC3 0%, #DCE6EB 100%)',
+  },
+  {
+    slug: 'cosmos-3d',
+    labelKey: 'cosmos3d',
+    light: '/wallpapers/cosmos-3d-light.webp',
+    dark: '/wallpapers/cosmos-3d-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #1E1A30 0%, #2C2440 100%)',
+  },
+  {
+    slug: 'ocean-3d',
+    labelKey: 'ocean3d',
+    light: '/wallpapers/ocean-3d-light.webp',
+    dark: '/wallpapers/ocean-3d-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #D7E8F8 0%, #B4D2E6 100%)',
   },
 ] as const;
 

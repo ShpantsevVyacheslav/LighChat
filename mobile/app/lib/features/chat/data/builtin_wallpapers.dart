@@ -338,6 +338,46 @@ const List<BuiltinWallpaper> kBuiltinWallpapers = <BuiltinWallpaper>[
       colors: [Color(0xFFD7E8F5), Color(0xFFC8E6C3)],
     ),
   ),
+  BuiltinWallpaper(
+    slug: 'lighthouse-3d',
+    lightAsset: 'assets/wallpapers/lighthouse-3d-light.webp',
+    darkAsset: 'assets/wallpapers/lighthouse-3d-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFADCBC), Color(0xFFC8DCF0)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'crab-3d',
+    lightAsset: 'assets/wallpapers/crab-3d-light.webp',
+    darkAsset: 'assets/wallpapers/crab-3d-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFF5DCC3), Color(0xFFDCE6EB)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'cosmos-3d',
+    lightAsset: 'assets/wallpapers/cosmos-3d-light.webp',
+    darkAsset: 'assets/wallpapers/cosmos-3d-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFF1E1A30), Color(0xFF2C2440)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'ocean-3d',
+    lightAsset: 'assets/wallpapers/ocean-3d-light.webp',
+    darkAsset: 'assets/wallpapers/ocean-3d-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFD7E8F8), Color(0xFFB4D2E6)],
+    ),
+  ),
 ];
 
 bool isBuiltinWallpaperValue(String? value) =>

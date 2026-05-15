@@ -2297,6 +2297,10 @@ export const messagesEn = {
       pandaBamboo: 'Panda & Bamboo',
       owlNight: 'Night Owl',
       bunnyMeadow: 'Bunny in the Meadow',
+      lighthouse3d: 'Lighthouse 3D',
+      crab3d: 'Crab 3D',
+      cosmos3d: 'Cosmos 3D',
+      ocean3d: 'Ocean 3D',
     },
     bubbleRadius: {
       rounded: 'Rounded',

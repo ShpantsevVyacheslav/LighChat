@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 
+import 'local_message_translator.dart';
+import 'local_text_language_detector.dart';
+
 /// Bridge к Apple Intelligence — Foundation Models framework (iOS 18.1+/26+).
 ///
 /// На Android и старых iOS методы возвращают `false` / `null` без ошибок —
@@ -22,6 +25,73 @@ class AppleIntelligence {
       _streamChannel.receiveBroadcastStream().cast<Map<dynamic, dynamic>>();
 
   bool? _availableCache;
+
+  /// Языки, которые понимает Foundation Models (iOS 26 + Apple
+  /// Intelligence). Список постепенно расширяется Apple; обновлять
+  /// здесь при добавлении новых. Русский / казахский / узбекский ещё не
+  /// поддерживаются — для них используем bridge-translate через ML Kit.
+  static const Set<String> _supportedLanguages = {
+    'en', 'es', 'fr', 'de', 'it', 'pt', 'ja', 'ko', 'zh', 'vi',
+  };
+
+  /// `true` если язык [shortCode] (ISO `ru`, `en`...) обрабатывается
+  /// Foundation Models напрямую без перевода-bridge.
+  bool isLanguageSupportedNatively(String shortCode) {
+    final code = shortCode.toLowerCase().split('-').first.split('_').first;
+    return _supportedLanguages.contains(code);
+  }
+
+  /// Bridge-pipeline: source → en → Apple Intelligence → en → source.
+  /// Используется когда исходный язык не входит в _supportedLanguages,
+  /// но ML Kit умеет переводить пару source↔en.
+  ///
+  /// `operation` принимает английский текст и должна вернуть английский
+  /// результат от AI; мы сами переводим input и output.
+  Future<String?> _viaTranslateBridge({
+    required String text,
+    required String sourceLang,
+    required Future<String?> Function(String enText) operation,
+  }) async {
+    final translator = LocalMessageTranslator.instance;
+    if (!translator.supportsPair(from: sourceLang, to: 'en')) return null;
+    try {
+      final enInput = await translator.translate(
+        cacheKey: 'ai-bridge-in|${text.hashCode}|$sourceLang→en',
+        text: text,
+        from: sourceLang,
+        to: 'en',
+      );
+      final enOutput = await operation(enInput);
+      if (enOutput == null || enOutput.trim().isEmpty) return null;
+      final localized = await translator.translate(
+        cacheKey: 'ai-bridge-out|${enOutput.hashCode}|en→$sourceLang',
+        text: enOutput,
+        from: 'en',
+        to: sourceLang,
+      );
+      final cleaned = localized.trim();
+      return cleaned.isEmpty ? null : cleaned;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Детектит язык, и если он не нативно-поддерживаемый — гонит через
+  /// bridge. Иначе — прямой вызов.
+  Future<String?> _maybeViaBridge({
+    required String text,
+    required Future<String?> Function(String t) directCall,
+  }) async {
+    final det = await LocalTextLanguageDetector.instance.detect(text);
+    if (det.isReliable && !isLanguageSupportedNatively(det.language)) {
+      return _viaTranslateBridge(
+        text: text,
+        sourceLang: det.language,
+        operation: directCall,
+      );
+    }
+    return directCall(text);
+  }
 
   /// Доступен ли on-device LLM прямо сейчас (фреймворк + модель + опт-ин юзера).
   Future<bool> isAvailable() async {
@@ -53,9 +123,13 @@ class AppleIntelligence {
   }
 
   /// Резюмирует текст одним-двумя предложениями на том же языке.
-  /// Возвращает `null`, если LLM недоступен или вернул пусто.
+  /// Если язык не поддерживается Apple Intelligence (например русский),
+  /// автоматически идёт через bridge: ML Kit перевод RU→EN → AI → EN→RU.
   Future<String?> summarize(String text) async {
-    return _stringCall('summarizeText', {'text': text});
+    return _maybeViaBridge(
+      text: text,
+      directCall: (t) => _stringCall('summarizeText', {'text': t}),
+    );
   }
 
   /// Переписывает [text] в одном из стилей. Возвращает `null` при ошибке /
@@ -68,9 +142,12 @@ class AppleIntelligence {
   ///  - `longer` — развёрнутее с естественными деталями
   ///  - `proofread` — исправить орфографию/грамматику без изменения тона
   Future<String?> rewrite(String text, {String style = 'friendly'}) async {
-    return _stringCall(
-      'rewriteText',
-      {'text': text, 'style': style},
+    return _maybeViaBridge(
+      text: text,
+      directCall: (t) => _stringCall(
+        'rewriteText',
+        {'text': t, 'style': style},
+      ),
     );
   }
 
@@ -85,21 +162,53 @@ class AppleIntelligence {
   /// сообщения. Возвращает короткий suggestion (1-12 слов) или `null`
   /// если LLM недоступен / текст слишком короткий / модель не нашла что
   /// дописать.
+  ///
+  /// Если язык не поддерживается нативно — bridge через ML Kit. Чуть
+  /// медленнее (3 шага вместо 1), но debounce composer-а сглаживает.
   Future<String?> suggestContinuation(String prefix) async {
-    return _stringCall('suggestContinuation', {'prefix': prefix});
+    return _maybeViaBridge(
+      text: prefix,
+      directCall: (t) => _stringCall('suggestContinuation', {'prefix': t}),
+    );
   }
 
   /// Стриминг резюме — токены приходят накопительным content (каждая
   /// эмиссия = полный текст до текущего момента). Поток закрывается на
   /// `done`/`error`. Отмена через cancelStream(streamId) если subscription
   /// канселится раньше.
-  Stream<String> streamSummarize(String text) {
-    return _startStream(method: 'streamSummarize', args: {'text': text});
+  ///
+  /// Если язык не поддерживается нативно — стриминг недоступен (нельзя
+  /// частично переводить накопительный английский ответ обратно в русский
+  /// без «прыжков»). Вместо этого делаем full-shot через bridge и
+  /// эмитим финальный результат одним событием.
+  Stream<String> streamSummarize(String text) async* {
+    final det = await LocalTextLanguageDetector.instance.detect(text);
+    if (det.isReliable && !isLanguageSupportedNatively(det.language)) {
+      final result = await _viaTranslateBridge(
+        text: text,
+        sourceLang: det.language,
+        operation: (t) => _stringCall('summarizeText', {'text': t}),
+      );
+      if (result != null) yield result;
+      return;
+    }
+    yield* _startStream(method: 'streamSummarize', args: {'text': text});
   }
 
-  /// Стриминг переписывания.
-  Stream<String> streamRewrite(String text, {String style = 'friendly'}) {
-    return _startStream(
+  /// Стриминг переписывания. Bridge-path для не-нативных языков (как
+  /// в [streamSummarize]).
+  Stream<String> streamRewrite(String text, {String style = 'friendly'}) async* {
+    final det = await LocalTextLanguageDetector.instance.detect(text);
+    if (det.isReliable && !isLanguageSupportedNatively(det.language)) {
+      final result = await _viaTranslateBridge(
+        text: text,
+        sourceLang: det.language,
+        operation: (t) => _stringCall('rewriteText', {'text': t, 'style': style}),
+      );
+      if (result != null) yield result;
+      return;
+    }
+    yield* _startStream(
       method: 'streamRewrite',
       args: {'text': text, 'style': style},
     );

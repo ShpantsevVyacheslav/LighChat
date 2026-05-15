@@ -2299,6 +2299,10 @@ export const messagesRu = {
       pandaBamboo: 'Панда в бамбуке',
       owlNight: 'Ночная сова',
       bunnyMeadow: 'Кролик на лугу',
+      lighthouse3d: 'Маяк 3D',
+      crab3d: 'Краб 3D',
+      cosmos3d: 'Космос 3D',
+      ocean3d: 'Океан 3D',
     },
     bubbleRadius: {
       rounded: 'Скруглённые',

@@ -2282,6 +2282,10 @@ export const messagesKk = {
       pandaBamboo: 'Панда мен бамбук',
       owlNight: 'Түнгі үкі',
       bunnyMeadow: 'Шалғындағы қоян',
+      lighthouse3d: 'Шамшырақ 3D',
+      crab3d: 'Шаян 3D',
+      cosmos3d: 'Ғарыш 3D',
+      ocean3d: 'Мұхит 3D',
     },
     bubbleRadius: {
       rounded: 'Дөңгелектенген',

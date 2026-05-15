@@ -2282,6 +2282,10 @@ export const messagesTr = {
       pandaBamboo: 'Panda ve Bambu',
       owlNight: 'Gece Baykuşu',
       bunnyMeadow: 'Çayırdaki Tavşan',
+      lighthouse3d: 'Deniz Feneri 3D',
+      crab3d: 'Yengeç 3D',
+      cosmos3d: 'Kozmos 3D',
+      ocean3d: 'Okyanus 3D',
     },
     bubbleRadius: {
       rounded: 'Yuvarlatılmış',
