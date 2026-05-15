@@ -356,7 +356,7 @@
   "ringtone_marimba_tap": "Marimba",
   "ringtone_soft_pulse": "Denyut lembut",
   "ringtone_ascending_chord": "Akor naik",
-  "ringtone_storage_original": "Asli (Storage)",
+  "ringtone_storage_original": "Asli",
   "ringtone_preview_play": "Pratinjau",
   "ringtone_picker_messages_title": "Nada dering pesan",
   "ringtone_picker_calls_title": "Nada dering panggilan",
@@ -904,6 +904,14 @@
   "ai_style_romantic": "Romantis",
   "ai_style_sarcastic": "Sarkastis",
   "ai_rewrite_picker_title": "Gaya penulisan ulang",
+  "ai_catch_me_up_title": "Ringkasan obrolan",
+  "ai_catch_me_up_label": "Ringkas dengan AI",
+  "ai_catch_me_up_unread_count": "{count, plural, other{{count} pesan baru}}",
+  "@ai_catch_me_up_unread_count": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "voice_translate_action": "Terjemahkan",
   "voice_translate_show_original": "Asli",
   "voice_translate_in_progress": "Menerjemahkan…",

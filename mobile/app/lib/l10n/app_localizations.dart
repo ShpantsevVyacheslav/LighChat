@@ -1417,7 +1417,7 @@ abstract class AppLocalizations {
   /// No description provided for @ringtone_storage_original.
   ///
   /// In ru, this message translates to:
-  /// **'Оригинальная (Storage)'**
+  /// **'Оригинальная'**
   String get ringtone_storage_original;
 
   /// No description provided for @ringtone_preview_play.
@@ -3495,6 +3495,24 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Стиль переписывания'**
   String get ai_rewrite_picker_title;
+
+  /// No description provided for @ai_catch_me_up_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Краткое содержание'**
+  String get ai_catch_me_up_title;
+
+  /// No description provided for @ai_catch_me_up_label.
+  ///
+  /// In ru, this message translates to:
+  /// **'Кратко с AI'**
+  String get ai_catch_me_up_label;
+
+  /// No description provided for @ai_catch_me_up_unread_count.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count, plural, one{{count} новое сообщение} few{{count} новых сообщения} many{{count} новых сообщений} other{{count} новых сообщений}}'**
+  String ai_catch_me_up_unread_count(int count);
 
   /// No description provided for @voice_translate_action.
   ///

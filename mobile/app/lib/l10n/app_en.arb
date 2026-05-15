@@ -378,7 +378,7 @@
   "ringtone_marimba_tap": "Marimba tap",
   "ringtone_soft_pulse": "Soft pulse",
   "ringtone_ascending_chord": "Ascending chord",
-  "ringtone_storage_original": "Original (Storage)",
+  "ringtone_storage_original": "Original",
   "ringtone_preview_play": "Preview",
   "ringtone_picker_messages_title": "Message ringtone",
   "ringtone_picker_calls_title": "Call ringtone",
@@ -924,6 +924,14 @@
   "ai_style_romantic": "Romantic",
   "ai_style_sarcastic": "Sarcastic",
   "ai_rewrite_picker_title": "Rewrite style",
+  "ai_catch_me_up_title": "Catch me up",
+  "ai_catch_me_up_label": "Catch me up with AI",
+  "ai_catch_me_up_unread_count": "{count, plural, one{{count} new message} other{{count} new messages}}",
+  "@ai_catch_me_up_unread_count": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "voice_translate_action": "Translate",
   "voice_translate_show_original": "Original",
   "voice_translate_in_progress": "Translating…",

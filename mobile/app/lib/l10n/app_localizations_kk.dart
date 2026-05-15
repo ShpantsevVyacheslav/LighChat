@@ -777,7 +777,7 @@ class AppLocalizationsKk extends AppLocalizations {
   String get ringtone_ascending_chord => 'Көтеріңкі аккорд';
 
   @override
-  String get ringtone_storage_original => 'Түпнұсқа (Storage)';
+  String get ringtone_storage_original => 'Түпнұсқа';
 
   @override
   String get ringtone_preview_play => 'Тыңдау';
@@ -1957,6 +1957,23 @@ class AppLocalizationsKk extends AppLocalizations {
 
   @override
   String get ai_rewrite_picker_title => 'Қайта жазу стилі';
+
+  @override
+  String get ai_catch_me_up_title => 'Чат қысқаша мазмұны';
+
+  @override
+  String get ai_catch_me_up_label => 'AI көмегімен қысқаша';
+
+  @override
+  String ai_catch_me_up_unread_count(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count жаңа хабарлама',
+      one: '$count жаңа хабарлама',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get voice_translate_action => 'Аудару';

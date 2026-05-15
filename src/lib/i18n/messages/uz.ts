@@ -2187,7 +2187,7 @@ export const messagesUz = {
     ringtoneMarimbaTap: 'Marimba',
     ringtoneSoftPulse: 'Yumshoq puls',
     ringtoneAscendingChord: 'Koʻtarilayotgan akkord',
-    ringtoneStorageOriginal: 'Asl (Storage)',
+    ringtoneStorageOriginal: 'Asl',
     ringtonePreviewLabel: 'Tinglash',
     quietCardTitle: 'Tinch soatlar',
     quietCardDescription: 'Koʻrsatilgan davrda bildirishnomalar bezovta qilmaydi.',

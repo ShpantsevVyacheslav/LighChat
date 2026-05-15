@@ -16,7 +16,11 @@ export type AnimatedWallpaperSlug =
   | 'milky-way'
   | 'wave-motion'
   | 'rain'
-  | 'fireflies';
+  | 'fireflies'
+  | 'rain-on-glass'
+  | 'drifting-clouds'
+  | 'aurora-pulse'
+  | 'gentle-snowfall';
 
 export interface AnimatedWallpaper {
   slug: AnimatedWallpaperSlug;
@@ -72,6 +76,34 @@ export const ANIMATED_WALLPAPERS: readonly AnimatedWallpaper[] = [
     light: '/wallpapers/animated-fireflies-light.webp',
     dark: '/wallpapers/animated-fireflies-dark.webp',
     previewGradient: 'linear-gradient(180deg, #080F12 0%, #0E1518 100%)',
+  },
+  {
+    slug: 'rain-on-glass',
+    labelKey: 'rainOnGlass',
+    light: '/wallpapers/animated-rain-on-glass-light.webp',
+    dark: '/wallpapers/animated-rain-on-glass-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #0A1020 0%, #12182A 100%)',
+  },
+  {
+    slug: 'drifting-clouds',
+    labelKey: 'driftingClouds',
+    light: '/wallpapers/animated-drifting-clouds-light.webp',
+    dark: '/wallpapers/animated-drifting-clouds-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #FCD7C3 0%, #C8DCEB 100%)',
+  },
+  {
+    slug: 'aurora-pulse',
+    labelKey: 'auroraPulse',
+    light: '/wallpapers/animated-aurora-pulse-light.webp',
+    dark: '/wallpapers/animated-aurora-pulse-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #04061C 0%, #080C20 100%)',
+  },
+  {
+    slug: 'gentle-snowfall',
+    labelKey: 'gentleSnowfall',
+    light: '/wallpapers/animated-gentle-snowfall-light.webp',
+    dark: '/wallpapers/animated-gentle-snowfall-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #0E162A 0%, #1A2236 100%)',
   },
 ] as const;
 

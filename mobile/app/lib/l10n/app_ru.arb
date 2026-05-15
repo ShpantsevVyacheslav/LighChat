@@ -378,7 +378,7 @@
   "ringtone_marimba_tap": "Маримба",
   "ringtone_soft_pulse": "Мягкий пульс",
   "ringtone_ascending_chord": "Восходящий аккорд",
-  "ringtone_storage_original": "Оригинальная (Storage)",
+  "ringtone_storage_original": "Оригинальная",
   "ringtone_preview_play": "Прослушать",
   "ringtone_picker_messages_title": "Мелодия сообщений",
   "ringtone_picker_calls_title": "Мелодия звонков",
@@ -924,6 +924,14 @@
   "ai_style_romantic": "Романтичный",
   "ai_style_sarcastic": "Саркастичный",
   "ai_rewrite_picker_title": "Стиль переписывания",
+  "ai_catch_me_up_title": "Краткое содержание",
+  "ai_catch_me_up_label": "Кратко с AI",
+  "ai_catch_me_up_unread_count": "{count, plural, one{{count} новое сообщение} few{{count} новых сообщения} many{{count} новых сообщений} other{{count} новых сообщений}}",
+  "@ai_catch_me_up_unread_count": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "voice_translate_action": "Перевести",
   "voice_translate_show_original": "Оригинал",
   "voice_translate_in_progress": "Перевожу…",

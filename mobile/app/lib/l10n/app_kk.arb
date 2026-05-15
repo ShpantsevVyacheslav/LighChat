@@ -356,7 +356,7 @@
   "ringtone_marimba_tap": "Маримба",
   "ringtone_soft_pulse": "Жұмсақ пульс",
   "ringtone_ascending_chord": "Көтеріңкі аккорд",
-  "ringtone_storage_original": "Түпнұсқа (Storage)",
+  "ringtone_storage_original": "Түпнұсқа",
   "ringtone_preview_play": "Тыңдау",
   "ringtone_picker_messages_title": "Хабарлама әуені",
   "ringtone_picker_calls_title": "Қоңырау әуені",
@@ -904,6 +904,14 @@
   "ai_style_romantic": "Романтикалық",
   "ai_style_sarcastic": "Мысқыл",
   "ai_rewrite_picker_title": "Қайта жазу стилі",
+  "ai_catch_me_up_title": "Чат қысқаша мазмұны",
+  "ai_catch_me_up_label": "AI көмегімен қысқаша",
+  "ai_catch_me_up_unread_count": "{count, plural, one{{count} жаңа хабарлама} other{{count} жаңа хабарлама}}",
+  "@ai_catch_me_up_unread_count": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "voice_translate_action": "Аудару",
   "voice_translate_show_original": "Түпнұсқа",
   "voice_translate_in_progress": "Аударылуда…",

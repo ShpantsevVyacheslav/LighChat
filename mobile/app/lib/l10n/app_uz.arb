@@ -356,7 +356,7 @@
   "ringtone_marimba_tap": "Marimba",
   "ringtone_soft_pulse": "Yumshoq puls",
   "ringtone_ascending_chord": "Koʻtarilayotgan akkord",
-  "ringtone_storage_original": "Asl (Storage)",
+  "ringtone_storage_original": "Asl",
   "ringtone_preview_play": "Tinglash",
   "ringtone_picker_messages_title": "Xabar ohangi",
   "ringtone_picker_calls_title": "Qoʻngʻiroq ohangi",
@@ -904,6 +904,14 @@
   "ai_style_romantic": "Romantik",
   "ai_style_sarcastic": "Kinoyali",
   "ai_rewrite_picker_title": "Qayta yozish uslubi",
+  "ai_catch_me_up_title": "Chat xulosasi",
+  "ai_catch_me_up_label": "AI bilan xulosalash",
+  "ai_catch_me_up_unread_count": "{count, plural, one{{count} ta yangi xabar} other{{count} ta yangi xabar}}",
+  "@ai_catch_me_up_unread_count": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "voice_translate_action": "Tarjima qilish",
   "voice_translate_show_original": "Asl",
   "voice_translate_in_progress": "Tarjima qilinmoqda…",

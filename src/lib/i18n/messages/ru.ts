@@ -2204,7 +2204,7 @@ export const messagesRu = {
     ringtoneMarimbaTap: 'Маримба',
     ringtoneSoftPulse: 'Мягкий пульс',
     ringtoneAscendingChord: 'Восходящий аккорд',
-    ringtoneStorageOriginal: 'Оригинальная (Storage)',
+    ringtoneStorageOriginal: 'Оригинальная',
     ringtonePreviewLabel: 'Прослушать',
     quietCardTitle: 'Тихие часы',
     quietCardDescription: 'Уведомления не будут беспокоить в указанный период.',

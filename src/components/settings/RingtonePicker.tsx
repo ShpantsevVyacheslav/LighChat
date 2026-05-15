@@ -104,15 +104,19 @@ export function RingtonePicker({
   };
 
   const showStorageOption = variant === "calls";
+  // Эффективное id (что считается выбранным сейчас): для звонков null = Storage,
+  // для сообщений null = classic_chime. Так в UI всегда видна реальная мелодия.
+  const effectiveId: string = value
+    ?? (showStorageOption ? STORAGE_RINGTONE_ID : "classic_chime");
   const triggerLabel = (() => {
-    if (value === STORAGE_RINGTONE_ID && showStorageOption) {
+    if (effectiveId === STORAGE_RINGTONE_ID) {
       return t("notifications.ringtoneStorageOriginal");
     }
-    const selectedPreset = getRingtonePreset(value);
-    if (selectedPreset) {
-      return t(RINGTONE_LABEL_KEYS[selectedPreset.id] ?? selectedPreset.id);
+    const preset = getRingtonePreset(effectiveId);
+    if (preset) {
+      return t(RINGTONE_LABEL_KEYS[preset.id] ?? preset.id);
     }
-    return t("notifications.ringtoneDefault");
+    return t("notifications.ringtoneStorageOriginal");
   })();
 
   return (
@@ -147,20 +151,10 @@ export function RingtonePicker({
           "backdrop-blur-xl",
         )}
       >
-        <PickerOption
-          label={t("notifications.ringtoneDefault")}
-          selected={!value}
-          onSelect={() => {
-            onChange(null);
-            setOpen(false);
-          }}
-          onTogglePreview={null}
-          playing={false}
-        />
         {showStorageOption && (
           <PickerOption
             label={t("notifications.ringtoneStorageOriginal")}
-            selected={value === STORAGE_RINGTONE_ID}
+            selected={effectiveId === STORAGE_RINGTONE_ID}
             onSelect={() => {
               onChange(STORAGE_RINGTONE_ID);
               setOpen(false);
@@ -174,7 +168,7 @@ export function RingtonePicker({
           <PickerOption
             key={preset.id}
             label={t(RINGTONE_LABEL_KEYS[preset.id] ?? preset.id)}
-            selected={value === preset.id}
+            selected={effectiveId === preset.id}
             onSelect={() => {
               onChange(preset.id);
               setOpen(false);

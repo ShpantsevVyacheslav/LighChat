@@ -2187,7 +2187,7 @@ export const messagesKk = {
     ringtoneMarimbaTap: 'Маримба',
     ringtoneSoftPulse: 'Жұмсақ пульс',
     ringtoneAscendingChord: 'Көтеріңкі аккорд',
-    ringtoneStorageOriginal: 'Түпнұсқа (Storage)',
+    ringtoneStorageOriginal: 'Түпнұсқа',
     ringtonePreviewLabel: 'Тыңдау',
     quietCardTitle: 'Тыныш сағаттар',
     quietCardDescription: 'Көрсетілген кезеңде хабарландырулар мазаламайды.',

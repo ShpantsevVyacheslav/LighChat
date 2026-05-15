@@ -72,6 +72,14 @@ CustomPainter _painterFor(String slug, double t, Brightness brightness) {
       return _RainPainter(t: t, brightness: brightness);
     case 'fireflies':
       return _FirefliesPainter(t: t, brightness: brightness);
+    case 'rain-on-glass':
+      return _RainOnGlassPainter(t: t, brightness: brightness);
+    case 'drifting-clouds':
+      return _DriftingCloudsPainter(t: t, brightness: brightness);
+    case 'aurora-pulse':
+      return _AuroraPulsePainter(t: t, brightness: brightness);
+    case 'gentle-snowfall':
+      return _GentleSnowfallPainter(t: t, brightness: brightness);
     default:
       return _NoopPainter();
   }
@@ -461,5 +469,329 @@ class _FirefliesPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _FirefliesPainter old) =>
+      old.t != t || old.brightness != brightness;
+}
+
+// ---------------------------------------------------------------------------
+// Реалистичные painter'ы — приглушённая палитра, мягкий blur, физика
+// движения вместо линейных траекторий.
+// ---------------------------------------------------------------------------
+
+/// Капли дождя на стекле. Часть капель неподвижна (мелкие брызги, осели
+/// на стекле), часть медленно стекает вниз с лёгким зигзагом, оставляя
+/// размытый «след». В конце капли исчезают — стекло «высыхает».
+class _RainOnGlassPainter extends CustomPainter {
+  _RainOnGlassPainter({required this.t, required this.brightness});
+
+  final double t;
+  final Brightness brightness;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final baseColor = brightness == Brightness.dark
+        ? const Color(0xFFB4C8DC)
+        : const Color(0xFF8FA0B8);
+    final fade = t < 0.85 ? 1.0 : (1.0 - (t - 0.85) / 0.15);
+    final rng = math.Random(13);
+
+    // 38 неподвижных мелких капель — рассеяны по всему стеклу
+    for (var i = 0; i < 38; i++) {
+      final x = rng.nextDouble() * w;
+      final y = rng.nextDouble() * h;
+      final r = 1.5 + rng.nextDouble() * 4.0;
+      // Капли проявляются волной от 0 до 0.15 t
+      final appear = (t / 0.15).clamp(0.0, 1.0);
+      canvas.drawCircle(
+        Offset(x, y),
+        r,
+        Paint()
+          ..color = baseColor.withValues(alpha: 0.55 * appear * fade)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
+      );
+      // Лёгкий блик внутри капли (имитация преломления)
+      canvas.drawCircle(
+        Offset(x - r * 0.3, y - r * 0.3),
+        r * 0.4,
+        Paint()
+          ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.4 * appear * fade),
+      );
+    }
+
+    // 8 крупных стекающих капель — каждая со своей траекторией
+    for (var i = 0; i < 8; i++) {
+      final dropDelay = i * 0.06; // капли начинают стекать с задержкой
+      final dropTime = (t - dropDelay).clamp(0.0, 1.0);
+      if (dropTime <= 0) continue;
+      final startX = w * (0.10 + (i / 8) * 0.85);
+      // Зигзаг — синусоида с периодом ~h*0.3
+      final yPos = dropTime * h * 1.10;
+      if (yPos > h * 1.05) continue;
+      final swing = math.sin(dropTime * math.pi * 4 + i) * 6.0;
+      final cx = startX + swing;
+      final r = 5.0 + rng.nextDouble() * 4.0;
+
+      // След капли — серия точек выше текущей позиции (с убывающим alpha)
+      for (var j = 1; j <= 14; j++) {
+        final trailY = yPos - j * 6;
+        if (trailY < 0) break;
+        final trailAlpha = (1 - j / 14) * 0.35 * fade;
+        canvas.drawCircle(
+          Offset(cx + math.sin((trailY / h) * math.pi * 4 + i) * 4, trailY),
+          r * 0.4,
+          Paint()
+            ..color = baseColor.withValues(alpha: trailAlpha)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+        );
+      }
+      // Сама капля
+      canvas.drawCircle(
+        Offset(cx, yPos),
+        r,
+        Paint()
+          ..color = baseColor.withValues(alpha: 0.78 * fade)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.6),
+      );
+      // Преломляющий блик
+      canvas.drawCircle(
+        Offset(cx - r * 0.3, yPos - r * 0.3),
+        r * 0.45,
+        Paint()
+          ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.55 * fade),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RainOnGlassPainter old) =>
+      old.t != t || old.brightness != brightness;
+}
+
+/// Дрейфующие облака — несколько мягких полупрозрачных овалов плывут
+/// слева направо с разной скоростью и плотностью. Появляются и исчезают
+/// с экрана через alpha-fade.
+class _DriftingCloudsPainter extends CustomPainter {
+  _DriftingCloudsPainter({required this.t, required this.brightness});
+
+  final double t;
+  final Brightness brightness;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final cloudColor = brightness == Brightness.dark
+        ? const Color(0xFFB0BCD0)
+        : const Color(0xFFFFFFFF);
+    final rng = math.Random(31);
+
+    // 5 облаков на разных высотах со своими скоростями
+    final clouds = <_CloudConfig>[
+      _CloudConfig(yFrac: 0.18, speed: 0.45, scale: 1.6, alpha: 0.42),
+      _CloudConfig(yFrac: 0.27, speed: 0.30, scale: 2.2, alpha: 0.34),
+      _CloudConfig(yFrac: 0.36, speed: 0.55, scale: 1.3, alpha: 0.48),
+      _CloudConfig(yFrac: 0.46, speed: 0.22, scale: 2.6, alpha: 0.28),
+      _CloudConfig(yFrac: 0.13, speed: 0.40, scale: 1.0, alpha: 0.50),
+    ];
+
+    for (var i = 0; i < clouds.length; i++) {
+      final c = clouds[i];
+      // Сдвиг по X — равномерный за весь период
+      final phase = (t * c.speed + i * 0.23) % 1.0;
+      final cx = -w * 0.25 + phase * w * 1.50;
+      final cy = h * c.yFrac;
+      // Облако = композит из 4-6 перекрывающихся овалов с blur
+      final puffCount = 5;
+      for (var k = 0; k < puffCount; k++) {
+        rng.nextDouble(); // прогрев генератора
+      }
+      final localRng = math.Random(31 + i);
+      for (var k = 0; k < puffCount; k++) {
+        final ox = (localRng.nextDouble() - 0.5) * 80 * c.scale;
+        final oy = (localRng.nextDouble() - 0.5) * 26 * c.scale;
+        final r = (40 + localRng.nextDouble() * 30) * c.scale;
+        canvas.drawCircle(
+          Offset(cx + ox, cy + oy),
+          r,
+          Paint()
+            ..color = cloudColor.withValues(alpha: c.alpha * 0.6)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 24),
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DriftingCloudsPainter old) =>
+      old.t != t || old.brightness != brightness;
+}
+
+class _CloudConfig {
+  const _CloudConfig({
+    required this.yFrac,
+    required this.speed,
+    required this.scale,
+    required this.alpha,
+  });
+  final double yFrac;
+  final double speed;
+  final double scale;
+  final double alpha;
+}
+
+/// Реалистичное полярное сияние — несколько вертикальных «лент»-вуалей
+/// плавно колышутся, цвета переходят между зелёным/бирюзовым/фиолетовым,
+/// амплитуда «дышит» (увеличивается → уменьшается).
+class _AuroraPulsePainter extends CustomPainter {
+  _AuroraPulsePainter({required this.t, required this.brightness});
+
+  final double t;
+  final Brightness brightness;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final breathe = math.sin(t * math.pi) * 0.6 + 0.5;
+
+    final palette = brightness == Brightness.dark
+        ? <Color>[
+            const Color(0xFF55E0A0),
+            const Color(0xFF50C8E0),
+            const Color(0xFFB888E0),
+          ]
+        : <Color>[
+            const Color(0xFF95DCC0),
+            const Color(0xFF95C8DC),
+            const Color(0xFFC8B0E0),
+          ];
+
+    // 3 ленты разной длины. Каждая — вертикальный мягкий «занавес» с
+    // плавным боковым колебанием.
+    for (var bandIdx = 0; bandIdx < 3; bandIdx++) {
+      final color = palette[bandIdx];
+      final baseX = w * (0.20 + bandIdx * 0.30);
+      final segments = 22;
+      // Строим путь как многоугольник вокруг волнистой средней линии
+      final left = Path();
+      final right = Path();
+      for (var i = 0; i <= segments; i++) {
+        final fy = i / segments;
+        // Y от 0.10 до 0.55 от высоты
+        final y = h * (0.10 + fy * 0.45);
+        // Колебание X — синусоида с фазой по времени
+        final wave = math.sin(t * math.pi * 1.6 + bandIdx * 1.3 + fy * math.pi * 2.5) *
+            (60 + 40 * breathe);
+        final cx = baseX + wave;
+        // Ширина ленты сужается к нижнему краю
+        final halfW = (40 - fy * 14) * (0.6 + 0.4 * breathe);
+        if (i == 0) {
+          left.moveTo(cx - halfW, y);
+          right.moveTo(cx + halfW, y);
+        } else {
+          left.lineTo(cx - halfW, y);
+          right.lineTo(cx + halfW, y);
+        }
+      }
+      // Рисуем «занавес» как двойной stroke с большой шириной — даёт
+      // мягкое размытое поле, не нужно строить замкнутый ribbon.
+      canvas.drawPath(
+        left,
+        Paint()
+          ..color = color.withValues(alpha: 0.55 * (0.5 + breathe * 0.5))
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 70 + 30 * breathe
+          ..strokeCap = StrokeCap.round
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 30),
+      );
+      canvas.drawPath(
+        right,
+        Paint()
+          ..color = color.withValues(alpha: 0.45 * (0.5 + breathe * 0.5))
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 50 + 25 * breathe
+          ..strokeCap = StrokeCap.round
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 26),
+      );
+      // Яркое ядро по центру ленты
+      final core = Path();
+      for (var i = 0; i <= segments; i++) {
+        final fy = i / segments;
+        final y = h * (0.10 + fy * 0.45);
+        final wave = math.sin(t * math.pi * 1.6 + bandIdx * 1.3 + fy * math.pi * 2.5) *
+            (60 + 40 * breathe);
+        final cx = baseX + wave;
+        if (i == 0) {
+          core.moveTo(cx, y);
+        } else {
+          core.lineTo(cx, y);
+        }
+      }
+      canvas.drawPath(
+        core,
+        Paint()
+          ..color = color.withValues(alpha: 0.85 * (0.5 + breathe * 0.5))
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 16
+          ..strokeCap = StrokeCap.round
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _AuroraPulsePainter old) =>
+      old.t != t || old.brightness != brightness;
+}
+
+/// Мягкий снегопад — снежинки разного размера падают с разной скоростью,
+/// с лёгким боковым колебанием (имитация ветра). Большие — быстрее,
+/// мелкие плывут медленнее (parallax). К концу снегопад затухает.
+class _GentleSnowfallPainter extends CustomPainter {
+  _GentleSnowfallPainter({required this.t, required this.brightness});
+
+  final double t;
+  final Brightness brightness;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final color = brightness == Brightness.dark
+        ? const Color(0xFFEFF4FF)
+        : const Color(0xFFFFFFFF);
+    final fade = t < 0.85 ? 1.0 : (1.0 - (t - 0.85) / 0.15);
+    final rng = math.Random(91);
+
+    // 90 снежинок с разными параметрами
+    for (var i = 0; i < 90; i++) {
+      final flakeR = 0.6 + rng.nextDouble() * 4.5;
+      // Скорость зависит от размера (parallax) — большие ближе и быстрее
+      final speed = 0.35 + (flakeR / 5.1) * 0.85;
+      final phase = (t * speed + rng.nextDouble()) % 1.0;
+      final x0 = rng.nextDouble() * w;
+      // Боковое колебание — синусоида по позиции и времени
+      final swayAmp = 8.0 + rng.nextDouble() * 18.0;
+      final swayFreq = 0.5 + rng.nextDouble() * 1.5;
+      final y = -h * 0.05 + phase * h * 1.10;
+      if (y < -10 || y > h + 10) continue;
+      final sway = math.sin(phase * math.pi * 2 * swayFreq + rng.nextDouble() * 6) *
+          swayAmp;
+      final x = x0 + sway;
+      // Большие снежинки чуть размыты (depth-of-field эффект)
+      final blur = flakeR > 3 ? 1.2 : 0.4;
+      canvas.drawCircle(
+        Offset(x, y),
+        flakeR,
+        Paint()
+          ..color = color.withValues(alpha: (0.55 + flakeR / 12) * fade)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, blur),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GentleSnowfallPainter old) =>
       old.t != t || old.brightness != brightness;
 }

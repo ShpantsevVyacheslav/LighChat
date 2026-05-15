@@ -779,7 +779,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get ringtone_ascending_chord => 'Akor naik';
 
   @override
-  String get ringtone_storage_original => 'Asli (Storage)';
+  String get ringtone_storage_original => 'Asli';
 
   @override
   String get ringtone_preview_play => 'Pratinjau';
@@ -1953,6 +1953,22 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get ai_rewrite_picker_title => 'Gaya penulisan ulang';
+
+  @override
+  String get ai_catch_me_up_title => 'Ringkasan obrolan';
+
+  @override
+  String get ai_catch_me_up_label => 'Ringkas dengan AI';
+
+  @override
+  String ai_catch_me_up_unread_count(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pesan baru',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get voice_translate_action => 'Terjemahkan';

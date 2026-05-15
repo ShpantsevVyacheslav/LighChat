@@ -2187,7 +2187,7 @@ export const messagesTr = {
     ringtoneMarimbaTap: 'Marimba',
     ringtoneSoftPulse: 'Yumuşak nabız',
     ringtoneAscendingChord: 'Yükselen akor',
-    ringtoneStorageOriginal: 'Orijinal (Storage)',
+    ringtoneStorageOriginal: 'Orijinal',
     ringtonePreviewLabel: 'Dinle',
     quietCardTitle: 'Sessiz saatler',
     quietCardDescription: 'Belirtilen süre boyunca bildirimler sizi rahatsız etmez.',

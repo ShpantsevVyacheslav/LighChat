@@ -2187,7 +2187,7 @@ export const messagesEsMx = {
     ringtoneMarimbaTap: 'Marimba',
     ringtoneSoftPulse: 'Pulso suave',
     ringtoneAscendingChord: 'Acorde ascendente',
-    ringtoneStorageOriginal: 'Original (Storage)',
+    ringtoneStorageOriginal: 'Original',
     ringtonePreviewLabel: 'Escuchar',
     quietCardTitle: 'Horario silencioso',
     quietCardDescription: 'Las notificaciones no te molestarán durante el periodo seleccionado.',

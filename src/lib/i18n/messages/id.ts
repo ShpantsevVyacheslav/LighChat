@@ -2187,7 +2187,7 @@ export const messagesId = {
     ringtoneMarimbaTap: 'Marimba',
     ringtoneSoftPulse: 'Denyut lembut',
     ringtoneAscendingChord: 'Akor naik',
-    ringtoneStorageOriginal: 'Asli (Storage)',
+    ringtoneStorageOriginal: 'Asli',
     ringtonePreviewLabel: 'Pratinjau',
     quietCardTitle: 'Jam tenang',
     quietCardDescription: 'Notifikasi tidak akan mengganggu selama periode yang dipilih.',

@@ -107,6 +107,50 @@ const List<AnimatedWallpaper> kAnimatedWallpapers = <AnimatedWallpaper>[
     ),
     durationMs: 5000,
   ),
+  AnimatedWallpaper(
+    slug: 'rain-on-glass',
+    lightAsset: 'assets/wallpapers/animated-rain-on-glass-light.webp',
+    darkAsset: 'assets/wallpapers/animated-rain-on-glass-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFF0A1020), Color(0xFF12182A)],
+    ),
+    durationMs: 5500,
+  ),
+  AnimatedWallpaper(
+    slug: 'drifting-clouds',
+    lightAsset: 'assets/wallpapers/animated-drifting-clouds-light.webp',
+    darkAsset: 'assets/wallpapers/animated-drifting-clouds-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFCD7C3), Color(0xFFC8DCEB)],
+    ),
+    durationMs: 6500,
+  ),
+  AnimatedWallpaper(
+    slug: 'aurora-pulse',
+    lightAsset: 'assets/wallpapers/animated-aurora-pulse-light.webp',
+    darkAsset: 'assets/wallpapers/animated-aurora-pulse-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFF04061C), Color(0xFF080C20)],
+    ),
+    durationMs: 5000,
+  ),
+  AnimatedWallpaper(
+    slug: 'gentle-snowfall',
+    lightAsset: 'assets/wallpapers/animated-gentle-snowfall-light.webp',
+    darkAsset: 'assets/wallpapers/animated-gentle-snowfall-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFF0E162A), Color(0xFF1A2236)],
+    ),
+    durationMs: 5500,
+  ),
 ];
 
 bool isAnimatedWallpaperValue(String? value) =>

@@ -356,7 +356,7 @@
   "ringtone_marimba_tap": "Marimba",
   "ringtone_soft_pulse": "Pulso suave",
   "ringtone_ascending_chord": "Acorde ascendente",
-  "ringtone_storage_original": "Original (Storage)",
+  "ringtone_storage_original": "Original",
   "ringtone_preview_play": "Ouvir",
   "ringtone_picker_messages_title": "Toque das mensagens",
   "ringtone_picker_calls_title": "Toque das chamadas",
@@ -904,6 +904,14 @@
   "ai_style_romantic": "Romântico",
   "ai_style_sarcastic": "Sarcástico",
   "ai_rewrite_picker_title": "Estilo de reescrita",
+  "ai_catch_me_up_title": "Resumo do chat",
+  "ai_catch_me_up_label": "Resumir com IA",
+  "ai_catch_me_up_unread_count": "{count, plural, one{{count} mensagem nova} other{{count} mensagens novas}}",
+  "@ai_catch_me_up_unread_count": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "voice_translate_action": "Traduzir",
   "voice_translate_show_original": "Original",
   "voice_translate_in_progress": "Traduzindo…",

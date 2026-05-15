@@ -780,7 +780,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get ringtone_ascending_chord => 'Восходящий аккорд';
 
   @override
-  String get ringtone_storage_original => 'Оригинальная (Storage)';
+  String get ringtone_storage_original => 'Оригинальная';
 
   @override
   String get ringtone_preview_play => 'Прослушать';
@@ -1959,6 +1959,25 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get ai_rewrite_picker_title => 'Стиль переписывания';
+
+  @override
+  String get ai_catch_me_up_title => 'Краткое содержание';
+
+  @override
+  String get ai_catch_me_up_label => 'Кратко с AI';
+
+  @override
+  String ai_catch_me_up_unread_count(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count новых сообщений',
+      many: '$count новых сообщений',
+      few: '$count новых сообщения',
+      one: '$count новое сообщение',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get voice_translate_action => 'Перевести';

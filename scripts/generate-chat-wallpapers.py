@@ -3791,6 +3791,151 @@ def concept_animated_fireflies(theme):
     return bg.convert("RGB")
 
 
+def concept_animated_rain_on_glass(theme):
+    """Preview для дождя на стекле — размытый городской пейзаж за окном
+    (силуэты зданий и точечные огни через мокрое стекло)."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (155, 170, 195), (115, 130, 155))
+        building = (95, 110, 140)
+        light = (255, 220, 160)
+    else:
+        bg = vertical_gradient((W, H), (10, 16, 30), (18, 26, 42))
+        building = (28, 36, 56)
+        light = (255, 200, 120)
+    rng = random.Random(13)
+    # Силуэты зданий с размытием — как видно через мокрое стекло
+    blocks = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    bd = ImageDraw.Draw(blocks)
+    x = 0
+    while x < W:
+        bw = rng.randint(int(W * 0.06), int(W * 0.14))
+        bh = rng.randint(int(H * 0.18), int(H * 0.40))
+        top = int(H * 0.78) - bh
+        bd.rectangle([x, top, x + bw, int(H * 0.92)],
+                     fill=building + (255,))
+        # Окна — мелкие точки света
+        win_size = max(4, int(W * 0.012))
+        win_gap = max(12, int(W * 0.025))
+        wy = top + win_gap
+        while wy < int(H * 0.86):
+            wx = x + win_gap
+            while wx + win_size < x + bw:
+                if rng.random() > 0.5:
+                    bd.ellipse([wx, wy, wx + win_size, wy + win_size],
+                               fill=light + (rng.randint(160, 230),))
+                wx += win_gap
+            wy += win_gap
+        x += bw + rng.randint(-4, 6)
+    blocks = blocks.filter(ImageFilter.GaussianBlur(radius=18))
+    bg.paste(blocks, (0, 0), blocks)
+    # Земля — узкая тёмная полоса
+    g = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(g)
+    gd.rectangle([0, int(H * 0.92), W, H],
+                 fill=(building[0] // 2, building[1] // 2,
+                       building[2] // 2, 255))
+    bg.paste(g, (0, 0), g)
+    return bg.convert("RGB")
+
+
+def concept_animated_drifting_clouds(theme):
+    """Preview для дрейфующих облаков — рассветный градиент без объектов
+    (облака рисует painter)."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (252, 215, 195), (200, 220, 235))
+        sun_color = (255, 220, 175)
+    else:
+        bg = vertical_gradient((W, H), (12, 18, 38), (24, 32, 56))
+        sun_color = (240, 215, 250)
+    sun = radial_glow((W, H), (int(W * 0.72), int(H * 0.20)), int(H * 0.13),
+                      sun_color, alpha=180)
+    bg.paste(sun, (0, 0), sun)
+    if theme == "dark":
+        bg.paste(starfield((W, H), density=120, seed=21), (0, 0),
+                 starfield((W, H), density=120, seed=21))
+    return bg.convert("RGB")
+
+
+def concept_animated_aurora_pulse(theme):
+    """Preview для полярного сияния — звёздное небо с горизонтом и
+    силуэтом гор внизу."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (210, 220, 240), (190, 210, 230))
+        mountains = (90, 110, 140)
+        density = 100
+    else:
+        bg = vertical_gradient((W, H), (4, 6, 18), (8, 12, 26))
+        mountains = (8, 14, 28)
+        density = 320
+    bg.paste(starfield((W, H), density=density, seed=66), (0, 0),
+             starfield((W, H), density=density, seed=66))
+    # Силуэт гор внизу
+    rd = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    md = ImageDraw.Draw(rd)
+    md.polygon([
+        (0, int(H * 0.78)),
+        (int(W * 0.15), int(H * 0.65)),
+        (int(W * 0.30), int(H * 0.72)),
+        (int(W * 0.50), int(H * 0.62)),
+        (int(W * 0.68), int(H * 0.70)),
+        (int(W * 0.85), int(H * 0.66)),
+        (W, int(H * 0.74)),
+        (W, H), (0, H),
+    ], fill=mountains + (255,))
+    bg.paste(rd, (0, 0), rd)
+    return bg.convert("RGB")
+
+
+def concept_animated_gentle_snowfall(theme):
+    """Preview для снегопада — синие сумеречные тона с лесом и горой
+    (снежинки рисует painter)."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (185, 205, 230), (215, 225, 240))
+        mountain_far = (140, 160, 195)
+        mountain_near = (90, 115, 155)
+        forest = (50, 75, 65)
+    else:
+        bg = vertical_gradient((W, H), (12, 18, 38), (22, 30, 50))
+        mountain_far = (28, 42, 70)
+        mountain_near = (12, 22, 40)
+        forest = (8, 16, 22)
+    # Дальняя гора
+    rd = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    md = ImageDraw.Draw(rd)
+    md.polygon([
+        (0, int(H * 0.74)),
+        (int(W * 0.40), int(H * 0.55)),
+        (int(W * 0.70), int(H * 0.62)),
+        (W, int(H * 0.58)),
+        (W, int(H * 0.78)),
+        (0, int(H * 0.78)),
+    ], fill=mountain_far + (240,))
+    bg.paste(rd, (0, 0), rd)
+    # Передняя гора
+    rd2 = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    md2 = ImageDraw.Draw(rd2)
+    md2.polygon([
+        (0, int(H * 0.84)),
+        (int(W * 0.25), int(H * 0.70)),
+        (int(W * 0.55), int(H * 0.78)),
+        (int(W * 0.80), int(H * 0.72)),
+        (W, int(H * 0.82)),
+        (W, H), (0, H),
+    ], fill=mountain_near + (255,))
+    bg.paste(rd2, (0, 0), rd2)
+    # Лес у подножия
+    rng = random.Random(33)
+    pines = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    pd = ImageDraw.Draw(pines)
+    for _ in range(12):
+        x = rng.randint(0, W)
+        y = int(H * 0.92) + rng.randint(-15, 10)
+        sz = rng.randint(int(W * 0.05), int(W * 0.10))
+        draw_pine(pd, x, y, sz * 2, forest, alpha=255, layers=4)
+    bg.paste(pines, (0, 0), pines)
+    return bg.convert("RGB")
+
+
 def concept_animated_lighthouse_beam(theme):
     """Preview для свечения маяка — ночное море со звёздами и маяк по
     центру (без луча; его рисует painter поверх)."""
@@ -3880,6 +4025,10 @@ CONCEPTS = {
     "animated-wave-motion": concept_animated_wave_motion,
     "animated-rain": concept_animated_rain,
     "animated-fireflies": concept_animated_fireflies,
+    "animated-rain-on-glass": concept_animated_rain_on_glass,
+    "animated-drifting-clouds": concept_animated_drifting_clouds,
+    "animated-aurora-pulse": concept_animated_aurora_pulse,
+    "animated-gentle-snowfall": concept_animated_gentle_snowfall,
 }
 
 

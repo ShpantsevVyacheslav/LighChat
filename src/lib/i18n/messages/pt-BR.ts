@@ -2187,7 +2187,7 @@ export const messagesPtBr = {
     ringtoneMarimbaTap: 'Marimba',
     ringtoneSoftPulse: 'Pulso suave',
     ringtoneAscendingChord: 'Acorde ascendente',
-    ringtoneStorageOriginal: 'Original (Storage)',
+    ringtoneStorageOriginal: 'Original',
     ringtonePreviewLabel: 'Ouvir',
     quietCardTitle: 'Horário silencioso',
     quietCardDescription: 'As notificações não incomodarão durante o período selecionado.',

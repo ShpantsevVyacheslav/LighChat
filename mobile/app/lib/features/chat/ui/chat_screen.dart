@@ -96,7 +96,10 @@ import 'message_context_menu.dart';
 import 'message_html_text.dart';
 import 'report_sheet.dart';
 import 'chat_composer.dart';
+import 'ai_catch_me_up_pill.dart';
+import 'ai_chat_digest.dart';
 import 'smart_compose_strip.dart';
+import '../data/chat_digest_formatter.dart';
 import '../data/apple_intelligence.dart';
 import '../data/chat_haptics.dart';
 import '../data/document_scanner.dart';
@@ -2555,6 +2558,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                       return Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
+                                          AiCatchMeUpPill(
+                                            aiAvailable: _aiAvailable,
+                                            unreadCount:
+                                                _loadedIncomingUnreadCount(
+                                                  _sortedAscCache,
+                                                  user.uid,
+                                                ),
+                                            onTap: () => _openChatDigest(
+                                              currentUserId: user.uid,
+                                              profileMap: profileMap,
+                                            ),
+                                          ),
                                           SmartComposeStrip(
                                             controller: _controller,
                                             focusNode: _composerFocusNode,
@@ -5431,6 +5446,47 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   void _openStickersGifPanel() {
     unawaited(_openStickersGifPanelImpl());
+  }
+
+  /// Открывает AI-digest sheet с краткой выжимкой последних сообщений.
+  /// Имена резолвятся через [profileMap] (DM/group participants); если
+  /// нечего показать модели — sheet просто закроется со spinner-ом
+  /// (AppleIntelligence.summarizeMessages вернёт null).
+  void _openChatDigest({
+    required String currentUserId,
+    required Map<String, UserProfile>? profileMap,
+  }) {
+    final selfLabel = AppLocalizations.of(context)!.chat_sender_you;
+    String nameFor(String uid) {
+      if (uid == currentUserId) return selfLabel;
+      final p = profileMap?[uid];
+      if (p != null && p.name.trim().isNotEmpty) {
+        final first = p.name.trim().split(RegExp(r'\s+')).first;
+        return first;
+      }
+      return 'Other';
+    }
+
+    final messages = _sortedAscCache;
+    final prompt = formatMessagesForDigest(
+      messages: messages,
+      nameFor: nameFor,
+    );
+    if (prompt.isEmpty) return;
+    // Preview в шапке sheet'а — последние 3-4 строки prompt'а, чтобы юзер
+    // видел источник digest'а без громоздкого блока.
+    final previewLines = prompt.split('\n');
+    final previewTail = previewLines.length > 4
+        ? previewLines.sublist(previewLines.length - 4)
+        : previewLines;
+    final preview = previewTail.join('\n');
+    unawaited(
+      openAiChatDigestSheet(
+        context: context,
+        messagesPreview: preview,
+        messagesAsPrompt: prompt,
+      ),
+    );
   }
 
   /// Удерживает «пол» под composer'ом на время переключения keyboard↔panel,

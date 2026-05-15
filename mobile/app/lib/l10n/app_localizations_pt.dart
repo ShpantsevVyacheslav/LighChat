@@ -780,7 +780,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get ringtone_ascending_chord => 'Acorde ascendente';
 
   @override
-  String get ringtone_storage_original => 'Original (Storage)';
+  String get ringtone_storage_original => 'Original';
 
   @override
   String get ringtone_preview_play => 'Ouvir';
@@ -1963,6 +1963,23 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get ai_rewrite_picker_title => 'Estilo de reescrita';
+
+  @override
+  String get ai_catch_me_up_title => 'Resumo do chat';
+
+  @override
+  String get ai_catch_me_up_label => 'Resumir com IA';
+
+  @override
+  String ai_catch_me_up_unread_count(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mensagens novas',
+      one: '$count mensagem nova',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get voice_translate_action => 'Traduzir';
@@ -9317,7 +9334,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get ringtone_ascending_chord => 'Acorde ascendente';
 
   @override
-  String get ringtone_storage_original => 'Original (Storage)';
+  String get ringtone_storage_original => 'Original';
 
   @override
   String get ringtone_preview_play => 'Ouvir';
@@ -10500,6 +10517,23 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get ai_rewrite_picker_title => 'Estilo de reescrita';
+
+  @override
+  String get ai_catch_me_up_title => 'Resumo do chat';
+
+  @override
+  String get ai_catch_me_up_label => 'Resumir com IA';
+
+  @override
+  String ai_catch_me_up_unread_count(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mensagens novas',
+      one: '$count mensagem nova',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get voice_translate_action => 'Traduzir';

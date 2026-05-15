@@ -356,7 +356,7 @@
   "ringtone_marimba_tap": "Marimba",
   "ringtone_soft_pulse": "Yumuşak nabız",
   "ringtone_ascending_chord": "Yükselen akor",
-  "ringtone_storage_original": "Orijinal (Storage)",
+  "ringtone_storage_original": "Orijinal",
   "ringtone_preview_play": "Dinle",
   "ringtone_picker_messages_title": "Mesaj zil sesi",
   "ringtone_picker_calls_title": "Arama zil sesi",
@@ -904,6 +904,14 @@
   "ai_style_romantic": "Romantik",
   "ai_style_sarcastic": "Alaycı",
   "ai_rewrite_picker_title": "Yeniden yazma stili",
+  "ai_catch_me_up_title": "Sohbet özeti",
+  "ai_catch_me_up_label": "Yapay zekâ ile özetle",
+  "ai_catch_me_up_unread_count": "{count, plural, one{{count} yeni mesaj} other{{count} yeni mesaj}}",
+  "@ai_catch_me_up_unread_count": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "voice_translate_action": "Çevir",
   "voice_translate_show_original": "Orijinal",
   "voice_translate_in_progress": "Çevriliyor…",

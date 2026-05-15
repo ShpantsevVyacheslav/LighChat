@@ -249,7 +249,8 @@ class _NotificationsView extends StatelessWidget {
                     _RingtoneRow(
                       title: l10n.notifications_call_ringtone_label,
                       currentId: settings.callRingtoneId,
-                      fallbackId: null,
+                      // null → audio/ringtone.mp3 из Storage = «Оригинальная».
+                      fallbackId: kStorageRingtoneId,
                       onTap: onPickCallRingtone,
                       disabled: settings.muteAll || !settings.soundEnabled,
                     ),
@@ -687,10 +688,12 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
   @override
   void initState() {
     super.initState();
+    // Сбрасываем индикатор только когда дорожка ДОИГРАЛА (completed) —
+    // не реагируем на промежуточные buffering/idle, иначе превью гасится
+    // мгновенно во время setAsset → play цепочки.
     _stateSub = _previewPlayer.playerStateStream.listen((state) {
       if (!mounted) return;
-      if (state.processingState == ProcessingState.completed ||
-          !state.playing) {
+      if (state.processingState == ProcessingState.completed) {
         if (_previewingId != null) {
           setState(() => _previewingId = null);
         }
@@ -712,15 +715,16 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
     try {
       if (_previewingId == preset.id) {
         await _previewPlayer.pause();
-        setState(() => _previewingId = null);
+        if (mounted) setState(() => _previewingId = null);
         return;
       }
       await _previewPlayer.stop();
       await _previewPlayer.setAsset(preset.assetPath(_variant));
-      setState(() => _previewingId = preset.id);
+      if (mounted) setState(() => _previewingId = preset.id);
       await _previewPlayer.seek(Duration.zero);
       await _previewPlayer.play();
-    } catch (_) {
+    } catch (e, s) {
+      debugPrint('Ringtone preview failed: $e\n$s');
       if (mounted) setState(() => _previewingId = null);
     }
   }
@@ -729,7 +733,7 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
     try {
       if (_previewingId == kStorageRingtoneId) {
         await _previewPlayer.pause();
-        setState(() => _previewingId = null);
+        if (mounted) setState(() => _previewingId = null);
         return;
       }
       await _previewPlayer.stop();
@@ -737,10 +741,11 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
           await FirebaseStorage.instance.ref('audio/ringtone.mp3').getDownloadURL();
       _storageUrlCache = url;
       await _previewPlayer.setAudioSource(AudioSource.uri(Uri.parse(url)));
-      setState(() => _previewingId = kStorageRingtoneId);
+      if (mounted) setState(() => _previewingId = kStorageRingtoneId);
       await _previewPlayer.seek(Duration.zero);
       await _previewPlayer.play();
-    } catch (_) {
+    } catch (e, s) {
+      debugPrint('Storage ringtone preview failed: $e\n$s');
       if (mounted) setState(() => _previewingId = null);
     }
   }
@@ -824,17 +829,14 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _PremiumPickerTile(
-                          label: l10n.ringtone_default,
-                          selected: selectedId == null,
-                          onTap: () => Navigator.of(context).pop(''),
-                          onTogglePreview: null,
-                          previewing: false,
-                        ),
                         if (widget.forCalls)
                           _PremiumPickerTile(
                             label: l10n.ringtone_storage_original,
-                            selected: selectedId == kStorageRingtoneId,
+                            // Эффективный fallback для звонков (null →
+                            // audio/ringtone.mp3 из Storage), поэтому при
+                            // отсутствии явного выбора эта строка отмечена.
+                            selected: selectedId == kStorageRingtoneId ||
+                                selectedId == null,
                             onTap: () =>
                                 Navigator.of(context).pop(kStorageRingtoneId),
                             onTogglePreview: _toggleStoragePreview,
@@ -843,7 +845,11 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
                         for (final p in kRingtonePresets)
                           _PremiumPickerTile(
                             label: _ringtoneLabel(l10n, p.id),
-                            selected: selectedId == p.id,
+                            // Для сообщений null = classic_chime (effective default).
+                            selected: selectedId == p.id ||
+                                (selectedId == null &&
+                                    !widget.forCalls &&
+                                    p.id == kDefaultMessageRingtoneId),
                             onTap: () => Navigator.of(context).pop(p.id),
                             onTogglePreview: () => _togglePreview(p),
                             previewing: _previewingId == p.id,
@@ -915,40 +921,56 @@ class _PremiumPickerTile extends StatelessWidget {
                 ]
               : null,
         ),
+        // Изолируем зону тапа: вся строка-выбора (без play-кнопки) — InkWell.
+        // Play-кнопка лежит в отдельной не-вкладывающейся ветке, гарантируя
+        // что её тап никогда не пересечётся с выбором мелодии (рейс между
+        // двумя GestureDetector'ами в одном arena).
         child: Material(
           color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(18),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-              child: Row(
-                children: [
-                  _SelectionDot(selected: selected),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 15.5,
-                        color: Colors.white.withValues(
-                          alpha: selected ? 0.98 : 0.86,
+          child: Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: onTap,
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(18),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+                    child: Row(
+                      children: [
+                        _SelectionDot(selected: selected),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 15.5,
+                              color: Colors.white.withValues(
+                                alpha: selected ? 0.98 : 0.86,
+                              ),
+                              fontWeight: selected
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
+                              letterSpacing: -0.1,
+                            ),
+                          ),
                         ),
-                        fontWeight:
-                            selected ? FontWeight.w600 : FontWeight.w500,
-                        letterSpacing: -0.1,
-                      ),
+                      ],
                     ),
                   ),
-                  if (onTogglePreview != null)
-                    _PreviewButton(
-                      playing: previewing,
-                      onPressed: onTogglePreview!,
-                      semanticLabel: l10n.ringtone_preview_play,
-                    ),
-                ],
+                ),
               ),
-            ),
+              if (onTogglePreview != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _PreviewButton(
+                    playing: previewing,
+                    onPressed: onTogglePreview!,
+                    semanticLabel: l10n.ringtone_preview_play,
+                  ),
+                ),
+            ],
           ),
         ),
       ),
