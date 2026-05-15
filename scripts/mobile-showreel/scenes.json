@@ -1,0 +1,117 @@
+{
+  "_comment": "16 сцен mobile-showreel. Каждая описывает что показать на iPhone simulator и как долго записывать. Длительности и тексты должны совпадать с scripts/showreel-render/voiceover.json чтобы озвучка ложилась.",
+  "scenes": [
+    {
+      "id": "intro",
+      "durationMs": 8000,
+      "kind": "auto",
+      "hint": "Стартовый кадр: открытый список чатов (/chats), без жестов. Иконку приложения с заставкой можно показать в первые 2 сек, дальше ChatListScreen.",
+      "checks": ["app launched", "ChatListScreen visible", "статус-бар чистый"]
+    },
+    {
+      "id": "encryption",
+      "durationMs": 14000,
+      "kind": "manual",
+      "hint": "Открыть E2EE-чат → тап на header → откроется ConversationEncryptionScreen с отпечатком ключа. На 4-й сек прокрутить вниз показывая fingerprint badge.",
+      "checks": ["E2EE indicator виден в header", "fingerprint hex отображается", "состояние 'Verified' (если демо-данные позволяют)"]
+    },
+    {
+      "id": "secret",
+      "durationMs": 14000,
+      "kind": "manual",
+      "hint": "В /chats создать или открыть Secret chat → тап на header → SecretChatSettingsScreen. Показать TTL-таймер, Lock policy switch, NoForward switch.",
+      "checks": ["secret chat header", "TTL timer виден", "switches активны"]
+    },
+    {
+      "id": "disappearing",
+      "durationMs": 12000,
+      "kind": "manual",
+      "hint": "Открыть любой чат → меню → 'Исчезающие сообщения' → ConversationDisappearingScreen. На 3-й сек тапнуть '1 неделя'.",
+      "checks": ["TTL picker открыт", "галка перемещается на выбранный вариант"]
+    },
+    {
+      "id": "scheduled",
+      "durationMs": 12000,
+      "kind": "manual",
+      "hint": "В chat composer ввести текст → long-press на send → ScheduleMessageDialog. На 5-й сек выбрать время, тап Schedule. Показать confirmation toast.",
+      "checks": ["composer text виден", "ScheduleMessageDialog открыт", "time picker"]
+    },
+    {
+      "id": "games",
+      "durationMs": 12000,
+      "kind": "mock",
+      "hint": "Сложно записать с реальным оппонентом — оставляем mock из feature_mocks.dart. Открыть `/features/showreel` и дать проиграть сцену Durak.",
+      "checks": ["mock играет", "карты анимированы"]
+    },
+    {
+      "id": "meetings",
+      "durationMs": 14000,
+      "kind": "mock",
+      "hint": "Требует 2-4 участников + камеру/микро — на симуляторе невозможно. Mock из feature_mocks.dart: тайлы участников, реакции, polls.",
+      "checks": ["mock играет", "тайлы участников видны"]
+    },
+    {
+      "id": "calls",
+      "durationMs": 14000,
+      "kind": "mock",
+      "hint": "WebRTC + камера — на симуляторе невозможно. Mock из feature_mocks.dart: AudioCall screen + VideoCircle.",
+      "checks": ["mock играет"]
+    },
+    {
+      "id": "folders",
+      "durationMs": 12000,
+      "kind": "manual",
+      "hint": "/chats со включёнными папками. На 2-й сек проскроллить горизонтально по папкам (All/Unread/Personal/Groups). На 7-й сек открыть один чат и зайти в Thread.",
+      "checks": ["folder rail виден", "горизонтальный скролл папок", "thread открывается"]
+    },
+    {
+      "id": "live-location",
+      "durationMs": 12000,
+      "kind": "manual",
+      "hint": "В чате тапнуть скрепку → Share Location → SharedLocationMapScreen. Включить Live Sharing на 4-й сек. Показать индикатор-баннер.",
+      "checks": ["карта рендерится", "Live Location banner появляется"]
+    },
+    {
+      "id": "multi-device",
+      "durationMs": 12000,
+      "kind": "manual",
+      "hint": "/settings/devices → список устройств. На 5-й сек тапнуть 'Add device' → E2EE QR Pairing screen с QR-кодом и 6-значным кодом.",
+      "checks": ["device list виден", "QR-код отображается"]
+    },
+    {
+      "id": "stickers",
+      "durationMs": 10000,
+      "kind": "manual",
+      "hint": "В chat composer тап на иконку Sticker → ComposerStickerGifSheet. Показать 3 вкладки (Emoji/Stickers/GIF) с переключением.",
+      "checks": ["sticker sheet открыт", "табы переключаются"]
+    },
+    {
+      "id": "privacy",
+      "durationMs": 10000,
+      "kind": "manual",
+      "hint": "/settings/privacy → ChatPrivacyScreen. Показать 4 секции (Visibility / Group invites / Finding you / Profile), переключить один из switches.",
+      "checks": ["privacy screen открыт", "switches видны", "анимация toggle"]
+    },
+    {
+      "id": "ai",
+      "durationMs": 14000,
+      "kind": "manual",
+      "hint": "В chat composer ввести любой текст 'Привет, как насчёт встречи завтра?' → появится SmartComposeStrip → тап на иконку-сверкалку → откроется список стилей → выбрать 'Professional'. Текст переписывается.",
+      "checks": ["smart compose strip виден", "стили перебираются", "текст в composer обновляется"]
+    },
+    {
+      "id": "navigator",
+      "durationMs": 12000,
+      "kind": "manual",
+      "hint": "В чате тапнуть на сообщение с локацией / адресом → NavigatorPickerSheet поднимается. Показать кнопки Apple Maps / Google Maps / Yandex Maps / Yandex Go / Uber / Add to Calendar.",
+      "checks": ["picker sheet поднят", "все 6 вариантов видны"]
+    },
+    {
+      "id": "outro",
+      "durationMs": 6000,
+      "kind": "auto",
+      "hint": "Финальный кадр: ChatListScreen с лёгким fade-out. Или splash-логотип LighChat.",
+      "checks": ["финальный кадр виден"]
+    }
+  ]
+}
