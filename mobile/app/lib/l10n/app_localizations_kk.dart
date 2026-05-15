@@ -1404,6 +1404,9 @@ class AppLocalizationsKk extends AppLocalizations {
   String get voice_preview_tooltip_send => 'Жіберу';
 
   @override
+  String get voice_preview_transcribing => 'Танып жатырмын…';
+
+  @override
   String get profile_qr_title => 'Мой QR-код';
 
   @override

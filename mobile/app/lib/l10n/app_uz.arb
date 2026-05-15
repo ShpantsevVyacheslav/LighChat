@@ -647,6 +647,7 @@
   "chat_reply_cancel_tooltip": "Javobni bekor qilish",
   "voice_preview_tooltip_cancel": "Bekor qilish",
   "voice_preview_tooltip_send": "Yuborish",
+  "voice_preview_transcribing": "Tanib olinmoqda…",
   "profile_qr_title": "Mening QR kodom",
   "profile_qr_tooltip_close": "Yopish",
   "profile_qr_share_title": "Mening LighChat profilim",

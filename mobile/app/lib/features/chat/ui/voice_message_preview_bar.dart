@@ -8,6 +8,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../data/local_voice_transcriber.dart';
 import 'message_audio_waveform.dart';
 import 'voice_message_record_sheet.dart';
 
@@ -66,12 +67,52 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
   double _trimStart = 0;
   double _trimEnd = 1;
 
+  // On-device транскрибация полученной записи. Начинается в [initState],
+  // результат показывается над playback-row'ой и пробрасывается в send-result
+  // как `transcript`. При ошибке (нет permission / не поддерживается локаль)
+  // полоска просто молча скрывается — войс всё равно можно отправить без
+  // транскрипта, не блокируем поток.
+  bool _transcribing = false;
+  String? _transcript;
+
   @override
   void initState() {
     super.initState();
     _player = AudioPlayer();
     _effectiveDuration = widget.duration;
     unawaited(_load());
+    unawaited(_kickOffTranscription());
+  }
+
+  Future<void> _kickOffTranscription() async {
+    if (!mounted) return;
+    setState(() {
+      _transcribing = true;
+      _transcript = null;
+    });
+    try {
+      // Локаль системы — приоритетная подсказка. Двухпроходный auto-detect
+      // на iOS сам перепроверит через NLLanguageRecognizer и перезапустится
+      // с правильной локалью при необходимости.
+      final lang = WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+      final fileUri = Uri.file(widget.filePath).toString();
+      final res = await LocalVoiceTranscriber.instance.transcribeAttachment(
+        messageId: 'preview_${DateTime.now().microsecondsSinceEpoch}',
+        audioUrl: fileUri,
+        languageHint: lang,
+      );
+      if (!mounted) return;
+      setState(() {
+        _transcribing = false;
+        _transcript = res.text.trim().isEmpty ? null : res.text.trim();
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _transcribing = false;
+        _transcript = null;
+      });
+    }
   }
 
   Future<void> _load() async {
@@ -185,6 +226,7 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
         duration: _effectiveDuration > Duration.zero
             ? _effectiveDuration
             : widget.duration,
+        transcript: _transcript,
       );
     }
 
@@ -216,12 +258,17 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
       return VoiceMessageRecordResult(
         filePath: widget.filePath,
         duration: _effectiveDuration,
+        transcript: _transcript,
       );
     }
     unawaited(_deleteSilently(widget.filePath));
+    // После trim'а файл и его длина изменились, но содержимое речи —
+    // подмножество исходного. Транскрипт исходника всё ещё ценен как
+    // approx. Дешевле передать его, чем перезапускать ASR на trim'е.
     return VoiceMessageRecordResult(
       filePath: outPath,
       duration: _trimmedDuration,
+      transcript: _transcript,
     );
   }
 
@@ -230,6 +277,76 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
       final f = File(path);
       if (await f.exists()) await f.delete();
     } catch (_) {}
+  }
+
+  /// Полоса с транскриптом над playback-row.
+  /// Состояния:
+  ///  - `_transcribing` → spinner + «Распознаю…»
+  ///  - `_transcript != null` → серая карточка с самим текстом
+  ///  - иначе (включая ошибки) → SizedBox.shrink (AnimatedSize сворачивает)
+  Widget _buildTranscriptionStrip({
+    required bool dark,
+    required Color fg,
+    required Color meta,
+    required AppLocalizations l10n,
+  }) {
+    if (_transcribing) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(52, 0, 54, 6),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                color: meta,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              l10n.voice_preview_transcribing,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: meta,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    final text = _transcript;
+    if (text == null || text.isEmpty) return const SizedBox.shrink();
+    final bg = dark
+        ? Colors.white.withValues(alpha: 0.06)
+        : Colors.black.withValues(alpha: 0.04);
+    final border = dark
+        ? Colors.white.withValues(alpha: 0.12)
+        : Colors.black.withValues(alpha: 0.08);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(52, 0, 54, 6),
+      child: Container(
+        constraints: const BoxConstraints(maxHeight: 96),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: border),
+        ),
+        child: SingleChildScrollView(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: fg.withValues(alpha: 0.86),
+              height: 1.32,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _sendSelected() async {
@@ -367,6 +484,16 @@ class _VoiceMessagePreviewBarState extends State<VoiceMessagePreviewBar> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          AnimatedSize(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            child: _buildTranscriptionStrip(
+              dark: dark,
+              fg: fg,
+              meta: meta,
+              l10n: l10n,
+            ),
+          ),
           AnimatedSize(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,

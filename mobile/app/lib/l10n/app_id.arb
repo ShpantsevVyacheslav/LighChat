@@ -647,6 +647,7 @@
   "chat_reply_cancel_tooltip": "Batal Balas",
   "voice_preview_tooltip_cancel": "Batal",
   "voice_preview_tooltip_send": "Kirim",
+  "voice_preview_transcribing": "Mengenali…",
   "profile_qr_title": "My Kode QR",
   "profile_qr_tooltip_close": "Tutup",
   "profile_qr_share_title": "My LighChat Profil",

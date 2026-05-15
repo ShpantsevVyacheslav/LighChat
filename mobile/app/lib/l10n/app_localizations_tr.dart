@@ -1409,6 +1409,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get voice_preview_tooltip_send => 'Gönder';
 
   @override
+  String get voice_preview_transcribing => 'Tanınıyor…';
+
+  @override
   String get profile_qr_title => 'QR kodum';
 
   @override

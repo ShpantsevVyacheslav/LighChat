@@ -1405,6 +1405,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get voice_preview_tooltip_send => 'Отправить';
 
   @override
+  String get voice_preview_transcribing => 'Распознаю…';
+
+  @override
   String get profile_qr_title => 'Мой QR-код';
 
   @override

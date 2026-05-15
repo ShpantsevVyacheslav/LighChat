@@ -647,6 +647,7 @@
   "chat_reply_cancel_tooltip": "Yanıtı iptal et",
   "voice_preview_tooltip_cancel": "İptal",
   "voice_preview_tooltip_send": "Gönder",
+  "voice_preview_transcribing": "Tanınıyor…",
   "profile_qr_title": "QR kodum",
   "profile_qr_tooltip_close": "Kapat",
   "profile_qr_share_title": "LighChat profilim",

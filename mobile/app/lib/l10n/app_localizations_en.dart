@@ -1392,6 +1392,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voice_preview_tooltip_send => 'Send';
 
   @override
+  String get voice_preview_transcribing => 'Recognizing…';
+
+  @override
   String get profile_qr_title => 'My QR code';
 
   @override

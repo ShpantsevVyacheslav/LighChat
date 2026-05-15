@@ -1401,6 +1401,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get voice_preview_tooltip_send => 'Kirim';
 
   @override
+  String get voice_preview_transcribing => 'Mengenali…';
+
+  @override
   String get profile_qr_title => 'My Kode QR';
 
   @override

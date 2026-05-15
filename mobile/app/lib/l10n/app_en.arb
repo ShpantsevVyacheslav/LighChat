@@ -669,6 +669,7 @@
   "chat_reply_cancel_tooltip": "Cancel reply",
   "voice_preview_tooltip_cancel": "Cancel",
   "voice_preview_tooltip_send": "Send",
+  "voice_preview_transcribing": "Recognizing…",
   "profile_qr_title": "My QR code",
   "profile_qr_tooltip_close": "Close",
   "profile_qr_share_title": "My LighChat profile",

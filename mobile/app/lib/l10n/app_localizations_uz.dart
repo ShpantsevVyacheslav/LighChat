@@ -1408,6 +1408,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get voice_preview_tooltip_send => 'Yuborish';
 
   @override
+  String get voice_preview_transcribing => 'Tanib olinmoqda…';
+
+  @override
   String get profile_qr_title => 'Mening QR kodom';
 
   @override

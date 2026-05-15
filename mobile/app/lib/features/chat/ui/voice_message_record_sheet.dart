@@ -12,10 +12,18 @@ class VoiceMessageRecordResult {
   const VoiceMessageRecordResult({
     required this.filePath,
     required this.duration,
+    this.transcript,
   });
 
   final String filePath;
   final Duration duration;
+
+  /// On-device транскрипт от Apple Speech / Android SpeechRecognizer.
+  /// Заполняется preview-баром автоматически после остановки записи,
+  /// если транскрибация успешна. Caller (send pipeline) может приложить
+  /// его как `voiceTranscript` к Firestore-документу сообщения — тогда
+  /// получатели сразу видят текст без повторного запуска ASR.
+  final String? transcript;
 }
 
 Future<VoiceMessageRecordResult?> showVoiceMessageRecordSheet(

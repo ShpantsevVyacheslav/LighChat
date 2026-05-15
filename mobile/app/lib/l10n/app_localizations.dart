@@ -2530,6 +2530,12 @@ abstract class AppLocalizations {
   /// **'Отправить'**
   String get voice_preview_tooltip_send;
 
+  /// No description provided for @voice_preview_transcribing.
+  ///
+  /// In ru, this message translates to:
+  /// **'Распознаю…'**
+  String get voice_preview_transcribing;
+
   /// No description provided for @profile_qr_title.
   ///
   /// In ru, this message translates to:

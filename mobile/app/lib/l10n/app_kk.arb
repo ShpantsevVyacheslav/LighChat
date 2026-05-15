@@ -647,6 +647,7 @@
   "chat_reply_cancel_tooltip": "Болдырмау ответ",
   "voice_preview_tooltip_cancel": "Болдырмау",
   "voice_preview_tooltip_send": "Жіберу",
+  "voice_preview_transcribing": "Танып жатырмын…",
   "profile_qr_title": "Мой QR-код",
   "profile_qr_tooltip_close": "Жабу",
   "profile_qr_share_title": "Мой профиль в LighChat",

@@ -1406,6 +1406,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get voice_preview_tooltip_send => 'Enviar';
 
   @override
+  String get voice_preview_transcribing => 'A reconhecer…';
+
+  @override
   String get profile_qr_title => 'Meu código QR';
 
   @override
@@ -9958,6 +9961,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get voice_preview_tooltip_send => 'Enviar';
+
+  @override
+  String get voice_preview_transcribing => 'Reconhecendo…';
 
   @override
   String get profile_qr_title => 'Meu código QR';
