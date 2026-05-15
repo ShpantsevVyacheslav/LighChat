@@ -2963,6 +2963,41 @@ class AppLocalizationsRu extends AppLocalizations {
   String get tts_quality_hint_cta => 'Настройки';
 
   @override
+  String get tts_voice_picker_title => 'Голос для чтения';
+
+  @override
+  String get tts_voice_picker_snackbar => 'Выберите голос для чтения вслух';
+
+  @override
+  String get tts_voice_picker_snackbar_cta => 'Выбрать';
+
+  @override
+  String get tts_voice_picker_empty =>
+      'Нет установленных голосов для этого языка.';
+
+  @override
+  String get tts_voice_picker_show_novelty => 'Показать остальные голоса';
+
+  @override
+  String get tts_voice_picker_hide_novelty => 'Скрыть остальные голоса';
+
+  @override
+  String get tts_voice_picker_install_hint =>
+      'Больше голосов: Настройки iOS → Универсальный доступ → Контент устный → Голоса.';
+
+  @override
+  String get tts_voice_sample_phrase => 'Привет! Так я звучу.';
+
+  @override
+  String get tts_voice_quality_premium => 'Premium';
+
+  @override
+  String get tts_voice_quality_enhanced => 'Enhanced';
+
+  @override
+  String get tts_voice_quality_default => 'Базовый';
+
+  @override
   String get message_menu_action_edit => 'Изменить';
 
   @override

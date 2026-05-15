@@ -2972,6 +2972,40 @@ class AppLocalizationsUz extends AppLocalizations {
   String get tts_quality_hint_cta => 'Sozlamalar';
 
   @override
+  String get tts_voice_picker_title => 'Ovoz bilan oʻqish ovozi';
+
+  @override
+  String get tts_voice_picker_snackbar => 'Oʻqish uchun ovozni tanlang';
+
+  @override
+  String get tts_voice_picker_snackbar_cta => 'Tanlash';
+
+  @override
+  String get tts_voice_picker_empty => 'Bu til uchun oʻrnatilgan ovozlar yoʻq.';
+
+  @override
+  String get tts_voice_picker_show_novelty => 'Boshqa ovozlarni koʻrsatish';
+
+  @override
+  String get tts_voice_picker_hide_novelty => 'Boshqa ovozlarni yashirish';
+
+  @override
+  String get tts_voice_picker_install_hint =>
+      'Boshqa ovozlar: iOS Sozlamalar → Maxsus imkoniyatlar → Aytilgan kontent → Ovozlar.';
+
+  @override
+  String get tts_voice_sample_phrase => 'Salom! Mening ovozim shunday.';
+
+  @override
+  String get tts_voice_quality_premium => 'Premium';
+
+  @override
+  String get tts_voice_quality_enhanced => 'Yaxshilangan';
+
+  @override
+  String get tts_voice_quality_default => 'Standart';
+
+  @override
   String get message_menu_action_edit => 'Tahrirlash';
 
   @override

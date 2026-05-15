@@ -2943,6 +2943,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tts_quality_hint_cta => 'Settings';
 
   @override
+  String get tts_voice_picker_title => 'Read-aloud voice';
+
+  @override
+  String get tts_voice_picker_snackbar => 'Pick a voice for read aloud';
+
+  @override
+  String get tts_voice_picker_snackbar_cta => 'Pick';
+
+  @override
+  String get tts_voice_picker_empty => 'No installed voices for this language.';
+
+  @override
+  String get tts_voice_picker_show_novelty => 'Show novelty voices';
+
+  @override
+  String get tts_voice_picker_hide_novelty => 'Hide novelty voices';
+
+  @override
+  String get tts_voice_picker_install_hint =>
+      'More voices: iOS Settings → Accessibility → Spoken Content → Voices.';
+
+  @override
+  String get tts_voice_sample_phrase => 'Hello! This is how I sound.';
+
+  @override
+  String get tts_voice_quality_premium => 'Premium';
+
+  @override
+  String get tts_voice_quality_enhanced => 'Enhanced';
+
+  @override
+  String get tts_voice_quality_default => 'Default';
+
+  @override
   String get message_menu_action_edit => 'Edit';
 
   @override

@@ -2984,6 +2984,41 @@ class AppLocalizationsEs extends AppLocalizations {
   String get tts_quality_hint_cta => 'Ajustes';
 
   @override
+  String get tts_voice_picker_title => 'Voz para lectura en voz alta';
+
+  @override
+  String get tts_voice_picker_snackbar => 'Elige una voz para la lectura';
+
+  @override
+  String get tts_voice_picker_snackbar_cta => 'Elegir';
+
+  @override
+  String get tts_voice_picker_empty =>
+      'No hay voces instaladas para este idioma.';
+
+  @override
+  String get tts_voice_picker_show_novelty => 'Mostrar otras voces';
+
+  @override
+  String get tts_voice_picker_hide_novelty => 'Ocultar otras voces';
+
+  @override
+  String get tts_voice_picker_install_hint =>
+      'Más voces: Ajustes de iOS → Accesibilidad → Contenido hablado → Voces.';
+
+  @override
+  String get tts_voice_sample_phrase => '¡Hola! Así sueno yo.';
+
+  @override
+  String get tts_voice_quality_premium => 'Premium';
+
+  @override
+  String get tts_voice_quality_enhanced => 'Mejorada';
+
+  @override
+  String get tts_voice_quality_default => 'Estándar';
+
+  @override
   String get message_menu_action_edit => 'Editar';
 
   @override
@@ -11554,6 +11589,41 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get tts_quality_hint_cta => 'Ajustes';
+
+  @override
+  String get tts_voice_picker_title => 'Voz para lectura en voz alta';
+
+  @override
+  String get tts_voice_picker_snackbar => 'Elige una voz para la lectura';
+
+  @override
+  String get tts_voice_picker_snackbar_cta => 'Elegir';
+
+  @override
+  String get tts_voice_picker_empty =>
+      'No hay voces instaladas para este idioma.';
+
+  @override
+  String get tts_voice_picker_show_novelty => 'Mostrar otras voces';
+
+  @override
+  String get tts_voice_picker_hide_novelty => 'Ocultar otras voces';
+
+  @override
+  String get tts_voice_picker_install_hint =>
+      'Más voces: Ajustes de iOS → Accesibilidad → Contenido hablado → Voces.';
+
+  @override
+  String get tts_voice_sample_phrase => '¡Hola! Así sueno yo.';
+
+  @override
+  String get tts_voice_quality_premium => 'Premium';
+
+  @override
+  String get tts_voice_quality_enhanced => 'Mejorada';
+
+  @override
+  String get tts_voice_quality_default => 'Estándar';
 
   @override
   String get message_menu_action_edit => 'Editar';

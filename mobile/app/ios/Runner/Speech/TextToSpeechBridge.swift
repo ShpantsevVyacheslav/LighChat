@@ -32,6 +32,9 @@ final class TextToSpeechBridge: NSObject {
         .trimmingCharacters(in: .whitespacesAndNewlines)
       let languageTag = args["languageTag"] as? String
       let rate = args["rate"] as? Double
+      // Опциональный явный выбор голоса (`voiceIdentifier`) от пользователя.
+      // Если задан — используем его буквально, игнорируя авто-pickBest.
+      let voiceIdentifier = args["voiceIdentifier"] as? String
       if text.isEmpty {
         result(false)
         return
@@ -51,12 +54,13 @@ final class TextToSpeechBridge: NSObject {
       let utterance = AVSpeechUtterance(string: text)
       let normalizedTag = languageTag?
         .replacingOccurrences(of: "_", with: "-")
-      // Выбираем лучший доступный голос: premium > enhanced > default.
-      // По дефолту AVSpeechSynthesisVoice(language:) даёт самый низкий
-      // Compact, который звучит как «робот». Premium/Enhanced требуют
-      // установки в Settings → Accessibility → Spoken Content → Voices,
-      // но если они есть — звучат естественно (нейросетевой синтез).
-      let voice = Self.pickBestVoice(languageTag: normalizedTag)
+      // Сначала пробуем явный выбор пользователя. Если такого голоса больше
+      // нет (юзер удалил пакет в Settings), падаем на auto-best.
+      let explicitVoice: AVSpeechSynthesisVoice? = {
+        guard let id = voiceIdentifier, !id.isEmpty else { return nil }
+        return AVSpeechSynthesisVoice(identifier: id)
+      }()
+      let voice = explicitVoice ?? Self.pickBestVoice(languageTag: normalizedTag)
       if let voice = voice {
         utterance.voice = voice
         let qualityName: String = {
@@ -99,8 +103,54 @@ final class TextToSpeechBridge: NSObject {
         .replacingOccurrences(of: "_", with: "-")
       result(Self.voiceQualityInfo(languageTag: tag))
 
+    case "listVoices":
+      let args = call.arguments as? [String: Any] ?? [:]
+      let tag = (args["languageTag"] as? String)?
+        .replacingOccurrences(of: "_", with: "-")
+      result(Self.listVoices(languageTag: tag))
+
     default:
       result(FlutterMethodNotImplemented)
+    }
+  }
+
+  /// Возвращает все установленные на устройстве голоса (опц. фильтр по
+  /// языку). Каждый элемент — Map с полями `identifier`, `name`, `language`,
+  /// `quality` (`premium`/`enhanced`/`default`), `isNoveltyOrEloquence`
+  /// (true для не-«серьёзных» голосов типа Albert, Whisper, Trinoids).
+  /// Dart использует это для UI выбора голоса в Settings → Read aloud.
+  private static func listVoices(languageTag: String?) -> [[String: Any]] {
+    let all = AVSpeechSynthesisVoice.speechVoices()
+    let lang = languageTag?.lowercased()
+    let filtered = lang == nil
+      ? all
+      : all.filter { v in
+          let vl = v.language.lowercased()
+          let prefix = String(lang!.split(separator: "-").first ?? "")
+          return vl == lang! || vl.hasPrefix("\(prefix)-")
+        }
+    return filtered.map { v in
+      let quality: String = {
+        if #available(iOS 16.0, *) {
+          switch v.quality {
+          case .premium: return "premium"
+          case .enhanced: return "enhanced"
+          default: return "default"
+          }
+        }
+        return v.quality == .enhanced ? "enhanced" : "default"
+      }()
+      // Не-серьёзные голоса iOS: помечаем флагом, чтобы Dart мог
+      // скрыть их в основном списке (Albert/Bahh/Whisper и т.д.).
+      let isNovelty = v.identifier.contains(".speech.synthesis.novelty.")
+        || v.identifier.contains(".speech.synthesis.eloquence.")
+      return [
+        "identifier": v.identifier,
+        "name": v.name,
+        "language": v.language,
+        "quality": quality,
+        "isNoveltyOrEloquence": isNovelty,
+      ] as [String: Any]
     }
   }
 

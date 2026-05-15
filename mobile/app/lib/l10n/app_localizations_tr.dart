@@ -2963,6 +2963,40 @@ class AppLocalizationsTr extends AppLocalizations {
   String get tts_quality_hint_cta => 'Ayarlar';
 
   @override
+  String get tts_voice_picker_title => 'Sesli okuma sesi';
+
+  @override
+  String get tts_voice_picker_snackbar => 'Sesli okuma için ses seçin';
+
+  @override
+  String get tts_voice_picker_snackbar_cta => 'Seç';
+
+  @override
+  String get tts_voice_picker_empty => 'Bu dil için yüklü ses yok.';
+
+  @override
+  String get tts_voice_picker_show_novelty => 'Diğer sesleri göster';
+
+  @override
+  String get tts_voice_picker_hide_novelty => 'Diğer sesleri gizle';
+
+  @override
+  String get tts_voice_picker_install_hint =>
+      'Daha fazla ses: iOS Ayarlar → Erişilebilirlik → Konuşulan İçerik → Sesler.';
+
+  @override
+  String get tts_voice_sample_phrase => 'Merhaba! İşte böyle bir sesim var.';
+
+  @override
+  String get tts_voice_quality_premium => 'Premium';
+
+  @override
+  String get tts_voice_quality_enhanced => 'Geliştirilmiş';
+
+  @override
+  String get tts_voice_quality_default => 'Standart';
+
+  @override
   String get message_menu_action_edit => 'Düzenle';
 
   @override

@@ -2955,6 +2955,41 @@ class AppLocalizationsId extends AppLocalizations {
   String get tts_quality_hint_cta => 'Pengaturan';
 
   @override
+  String get tts_voice_picker_title => 'Suara untuk dibacakan';
+
+  @override
+  String get tts_voice_picker_snackbar => 'Pilih suara untuk pembaca';
+
+  @override
+  String get tts_voice_picker_snackbar_cta => 'Pilih';
+
+  @override
+  String get tts_voice_picker_empty =>
+      'Tidak ada suara terpasang untuk bahasa ini.';
+
+  @override
+  String get tts_voice_picker_show_novelty => 'Tampilkan suara lain';
+
+  @override
+  String get tts_voice_picker_hide_novelty => 'Sembunyikan suara lain';
+
+  @override
+  String get tts_voice_picker_install_hint =>
+      'Suara lainnya: Pengaturan iOS → Aksesibilitas → Konten Diucapkan → Suara.';
+
+  @override
+  String get tts_voice_sample_phrase => 'Halo! Beginilah suara saya.';
+
+  @override
+  String get tts_voice_quality_premium => 'Premium';
+
+  @override
+  String get tts_voice_quality_enhanced => 'Ditingkatkan';
+
+  @override
+  String get tts_voice_quality_default => 'Bawaan';
+
+  @override
   String get message_menu_action_edit => 'Sunting';
 
   @override

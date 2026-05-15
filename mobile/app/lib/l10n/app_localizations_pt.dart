@@ -2970,6 +2970,41 @@ class AppLocalizationsPt extends AppLocalizations {
   String get tts_quality_hint_cta => 'Ajustes';
 
   @override
+  String get tts_voice_picker_title => 'Voz para leitura em voz alta';
+
+  @override
+  String get tts_voice_picker_snackbar => 'Escolha uma voz para a leitura';
+
+  @override
+  String get tts_voice_picker_snackbar_cta => 'Escolher';
+
+  @override
+  String get tts_voice_picker_empty =>
+      'Não há vozes instaladas para este idioma.';
+
+  @override
+  String get tts_voice_picker_show_novelty => 'Mostrar outras vozes';
+
+  @override
+  String get tts_voice_picker_hide_novelty => 'Ocultar outras vozes';
+
+  @override
+  String get tts_voice_picker_install_hint =>
+      'Mais vozes: Ajustes do iOS → Acessibilidade → Conteúdo falado → Vozes.';
+
+  @override
+  String get tts_voice_sample_phrase => 'Olá! É assim que eu soo.';
+
+  @override
+  String get tts_voice_quality_premium => 'Premium';
+
+  @override
+  String get tts_voice_quality_enhanced => 'Aprimorada';
+
+  @override
+  String get tts_voice_quality_default => 'Padrão';
+
+  @override
   String get message_menu_action_edit => 'Editar';
 
   @override
@@ -11525,6 +11560,41 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get tts_quality_hint_cta => 'Ajustes';
+
+  @override
+  String get tts_voice_picker_title => 'Voz para leitura em voz alta';
+
+  @override
+  String get tts_voice_picker_snackbar => 'Escolha uma voz para a leitura';
+
+  @override
+  String get tts_voice_picker_snackbar_cta => 'Escolher';
+
+  @override
+  String get tts_voice_picker_empty =>
+      'Não há vozes instaladas para este idioma.';
+
+  @override
+  String get tts_voice_picker_show_novelty => 'Mostrar outras vozes';
+
+  @override
+  String get tts_voice_picker_hide_novelty => 'Ocultar outras vozes';
+
+  @override
+  String get tts_voice_picker_install_hint =>
+      'Mais vozes: Ajustes do iOS → Acessibilidade → Conteúdo falado → Vozes.';
+
+  @override
+  String get tts_voice_sample_phrase => 'Olá! É assim que eu soo.';
+
+  @override
+  String get tts_voice_quality_premium => 'Premium';
+
+  @override
+  String get tts_voice_quality_enhanced => 'Aprimorada';
+
+  @override
+  String get tts_voice_quality_default => 'Padrão';
 
   @override
   String get message_menu_action_edit => 'Editar';

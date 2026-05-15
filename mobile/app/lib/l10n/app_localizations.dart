@@ -5146,6 +5146,72 @@ abstract class AppLocalizations {
   /// **'Настройки'**
   String get tts_quality_hint_cta;
 
+  /// No description provided for @tts_voice_picker_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Голос для чтения'**
+  String get tts_voice_picker_title;
+
+  /// No description provided for @tts_voice_picker_snackbar.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите голос для чтения вслух'**
+  String get tts_voice_picker_snackbar;
+
+  /// No description provided for @tts_voice_picker_snackbar_cta.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выбрать'**
+  String get tts_voice_picker_snackbar_cta;
+
+  /// No description provided for @tts_voice_picker_empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет установленных голосов для этого языка.'**
+  String get tts_voice_picker_empty;
+
+  /// No description provided for @tts_voice_picker_show_novelty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Показать остальные голоса'**
+  String get tts_voice_picker_show_novelty;
+
+  /// No description provided for @tts_voice_picker_hide_novelty.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скрыть остальные голоса'**
+  String get tts_voice_picker_hide_novelty;
+
+  /// No description provided for @tts_voice_picker_install_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Больше голосов: Настройки iOS → Универсальный доступ → Контент устный → Голоса.'**
+  String get tts_voice_picker_install_hint;
+
+  /// No description provided for @tts_voice_sample_phrase.
+  ///
+  /// In ru, this message translates to:
+  /// **'Привет! Так я звучу.'**
+  String get tts_voice_sample_phrase;
+
+  /// No description provided for @tts_voice_quality_premium.
+  ///
+  /// In ru, this message translates to:
+  /// **'Premium'**
+  String get tts_voice_quality_premium;
+
+  /// No description provided for @tts_voice_quality_enhanced.
+  ///
+  /// In ru, this message translates to:
+  /// **'Enhanced'**
+  String get tts_voice_quality_enhanced;
+
+  /// No description provided for @tts_voice_quality_default.
+  ///
+  /// In ru, this message translates to:
+  /// **'Базовый'**
+  String get tts_voice_quality_default;
+
   /// No description provided for @message_menu_action_edit.
   ///
   /// In ru, this message translates to:

@@ -2961,6 +2961,40 @@ class AppLocalizationsKk extends AppLocalizations {
   String get tts_quality_hint_cta => 'Параметрлер';
 
   @override
+  String get tts_voice_picker_title => 'Дауыстап оқу дауысы';
+
+  @override
+  String get tts_voice_picker_snackbar => 'Оқуға арналған дауысты таңдаңыз';
+
+  @override
+  String get tts_voice_picker_snackbar_cta => 'Таңдау';
+
+  @override
+  String get tts_voice_picker_empty => 'Бұл тіл үшін орнатылған дауыстар жоқ.';
+
+  @override
+  String get tts_voice_picker_show_novelty => 'Басқа дауыстарды көрсету';
+
+  @override
+  String get tts_voice_picker_hide_novelty => 'Басқа дауыстарды жасыру';
+
+  @override
+  String get tts_voice_picker_install_hint =>
+      'Қосымша дауыстар: iOS Параметрлер → Қолжетімділік → Сөйленетін мазмұн → Дауыстар.';
+
+  @override
+  String get tts_voice_sample_phrase => 'Сәлем! Менің дауысым осындай.';
+
+  @override
+  String get tts_voice_quality_premium => 'Premium';
+
+  @override
+  String get tts_voice_quality_enhanced => 'Enhanced';
+
+  @override
+  String get tts_voice_quality_default => 'Стандартты';
+
+  @override
   String get message_menu_action_edit => 'Өзгерту';
 
   @override

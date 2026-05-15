@@ -18,7 +18,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:lighchat_firebase/lighchat_firebase.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 import 'package:lighchat_mobile/app_providers.dart';
@@ -100,6 +99,7 @@ import 'chat_composer.dart';
 import 'ai_catch_me_up_pill.dart';
 import 'ai_chat_digest.dart';
 import 'smart_compose_strip.dart';
+import 'tts_voice_picker_sheet.dart';
 import '../data/chat_digest_formatter.dart';
 import '../data/apple_intelligence.dart';
 import '../data/chat_haptics.dart';
@@ -4239,34 +4239,43 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   Future<void> _maybeShowTtsQualityHint(String? langTag) async {
     try {
+      final lang = (langTag ?? '').trim();
+      if (lang.isEmpty) return;
       final info = await LocalTextToSpeech.instance.voiceQualityInfo(
-        languageTag: langTag,
+        languageTag: lang,
       );
-      if (info.hasEnhancedOrBetter) return; // всё ок, голос норм
+      if (!mounted) return;
+      final preferred =
+          await LocalTextToSpeech.instance.getPreferredVoiceIdentifier(lang);
       if (!mounted) return;
       final prefs = await SharedPreferences.getInstance();
-      const seenKey = 'tts.qualityHint.seen';
+      // Снэкбар для выбора голоса появляется ОДИН раз для каждого языка —
+      // дальше пользователь сам через сэндж знает что есть picker (или мы
+      // вынесем его в Settings позже). Quality hint оставляем как отдельный
+      // sub-message в том же снэкбаре, если нет Enhanced.
+      final seenKey = 'tts.pickerHint.seen.$lang';
       if (prefs.getBool(seenKey) == true) return;
-      if (!mounted) return;
+      if (preferred != null && preferred.isNotEmpty) {
+        // Если пользователь УЖЕ выбрал голос — больше не предлагаем, ставим
+        // флаг чтобы не лезть на каждый read-aloud.
+        await prefs.setBool(seenKey, true);
+        return;
+      }
       await prefs.setBool(seenKey, true);
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
+      final messageText = info.hasEnhancedOrBetter
+          ? l10n.tts_voice_picker_snackbar
+          : l10n.tts_quality_hint;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           duration: const Duration(seconds: 8),
-          content: Text(l10n.tts_quality_hint),
+          content: Text(messageText),
           action: SnackBarAction(
-            label: l10n.tts_quality_hint_cta,
+            label: l10n.tts_voice_picker_snackbar_cta,
             onPressed: () {
-              // Открыть системные Настройки. В iOS app-settings deeplink
-              // не пускает напрямую в Accessibility > Spoken Content,
-              // приходится открывать корень приложения наших настроек.
-              unawaited(
-                url_launcher.launchUrl(
-                  Uri.parse('app-settings:'),
-                  mode: url_launcher.LaunchMode.externalApplication,
-                ),
-              );
+              if (!mounted) return;
+              unawaited(showTtsVoicePickerSheet(context, languageTag: lang));
             },
           ),
         ),
