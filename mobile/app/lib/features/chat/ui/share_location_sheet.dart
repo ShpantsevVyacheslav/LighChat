@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 
+import 'package:lighchat_mobile/core/app_logger.dart';
+
 import '../../../l10n/app_localizations.dart';
 
 /// Action-sheet «Поделиться геолокацией» в стиле Apple Messages:
@@ -13,9 +15,10 @@ import '../../../l10n/app_localizations.dart';
 ///
 /// На Android CupertinoActionSheet тоже рендерится корректно — это
 /// чистый Flutter-виджет, нативные API не нужны.
-Future<String?> showShareLocationSettingsSheet(BuildContext context) {
+Future<String?> showShareLocationSettingsSheet(BuildContext context) async {
   final l10n = AppLocalizations.of(context)!;
-  return showCupertinoModalPopup<String>(
+  appLogger.d('[location-share] showShareLocationSettingsSheet: opening');
+  final result = await showCupertinoModalPopup<String>(
     context: context,
     builder: (ctx) {
       return CupertinoActionSheet(
@@ -29,28 +32,45 @@ Future<String?> showShareLocationSettingsSheet(BuildContext context) {
           // Messages это отдельный flow, у нас остаётся первой опцией
           // для совместимости с web/desktop.
           CupertinoActionSheetAction(
-            onPressed: () => Navigator.of(ctx).pop('once'),
+            onPressed: () {
+              appLogger.d('[location-share] action: once');
+              Navigator.of(ctx).pop('once');
+            },
             child: Text(l10n.share_location_action_send_once),
           ),
           CupertinoActionSheetAction(
-            onPressed: () => Navigator.of(ctx).pop('h1'),
+            onPressed: () {
+              appLogger.d('[location-share] action: h1');
+              Navigator.of(ctx).pop('h1');
+            },
             child: Text(l10n.share_location_action_for_one_hour),
           ),
           CupertinoActionSheetAction(
-            onPressed: () => Navigator.of(ctx).pop('until_end_of_day'),
+            onPressed: () {
+              appLogger.d('[location-share] action: until_end_of_day');
+              Navigator.of(ctx).pop('until_end_of_day');
+            },
             child: Text(l10n.share_location_action_until_end_of_day),
           ),
           CupertinoActionSheetAction(
-            onPressed: () => Navigator.of(ctx).pop('forever'),
+            onPressed: () {
+              appLogger.d('[location-share] action: forever');
+              Navigator.of(ctx).pop('forever');
+            },
             child: Text(l10n.share_location_action_indefinitely),
           ),
         ],
         cancelButton: CupertinoActionSheetAction(
           isDefaultAction: true,
-          onPressed: () => Navigator.of(ctx).pop(),
+          onPressed: () {
+            appLogger.d('[location-share] action: cancel');
+            Navigator.of(ctx).pop();
+          },
           child: Text(l10n.share_location_cancel),
         ),
       );
     },
   );
+  appLogger.d('[location-share] showShareLocationSettingsSheet: closed result=$result');
+  return result;
 }
