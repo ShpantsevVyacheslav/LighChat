@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AnalyticsProvider } from '@/components/analytics/AnalyticsProvider';
+import { CookieBanner } from '@/components/landing/cookie-banner';
 import { Inter, Space_Grotesk, Outfit } from 'next/font/google';
 
 /** Локальная выдача шрифтов (без fonts.googleapis.com) — снимает таймауты в сетях без доступа к Google. */
@@ -225,6 +226,13 @@ export default async function RootLayout({
               <Providers>
                 {children}
               </Providers>
+              {/* Cookie consent — глобально на всех страницах, не только
+                  landing. Без consent='all' 95% событий аналитики
+                  молча дропается (см. analytics/index.ts → ALWAYS_SERVER_EVENTS).
+                  Сам баннер показывает себя только при пустом
+                  localStorage `lc_cookie_consent_v1`, поэтому overhead
+                  на уже залогиненных юзеров нулевой. */}
+              <CookieBanner />
             </AnalyticsProvider>
           </FirebaseClientProvider>
           <Toaster />

@@ -30,7 +30,6 @@ import { MockHero } from '@/components/features/illustrations/hero';
 import { getFeaturesContent } from '@/components/features/features-content';
 import { StoreBadge } from './store-badges';
 import { getLandingContent } from './landing-content';
-import { CookieBanner } from './cookie-banner';
 import { LegalFooterLinks } from './legal-footer-links';
 
 const BRAND_LOGO_SRC = '/brand/lighchat-mark.png';
@@ -388,7 +387,8 @@ export function LandingPage() {
           </p>
         </div>
       </footer>
-      <CookieBanner />
+      {/* CookieBanner перенесён в root layout — теперь рендерится на
+          любой первой странице, не только на landing. */}
     </div>
   );
 }
