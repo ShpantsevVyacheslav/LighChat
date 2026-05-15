@@ -43,7 +43,11 @@ export type BuiltinWallpaperSlug =
   | 'lighthouse-3d'
   | 'crab-3d'
   | 'cosmos-3d'
-  | 'ocean-3d';
+  | 'ocean-3d'
+  | 'starry-night'
+  | 'deep-ocean'
+  | 'night-sea'
+  | 'clean-galaxy';
 
 export interface BuiltinWallpaper {
   slug: BuiltinWallpaperSlug;
@@ -302,6 +306,34 @@ export const BUILTIN_WALLPAPERS: readonly BuiltinWallpaper[] = [
     light: '/wallpapers/ocean-3d-light.webp',
     dark: '/wallpapers/ocean-3d-dark.webp',
     previewGradient: 'linear-gradient(180deg, #D7E8F8 0%, #B4D2E6 100%)',
+  },
+  {
+    slug: 'starry-night',
+    labelKey: 'starryNight',
+    light: '/wallpapers/starry-night-light.webp',
+    dark: '/wallpapers/starry-night-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #04061C 0%, #0A0C24 100%)',
+  },
+  {
+    slug: 'deep-ocean',
+    labelKey: 'deepOcean',
+    light: '/wallpapers/deep-ocean-light.webp',
+    dark: '/wallpapers/deep-ocean-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #DCE8F0 0%, #285F8C 100%)',
+  },
+  {
+    slug: 'night-sea',
+    labelKey: 'nightSea',
+    light: '/wallpapers/night-sea-light.webp',
+    dark: '/wallpapers/night-sea-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #0A132C 0%, #0E1A2C 100%)',
+  },
+  {
+    slug: 'clean-galaxy',
+    labelKey: 'cleanGalaxy',
+    light: '/wallpapers/clean-galaxy-light.webp',
+    dark: '/wallpapers/clean-galaxy-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #050714 0%, #0A0E22 100%)',
   },
 ] as const;
 

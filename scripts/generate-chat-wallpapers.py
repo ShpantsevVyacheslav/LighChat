@@ -3446,6 +3446,250 @@ def concept_ocean_3d(theme):
     return bg.convert("RGB")
 
 
+# ---------------------------------------------------------------------------
+# Clean minimal concepts (extra set 6) — звёздное небо и океан без
+# дополнительных объектов на переднем плане. Композиции «дышат».
+# ---------------------------------------------------------------------------
+
+
+def concept_starry_night(theme):
+    """Чистое звёздное небо: градиент + плотные звёзды + мягкая полоса
+    Млечного пути по диагонали. Без маяков и силуэтов."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (215, 225, 245), (180, 200, 230))
+        star_color = (60, 80, 120)
+        milky_color = (255, 255, 255)
+        density = 200
+    else:
+        bg = vertical_gradient((W, H), (4, 6, 18), (10, 12, 32))
+        star_color = (255, 255, 255)
+        milky_color = (200, 220, 255)
+        density = 700
+    # Млечный путь — широкая диагональная полоса с размытием
+    milky = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    md = ImageDraw.Draw(milky)
+    band_alpha = 70 if theme == "light" else 110
+    # Несколько параллельных полос с разными смещениями для «облачности»
+    for offset, a in [
+        (-int(H * 0.04), int(band_alpha * 0.7)),
+        (0, band_alpha),
+        (int(H * 0.04), int(band_alpha * 0.8)),
+    ]:
+        md.polygon([
+            (0, int(H * 0.20) + offset),
+            (W, int(H * 0.55) + offset),
+            (W, int(H * 0.62) + offset),
+            (0, int(H * 0.27) + offset),
+        ], fill=milky_color + (a,))
+    milky = milky.filter(ImageFilter.GaussianBlur(radius=80))
+    bg.paste(milky, (0, 0), milky)
+    # Базовое звёздное поле
+    bg.paste(starfield((W, H), density=density, color=star_color, seed=11),
+             (0, 0),
+             starfield((W, H), density=density, color=star_color, seed=11))
+    # Несколько ярких звёзд с halo вдоль Млечного пути
+    rng = random.Random(31)
+    for _ in range(8):
+        # Точка на полосе
+        t = rng.random()
+        bx = int(W * t)
+        by = int(H * (0.20 + t * 0.35) + rng.randint(-30, 30))
+        halo_color = (255, 240, 220) if theme == "dark" else (220, 200, 170)
+        halo = radial_glow((W, H), (bx, by), 80, halo_color, alpha=200)
+        bg.paste(halo, (0, 0), halo)
+        star = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        sd = ImageDraw.Draw(star)
+        r = 9
+        sd.ellipse([bx - r, by - r, bx + r, by + r],
+                   fill=star_color + (255,))
+        bg.paste(star, (0, 0), star)
+    return bg.convert("RGB")
+
+
+def concept_deep_ocean(theme):
+    """Чистый океан с горизонтом и мягкими бликами. Без объектов."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (220, 235, 245), (190, 215, 230))
+        sun_color = (255, 220, 175)
+        sea_top = (90, 145, 180)
+        sea_bottom = (40, 95, 140)
+        glint = (255, 240, 200)
+    else:
+        bg = vertical_gradient((W, H), (8, 14, 32), (12, 22, 44))
+        sun_color = (240, 235, 250)
+        sea_top = (16, 50, 90)
+        sea_bottom = (8, 24, 50)
+        glint = (200, 220, 250)
+    # Светило на небе (мягкое размытое)
+    sun = radial_glow((W, H), (int(W * 0.50), int(H * 0.34)), int(H * 0.13),
+                      sun_color, alpha=200)
+    bg.paste(sun, (0, 0), sun)
+    if theme == "dark":
+        bg.paste(starfield((W, H), density=160, seed=44), (0, 0),
+                 starfield((W, H), density=160, seed=44))
+    # Море — вертикальный градиент в нижней половине
+    sea = vertical_gradient((W, int(H * 0.45)), sea_top, sea_bottom)
+    bg.paste(sea, (0, int(H * 0.55)))
+    # Тонкая чёткая линия горизонта
+    horizon = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    hd = ImageDraw.Draw(horizon)
+    horizon_color = sun_color if theme == "light" else (120, 140, 200)
+    hd.rectangle([0, int(H * 0.55) - 1, W, int(H * 0.55) + 2],
+                 fill=horizon_color + (160,))
+    bg.paste(horizon, (0, 0), horizon)
+    # Дорожка отражения солнца — один размытый вертикальный овал, который
+    # сужается к низу. Без чётких ступенек.
+    reflect = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    rd = ImageDraw.Draw(reflect)
+    rd.polygon([
+        (int(W * 0.43), int(H * 0.56)),
+        (int(W * 0.57), int(H * 0.56)),
+        (int(W * 0.52), H),
+        (int(W * 0.48), H),
+    ], fill=glint + (130,))
+    reflect = reflect.filter(ImageFilter.GaussianBlur(radius=40))
+    bg.paste(reflect, (0, 0), reflect)
+    return bg.convert("RGB")
+
+
+def concept_night_sea(theme):
+    """Звёздное небо отражается в спокойном море ночью. Луна над водой
+    + дорожка её отражения."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (220, 230, 245), (200, 215, 230))
+        sky_stars = (90, 110, 150)
+        sea_top = (110, 145, 175)
+        sea_bottom = (70, 110, 150)
+        moon = (255, 235, 200)
+        glint = (255, 245, 215)
+        density = 80
+    else:
+        bg = vertical_gradient((W, H), (4, 8, 22), (10, 18, 38))
+        sky_stars = (255, 255, 255)
+        sea_top = (10, 28, 56)
+        sea_bottom = (4, 14, 32)
+        moon = (250, 245, 230)
+        glint = (255, 250, 220)
+        density = 500
+    # Звёзды (только в небе)
+    sky_field = starfield((W, int(H * 0.55)), density=density,
+                          color=sky_stars, seed=66)
+    bg.paste(sky_field, (0, 0), sky_field)
+    # Луна
+    moon_glow = radial_glow((W, H), (int(W * 0.72), int(H * 0.20)),
+                             int(H * 0.10), moon, alpha=220)
+    bg.paste(moon_glow, (0, 0), moon_glow)
+    moon_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    md = ImageDraw.Draw(moon_layer)
+    mr = int(H * 0.06)
+    md.ellipse([int(W * 0.72) - mr, int(H * 0.20) - mr,
+                int(W * 0.72) + mr, int(H * 0.20) + mr],
+               fill=moon + (255,))
+    bg.paste(moon_layer, (0, 0), moon_layer)
+    # Море — градиент
+    sea = vertical_gradient((W, int(H * 0.45)), sea_top, sea_bottom)
+    bg.paste(sea, (0, int(H * 0.55)))
+    # Отражение звёзд — редкие тонкие штрихи (вытянутые эллипсы), сразу
+    # под горизонтом. По мере удаления от горизонта вниз — реже.
+    rng = random.Random(102)
+    refl_stars = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    rsd = ImageDraw.Draw(refl_stars)
+    for _ in range(int(density * 0.20)):
+        rx = rng.randint(0, W)
+        # Концентрируются у горизонта
+        t = rng.random() ** 1.6
+        ry = int(H * 0.56) + int(t * H * 0.30)
+        gw = rng.randint(4, 9)
+        gh = max(1, gw // 4)
+        rsd.ellipse([rx - gw, ry - gh, rx + gw, ry + gh],
+                    fill=sky_stars + (rng.randint(100, 170),))
+    refl_stars = refl_stars.filter(ImageFilter.GaussianBlur(radius=1))
+    bg.paste(refl_stars, (0, 0), refl_stars)
+    # Дорожка отражения луны — один размытый овал-«столб», сужающийся к низу
+    moon_path = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    mpd = ImageDraw.Draw(moon_path)
+    moon_x = int(W * 0.72)
+    mpd.polygon([
+        (moon_x - int(W * 0.07), int(H * 0.56)),
+        (moon_x + int(W * 0.07), int(H * 0.56)),
+        (moon_x + int(W * 0.015), H),
+        (moon_x - int(W * 0.015), H),
+    ], fill=glint + (170,))
+    moon_path = moon_path.filter(ImageFilter.GaussianBlur(radius=35))
+    bg.paste(moon_path, (0, 0), moon_path)
+    # Тонкая линия горизонта
+    horizon = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    hd = ImageDraw.Draw(horizon)
+    hd.rectangle([0, int(H * 0.55) - 1, W, int(H * 0.55) + 2],
+                 fill=glint + (140,))
+    bg.paste(horizon, (0, 0), horizon)
+    return bg.convert("RGB")
+
+
+def concept_clean_galaxy(theme):
+    """Спиральная галактика: яркий центр + закрученные звёздные рукава.
+    Минимальный фон — без планет и спутников."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (210, 215, 232), (188, 200, 220))
+        star_color = (50, 70, 110)
+        core_color = (255, 220, 180)
+        arm_palette = [(180, 200, 235), (230, 200, 220), (200, 220, 235)]
+        density = 100
+    else:
+        bg = vertical_gradient((W, H), (2, 4, 14), (6, 8, 22))
+        star_color = (255, 255, 255)
+        core_color = (255, 230, 190)
+        arm_palette = [(180, 130, 200), (110, 200, 230), (240, 180, 220)]
+        density = 400
+    bg.paste(starfield((W, H), density=density, color=star_color, seed=222),
+             (0, 0),
+             starfield((W, H), density=density, color=star_color, seed=222))
+    # Центр галактики — мощное яркое свечение
+    cx, cy = int(W * 0.50), int(H * 0.42)
+    for r_frac, color, alpha in [
+        (0.08, core_color, 240),
+        (0.18, core_color, 180),
+        (0.30, arm_palette[0], 140),
+        (0.45, arm_palette[1], 110),
+    ]:
+        glow = radial_glow((W, H), (cx, cy), int(H * r_frac), color,
+                           alpha=alpha)
+        bg.paste(glow, (0, 0), glow)
+    # Яркое ядро — маленький круг
+    core = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    cd = ImageDraw.Draw(core)
+    cr = int(H * 0.018)
+    cd.ellipse([cx - cr, cy - cr, cx + cr, cy + cr],
+               fill=(255, 255, 255, 255))
+    bg.paste(core, (0, 0), core)
+    # Звёздные рукава — спиральные «нити» точек, идущие из центра наружу
+    rng = random.Random(909)
+    arm_count = 3
+    points_per_arm = 220
+    for arm_i in range(arm_count):
+        arm_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        ad = ImageDraw.Draw(arm_layer)
+        arm_color = arm_palette[arm_i % len(arm_palette)]
+        base_angle = arm_i * (2 * math.pi / arm_count)
+        for j in range(points_per_arm):
+            t = j / points_per_arm
+            r = int(H * (0.04 + t * 0.40))
+            # Спираль: угол растёт с радиусом
+            ang = base_angle + t * math.pi * 1.6
+            # Случайный поперечный разброс — толщина рукава
+            jitter = rng.gauss(0, r * 0.06)
+            ang_p = ang + jitter / max(1, r)
+            x = cx + math.cos(ang_p) * r
+            y = cy + math.sin(ang_p) * r
+            sz = rng.randint(1, 4)
+            a = int(220 * (1 - t * 0.5))
+            ad.ellipse([x - sz, y - sz, x + sz, y + sz],
+                       fill=arm_color + (a,))
+        arm_layer = arm_layer.filter(ImageFilter.GaussianBlur(radius=1))
+        bg.paste(arm_layer, (0, 0), arm_layer)
+    return bg.convert("RGB")
+
+
 CONCEPTS = {
     "lighthouse-dawn": concept_lighthouse_dawn,
     "keeper-watch": concept_keeper_watch,
@@ -3482,6 +3726,10 @@ CONCEPTS = {
     "crab-3d": concept_crab_3d,
     "cosmos-3d": concept_cosmos_3d,
     "ocean-3d": concept_ocean_3d,
+    "starry-night": concept_starry_night,
+    "deep-ocean": concept_deep_ocean,
+    "night-sea": concept_night_sea,
+    "clean-galaxy": concept_clean_galaxy,
 }
 
 

@@ -378,6 +378,46 @@ const List<BuiltinWallpaper> kBuiltinWallpapers = <BuiltinWallpaper>[
       colors: [Color(0xFFD7E8F8), Color(0xFFB4D2E6)],
     ),
   ),
+  BuiltinWallpaper(
+    slug: 'starry-night',
+    lightAsset: 'assets/wallpapers/starry-night-light.webp',
+    darkAsset: 'assets/wallpapers/starry-night-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFF04061C), Color(0xFF0A0C24)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'deep-ocean',
+    lightAsset: 'assets/wallpapers/deep-ocean-light.webp',
+    darkAsset: 'assets/wallpapers/deep-ocean-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFDCE8F0), Color(0xFF285F8C)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'night-sea',
+    lightAsset: 'assets/wallpapers/night-sea-light.webp',
+    darkAsset: 'assets/wallpapers/night-sea-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFF0A132C), Color(0xFF0E1A2C)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'clean-galaxy',
+    lightAsset: 'assets/wallpapers/clean-galaxy-light.webp',
+    darkAsset: 'assets/wallpapers/clean-galaxy-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFF050714), Color(0xFF0A0E22)],
+    ),
+  ),
 ];
 
 bool isBuiltinWallpaperValue(String? value) =>
