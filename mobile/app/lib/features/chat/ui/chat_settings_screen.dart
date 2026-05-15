@@ -170,10 +170,15 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
     _scrollToPreview();
   }
 
-  /// Полный список обоев в bottom-sheet'е: все фирменные, классические
-  /// градиенты-пресеты, загруженные пользователем + кнопка добавить.
-  /// Тап на любую плитку применяет обои и закрывает sheet.
-  Future<void> _openWallpapersPicker(_EditableChatSettings s) async {
+  /// Полный список обоев в bottom-sheet'е: компактное sticky-превью
+  /// сверху (обновляется при тапе на плитку без закрытия sheet),
+  /// затем список фирменных обоев, градиентов-пресетов, пользовательских
+  /// картинок и кнопка добавления.
+  Future<void> _openWallpapersPicker(
+    _EditableChatSettings s, {
+    required Color incomingBubbleColor,
+    required Color outgoingBubbleColor,
+  }) async {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
@@ -183,123 +188,153 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.85,
-          minChildSize: 0.5,
+          initialChildSize: 0.92,
+          minChildSize: 0.6,
           maxChildSize: 0.95,
           expand: false,
           builder: (ctx, scrollController) {
-            final builtinAll = kBuiltinWallpapers;
-            final presets = _wallpaperPresets(l10n);
-            final customCount = s.customBackgrounds.length;
-            final total =
-                builtinAll.length + presets.length + customCount + 1;
-            return Container(
-              decoration: BoxDecoration(
-                color: dark
-                    ? const Color(0xFF0D121A)
-                    : scheme.surfaceContainerLow,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    margin: const EdgeInsets.only(top: 10, bottom: 6),
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: (dark ? Colors.white : scheme.onSurface)
-                          .withValues(alpha: 0.24),
-                      borderRadius: BorderRadius.circular(2),
+            return StatefulBuilder(
+              builder: (sbCtx, setSheetState) {
+                final builtinAll = kBuiltinWallpapers;
+                final presets = _wallpaperPresets(l10n);
+                final customCount = s.customBackgrounds.length;
+                final total =
+                    builtinAll.length + presets.length + customCount + 1;
+                // При тапе на плитку — применяем настройку, обновляем
+                // и main-экран, и sheet (для перерисовки превью).
+                // Sheet НЕ закрывается, чтобы пользователь мог
+                // пробовать варианты не возвращаясь на главный экран.
+                void applyAndStay(String? value) {
+                  _selectWallpaper(s, value);
+                  setSheetState(() {});
+                }
+
+                return Container(
+                  decoration: BoxDecoration(
+                    color: dark
+                        ? const Color(0xFF0D121A)
+                        : scheme.surfaceContainerLow,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
-                    child: Text(
-                      l10n.chat_settings_chat_background,
-                      style: TextStyle(
-                        fontSize: _kSectionTitleSize,
-                        fontWeight: FontWeight.w700,
-                        color: dark
-                            ? Colors.white.withValues(alpha: 0.92)
-                            : scheme.onSurface,
+                  child: Column(
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(top: 10, bottom: 6),
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: (dark ? Colors.white : scheme.onSurface)
+                              .withValues(alpha: 0.24),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
-                    ),
-                  ),
-                  Expanded(
-                    child: GridView.builder(
-                      controller: scrollController,
-                      padding: EdgeInsets.fromLTRB(
-                        16,
-                        4,
-                        16,
-                        16 + MediaQuery.paddingOf(context).bottom,
-                      ),
-                      itemCount: total,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4,
-                            mainAxisSpacing: 8,
-                            crossAxisSpacing: 8,
-                            childAspectRatio: 1.04,
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                        child: Text(
+                          l10n.chat_settings_chat_background,
+                          style: TextStyle(
+                            fontSize: _kSectionTitleSize,
+                            fontWeight: FontWeight.w700,
+                            color: dark
+                                ? Colors.white.withValues(alpha: 0.92)
+                                : scheme.onSurface,
                           ),
-                      itemBuilder: (context, index) {
-                        if (index < builtinAll.length) {
-                          final wp = builtinAll[index];
-                          final value = wp.value;
-                          return _WallpaperTile(
-                            selected: s.chatWallpaper == value,
-                            decoration: _wallpaperDecoration(context, value),
-                            onTap: () {
-                              Navigator.of(sheetContext).pop();
-                              _selectWallpaper(s, value);
-                            },
-                          );
-                        }
-                        if (index < builtinAll.length + presets.length) {
-                          final preset = presets[index - builtinAll.length];
-                          final value = preset.value;
-                          return _WallpaperTile(
-                            selected: s.chatWallpaper == value,
-                            decoration: _wallpaperDecoration(context, value),
-                            onTap: () {
-                              Navigator.of(sheetContext).pop();
-                              _selectWallpaper(s, value);
-                            },
-                          );
-                        }
-                        if (index <
-                            builtinAll.length +
-                                presets.length +
-                                customCount) {
-                          final url = s.customBackgrounds[
-                              index - builtinAll.length - presets.length];
-                          return _WallpaperTile(
-                            selected: s.chatWallpaper == url,
-                            decoration: _wallpaperDecoration(context, url),
-                            onTap: () {
-                              Navigator.of(sheetContext).pop();
-                              _selectWallpaper(s, url);
-                            },
-                            onDelete: () =>
-                                _confirmRemoveCustomWallpaper(url),
-                          );
-                        }
-                        return _AddWallpaperTile(
-                          uploading: _uploading,
-                          onTap: _uploading
-                              ? null
-                              : () {
-                                  Navigator.of(sheetContext).pop();
-                                  _pickAndUploadWallpaper();
-                                },
-                        );
-                      },
-                    ),
+                        ),
+                      ),
+                      // Sticky-превью внутри sheet — по аналогии с
+                      // главным экраном, но компактнее (260px).
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        child: _ChatPreviewCard(
+                          overrideHeight: 260,
+                          wallpaperDecoration: _wallpaperDecoration(
+                            context,
+                            s.chatWallpaper,
+                          ),
+                          animatedWallpaper: resolveAnimatedWallpaper(
+                            s.chatWallpaper,
+                          ),
+                          incomingBubbleColor: incomingBubbleColor,
+                          outgoingBubbleColor: outgoingBubbleColor,
+                          bubbleRadius: s.bubbleRadius,
+                          showTimestamps: s.showTimestamps,
+                          messageFontSize:
+                              _previewMessageFont(s.fontSize),
+                        ),
+                      ),
+                      Expanded(
+                        child: GridView.builder(
+                          controller: scrollController,
+                          padding: EdgeInsets.fromLTRB(
+                            16,
+                            4,
+                            16,
+                            16 + MediaQuery.paddingOf(context).bottom,
+                          ),
+                          itemCount: total,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 4,
+                                mainAxisSpacing: 8,
+                                crossAxisSpacing: 8,
+                                childAspectRatio: 1.04,
+                              ),
+                          itemBuilder: (context, index) {
+                            if (index < builtinAll.length) {
+                              final wp = builtinAll[index];
+                              final value = wp.value;
+                              return _WallpaperTile(
+                                selected: s.chatWallpaper == value,
+                                decoration:
+                                    _wallpaperDecoration(context, value),
+                                onTap: () => applyAndStay(value),
+                              );
+                            }
+                            if (index < builtinAll.length + presets.length) {
+                              final preset =
+                                  presets[index - builtinAll.length];
+                              final value = preset.value;
+                              return _WallpaperTile(
+                                selected: s.chatWallpaper == value,
+                                decoration:
+                                    _wallpaperDecoration(context, value),
+                                onTap: () => applyAndStay(value),
+                              );
+                            }
+                            if (index <
+                                builtinAll.length +
+                                    presets.length +
+                                    customCount) {
+                              final url = s.customBackgrounds[index -
+                                  builtinAll.length -
+                                  presets.length];
+                              return _WallpaperTile(
+                                selected: s.chatWallpaper == url,
+                                decoration:
+                                    _wallpaperDecoration(context, url),
+                                onTap: () => applyAndStay(url),
+                                onDelete: () =>
+                                    _confirmRemoveCustomWallpaper(url),
+                              );
+                            }
+                            return _AddWallpaperTile(
+                              uploading: _uploading,
+                              onTap: _uploading
+                                  ? null
+                                  : () {
+                                      Navigator.of(sheetContext).pop();
+                                      _pickAndUploadWallpaper();
+                                    },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             );
           },
         );
@@ -1708,7 +1743,11 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                                 );
                               }
                               return _ShowMoreWallpapersTile(
-                                onTap: () => _openWallpapersPicker(s),
+                                onTap: () => _openWallpapersPicker(
+                                  s,
+                                  incomingBubbleColor: incomingColor,
+                                  outgoingBubbleColor: outgoingColor,
+                                ),
                               );
                             },
                           );
@@ -2198,6 +2237,7 @@ class _ChatPreviewCard extends StatelessWidget {
     required this.bubbleRadius,
     required this.showTimestamps,
     required this.messageFontSize,
+    this.overrideHeight,
   });
 
   final BoxDecoration wallpaperDecoration;
@@ -2210,6 +2250,10 @@ class _ChatPreviewCard extends StatelessWidget {
   final String bubbleRadius;
   final bool showTimestamps;
   final double messageFontSize;
+  /// Опциональная высота карточки. По умолчанию 320 (основной экран
+  /// настроек), внутри bottom-sheet picker'а используется 220-240 для
+  /// компактности.
+  final double? overrideHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -2223,7 +2267,7 @@ class _ChatPreviewCard extends StatelessWidget {
     // больше половины экрана (важно потому, что превью теперь sticky —
     // см. `CustomScrollView` ниже).
     return Container(
-      height: 320,
+      height: overrideHeight ?? 320,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: fg.withValues(alpha: dark ? 0.15 : 0.12)),
