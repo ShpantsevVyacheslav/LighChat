@@ -93,6 +93,7 @@ import 'message_context_menu.dart';
 import 'message_html_text.dart';
 import 'report_sheet.dart';
 import 'chat_composer.dart';
+import 'smart_compose_strip.dart';
 import 'smart_reply_chips.dart';
 import '../data/apple_intelligence.dart';
 import '../data/chat_haptics.dart';
@@ -2530,6 +2531,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                               _composerFocusNode.requestFocus();
                                               setState(() {});
                                             },
+                                          ),
+                                          SmartComposeStrip(
+                                            controller: _controller,
+                                            focusNode: _composerFocusNode,
+                                            aiAvailable: _aiAvailable,
                                           ),
                                           ChatComposer(
                                       controller: _controller,

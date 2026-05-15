@@ -92,6 +92,16 @@ final class AppleIntelligenceBridge: NSObject {
           "Summarize the recent dialog from a group chat:\n\n\(messages)",
         completion: result)
 
+    case "suggestContinuation":
+      let prefix = (args["prefix"] as? String ?? "")
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+      if prefix.isEmpty { result(nil); return }
+      Self.respond(
+        instructions:
+          "You are a writing assistant providing inline autocomplete for chat messages. The user is typing. Continue their sentence naturally in 1-12 words. Strict rules: (1) reply in the SAME language as input; (2) DO NOT repeat what user typed; (3) output ONLY the continuation text, no quotes, no commentary, no leading space if word is already mid-typed; (4) if the input already looks complete or you can't predict — output empty string.",
+        prompt: prefix,
+        completion: result)
+
     case "streamSummarize":
       let streamId = (args["streamId"] as? String) ?? ""
       let text = (args["text"] as? String ?? "")

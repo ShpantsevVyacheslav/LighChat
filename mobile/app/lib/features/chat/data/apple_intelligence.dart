@@ -81,6 +81,14 @@ class AppleIntelligence {
     return _stringCall('summarizeMessages', {'messages': messages});
   }
 
+  /// Smart Compose: предлагает продолжение для частично набранного
+  /// сообщения. Возвращает короткий suggestion (1-12 слов) или `null`
+  /// если LLM недоступен / текст слишком короткий / модель не нашла что
+  /// дописать.
+  Future<String?> suggestContinuation(String prefix) async {
+    return _stringCall('suggestContinuation', {'prefix': prefix});
+  }
+
   /// Стриминг резюме — токены приходят накопительным content (каждая
   /// эмиссия = полный текст до текущего момента). Поток закрывается на
   /// `done`/`error`. Отмена через cancelStream(streamId) если subscription
@@ -158,7 +166,10 @@ class AppleIntelligence {
     String method,
     Map<String, dynamic> args,
   ) async {
-    final raw = args['text'] as String? ?? args['messages'] as String? ?? '';
+    final raw = args['text'] as String? ??
+        args['messages'] as String? ??
+        args['prefix'] as String? ??
+        '';
     if (raw.trim().isEmpty) return null;
     try {
       final s = await _channel.invokeMethod<String>(method, args);
