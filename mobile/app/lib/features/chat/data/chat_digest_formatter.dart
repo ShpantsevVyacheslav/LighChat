@@ -66,11 +66,15 @@ String _messageBody(ChatMessage m, int maxChars) {
 String _attachmentMarker(List<ChatAttachment> atts) {
   final first = atts.first;
   final type = (first.type ?? '').toLowerCase();
+  // Порядок важен: `image/gif` совпадает и с image, и с gif — gif
+  // проверяется первым, чтобы получить более точный маркер. Stickers
+  // часто mimetype = `image/webp`, поэтому проверяем по слову sticker
+  // перед image.
+  if (type.contains('gif')) return '[GIF]';
+  if (type.contains('sticker')) return '[Sticker]';
   if (type.contains('image')) return '[Image]';
   if (type.contains('video')) return '[Video]';
   if (type.contains('audio') || type.contains('voice')) return '[Voice]';
-  if (type.contains('sticker')) return '[Sticker]';
-  if (type.contains('gif')) return '[GIF]';
   return '[File]';
 }
 
