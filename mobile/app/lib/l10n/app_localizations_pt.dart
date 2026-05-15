@@ -1836,6 +1836,36 @@ class AppLocalizationsPt extends AppLocalizations {
       'Instale um pacote de reconhecimento de voz offline nas configurações do sistema.';
 
   @override
+  String get ai_action_summarize => 'Resumir';
+
+  @override
+  String get ai_action_rewrite => 'Reescrever com IA';
+
+  @override
+  String get ai_action_apply => 'Aplicar';
+
+  @override
+  String get ai_action_thinking => 'Escrevendo…';
+
+  @override
+  String get ai_action_failed => 'Apple Intelligence indisponível';
+
+  @override
+  String get ai_style_friendly => 'Mais amigável';
+
+  @override
+  String get ai_style_formal => 'Formal';
+
+  @override
+  String get ai_style_shorter => 'Mais curto';
+
+  @override
+  String get ai_style_longer => 'Mais longo';
+
+  @override
+  String get ai_style_proofread => 'Revisar';
+
+  @override
   String get voice_translate_action => 'Traduzir';
 
   @override
@@ -10174,6 +10204,36 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get voice_transcript_no_model =>
       'Instale um pacote de reconhecimento de voz offline nas configurações do sistema.';
+
+  @override
+  String get ai_action_summarize => 'Resumir';
+
+  @override
+  String get ai_action_rewrite => 'Reescrever com IA';
+
+  @override
+  String get ai_action_apply => 'Aplicar';
+
+  @override
+  String get ai_action_thinking => 'Escrevendo…';
+
+  @override
+  String get ai_action_failed => 'Apple Intelligence indisponível';
+
+  @override
+  String get ai_style_friendly => 'Mais amigável';
+
+  @override
+  String get ai_style_formal => 'Formal';
+
+  @override
+  String get ai_style_shorter => 'Mais curto';
+
+  @override
+  String get ai_style_longer => 'Mais longo';
+
+  @override
+  String get ai_style_proofread => 'Revisar';
 
   @override
   String get voice_translate_action => 'Traduzir';

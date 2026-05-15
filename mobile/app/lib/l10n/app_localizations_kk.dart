@@ -1831,6 +1831,36 @@ class AppLocalizationsKk extends AppLocalizations {
       'Жүйелік параметрлерден офлайн сөйлеуді тану тілдік пакетін орнатыңыз.';
 
   @override
+  String get ai_action_summarize => 'Қысқарту';
+
+  @override
+  String get ai_action_rewrite => 'AI-мен қайта жазу';
+
+  @override
+  String get ai_action_apply => 'Қолдану';
+
+  @override
+  String get ai_action_thinking => 'Жазып жатырмын…';
+
+  @override
+  String get ai_action_failed => 'Apple Intelligence қол жетімді емес';
+
+  @override
+  String get ai_style_friendly => 'Жайлырақ';
+
+  @override
+  String get ai_style_formal => 'Ресми';
+
+  @override
+  String get ai_style_shorter => 'Қысқарақ';
+
+  @override
+  String get ai_style_longer => 'Толығырақ';
+
+  @override
+  String get ai_style_proofread => 'Емле';
+
+  @override
   String get voice_translate_action => 'Аудару';
 
   @override

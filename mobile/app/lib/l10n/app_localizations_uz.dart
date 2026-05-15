@@ -1838,6 +1838,36 @@ class AppLocalizationsUz extends AppLocalizations {
       'Tizim sozlamalarida oflayn nutqni aniqlash til paketini oʻrnating.';
 
   @override
+  String get ai_action_summarize => 'Qisqartirish';
+
+  @override
+  String get ai_action_rewrite => 'AI bilan qayta yozish';
+
+  @override
+  String get ai_action_apply => 'Qoʻllash';
+
+  @override
+  String get ai_action_thinking => 'Yozyapman…';
+
+  @override
+  String get ai_action_failed => 'Apple Intelligence mavjud emas';
+
+  @override
+  String get ai_style_friendly => 'Doʻstona';
+
+  @override
+  String get ai_style_formal => 'Rasmiy';
+
+  @override
+  String get ai_style_shorter => 'Qisqaroq';
+
+  @override
+  String get ai_style_longer => 'Toʻliqroq';
+
+  @override
+  String get ai_style_proofread => 'Imloni tekshirish';
+
+  @override
   String get voice_translate_action => 'Tarjima qilish';
 
   @override

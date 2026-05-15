@@ -1833,6 +1833,37 @@ class AppLocalizationsRu extends AppLocalizations {
       'Установите офлайн-пакет распознавания речи в системных настройках.';
 
   @override
+  String get ai_action_summarize => 'Краткое содержание';
+
+  @override
+  String get ai_action_rewrite => 'Переписать (AI)';
+
+  @override
+  String get ai_action_apply => 'Применить';
+
+  @override
+  String get ai_action_thinking => 'Пишу…';
+
+  @override
+  String get ai_action_failed =>
+      'Apple Intelligence недоступен на этом устройстве';
+
+  @override
+  String get ai_style_friendly => 'Дружелюбнее';
+
+  @override
+  String get ai_style_formal => 'Формально';
+
+  @override
+  String get ai_style_shorter => 'Короче';
+
+  @override
+  String get ai_style_longer => 'Подробнее';
+
+  @override
+  String get ai_style_proofread => 'Орфография';
+
+  @override
   String get voice_translate_action => 'Перевести';
 
   @override

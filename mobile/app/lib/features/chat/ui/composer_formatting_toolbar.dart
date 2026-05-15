@@ -13,11 +13,21 @@ class ComposerFormattingToolbar extends StatefulWidget {
     required this.controller,
     required this.focusNode,
     required this.onBack,
+    this.onRewriteWithAi,
+    this.aiAvailable = false,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final VoidCallback onBack;
+
+  /// Открыть Apple Intelligence rewrite-sheet. Если `null` — кнопка
+  /// «Переписать с AI» не показывается.
+  final VoidCallback? onRewriteWithAi;
+
+  /// Доступен ли Apple Intelligence на устройстве. Если `false` — кнопка
+  /// тоже скрыта (даже при наличии callback-а).
+  final bool aiAvailable;
 
   @override
   State<ComposerFormattingToolbar> createState() =>
@@ -315,9 +325,87 @@ class _ComposerFormattingToolbarState extends State<ComposerFormattingToolbar> {
                       ),
                     ],
                   ),
+                  if (widget.aiAvailable && widget.onRewriteWithAi != null) ...[
+                    const SizedBox(height: 8),
+                    _AiRewriteCta(
+                      label: AppLocalizations.of(context)!.ai_action_rewrite,
+                      onTap: widget.onRewriteWithAi!,
+                    ),
+                  ],
                 ],
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AiRewriteCta extends StatefulWidget {
+  const _AiRewriteCta({required this.label, required this.onTap});
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  State<_AiRewriteCta> createState() => _AiRewriteCtaState();
+}
+
+class _AiRewriteCtaState extends State<_AiRewriteCta> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 110),
+      scale: _pressed ? 0.97 : 1,
+      curve: Curves.easeOut,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: widget.onTap,
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapUp: (_) => setState(() => _pressed = false),
+          onTapCancel: () => setState(() => _pressed = false),
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            height: 44,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF7C8DFF), Color(0xFF4F5BD5)],
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x554F5BD5),
+                  blurRadius: 14,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            alignment: Alignment.center,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  widget.label,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

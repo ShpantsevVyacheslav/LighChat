@@ -59,6 +59,8 @@ class ChatComposer extends StatefulWidget {
     this.onCancelEdit,
     this.showFormattingToolbar = false,
     this.onCloseFormattingToolbar,
+    this.aiAvailable = false,
+    this.onRewriteWithAi,
     this.onClipboardToolbarPaste,
     this.stickerSuggestionBuilder,
     this.e2eeDisabledBanner,
@@ -112,6 +114,14 @@ class ChatComposer extends StatefulWidget {
   final VoidCallback? onCancelEdit;
   final bool showFormattingToolbar;
   final VoidCallback? onCloseFormattingToolbar;
+
+  /// Доступен ли Apple Intelligence (iOS 18.1+/26+) — для показа кнопки
+  /// «Переписать с AI» в formatting toolbar.
+  final bool aiAvailable;
+
+  /// Callback при тапе на «Переписать с AI». Открывает sheet с вариантами
+  /// стиля. Если `null` — кнопка скрыта.
+  final VoidCallback? onRewriteWithAi;
 
   /// Вставка из буфера (текст + файлы) при «Вставить» в контекстном меню поля.
   final Future<void> Function()? onClipboardToolbarPaste;
@@ -657,6 +667,8 @@ class _ChatComposerState extends State<ChatComposer> {
                 controller: widget.controller,
                 focusNode: widget.focusNode,
                 onBack: widget.onCloseFormattingToolbar!,
+                aiAvailable: widget.aiAvailable,
+                onRewriteWithAi: widget.onRewriteWithAi,
               ),
               const SizedBox(height: 8),
             ],

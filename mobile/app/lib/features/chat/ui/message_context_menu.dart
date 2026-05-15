@@ -49,6 +49,11 @@ enum MessageMenuActionType {
   report,
   translate,
   readAloud,
+
+  /// Apple Intelligence TL;DR — резюме длинного сообщения через
+  /// Foundation Models (iOS 18.1+/26+). Пункт виден только когда движок
+  /// доступен на устройстве И текст длиннее ~80 символов.
+  summarizeAi,
 }
 
 class MessageMenuResult {
@@ -124,6 +129,7 @@ Future<MessageMenuResult?> showMessageContextMenu(
   bool isStarred = false,
   bool showThreadAction = true,
   bool canTranslate = false,
+  bool canSummarizeAi = false,
   String? e2eeDecryptedText,
   bool e2eeDecryptionFailed = false,
   String chatFontSize = 'medium',
@@ -150,6 +156,7 @@ Future<MessageMenuResult?> showMessageContextMenu(
         isStarred: isStarred,
         showThreadAction: showThreadAction,
         canTranslate: canTranslate,
+        canSummarizeAi: canSummarizeAi,
         e2eeDecryptedText: e2eeDecryptedText,
         e2eeDecryptionFailed: e2eeDecryptionFailed,
         initiatorPureEmojiSize: initiatorPureEmojiSize,
@@ -185,6 +192,7 @@ class _MessageContextMenuPage extends StatelessWidget {
     required this.isStarred,
     required this.showThreadAction,
     required this.canTranslate,
+    required this.canSummarizeAi,
     required this.e2eeDecryptedText,
     required this.e2eeDecryptionFailed,
     required this.initiatorPureEmojiSize,
@@ -203,6 +211,7 @@ class _MessageContextMenuPage extends StatelessWidget {
   final bool isStarred;
   final bool showThreadAction;
   final bool canTranslate;
+  final bool canSummarizeAi;
   final String? e2eeDecryptedText;
   final bool e2eeDecryptionFailed;
   final double initiatorPureEmojiSize;
@@ -360,6 +369,17 @@ class _MessageContextMenuPage extends StatelessWidget {
                                             context,
                                             const MessageMenuResult(
                                               MessageMenuActionType.translate,
+                                            ),
+                                          ),
+                                        ),
+                                      if (canSummarizeAi)
+                                        _MenuTile(
+                                          icon: Icons.auto_awesome_rounded,
+                                          label: l10n.ai_action_summarize,
+                                          onTap: () => _pop(
+                                            context,
+                                            const MessageMenuResult(
+                                              MessageMenuActionType.summarizeAi,
                                             ),
                                           ),
                                         ),

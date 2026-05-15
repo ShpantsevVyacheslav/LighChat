@@ -1827,6 +1827,36 @@ class AppLocalizationsId extends AppLocalizations {
       'Pasang paket bahasa pengenalan suara offline di pengaturan sistem.';
 
   @override
+  String get ai_action_summarize => 'Ringkas';
+
+  @override
+  String get ai_action_rewrite => 'Tulis ulang (AI)';
+
+  @override
+  String get ai_action_apply => 'Terapkan';
+
+  @override
+  String get ai_action_thinking => 'Menulis…';
+
+  @override
+  String get ai_action_failed => 'Apple Intelligence tidak tersedia';
+
+  @override
+  String get ai_style_friendly => 'Lebih ramah';
+
+  @override
+  String get ai_style_formal => 'Formal';
+
+  @override
+  String get ai_style_shorter => 'Lebih pendek';
+
+  @override
+  String get ai_style_longer => 'Lebih panjang';
+
+  @override
+  String get ai_style_proofread => 'Periksa';
+
+  @override
   String get voice_translate_action => 'Terjemahkan';
 
   @override

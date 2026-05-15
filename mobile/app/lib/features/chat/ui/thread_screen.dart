@@ -1763,6 +1763,10 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
         // В тред-скрине Translate пока не предлагается (canTranslate=false),
         // но кейс должен быть в свитче, иначе non-exhaustive_switch_statement.
         return;
+      case MessageMenuActionType.summarizeAi:
+        // AI TL;DR в тредах не предлагаем (canSummarizeAi=false), но кейс
+        // обязателен для exhaustive switch.
+        return;
       case MessageMenuActionType.readAloud:
         // Аналогично — Read-aloud не поддерживается в тред-скрине пока.
         return;

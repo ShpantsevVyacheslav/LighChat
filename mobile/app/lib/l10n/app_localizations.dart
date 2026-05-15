@@ -3256,6 +3256,66 @@ abstract class AppLocalizations {
   /// **'Установите офлайн-пакет распознавания речи в системных настройках.'**
   String get voice_transcript_no_model;
 
+  /// No description provided for @ai_action_summarize.
+  ///
+  /// In ru, this message translates to:
+  /// **'Краткое содержание'**
+  String get ai_action_summarize;
+
+  /// No description provided for @ai_action_rewrite.
+  ///
+  /// In ru, this message translates to:
+  /// **'Переписать (AI)'**
+  String get ai_action_rewrite;
+
+  /// No description provided for @ai_action_apply.
+  ///
+  /// In ru, this message translates to:
+  /// **'Применить'**
+  String get ai_action_apply;
+
+  /// No description provided for @ai_action_thinking.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пишу…'**
+  String get ai_action_thinking;
+
+  /// No description provided for @ai_action_failed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Apple Intelligence недоступен на этом устройстве'**
+  String get ai_action_failed;
+
+  /// No description provided for @ai_style_friendly.
+  ///
+  /// In ru, this message translates to:
+  /// **'Дружелюбнее'**
+  String get ai_style_friendly;
+
+  /// No description provided for @ai_style_formal.
+  ///
+  /// In ru, this message translates to:
+  /// **'Формально'**
+  String get ai_style_formal;
+
+  /// No description provided for @ai_style_shorter.
+  ///
+  /// In ru, this message translates to:
+  /// **'Короче'**
+  String get ai_style_shorter;
+
+  /// No description provided for @ai_style_longer.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подробнее'**
+  String get ai_style_longer;
+
+  /// No description provided for @ai_style_proofread.
+  ///
+  /// In ru, this message translates to:
+  /// **'Орфография'**
+  String get ai_style_proofread;
+
   /// No description provided for @voice_translate_action.
   ///
   /// In ru, this message translates to:

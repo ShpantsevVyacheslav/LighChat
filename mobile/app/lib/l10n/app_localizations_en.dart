@@ -1817,6 +1817,37 @@ class AppLocalizationsEn extends AppLocalizations {
       'Install an offline speech recognition language pack in system settings.';
 
   @override
+  String get ai_action_summarize => 'Summarize';
+
+  @override
+  String get ai_action_rewrite => 'Rewrite with AI';
+
+  @override
+  String get ai_action_apply => 'Apply';
+
+  @override
+  String get ai_action_thinking => 'Writing…';
+
+  @override
+  String get ai_action_failed =>
+      'Apple Intelligence is unavailable on this device.';
+
+  @override
+  String get ai_style_friendly => 'Friendlier';
+
+  @override
+  String get ai_style_formal => 'Formal';
+
+  @override
+  String get ai_style_shorter => 'Shorter';
+
+  @override
+  String get ai_style_longer => 'Longer';
+
+  @override
+  String get ai_style_proofread => 'Proofread';
+
+  @override
   String get voice_translate_action => 'Translate';
 
   @override

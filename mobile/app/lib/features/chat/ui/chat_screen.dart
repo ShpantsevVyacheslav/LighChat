@@ -93,8 +93,10 @@ import 'message_html_text.dart';
 import 'report_sheet.dart';
 import 'chat_composer.dart';
 import 'smart_reply_chips.dart';
+import '../data/apple_intelligence.dart';
 import '../data/chat_haptics.dart';
 import '../data/document_scanner.dart';
+import 'ai_text_action_sheet.dart';
 import 'thread_route_payload.dart';
 import 'secret_chat_secure_scope.dart';
 import 'secret_chat_unlock_sheet.dart';
@@ -209,6 +211,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   /// Панель «Форматирование» над композером (паритет `FormattingToolbar.tsx`).
   bool _composerFormattingOpen = false;
+
+  /// Доступен ли Apple Intelligence на этом устройстве (iOS 18.1+/26+
+  /// + загруженная модель + opt-in пользователя). Проверяем один раз при
+  /// первом тапе по AI-фиче — состояние не меняется.
+  bool _aiAvailable = false;
   bool _stickersPanelOpen = false;
   bool _stickersPanelFullscreen = false;
   String _stickersSearchQuery = '';
@@ -428,6 +435,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     _scrollController.addListener(_onPinnedBarScrollSync);
     _controller.addListener(_scheduleChatDraftSave);
     _captureKeyboardHeight();
+    unawaited(AppleIntelligence.instance.isAvailable().then((v) {
+      if (mounted) setState(() => _aiAvailable = v);
+    }));
     // Chat-only gradient blur в status bar zone (см. NavBarOverlayHost).
     // Включаем при входе, выключаем в dispose. Других экранов не
     // касается — secondary-страницы остаются без blur'а.
@@ -2773,6 +2783,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                       onCloseFormattingToolbar: () => setState(
                                         () => _composerFormattingOpen = false,
                                       ),
+                                      aiAvailable: _aiAvailable,
+                                      onRewriteWithAi: _aiAvailable
+                                          ? () => _openRewriteWithAi()
+                                          : null,
                                       limitsState: _composerLimitsState,
                                       sendBlockedByLimits:
                                           _composerLimitsState?.isOverLimit ==
@@ -4027,6 +4041,87 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   /// Показывает bottom-sheet с переводом сообщения и кнопкой «Copy».
   /// Перевод on-device через ML Kit; результат кэшируется в SQLite, поэтому
   /// повторный «Перевести» того же сообщения мгновенный.
+  /// Apple Intelligence «Переписать» — выделенный текст composer-а (или весь,
+  /// если selection пуст). Sheet даёт 5 стилей: friendlier / formal / shorter
+  /// / longer / proofread. Кнопка «Применить» подменяет содержимое composer-а
+  /// результатом.
+  Future<void> _openRewriteWithAi() async {
+    final raw = _controller.text;
+    final original = raw.contains('<')
+        ? messageHtmlToPlainText(raw)
+        : raw;
+    final clean = original.trim();
+    if (clean.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
+    await AiTextActionSheet.show(
+      context: context,
+      title: l10n.ai_action_rewrite,
+      original: clean,
+      styleVariants: [
+        AiStyleVariant(
+          id: 'friendly',
+          label: l10n.ai_style_friendly,
+          icon: Icons.favorite_rounded,
+        ),
+        AiStyleVariant(
+          id: 'formal',
+          label: l10n.ai_style_formal,
+          icon: Icons.account_balance_rounded,
+        ),
+        AiStyleVariant(
+          id: 'shorter',
+          label: l10n.ai_style_shorter,
+          icon: Icons.compress_rounded,
+        ),
+        AiStyleVariant(
+          id: 'longer',
+          label: l10n.ai_style_longer,
+          icon: Icons.expand_rounded,
+        ),
+        AiStyleVariant(
+          id: 'proofread',
+          label: l10n.ai_style_proofread,
+          icon: Icons.spellcheck_rounded,
+        ),
+      ],
+      initialStyleId: 'friendly',
+      run: (styleId) => AppleIntelligence.instance.rewrite(
+        clean,
+        style: styleId ?? 'friendly',
+      ),
+      applyLabel: l10n.ai_action_apply,
+      onApply: (result) {
+        if (!mounted) return;
+        _controller.value = TextEditingValue(
+          text: result,
+          selection: TextSelection.collapsed(offset: result.length),
+        );
+        _scheduleChatDraftSave();
+        _recomputeComposerLimits();
+        unawaited(ChatHaptics.instance.success());
+      },
+    );
+  }
+
+  /// TL;DR через Apple Intelligence — открывает premium sheet с резюме
+  /// (1-2 предложения, на языке сообщения). Доступно только iOS 18.1+/26+
+  /// с включённой Apple Intelligence; в меню эта кнопка вообще не появится
+  /// если LLM недоступен.
+  Future<void> _summarizeMessageWithAi(String rawText) async {
+    final stripped = rawText.contains('<')
+        ? messageHtmlToPlainText(rawText)
+        : rawText;
+    final clean = stripped.trim();
+    if (clean.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
+    await AiTextActionSheet.show(
+      context: context,
+      title: l10n.ai_action_summarize,
+      original: clean,
+      run: (_) => AppleIntelligence.instance.summarize(clean),
+    );
+  }
+
   Future<void> _translateMessage(ChatMessage m, String rawText) async {
     final stripped = rawText.contains('<')
         ? messageHtmlToPlainText(rawText)
@@ -4241,6 +4336,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     final canTranslate = await _canTranslateMessage(menuTextSource);
     if (!mounted) return;
 
+    // AI TL;DR — только если устройство поддерживает Foundation Models
+    // и текст достаточно длинный (короткие сообщения суммаризовать незачем).
+    final aiAvailable = await AppleIntelligence.instance.isAvailable();
+    final menuPlain = menuTextSource.contains('<')
+        ? messageHtmlToPlainText(menuTextSource)
+        : menuTextSource;
+    final canSummarizeAi = aiAvailable && menuPlain.trim().length >= 80;
+    if (!mounted) return;
+
     final result = await showMessageContextMenu(
       context,
       message: m,
@@ -4253,6 +4357,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       showStarAction: !m.isDeleted,
       isStarred: starredMessageIds.contains(m.id),
       canTranslate: canTranslate,
+      canSummarizeAi: canSummarizeAi,
       e2eeDecryptedText: e2eeDecryptedText,
       e2eeDecryptionFailed: e2eeDecryptionFailed,
       chatFontSize: fontSize,
@@ -4304,6 +4409,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         if (mounted) _toast(AppLocalizations.of(context)!.chat_text_copied);
       case MessageMenuActionType.translate:
         await _translateMessage(m, menuTextSource);
+      case MessageMenuActionType.summarizeAi:
+        await _summarizeMessageWithAi(menuTextSource);
       case MessageMenuActionType.readAloud:
         await _readMessageAloud(menuTextSource);
       case MessageMenuActionType.edit:

@@ -7,14 +7,18 @@ import Foundation
 
 /// Bridge к Apple Intelligence Foundation Models (iOS 18.1+/26+).
 ///
-/// Channel: `lighchat/apple_intelligence`. Если фреймворк отсутствует
-/// (старый SDK), устройство не поддерживается (старый чип / нет Apple
-/// Intelligence) или пользователь не включил AI — возвращаем `null`, чтобы
-/// Dart мог упасть на эвристику.
+/// Channel: `lighchat/apple_intelligence`.
 ///
-/// Сейчас доступен один метод:
-///  - `summarizeText(text, locale)` → `String?` — короткое 1–2 предложение
-///    резюме, на том же языке, что и текст.
+/// Доступные методы:
+///  - `isAvailable()` → `Bool`
+///  - `summarizeText(text)` → `String?` — 1-2 предложения резюме
+///  - `rewriteText(text, style)` → `String?` — переписать текст в стиле
+///    (`friendly` | `formal` | `shorter` | `longer` | `proofread`)
+///  - `summarizeMessages(messages)` → `String?` — компактный digest по списку
+///    последних сообщений в чате (формат `Sender: text\n`)
+///
+/// Если фреймворк отсутствует / модель не загружена / юзер отключил Apple
+/// Intelligence — возвращаем `null`. Dart-уровень должен fail-gracefully.
 final class AppleIntelligenceBridge: NSObject {
   static let shared = AppleIntelligenceBridge()
   private static let logTag = "[AppleIntelligence]"
@@ -28,42 +32,82 @@ final class AppleIntelligenceBridge: NSObject {
   }
 
   private func handle(call: FlutterMethodCall, result: @escaping FlutterResult) {
+    let args = call.arguments as? [String: Any] ?? [:]
     switch call.method {
     case "isAvailable":
       result(Self.isFoundationModelsAvailable())
 
     case "summarizeText":
-      let args = call.arguments as? [String: Any] ?? [:]
       let text = (args["text"] as? String ?? "")
         .trimmingCharacters(in: .whitespacesAndNewlines)
-      if text.isEmpty {
-        result(nil)
-        return
-      }
-      Self.summarize(text: text, completion: result)
+      if text.isEmpty { result(nil); return }
+      Self.respond(
+        instructions:
+          "You are a concise summarizer. Always reply in the same language as the input. Output one or two short sentences.",
+        prompt: "Summarize this briefly:\n\n\(text)",
+        completion: result)
+
+    case "rewriteText":
+      let text = (args["text"] as? String ?? "")
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+      let style = (args["style"] as? String ?? "friendly").lowercased()
+      if text.isEmpty { result(nil); return }
+      let (sys, ask) = Self.rewritePrompt(style: style, text: text)
+      Self.respond(instructions: sys, prompt: ask, completion: result)
+
+    case "summarizeMessages":
+      let messages = (args["messages"] as? String ?? "")
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+      if messages.isEmpty { result(nil); return }
+      Self.respond(
+        instructions:
+          "You are a chat digest writer. Always reply in the same language as the dialog. Output 3-5 short bullet points, each prefixed with '— '. Focus on decisions, questions, plans and named entities.",
+        prompt:
+          "Summarize the recent dialog from a group chat:\n\n\(messages)",
+        completion: result)
 
     default:
       result(FlutterMethodNotImplemented)
     }
   }
 
-  /// Доступны ли Foundation Models на этом устройстве прямо сейчас
-  /// (фреймворк существует И модель загружена И юзер не отключил AI).
   static func isFoundationModelsAvailable() -> Bool {
     #if canImport(FoundationModels)
       if #available(iOS 26.0, *) {
         let model = SystemLanguageModel.default
-        if case .available = model.availability {
-          return true
-        }
-        return false
+        if case .available = model.availability { return true }
       }
     #endif
     return false
   }
 
-  private static func summarize(
-    text: String, completion: @escaping FlutterResult
+  private static func rewritePrompt(style: String, text: String)
+    -> (String, String)
+  {
+    let system: String
+    switch style {
+    case "formal":
+      system =
+        "You are a writing assistant. Rewrite the message to sound more formal and polite while preserving meaning. Reply in the same language as input. Do not add extra commentary, output only the rewritten message."
+    case "shorter":
+      system =
+        "You are a writing assistant. Rewrite the message as briefly as possible while preserving meaning. Reply in the same language as input. Output only the rewritten message."
+    case "longer":
+      system =
+        "You are a writing assistant. Rewrite the message a bit more elaborately, adding natural details, while preserving the original meaning. Reply in the same language. Output only the rewritten message."
+    case "proofread":
+      system =
+        "You are a proofreader. Fix spelling, grammar and awkward phrasing without changing the meaning or tone. Reply in the same language as input. Output only the corrected message."
+    default:  // "friendly"
+      system =
+        "You are a writing assistant. Rewrite the message to sound friendlier and warmer while preserving meaning. Reply in the same language as input. Output only the rewritten message."
+    }
+    return (system, "Rewrite this message:\n\n\(text)")
+  }
+
+  private static func respond(
+    instructions: String, prompt: String,
+    completion: @escaping FlutterResult
   ) {
     #if canImport(FoundationModels)
       if #available(iOS 26.0, *) {
@@ -75,15 +119,12 @@ final class AppleIntelligenceBridge: NSObject {
         }
         Task {
           do {
-            let session = LanguageModelSession(
-              instructions:
-                "You are a concise summarizer. Always reply in the same language as the input. Output one or two short sentences."
-            )
-            let prompt = "Summarize this voice message transcript briefly:\n\n\(text)"
+            let session = LanguageModelSession(instructions: instructions)
             let response = try await session.respond(to: prompt)
-            DispatchQueue.main.async { completion(response.content) }
+            let content = response.content
+            DispatchQueue.main.async { completion(content) }
           } catch {
-            NSLog("%@ summarize failed: %@", logTag, "\(error)")
+            NSLog("%@ respond failed: %@", logTag, "\(error)")
             DispatchQueue.main.async { completion(nil) }
           }
         }

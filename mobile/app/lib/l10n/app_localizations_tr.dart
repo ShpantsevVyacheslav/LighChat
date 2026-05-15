@@ -1832,6 +1832,36 @@ class AppLocalizationsTr extends AppLocalizations {
       'Sistem ayarlarından çevrimdışı konuşma tanıma dil paketini yükleyin.';
 
   @override
+  String get ai_action_summarize => 'Özetle';
+
+  @override
+  String get ai_action_rewrite => 'AI ile Yeniden Yaz';
+
+  @override
+  String get ai_action_apply => 'Uygula';
+
+  @override
+  String get ai_action_thinking => 'Yazıyor…';
+
+  @override
+  String get ai_action_failed => 'Apple Intelligence kullanılamıyor';
+
+  @override
+  String get ai_style_friendly => 'Daha samimi';
+
+  @override
+  String get ai_style_formal => 'Resmi';
+
+  @override
+  String get ai_style_shorter => 'Daha kısa';
+
+  @override
+  String get ai_style_longer => 'Daha uzun';
+
+  @override
+  String get ai_style_proofread => 'Yazımı düzelt';
+
+  @override
   String get voice_translate_action => 'Çevir';
 
   @override
