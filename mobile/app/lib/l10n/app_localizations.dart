@@ -10969,13 +10969,13 @@ abstract class AppLocalizations {
   /// No description provided for @add_contact_sync_phone.
   ///
   /// In ru, this message translates to:
-  /// **'С��нхронизировать с телефоном'**
+  /// **'Синхронизировать с телефоном'**
   String get add_contact_sync_phone;
 
   /// No description provided for @add_contact_qr_button.
   ///
   /// In ru, this message translates to:
-  /// **'Д��бавить по QR-коду'**
+  /// **'Добавить по QR-коду'**
   String get add_contact_qr_button;
 
   /// No description provided for @add_contact_load_error.

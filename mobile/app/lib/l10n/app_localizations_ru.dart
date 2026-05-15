@@ -6246,10 +6246,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get add_contact_country_search => 'Поиск страны или кода';
 
   @override
-  String get add_contact_sync_phone => 'С��нхронизировать с телефоном';
+  String get add_contact_sync_phone => 'Синхронизировать с телефоном';
 
   @override
-  String get add_contact_qr_button => 'Д��бавить по QR-коду';
+  String get add_contact_qr_button => 'Добавить по QR-коду';
 
   @override
   String add_contact_load_error(Object error) {

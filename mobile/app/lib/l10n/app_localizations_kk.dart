@@ -6255,10 +6255,10 @@ class AppLocalizationsKk extends AppLocalizations {
   String get add_contact_country_search => 'Іздеу страны немесе кода';
 
   @override
-  String get add_contact_sync_phone => 'С��нхронизировать телефоном';
+  String get add_contact_sync_phone => 'Телефонмен синхрондау';
 
   @override
-  String get add_contact_qr_button => 'Д��бавить по QR-коду';
+  String get add_contact_qr_button => 'QR-код арқылы қосу';
 
   @override
   String add_contact_load_error(Object error) {

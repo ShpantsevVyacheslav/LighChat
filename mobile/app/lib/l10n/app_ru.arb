@@ -3238,8 +3238,8 @@
     }
   },
   "add_contact_country_search": "Поиск страны или кода",
-  "add_contact_sync_phone": "С��нхронизировать с телефоном",
-  "add_contact_qr_button": "Д��бавить по QR-коду",
+  "add_contact_sync_phone": "Синхронизировать с телефоном",
+  "add_contact_qr_button": "Добавить по QR-коду",
   "add_contact_load_error": "Ошибка загрузки контакта: {error}",
   "@add_contact_load_error": {
     "placeholders": {
