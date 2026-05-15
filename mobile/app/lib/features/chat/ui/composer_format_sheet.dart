@@ -1,164 +1,234 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 
+import 'animated_text_span.dart';
 import '../data/chat_haptics.dart';
 
-/// Bottom sheet форматирования в стиле Apple Notes: одна строка с
-/// большими кнопками **B** *I* U S `</>` — каждая мгновенно переключает
-/// формат на выделенном фрагменте (или на typingAttributes, если
-/// selection пуст).
+/// Format-popover для нативного композера (Phase 9). Раньше был
+/// `showModalBottomSheet`, который перекрывал поле ввода — юзер не видел
+/// что печатает. Теперь это overlay-popover **над композером** в стиле
+/// Apple Messages «Text Effects»: компактный пузырь с blur background,
+/// две строки кнопок (B/I/U/S/code и Big/Small/Shake/Nod/Ripple/Bloom/
+/// Jitter с реальным preview-эффектом).
 ///
-/// Вызывается из chat_composer при тапе на «Aa»-кнопку, работает с
-/// нативным UITextView через [NativeIosComposerField.toggleFormat]
-/// (Phase 4). На Android/desktop (где нативного composer нет)
-/// sheet не показывается — там остаётся inline Flutter
-/// `ComposerFormattingToolbar`.
+/// Popover не закрывает клавиатуру и НЕ перекрывает композер — садится
+/// прямо над input-баром. Закрывается тапом по barrier'у или крестиком.
+/// Тап на кнопку НЕ закрывает popover — юзер может последовательно
+/// применить B+I+U или сменить эффект.
 ///
-/// Sheet не закрывается автоматически при тапе на кнопку — пользователь
-/// может последовательно применить B+I+U. Закрывается вручную крестиком
-/// или свайпом вниз.
+/// `anchorKey` — GlobalKey виджета, **над** которым нужно показать
+/// popover. Обычно это контейнер композера (`_composerColumnKey`).
 Future<void> showComposerFormatSheet({
   required BuildContext context,
+  required GlobalKey anchorKey,
   required void Function(String tag) onToggle,
-}) {
-  return showModalBottomSheet<void>(
-    context: context,
-    // isScrollControlled позволяет sheet'у занимать пространство сверх
-    // дефолтных 56%, и (важно!) подсчитывать MediaQuery.viewInsets.bottom
-    // — иначе клавиатура перекрывает кнопки форматирования.
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withValues(alpha: 0.32),
-    builder: (ctx) {
-      // Bug 3: sheet был спрятан под клавиатурой. Поднимаем над неё
-      // ровно на её высоту через viewInsets.bottom — sheet «сидит» на
-      // верхушке клавиатуры, как Apple Notes / iMessage Format.
-      return Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
-        child: _FormatSheetBody(onToggle: onToggle),
+}) async {
+  final overlay = Overlay.of(context);
+  final anchorBox =
+      anchorKey.currentContext?.findRenderObject() as RenderBox?;
+  final overlayBox = overlay.context.findRenderObject() as RenderBox?;
+  if (anchorBox == null || overlayBox == null || !anchorBox.hasSize) return;
+
+  final anchorTop = anchorBox.localToGlobal(
+    Offset.zero,
+    ancestor: overlayBox,
+  );
+  final overlaySize = overlayBox.size;
+  // Bottom-offset overlay'а: расстояние от низа экрана до верха
+  // композера. Сам popover ляжет immediately above composer'а с 8px
+  // gap'ом (как iOS callout).
+  final bottomFromOverlay = overlaySize.height - anchorTop.dy + 8;
+
+  late OverlayEntry entry;
+  void dismiss() {
+    if (entry.mounted) entry.remove();
+  }
+
+  entry = OverlayEntry(
+    builder: (_) {
+      return Stack(
+        children: [
+          // Tap-outside dismiss. Прозрачный barrier — клавиатура и
+          // композер видны под popover'ом.
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: dismiss,
+              child: const SizedBox.expand(),
+            ),
+          ),
+          Positioned(
+            left: 8,
+            right: 8,
+            bottom: bottomFromOverlay,
+            child: _FormatPopoverBody(
+              onToggle: onToggle,
+              onClose: dismiss,
+            ),
+          ),
+        ],
       );
     },
   );
+  overlay.insert(entry);
 }
 
-class _FormatSheetBody extends StatelessWidget {
-  const _FormatSheetBody({required this.onToggle});
+class _FormatPopoverBody extends StatelessWidget {
+  const _FormatPopoverBody({required this.onToggle, required this.onClose});
   final void Function(String tag) onToggle;
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
-    final bg = dark
-        ? const Color(0xFF1B1E25)
-        : Colors.white;
     final fg = dark ? const Color(0xFFE6E7EA) : const Color(0xFF1A1C22);
-    final divider = dark
-        ? const Color(0x14FFFFFF)
-        : const Color(0x12000000);
-    final accent = const Color(0xFFFFC93C); // тёплый жёлтый «highlight» как в Notes
+    final bgFill = (dark ? const Color(0xFF12141A) : Colors.white)
+        .withValues(alpha: dark ? 0.78 : 0.92);
+    final border = (dark ? Colors.white : Colors.black)
+        .withValues(alpha: dark ? 0.10 : 0.08);
 
-    return SafeArea(
-      top: false,
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: divider, width: 1),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 12, 8),
-              child: Row(
+    return Material(
+      type: MaterialType.transparency,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+          child: Container(
+            decoration: BoxDecoration(
+              color: bgFill,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: border, width: 0.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: dark ? 0.4 : 0.15),
+                  blurRadius: 24,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'Format',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: fg,
-                    ),
+                  // Header строка: «Format» + крестик. Минимально, чтобы
+                  // popover был компактным.
+                  Row(
+                    children: [
+                      const SizedBox(width: 6),
+                      Text(
+                        'Format',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: fg.withValues(alpha: 0.78),
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const Spacer(),
+                      _CloseBtn(fg: fg, onTap: onClose),
+                    ],
                   ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded),
-                    color: fg.withValues(alpha: 0.62),
-                    onPressed: () => Navigator.of(context).maybePop(),
+                  const SizedBox(height: 6),
+                  // Top row: B / I / U / S / code (5 равных)
+                  Row(
+                    children: [
+                      _BtnSmall(
+                        label: 'B',
+                        fg: fg,
+                        bold: true,
+                        onTap: () => _emit('bold'),
+                      ),
+                      const SizedBox(width: 6),
+                      _BtnSmall(
+                        label: 'I',
+                        fg: fg,
+                        italic: true,
+                        onTap: () => _emit('italic'),
+                      ),
+                      const SizedBox(width: 6),
+                      _BtnSmall(
+                        label: 'U',
+                        fg: fg,
+                        underline: true,
+                        onTap: () => _emit('underline'),
+                      ),
+                      const SizedBox(width: 6),
+                      _BtnSmall(
+                        label: 'S',
+                        fg: fg,
+                        strike: true,
+                        onTap: () => _emit('strikethrough'),
+                      ),
+                      const SizedBox(width: 6),
+                      _BtnSmall(
+                        label: '</>',
+                        fg: fg,
+                        mono: true,
+                        onTap: () => _emit('code'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Bottom row: animated effects + Big/Small с **живым
+                  // preview**. Каждая кнопка показывает реальный эффект
+                  // на своём label'е (как в Apple Messages Text Effects).
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    alignment: WrapAlignment.start,
+                    children: [
+                      _EffectBtnPreview(
+                        label: 'Big',
+                        effect: 'big',
+                        fg: fg,
+                        onTap: () => _emit('big'),
+                      ),
+                      _EffectBtnPreview(
+                        label: 'Small',
+                        effect: 'small',
+                        fg: fg,
+                        onTap: () => _emit('small'),
+                      ),
+                      _EffectBtnPreview(
+                        label: 'Shake',
+                        effect: 'shake',
+                        fg: fg,
+                        onTap: () => _emit('shake'),
+                      ),
+                      _EffectBtnPreview(
+                        label: 'Nod',
+                        effect: 'nod',
+                        fg: fg,
+                        onTap: () => _emit('nod'),
+                      ),
+                      _EffectBtnPreview(
+                        label: 'Ripple',
+                        effect: 'ripple',
+                        fg: fg,
+                        onTap: () => _emit('ripple'),
+                      ),
+                      _EffectBtnPreview(
+                        label: 'Bloom',
+                        effect: 'bloom',
+                        fg: fg,
+                        onTap: () => _emit('bloom'),
+                      ),
+                      _EffectBtnPreview(
+                        label: 'Jitter',
+                        effect: 'jitter',
+                        fg: fg,
+                        onTap: () => _emit('jitter'),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-              child: Row(
-                children: [
-                  _Btn(
-                    label: 'B',
-                    bold: true,
-                    bgActive: accent,
-                    fg: fg,
-                    onTap: () => _emit('bold'),
-                  ),
-                  const SizedBox(width: 8),
-                  _Btn(
-                    label: 'I',
-                    italic: true,
-                    bgActive: accent,
-                    fg: fg,
-                    onTap: () => _emit('italic'),
-                  ),
-                  const SizedBox(width: 8),
-                  _Btn(
-                    label: 'U',
-                    underline: true,
-                    bgActive: accent,
-                    fg: fg,
-                    onTap: () => _emit('underline'),
-                  ),
-                  const SizedBox(width: 8),
-                  _Btn(
-                    label: 'S',
-                    strike: true,
-                    bgActive: accent,
-                    fg: fg,
-                    onTap: () => _emit('strikethrough'),
-                  ),
-                  const SizedBox(width: 8),
-                  _Btn(
-                    label: '</>',
-                    mono: true,
-                    bgActive: accent,
-                    fg: fg,
-                    onTap: () => _emit('code'),
-                  ),
-                ],
-              ),
-            ),
-            // Animated effects section (Phase 6). Toggle-семантика: тап
-            // снова по тому же эффекту → выключить. Эффекты применяются
-            // к selection (или typingAttributes), при отправке сообщения
-            // сериализуются в HTML `<span data-anim="X">…</span>` и
-            // рендерятся на receiver-side через `AnimatedTextSpan`.
-            const Divider(height: 1, indent: 16, endIndent: 16),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _SizeBtn(label: 'Big', fg: fg, onTap: () => _emit('big')),
-                  _SizeBtn(label: 'Small', fg: fg, onTap: () => _emit('small')),
-                  _EffectBtn(label: 'Shake', fg: fg, onTap: () => _emit('shake')),
-                  _EffectBtn(label: 'Nod', fg: fg, onTap: () => _emit('nod')),
-                  _EffectBtn(label: 'Ripple', fg: fg, onTap: () => _emit('ripple')),
-                  _EffectBtn(label: 'Bloom', fg: fg, onTap: () => _emit('bloom')),
-                  _EffectBtn(label: 'Jitter', fg: fg, onTap: () => _emit('jitter')),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -170,10 +240,31 @@ class _FormatSheetBody extends StatelessWidget {
   }
 }
 
-class _Btn extends StatelessWidget {
-  const _Btn({
+class _CloseBtn extends StatelessWidget {
+  const _CloseBtn({required this.fg, required this.onTap});
+  final Color fg;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkResponse(
+      onTap: onTap,
+      radius: 16,
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Icon(
+          Icons.close_rounded,
+          size: 18,
+          color: fg.withValues(alpha: 0.55),
+        ),
+      ),
+    );
+  }
+}
+
+class _BtnSmall extends StatelessWidget {
+  const _BtnSmall({
     required this.label,
-    required this.bgActive,
     required this.fg,
     required this.onTap,
     this.bold = false,
@@ -183,7 +274,6 @@ class _Btn extends StatelessWidget {
     this.mono = false,
   });
   final String label;
-  final Color bgActive;
   final Color fg;
   final VoidCallback onTap;
   final bool bold;
@@ -199,18 +289,18 @@ class _Btn extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           child: Container(
-            height: 48,
+            height: 38,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: fg.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(12),
+              color: fg.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
               label,
               style: TextStyle(
-                fontSize: mono ? 14 : 18,
+                fontSize: mono ? 12 : 16,
                 fontFamily: mono ? 'Menlo' : null,
                 fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
                 fontStyle: italic ? FontStyle.italic : FontStyle.normal,
@@ -227,58 +317,20 @@ class _Btn extends StatelessWidget {
   }
 }
 
-/// «Big» / «Small» — статические эффекты размера. Без анимации, поэтому
-/// рендерим лейбл сразу в нужном масштабе для preview.
-class _SizeBtn extends StatelessWidget {
-  const _SizeBtn({
+/// Кнопка эффекта с **живым preview**: внутри сидит [AnimatedTextSpan],
+/// который проигрывает соответствующий эффект на label'е (Big/Small/
+/// Shake/Nod/Ripple/Bloom/Jitter). Это и есть «Apple Messages Text
+/// Effects» UX — юзер видит как именно эффект будет выглядеть до того
+/// как применить.
+class _EffectBtnPreview extends StatelessWidget {
+  const _EffectBtnPreview({
     required this.label,
+    required this.effect,
     required this.fg,
     required this.onTap,
   });
   final String label;
-  final Color fg;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isBig = label == 'Big';
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: fg.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: isBig ? 16 : 11,
-              fontWeight: FontWeight.w700,
-              color: fg,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Animated effect buttons (Shake / Nod / Ripple / Bloom / Jitter).
-/// Лейбл показываем без preview-анимации — иначе sheet будет «дёргаться».
-/// Юзер увидит реальную анимацию когда выделит фрагмент и применит эффект.
-class _EffectBtn extends StatelessWidget {
-  const _EffectBtn({
-    required this.label,
-    required this.fg,
-    required this.onTap,
-  });
-  final String label;
+  final String effect;
   final Color fg;
   final VoidCallback onTap;
 
@@ -288,22 +340,26 @@ class _EffectBtn extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         child: Container(
-          height: 40,
+          height: 36,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: fg.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(12),
+            color: fg.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(10),
           ),
-          child: Text(
-            label,
+          // AnimatedTextSpan ожидает, что его передают inside RichText/
+          // WidgetSpan. У нас он сам — Widget, поэтому просто оборачиваем
+          // в фиксированный baseline и отдаём строку.
+          child: AnimatedTextSpan(
+            text: label,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
               color: fg,
             ),
+            effect: effect,
           ),
         ),
       ),

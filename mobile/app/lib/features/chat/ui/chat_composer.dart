@@ -608,6 +608,7 @@ class _ChatComposerState extends State<ChatComposer> {
                 : () {
                     unawaited(showComposerFormatSheet(
                       context: context,
+                      anchorKey: _composerColumnKey,
                       onToggle: (tag) =>
                           _nativeFieldKey.currentState?.toggleFormat(tag),
                     ));
