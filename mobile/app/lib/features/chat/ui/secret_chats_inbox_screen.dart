@@ -11,6 +11,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import 'package:lighchat_mobile/core/app_logger.dart';
 import '../../../platform/native_nav_bar/nav_bar_config.dart';
+import '../../../platform/native_nav_bar/native_nav_bar_facade.dart';
 import '../../../platform/native_nav_bar/native_nav_scaffold.dart';
 import '../data/dm_display_title.dart';
 import '../data/secret_chat_callables.dart';
@@ -224,6 +225,15 @@ class _SecretChatsInboxScreenState
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    // На iOS native bar — overlay, и при `extendBodyBehindBars: true`
+    // SafeArea не учитывает его (additionalSafeAreaInsets.top = 0).
+    // Считаем top-padding явно: статус-бар + bar pill (40pt
+    // от facade). Backdrop остаётся full-screen, только содержимое
+    // прижимается под bar.
+    final mq = MediaQuery.of(context);
+    final contentTop = mq.padding.top +
+        NativeNavBarFacade.instance.topBarOverlayPadding;
+
     return NativeNavScaffold(
       top: NavBarTopConfig(
         title: NavBarTitle(title: l10n.secret_chats_title),
@@ -234,7 +244,11 @@ class _SecretChatsInboxScreenState
         fit: StackFit.expand,
         children: [
           const ChatShellBackdrop(),
-          SafeArea(
+          Padding(
+            padding: EdgeInsets.only(
+              top: contentTop,
+              bottom: mq.padding.bottom,
+            ),
             child: _booting
                 ? const Center(child: CircularProgressIndicator())
                 : !_unlocked
