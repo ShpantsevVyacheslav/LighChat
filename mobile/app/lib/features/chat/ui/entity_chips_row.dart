@@ -116,16 +116,39 @@ class _EntityChipsRowState extends State<EntityChipsRow> {
             entity.dateTimeGranularity == DateTimeGranularity.week ||
             entity.dateTimeGranularity == DateTimeGranularity.month ||
             entity.dateTimeGranularity == DateTimeGranularity.year;
+
+    // 1) Длительность: «на 30 минут», «на 1.5 часа», «for 2 hours» — если
+    //    нашли явное упоминание, переопределяем дефолтный 1 час.
+    Duration? explicitDuration;
+    if (!allDay) {
+      explicitDuration = _parseDuration(widget.text);
+    }
     final end = allDay
         ? start.add(const Duration(days: 1))
-        : start.add(const Duration(hours: 1));
+        : start.add(explicitDuration ?? const Duration(hours: 1));
 
     final location = _findAddress(_annotations);
+
+    // 2) Участники: emails из аннотаций → в description как list (iOS/Android
+    //    система не позволяет программно добавить invitees, юзер вручную их
+    //    тапнет в нативном UI после открытия события).
+    final attendees = _findEmails(_annotations);
+
+    // 3) Повторение: detect by keyword («каждый день/неделю/месяц/год»,
+    //    «daily/weekly/monthly/yearly», «every Monday», «по пятницам»).
+    final recurrence = _parseRecurrence(widget.text);
+
     final title = _buildTitle(
       widget.text,
       excerpts: [c.annotation.text, ?location],
     );
-    final description = _buildDescription(widget.text, widget.attachmentLabels);
+    final description = _buildDescription(
+      widget.text,
+      widget.attachmentLabels,
+      attendees: attendees,
+      recurrence: recurrence,
+      duration: explicitDuration,
+    );
 
     final event = cal.Event(
       title: title,
@@ -134,6 +157,7 @@ class _EntityChipsRowState extends State<EntityChipsRow> {
       startDate: start,
       endDate: end,
       allDay: allDay,
+      recurrence: recurrence,
     );
     try {
       await cal.Add2Calendar.addEvent2Cal(event);
@@ -141,6 +165,79 @@ class _EntityChipsRowState extends State<EntityChipsRow> {
     } catch (_) {
       await ChatHaptics.instance.error();
     }
+  }
+
+  /// Извлекает email-адреса из аннотаций ML Kit.
+  static List<String> _findEmails(List<EntityAnnotation>? annotations) {
+    if (annotations == null) return const [];
+    final out = <String>{};
+    for (final a in annotations) {
+      for (final e in a.entities) {
+        if (e.type == EntityType.email) out.add(a.text.trim());
+      }
+    }
+    return out.toList(growable: false);
+  }
+
+  /// Парсим длительность из текста сообщения:
+  ///  - «на 30 минут / 30 мин / 30 min»
+  ///  - «на 2 часа / 1.5 часа / 2 hours / 1h»
+  /// Возвращаем `null` если ничего не нашли.
+  static Duration? _parseDuration(String text) {
+    final lower = text.toLowerCase();
+    // часы (с десятичной точкой/запятой): «на 1.5 часа», «for 2 hours»
+    final hours = RegExp(
+      r'(?:на|for|in|in)?\s*(\d+(?:[.,]\d+)?)\s*(?:час(?:а|ов|у)?|ч|hours?|hrs?|h)\b',
+    ).firstMatch(lower);
+    if (hours != null) {
+      final v = double.tryParse(hours.group(1)!.replaceAll(',', '.'));
+      if (v != null && v > 0 && v < 24) {
+        return Duration(milliseconds: (v * 3600 * 1000).round());
+      }
+    }
+    // минуты
+    final mins = RegExp(
+      r'(?:на|for)?\s*(\d+)\s*(?:минут(?:ы|у)?|мин|minutes?|mins?|m)\b',
+    ).firstMatch(lower);
+    if (mins != null) {
+      final v = int.tryParse(mins.group(1)!);
+      if (v != null && v > 0 && v < 24 * 60) {
+        return Duration(minutes: v);
+      }
+    }
+    return null;
+  }
+
+  /// Парсим recurrence из текста: «каждый день / каждую неделю /
+  /// ежемесячно / по понедельникам / every day / weekly».
+  static cal.Recurrence? _parseRecurrence(String text) {
+    final lower = text.toLowerCase();
+    // Daily
+    if (RegExp(
+      r'\b(?:каждый\s+день|ежедневно|каждое\s+утро|каждый\s+вечер|every\s+day|daily)\b',
+    ).hasMatch(lower)) {
+      return cal.Recurrence(frequency: cal.Frequency.daily);
+    }
+    // Weekly: «каждую неделю», «еженедельно», «по понедельникам/вторникам…»,
+    // «every monday», «every week», «weekly».
+    if (RegExp(
+      r'\b(?:каждую\s+неделю|еженедельно|по\s+(?:понедельникам|вторникам|средам|четвергам|пятницам|субботам|воскресеньям)|every\s+(?:week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|weekly)\b',
+    ).hasMatch(lower)) {
+      return cal.Recurrence(frequency: cal.Frequency.weekly);
+    }
+    // Monthly
+    if (RegExp(
+      r'\b(?:каждый\s+месяц|ежемесячно|every\s+month|monthly)\b',
+    ).hasMatch(lower)) {
+      return cal.Recurrence(frequency: cal.Frequency.monthly);
+    }
+    // Yearly
+    if (RegExp(
+      r'\b(?:каждый\s+год|ежегодно|every\s+year|yearly|annually)\b',
+    ).hasMatch(lower)) {
+      return cal.Recurrence(frequency: cal.Frequency.yearly);
+    }
+    return null;
   }
 
   /// Ищем в списке аннотаций первую с типом `address`. Если найдена —
@@ -179,10 +276,41 @@ class _EntityChipsRowState extends State<EntityChipsRow> {
     return t;
   }
 
-  static String _buildDescription(String fullText, List<String> attachments) {
+  static String _buildDescription(
+    String fullText,
+    List<String> attachments, {
+    List<String> attendees = const [],
+    cal.Recurrence? recurrence,
+    Duration? duration,
+  }) {
     final buf = StringBuffer();
     final trimmed = fullText.trim();
     if (trimmed.isNotEmpty) buf.writeln(trimmed);
+
+    if (attendees.isNotEmpty) {
+      if (buf.isNotEmpty) buf.writeln();
+      buf.writeln('Участники:');
+      for (final a in attendees) {
+        buf.writeln('— $a');
+      }
+    }
+
+    if (recurrence != null) {
+      if (buf.isNotEmpty) buf.writeln();
+      buf.writeln('Повтор: ${_recurrenceLabel(recurrence.frequency)}');
+    }
+
+    if (duration != null) {
+      if (buf.isNotEmpty) buf.writeln();
+      final mins = duration.inMinutes;
+      final h = mins ~/ 60;
+      final m = mins % 60;
+      final parts = <String>[];
+      if (h > 0) parts.add('$h ч');
+      if (m > 0) parts.add('$m мин');
+      buf.writeln('Длительность: ${parts.join(' ')}');
+    }
+
     if (attachments.isNotEmpty) {
       if (buf.isNotEmpty) buf.writeln();
       buf.writeln('Вложения:');
@@ -191,6 +319,21 @@ class _EntityChipsRowState extends State<EntityChipsRow> {
       }
     }
     return buf.toString().trim();
+  }
+
+  static String _recurrenceLabel(cal.Frequency? f) {
+    switch (f) {
+      case cal.Frequency.daily:
+        return 'ежедневно';
+      case cal.Frequency.weekly:
+        return 'еженедельно';
+      case cal.Frequency.monthly:
+        return 'ежемесячно';
+      case cal.Frequency.yearly:
+        return 'ежегодно';
+      case null:
+        return 'разово';
+    }
   }
 
   IconData? _iconFor(EntityType t) {
