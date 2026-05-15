@@ -158,6 +158,12 @@ class _EntityChipsRowState extends State<EntityChipsRow> {
       endDate: end,
       allDay: allDay,
       recurrence: recurrence,
+      // Android: emails сразу пробрасываются в поле «Гости» Google Calendar
+      // через Intent.EXTRA_EMAIL. iOS — EKEventStore не даёт программно
+      // добавлять invitees, остаются только в description.
+      androidParams: cal.AndroidParams(
+        emailInvites: attendees.isEmpty ? null : attendees,
+      ),
     );
     try {
       await cal.Add2Calendar.addEvent2Cal(event);
