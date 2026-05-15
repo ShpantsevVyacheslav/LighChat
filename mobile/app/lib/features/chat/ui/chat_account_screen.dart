@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
@@ -7,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 import 'package:lighchat_mobile/features/admin/data/user_role_provider.dart';
 import '../data/app_theme_preference.dart';
+import '../data/spotlight_indexer.dart';
 import '../data/desktop_workspace_flag.dart';
 import '../data/user_profile.dart';
 import '../../auth/ui/auth_glass.dart';
@@ -149,6 +152,10 @@ class ChatAccountScreen extends ConsumerWidget {
                         if (repo != null) {
                           await repo.signOut();
                         }
+                        // Очистить системный Spotlight-индекс iOS, чтобы
+                        // чаты предыдущего пользователя не светились в
+                        // поиске после смены аккаунта.
+                        unawaited(SpotlightIndexer.instance.removeAll());
                         if (context.mounted) context.go('/auth');
                       } catch (e) {
                         if (!context.mounted) return;

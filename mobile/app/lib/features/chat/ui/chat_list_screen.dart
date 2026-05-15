@@ -8,6 +8,7 @@ import 'package:lighchat_models/lighchat_models.dart';
 import 'package:lighchat_mobile/app_providers.dart';
 import '../../../platform/native_nav_bar/native_nav_bar_facade.dart';
 import '../data/contact_display_name.dart';
+import '../data/spotlight_indexer.dart';
 import '../data/user_profile.dart';
 import '../data/user_contacts_repository.dart';
 import '../data/chat_list_offline_cache.dart';
@@ -419,8 +420,34 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
   late final VoidCallback _draftRevListener = _onChatDraftRevision;
   late final VoidCallback _previewRevListener = _onE2eePreviewRevision;
 
+  /// Debounce-таймер для Spotlight-индексации. Чтобы не дёргать
+  /// CoreSpotlight на каждое изменение conversations (а они меняются
+  /// каждый раз когда прилетает любое сообщение), ждём 2 секунды
+  /// тишины и потом одним пакетом отправляем.
+  Timer? _spotlightDebounce;
+  String? _lastSpotlightFingerprint;
+
   void _onE2eePreviewRevision() {
     if (mounted) setState(() {});
+  }
+
+  void _scheduleSpotlightIndex() {
+    // Fingerprint — id+lastMsgTs всех чатов; если ничего не поменялось,
+    // вообще не индексируем.
+    final fp = widget.conversations
+        .map((c) =>
+            '${c.id}|${c.data.lastMessageTimestamp ?? ''}|${c.data.name ?? ''}')
+        .join('');
+    if (fp == _lastSpotlightFingerprint) return;
+    _spotlightDebounce?.cancel();
+    _spotlightDebounce = Timer(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      _lastSpotlightFingerprint = fp;
+      unawaited(SpotlightIndexer.instance.indexConversations(
+        conversations: widget.conversations,
+        currentUserId: widget.currentUserId,
+      ));
+    });
   }
 
   void _persistOfflineSnapshot() {
@@ -475,9 +502,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       unawaited(E2eePlaintextCache.instance.warmUpPreviews());
     }
     unawaited(_reloadChatDrafts());
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _persistOfflineSnapshot(),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _persistOfflineSnapshot();
+      _scheduleSpotlightIndex();
+    });
   }
 
   @override
@@ -488,9 +516,10 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     }
     if (oldWidget.conversations != widget.conversations ||
         oldWidget.userChatIndex != widget.userChatIndex) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _persistOfflineSnapshot(),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _persistOfflineSnapshot();
+        _scheduleSpotlightIndex();
+      });
     }
   }
 
@@ -503,6 +532,7 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
       _previewRevListener,
     );
     _search.dispose();
+    _spotlightDebounce?.cancel();
     super.dispose();
   }
 

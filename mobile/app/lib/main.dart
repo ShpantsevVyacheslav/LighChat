@@ -24,6 +24,7 @@ import 'features/push/push_native_call_service.dart';
 import 'features/push/push_runtime_flags.dart';
 import 'features/chat/data/app_theme_preference.dart';
 import 'features/chat/data/share_intent_listener.dart';
+import 'features/chat/data/spotlight_indexer.dart';
 import 'platform/platform_capabilities.dart';
 import 'ui/responsive/desktop_shortcuts.dart';
 import 'features/chat/data/chat_auto_theme_mode.dart';
@@ -145,6 +146,11 @@ class _MyAppState extends ConsumerState<MyApp> {
       }
     });
     if (!kIsWeb) {
+      // Spotlight (iOS): на cold-start вытаскиваем pending activation +
+      // подписываемся на live-стрим. При тапе по chat:<id> идём в чат,
+      // при pin:<convId>:<msgId> — открываем чат и (по возможности)
+      // скроллим к сообщению.
+      unawaited(_attachSpotlightDeepLinks());
       attachMeetingWebDeepLinks(_router).then((sub) {
         if (!mounted) {
           sub.cancel();
@@ -175,10 +181,38 @@ class _MyAppState extends ConsumerState<MyApp> {
     }
   }
 
+  StreamSubscription<SpotlightActivation>? _spotlightSub;
+
+  Future<void> _attachSpotlightDeepLinks() async {
+    // cold-start: одноразовая очередь активаций накопленных до того, как
+    // Flutter engine стартанул.
+    try {
+      final pending = await SpotlightIndexer.instance.consumeLaunchActivity();
+      if (pending != null) _routeSpotlightActivation(pending);
+    } catch (_) {}
+    _spotlightSub = SpotlightIndexer.instance.activations.listen(
+      _routeSpotlightActivation,
+      onError: (_) {},
+    );
+  }
+
+  void _routeSpotlightActivation(SpotlightActivation a) {
+    final convId = a.conversationId;
+    if (convId == null || convId.isEmpty) return;
+    if (a.kind == 'pin' && (a.messageId ?? '').isNotEmpty) {
+      // На pin — открываем чат, в URL добавляем якорь на сообщение.
+      // chat_screen умеет читать query-параметр `anchor` и скроллить.
+      _router.push('/chats/$convId?anchor=${a.messageId}');
+      return;
+    }
+    _router.push('/chats/$convId');
+  }
+
   @override
   void dispose() {
     _meetingDeepLinksSub?.cancel();
     _shareIntentListener?.dispose();
+    unawaited(_spotlightSub?.cancel());
     unawaited(DesktopDeepLinks.instance.detach());
     super.dispose();
   }

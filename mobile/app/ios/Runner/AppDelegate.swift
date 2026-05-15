@@ -225,6 +225,22 @@ private final class LighChatIosPipBridge: NSObject, AVPictureInPictureController
       messenger: engineBridge.applicationRegistrar.messenger())
     SubjectLiftBridge.shared.register(
       messenger: engineBridge.applicationRegistrar.messenger())
+    SpotlightBridge.shared.register(
+      messenger: engineBridge.applicationRegistrar.messenger())
+  }
+
+  override func application(
+    _ application: UIApplication,
+    continue userActivity: NSUserActivity,
+    restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
+  ) -> Bool {
+    if SpotlightBridge.shared.handleUserActivity(userActivity) {
+      return true
+    }
+    return super.application(
+      application,
+      continue: userActivity,
+      restorationHandler: restorationHandler)
   }
 
   private func setupVoipRegistry() {

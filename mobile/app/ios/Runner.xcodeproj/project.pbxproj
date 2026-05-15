@@ -35,6 +35,7 @@
 		B1B1B1B112000000000018E0 /* DocumentScannerBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B113000000000019E0 /* DocumentScannerBridge.swift */; };
 		B1B1B1B114000000000020E0 /* CommunicationIntentsBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B115000000000021E0 /* CommunicationIntentsBridge.swift */; };
 		B1B1B1B116000000000022E0 /* SubjectLiftBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B117000000000023E0 /* SubjectLiftBridge.swift */; };
+		B1B1B1B118000000000024E0 /* SpotlightBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B119000000000025E0 /* SpotlightBridge.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -118,6 +119,7 @@
 		B1B1B1B113000000000019E0 /* DocumentScannerBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentScannerBridge.swift; sourceTree = "<group>"; };
 		B1B1B1B115000000000021E0 /* CommunicationIntentsBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunicationIntentsBridge.swift; sourceTree = "<group>"; };
 		B1B1B1B117000000000023E0 /* SubjectLiftBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjectLiftBridge.swift; sourceTree = "<group>"; };
+		B1B1B1B119000000000025E0 /* SpotlightBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotlightBridge.swift; sourceTree = "<group>"; };
 		B2F8A9012ECF9000100A1D01 /* RunnerDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RunnerDebug.entitlements; sourceTree = "<group>"; };
 		B2F8A9012ECF9000100A1D02 /* RunnerRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RunnerRelease.entitlements; sourceTree = "<group>"; };
 		BCE89198E9E815BAC52B21AF /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
@@ -304,6 +306,7 @@
 				B1B1B1B113000000000019E0 /* DocumentScannerBridge.swift */,
 				B1B1B1B115000000000021E0 /* CommunicationIntentsBridge.swift */,
 				B1B1B1B117000000000023E0 /* SubjectLiftBridge.swift */,
+				B1B1B1B119000000000025E0 /* SpotlightBridge.swift */,
 			);
 			path = Speech;
 			sourceTree = "<group>";
@@ -628,6 +631,7 @@
 				B1B1B1B112000000000018E0 /* DocumentScannerBridge.swift in Sources */,
 				B1B1B1B114000000000020E0 /* CommunicationIntentsBridge.swift in Sources */,
 				B1B1B1B116000000000022E0 /* SubjectLiftBridge.swift in Sources */,
+				B1B1B1B118000000000024E0 /* SpotlightBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
