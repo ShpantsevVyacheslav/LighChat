@@ -538,8 +538,11 @@ class _ChatComposerState extends State<ChatComposer> {
       selectionControls: paste == null
           ? null
           : ComposerClipboardMaterialSelectionControls(onPaste: paste),
+      // В режиме поиска стикеров оставляем 1 строку (поле и так короткое).
+      // В обычном composer-е разрешаем расти до 6 строк — дальше включается
+      // внутренний скролл, чтобы половина экрана не уходила под composer.
       minLines: 1,
-      maxLines: 1,
+      maxLines: inStickerSearchMode ? 1 : 6,
       keyboardType: TextInputType.multiline,
       textAlignVertical: TextAlignVertical.center,
       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: fg),
