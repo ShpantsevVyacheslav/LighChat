@@ -237,16 +237,23 @@ final class VoiceTranscriberBridge: NSObject {
           url: url, candidates: candidates, autoDetect: autoDetect,
           index: index + 1, lastError: error, result: result)
       case .success(let output):
+        // Полный текст в лог — критично для диагностики «en-US на ru-audio
+        // вернул garbage» сценария. NSLog truncate-ит ~1000 символов, но
+        // нам хватит первых 500 чтобы увидеть язык/мусор.
+        let fullPreview = output.text.count > 500
+          ? String(output.text.prefix(500)) + "…"
+          : output.text
         Self.log(
           "→ success on \(locale.identifier), textLen=\(output.text.count) "
             + "segs=\(output.segments.count) "
-            + "preview=\"\(output.text.prefix(60))\"")
+            + "text=\"\(fullPreview)\"")
         if !output.text.isEmpty {
           if autoDetect {
             self?.maybeReRunWithDetectedLanguage(
               originalLocale: locale, originalOutput: output,
               url: url, result: result)
           } else {
+            Self.log("→ autoDetect=false, accepting first non-empty result")
             result([
               "text": output.text,
               "detectedLanguage": locale.languageCode ?? "",
@@ -417,11 +424,18 @@ final class VoiceTranscriberBridge: NSObject {
     langRecognizer.processString(originalText)
     let hypotheses = langRecognizer.languageHypotheses(withMaximum: 3)
     let sorted = hypotheses.sorted { $0.value > $1.value }
+    let dominantLang = langRecognizer.dominantLanguage?.rawValue ?? "?"
+    Self.log(
+      "maybeReRun analyzing originalLocale=\(originalLocale.identifier) "
+        + "originalCode=\(originalCode) "
+        + "textLen=\(originalText.count) "
+        + "dominant=\(dominantLang)")
     Self.log(
       "NLLanguageRecognizer top hypotheses: "
-        + sorted.prefix(3)
-        .map { "\($0.key.rawValue)=\(String(format: "%.2f", $0.value))" }
-        .joined(separator: ", "))
+        + (sorted.isEmpty ? "(none)" :
+          sorted.prefix(3)
+            .map { "\($0.key.rawValue)=\(String(format: "%.3f", $0.value))" }
+            .joined(separator: ", ")))
     func keepOriginal() {
       result([
         "text": originalText,
@@ -430,18 +444,31 @@ final class VoiceTranscriberBridge: NSObject {
       ])
     }
     guard let (topLang, confidence) = sorted.first else {
-      Self.log("→ no hypotheses, keeping original (\(originalCode))")
+      Self.log("→ DECISION: no hypotheses → keepOriginal (\(originalCode))")
       keepOriginal()
       return
     }
     let detectedCode = topLang.rawValue.lowercased()
-    if detectedCode == originalCode || confidence < 0.75 {
+    // Threshold 0.65 (раньше было 0.75): NLLanguageRecognizer на короткой
+    // транскрипции (5-15 слов) часто отдаёт правильный язык с конфиденс
+    // 0.5-0.7, что выше любого другого варианта, но ниже старого порога.
+    if detectedCode == originalCode {
       Self.log(
-        "→ detected=\(detectedCode) same as original or low conf, "
-          + "keeping original (\(originalCode))")
+        "→ DECISION: detected=\(detectedCode) === original "
+          + "(conf=\(String(format: "%.3f", confidence))) → keepOriginal")
       keepOriginal()
       return
     }
+    if confidence < 0.65 {
+      Self.log(
+        "→ DECISION: detected=\(detectedCode) but conf=\(String(format: "%.3f", confidence)) "
+          + "< 0.65 → keepOriginal (\(originalCode))")
+      keepOriginal()
+      return
+    }
+    Self.log(
+      "→ DECISION: detected=\(detectedCode) ≠ original=\(originalCode) "
+        + "with conf=\(String(format: "%.3f", confidence)) → attempting rerun")
     // Подбираем поддерживаемую локаль распознавания для определённого языка.
     guard let newLocale = bestRecognitionLocale(for: detectedCode) else {
       Self.log("→ no SFSpeech locale for \(detectedCode), keeping original")
