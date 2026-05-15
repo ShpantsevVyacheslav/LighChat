@@ -782,6 +782,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get ringtone_ascending_chord => 'Koʻtarilayotgan akkord';
 
   @override
+  String get ringtone_storage_original => 'Asl (Storage)';
+
+  @override
   String get ringtone_preview_play => 'Tinglash';
 
   @override
@@ -4772,7 +4775,8 @@ class AppLocalizationsUz extends AppLocalizations {
   String get chat_settings_animated_wallpapers_heading => 'Animatsion oboylar';
 
   @override
-  String get chat_settings_animated_wallpapers_hint => 'Chat ochilganda bir marta ijro etiladi';
+  String get chat_settings_animated_wallpapers_hint =>
+      'Chat ochilganda bir marta ijro etiladi';
 
   @override
   String get chat_settings_emoji_effects => 'Emoji effektlari';

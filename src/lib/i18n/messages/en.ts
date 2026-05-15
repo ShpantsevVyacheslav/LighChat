@@ -2202,6 +2202,7 @@ export const messagesEn = {
     ringtoneMarimbaTap: 'Marimba tap',
     ringtoneSoftPulse: 'Soft pulse',
     ringtoneAscendingChord: 'Ascending chord',
+    ringtoneStorageOriginal: 'Original (Storage)',
     ringtonePreviewLabel: 'Preview',
     quietCardTitle: 'Quiet hours',
     quietCardDescription: 'Notifications will not bother you during the selected period.',

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Play, Square, ChevronDown } from "lucide-react";
+import { ref as storageRef, getDownloadURL } from "firebase/storage";
 import {
   Popover,
   PopoverContent,
@@ -9,10 +10,13 @@ import {
 } from "@/components/ui/popover";
 import {
   RINGTONE_PRESETS,
+  STORAGE_RINGTONE_ID,
+  STORAGE_RINGTONE_PATH,
   type RingtoneVariant,
   getRingtonePreset,
   ringtoneUrl,
 } from "@/lib/ringtone-presets";
+import { useStorage } from "@/firebase";
 import { useI18n } from "@/hooks/use-i18n";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +34,7 @@ const RINGTONE_LABEL_KEYS: Record<string, string> = {
   marimba_tap: "notifications.ringtoneMarimbaTap",
   soft_pulse: "notifications.ringtoneSoftPulse",
   ascending_chord: "notifications.ringtoneAscendingChord",
+  [STORAGE_RINGTONE_ID]: "notifications.ringtoneStorageOriginal",
 };
 
 const ACCENT = "rgb(77, 162, 255)";
@@ -42,9 +47,11 @@ export function RingtonePicker({
   ariaLabel,
 }: RingtonePickerProps) {
   const { t } = useI18n();
+  const storage = useStorage();
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const storageUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -64,9 +71,7 @@ export function RingtonePicker({
     }
   }, [open]);
 
-  const togglePreview = (id: string) => {
-    const preset = getRingtonePreset(id);
-    if (!preset) return;
+  const togglePreview = async (id: string) => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
@@ -76,7 +81,18 @@ export function RingtonePicker({
       return;
     }
     try {
-      const audio = new Audio(ringtoneUrl(preset, variant));
+      let url: string | null = null;
+      if (id === STORAGE_RINGTONE_ID) {
+        if (!storage) return;
+        url = storageUrlRef.current
+          ?? (await getDownloadURL(storageRef(storage, STORAGE_RINGTONE_PATH)));
+        storageUrlRef.current = url;
+      } else {
+        const preset = getRingtonePreset(id);
+        if (!preset) return;
+        url = ringtoneUrl(preset, variant);
+      }
+      const audio = new Audio(url);
       audio.volume = 0.9;
       audio.addEventListener("ended", () => setPlayingId(null));
       audioRef.current = audio;
@@ -87,10 +103,17 @@ export function RingtonePicker({
     }
   };
 
-  const selectedPreset = getRingtonePreset(value);
-  const triggerLabel = selectedPreset
-    ? t(RINGTONE_LABEL_KEYS[selectedPreset.id] ?? selectedPreset.id)
-    : t("notifications.ringtoneDefault");
+  const showStorageOption = variant === "calls";
+  const triggerLabel = (() => {
+    if (value === STORAGE_RINGTONE_ID && showStorageOption) {
+      return t("notifications.ringtoneStorageOriginal");
+    }
+    const selectedPreset = getRingtonePreset(value);
+    if (selectedPreset) {
+      return t(RINGTONE_LABEL_KEYS[selectedPreset.id] ?? selectedPreset.id);
+    }
+    return t("notifications.ringtoneDefault");
+  })();
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -134,6 +157,19 @@ export function RingtonePicker({
           onTogglePreview={null}
           playing={false}
         />
+        {showStorageOption && (
+          <PickerOption
+            label={t("notifications.ringtoneStorageOriginal")}
+            selected={value === STORAGE_RINGTONE_ID}
+            onSelect={() => {
+              onChange(STORAGE_RINGTONE_ID);
+              setOpen(false);
+            }}
+            onTogglePreview={() => togglePreview(STORAGE_RINGTONE_ID)}
+            playing={playingId === STORAGE_RINGTONE_ID}
+            previewAriaLabel={t("notifications.ringtonePreviewLabel")}
+          />
+        )}
         {RINGTONE_PRESETS.map((preset) => (
           <PickerOption
             key={preset.id}

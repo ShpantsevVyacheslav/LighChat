@@ -772,6 +772,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ringtone_ascending_chord => 'Ascending chord';
 
   @override
+  String get ringtone_storage_original => 'Original (Storage)';
+
+  @override
   String get ringtone_preview_play => 'Preview';
 
   @override
@@ -4723,7 +4726,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chat_settings_animated_wallpapers_heading => 'Animated wallpapers';
 
   @override
-  String get chat_settings_animated_wallpapers_hint => 'Plays once when you open a chat';
+  String get chat_settings_animated_wallpapers_hint =>
+      'Plays once when you open a chat';
 
   @override
   String get chat_settings_emoji_effects => 'Emoji effects';

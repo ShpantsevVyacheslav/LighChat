@@ -33,6 +33,14 @@ export const RINGTONE_PRESETS: readonly RingtonePreset[] = [
 
 export const DEFAULT_MESSAGE_RINGTONE_ID = "classic_chime";
 
+/**
+ * Спец-id для мелодии звонка, загружаемой из Firebase Storage
+ * (`audio/ringtone.mp3`). Не входит в [RINGTONE_PRESETS]. Применяется
+ * только для callRingtoneId.
+ */
+export const STORAGE_RINGTONE_ID = "storage_original";
+export const STORAGE_RINGTONE_PATH = "audio/ringtone.mp3";
+
 export function getRingtonePreset(id: string | null | undefined): RingtonePreset | null {
   if (!id) return null;
   return RINGTONE_PRESETS.find((p) => p.id === id) ?? null;

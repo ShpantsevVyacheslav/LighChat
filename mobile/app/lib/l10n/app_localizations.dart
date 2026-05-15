@@ -1414,6 +1414,12 @@ abstract class AppLocalizations {
   /// **'Восходящий аккорд'**
   String get ringtone_ascending_chord;
 
+  /// No description provided for @ringtone_storage_original.
+  ///
+  /// In ru, this message translates to:
+  /// **'Оригинальная (Storage)'**
+  String get ringtone_storage_original;
+
   /// No description provided for @ringtone_preview_play.
   ///
   /// In ru, this message translates to:
@@ -8328,14 +8334,14 @@ abstract class AppLocalizations {
 
   /// No description provided for @chat_settings_animated_wallpapers_heading.
   ///
-  /// In en, this message translates to:
-  /// **'Animated wallpapers'**
+  /// In ru, this message translates to:
+  /// **'Анимированные обои'**
   String get chat_settings_animated_wallpapers_heading;
 
   /// No description provided for @chat_settings_animated_wallpapers_hint.
   ///
-  /// In en, this message translates to:
-  /// **'Plays once when you open a chat'**
+  /// In ru, this message translates to:
+  /// **'Проигрывается один раз при открытии чата'**
   String get chat_settings_animated_wallpapers_hint;
 
   /// No description provided for @chat_settings_emoji_effects.

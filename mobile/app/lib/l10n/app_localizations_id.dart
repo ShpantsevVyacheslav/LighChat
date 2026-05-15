@@ -779,6 +779,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get ringtone_ascending_chord => 'Akor naik';
 
   @override
+  String get ringtone_storage_original => 'Asli (Storage)';
+
+  @override
   String get ringtone_preview_play => 'Pratinjau';
 
   @override
@@ -4738,7 +4741,8 @@ class AppLocalizationsId extends AppLocalizations {
   String get chat_settings_animated_wallpapers_heading => 'Wallpaper animasi';
 
   @override
-  String get chat_settings_animated_wallpapers_hint => 'Diputar sekali saat membuka chat';
+  String get chat_settings_animated_wallpapers_hint =>
+      'Diputar sekali saat membuka chat';
 
   @override
   String get chat_settings_emoji_effects => 'Efek emoji';

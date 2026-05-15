@@ -790,6 +790,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get ringtone_ascending_chord => 'Acorde ascendente';
 
   @override
+  String get ringtone_storage_original => 'Original (Storage)';
+
+  @override
   String get ringtone_preview_play => 'Escuchar';
 
   @override
@@ -4787,7 +4790,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get chat_settings_animated_wallpapers_heading => 'Fondos animados';
 
   @override
-  String get chat_settings_animated_wallpapers_hint => 'Se reproduce una vez al abrir el chat';
+  String get chat_settings_animated_wallpapers_hint =>
+      'Se reproduce una vez al abrir el chat';
 
   @override
   String get chat_settings_emoji_effects => 'Efectos de emoji';
@@ -9317,6 +9321,9 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get ringtone_ascending_chord => 'Acorde ascendente';
 
   @override
+  String get ringtone_storage_original => 'Original (Storage)';
+
+  @override
   String get ringtone_preview_play => 'Escuchar';
 
   @override
@@ -13309,6 +13316,13 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get chat_settings_show_all_wallpapers => 'Ver todos los fondos';
+
+  @override
+  String get chat_settings_animated_wallpapers_heading => 'Fondos animados';
+
+  @override
+  String get chat_settings_animated_wallpapers_hint =>
+      'Se reproduce una vez al abrir el chat';
 
   @override
   String get chat_settings_emoji_effects => 'Efectos de emoji';

@@ -783,6 +783,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get ringtone_ascending_chord => 'Yükselen akor';
 
   @override
+  String get ringtone_storage_original => 'Orijinal (Storage)';
+
+  @override
   String get ringtone_preview_play => 'Dinle';
 
   @override
@@ -4752,10 +4755,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chat_settings_show_all_wallpapers => 'Tüm duvar kâğıtları';
 
   @override
-  String get chat_settings_animated_wallpapers_heading => 'Animasyonlu duvar kâğıtları';
+  String get chat_settings_animated_wallpapers_heading =>
+      'Animasyonlu duvar kâğıtları';
 
   @override
-  String get chat_settings_animated_wallpapers_hint => 'Sohbet açıldığında bir kez oynar';
+  String get chat_settings_animated_wallpapers_hint =>
+      'Sohbet açıldığında bir kez oynar';
 
   @override
   String get chat_settings_emoji_effects => 'Emoji efektleri';

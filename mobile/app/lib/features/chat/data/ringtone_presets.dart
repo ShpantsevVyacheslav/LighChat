@@ -40,6 +40,11 @@ const List<RingtonePreset> kRingtonePresets = <RingtonePreset>[
 
 const String kDefaultMessageRingtoneId = 'classic_chime';
 
+/// Спец-id для мелодии звонка, загружаемой из Firebase Storage
+/// (`audio/ringtone.mp3`). Не входит в [kRingtonePresets] — обрабатывается
+/// отдельно: см. [ChatCallToneController].
+const String kStorageRingtoneId = 'storage_original';
+
 RingtonePreset? ringtonePresetById(String? id) {
   if (id == null || id.isEmpty) return null;
   for (final p in kRingtonePresets) {

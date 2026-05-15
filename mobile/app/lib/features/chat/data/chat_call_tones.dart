@@ -50,6 +50,9 @@ class ChatCallToneController {
         assetPath: preset.assetPath(RingtoneVariant.calls),
       );
     } else {
+      // Явный storage_original И null fallback — оба грузят audio/ringtone.mp3
+      // из Firebase Storage. Поведение по null сохраняется ради обратной
+      // совместимости (пользователи без выбора).
       _ringtoneReady = await _loadFromStorage(
         player: _ringtonePlayer,
         path: 'audio/ringtone.mp3',

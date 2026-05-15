@@ -777,6 +777,9 @@ class AppLocalizationsKk extends AppLocalizations {
   String get ringtone_ascending_chord => 'Көтеріңкі аккорд';
 
   @override
+  String get ringtone_storage_original => 'Түпнұсқа (Storage)';
+
+  @override
   String get ringtone_preview_play => 'Тыңдау';
 
   @override
@@ -4753,7 +4756,8 @@ class AppLocalizationsKk extends AppLocalizations {
   String get chat_settings_animated_wallpapers_heading => 'Анимациялы обойлар';
 
   @override
-  String get chat_settings_animated_wallpapers_hint => 'Чат ашылғанда бір рет ойналады';
+  String get chat_settings_animated_wallpapers_hint =>
+      'Чат ашылғанда бір рет ойналады';
 
   @override
   String get chat_settings_emoji_effects => 'Эффекты эмодзи';

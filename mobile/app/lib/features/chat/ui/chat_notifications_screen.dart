@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -573,6 +574,8 @@ String _ringtoneLabel(AppLocalizations l10n, String id) {
       return l10n.ringtone_soft_pulse;
     case 'ascending_chord':
       return l10n.ringtone_ascending_chord;
+    case kStorageRingtoneId:
+      return l10n.ringtone_storage_original;
     default:
       return id;
   }
@@ -678,6 +681,7 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
     with TickerProviderStateMixin {
   final AudioPlayer _previewPlayer = AudioPlayer();
   String? _previewingId;
+  String? _storageUrlCache;
   StreamSubscription<PlayerState>? _stateSub;
 
   @override
@@ -714,6 +718,26 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
       await _previewPlayer.stop();
       await _previewPlayer.setAsset(preset.assetPath(_variant));
       setState(() => _previewingId = preset.id);
+      await _previewPlayer.seek(Duration.zero);
+      await _previewPlayer.play();
+    } catch (_) {
+      if (mounted) setState(() => _previewingId = null);
+    }
+  }
+
+  Future<void> _toggleStoragePreview() async {
+    try {
+      if (_previewingId == kStorageRingtoneId) {
+        await _previewPlayer.pause();
+        setState(() => _previewingId = null);
+        return;
+      }
+      await _previewPlayer.stop();
+      final url = _storageUrlCache ??
+          await FirebaseStorage.instance.ref('audio/ringtone.mp3').getDownloadURL();
+      _storageUrlCache = url;
+      await _previewPlayer.setAudioSource(AudioSource.uri(Uri.parse(url)));
+      setState(() => _previewingId = kStorageRingtoneId);
       await _previewPlayer.seek(Duration.zero);
       await _previewPlayer.play();
     } catch (_) {
@@ -807,6 +831,15 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
                           onTogglePreview: null,
                           previewing: false,
                         ),
+                        if (widget.forCalls)
+                          _PremiumPickerTile(
+                            label: l10n.ringtone_storage_original,
+                            selected: selectedId == kStorageRingtoneId,
+                            onTap: () =>
+                                Navigator.of(context).pop(kStorageRingtoneId),
+                            onTogglePreview: _toggleStoragePreview,
+                            previewing: _previewingId == kStorageRingtoneId,
+                          ),
                         for (final p in kRingtonePresets)
                           _PremiumPickerTile(
                             label: _ringtoneLabel(l10n, p.id),
