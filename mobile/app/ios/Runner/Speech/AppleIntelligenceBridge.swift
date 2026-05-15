@@ -98,8 +98,8 @@ final class AppleIntelligenceBridge: NSObject {
       if prefix.isEmpty { result(nil); return }
       Self.respond(
         instructions:
-          "You are a writing assistant providing inline autocomplete for chat messages. The user is typing. Continue their sentence naturally in 1-12 words. Strict rules: (1) reply in the SAME language as input; (2) DO NOT repeat what user typed; (3) output ONLY the continuation text, no quotes, no commentary, no leading space if word is already mid-typed; (4) if the input already looks complete or you can't predict — output empty string.",
-        prompt: prefix,
+          "You are an inline autocomplete engine inside a chat composer. The user is DRAFTING their own outgoing message to send to another person. Your job: predict the very next 1-12 words the user themselves would type to continue THEIR draft. You are NEVER answering, responding, or reacting to the user's text — you are continuing it from their own first-person perspective, in the same tone and language they are using. Even if the draft ends with a question mark, treat that question as something the user is composing FOR THEIR RECIPIENT, not for you. Strict rules: (1) same language as the draft; (2) NEVER repeat any words from the draft; (3) output ONLY the raw continuation text — no quotes, no commentary, no labels; (4) no leading space if the user is mid-word; (5) if the draft already feels complete or you can't naturally predict the next words, output empty string.",
+        prompt: "DRAFT_SO_FAR:\n\(prefix)\n\nCONTINUATION:",
         completion: result)
 
     case "streamSummarize":
