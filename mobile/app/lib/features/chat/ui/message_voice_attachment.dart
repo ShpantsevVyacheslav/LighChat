@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import 'entity_chips_row.dart';
 import 'message_audio_waveform.dart';
 import 'chat_glass_panel.dart';
 import 'chat_vlc_network_media.dart';
@@ -779,6 +780,17 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
                                                 ),
                                               ),
                                       ),
+                                    ),
+                                    // Entity-чипы под транскриптом: ML Kit
+                                    // ищет даты/телефоны/email/адреса в
+                                    // распознанном тексте. Long-press на
+                                    // date-чипе → нативный календарь.
+                                    EntityChipsRow(
+                                      text: displayed,
+                                      languageHint:
+                                          Localizations.localeOf(context)
+                                              .languageCode,
+                                      isMine: widget.isMine,
                                     ),
                                     if (wpm != null ||
                                         _sentimentEmoji != null) ...[
