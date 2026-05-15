@@ -30,6 +30,7 @@ class ChatMediaViewerPhotoPage extends StatefulWidget {
     this.canGoNext = false,
     this.onGoPrev,
     this.onGoNext,
+    this.onSingleTap,
   });
 
   final String url;
@@ -40,6 +41,11 @@ class ChatMediaViewerPhotoPage extends StatefulWidget {
   final bool canGoNext;
   final VoidCallback? onGoPrev;
   final VoidCallback? onGoNext;
+
+  /// Одиночный тап по фото — для скрытия/показа верхней/нижней панели.
+  /// Disambiguation с double-tap (zoom) делается через `onTapUp` после
+  /// небольшой задержки double-tap detector-а.
+  final VoidCallback? onSingleTap;
 
   @override
   State<ChatMediaViewerPhotoPage> createState() =>
@@ -354,6 +360,7 @@ class _ChatMediaViewerPhotoPageState extends State<ChatMediaViewerPhotoPage>
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onDoubleTapDown: _handleDoubleTap,
+              onTap: widget.onSingleTap,
               child: InteractiveViewer(
                 transformationController: widget.transformationController,
                 minScale: 1,

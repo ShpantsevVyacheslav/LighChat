@@ -229,6 +229,8 @@ export const onmessagecreated = onDocumentCreated(
           icon: senderIcon,
           silent: decision.silent,
           conversationId,
+          senderUid: senderId,
+          isGroup: conversationData.isGroup === true,
         });
 
         sendItems.push({ tokens, data });

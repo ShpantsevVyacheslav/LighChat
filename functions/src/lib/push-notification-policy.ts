@@ -141,6 +141,12 @@ export function buildDataPayload(parts: {
   silent: boolean;
   /** Явный id чата для mobile deep link (FCM data — только строки). */
   conversationId?: string;
+  /** UID отправителя — для Communication Notifications (MessagingStyle
+   *  на Android + INSendMessageIntent.donate на iOS). */
+  senderUid?: string;
+  /** Групповой чат — рендерим уведомление как групповое (несколько
+   *  собеседников, иначе будет 1-1 person). */
+  isGroup?: boolean;
 }): Record<string, string> {
   const data: Record<string, string> = {
     title: parts.title,
@@ -153,6 +159,10 @@ export function buildDataPayload(parts: {
   if (parts.conversationId && parts.conversationId.length > 0) {
     data.conversationId = parts.conversationId;
   }
+  if (parts.senderUid && parts.senderUid.length > 0) {
+    data.senderUid = parts.senderUid;
+  }
+  if (parts.isGroup) data.isGroup = "1";
   return data;
 }
 

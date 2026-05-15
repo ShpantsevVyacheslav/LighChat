@@ -5767,6 +5767,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get attach_files => 'Dosyalar';
 
   @override
+  String get attach_scan => 'Tara';
+
+  @override
   String get attach_circle => 'Daire';
 
   @override

@@ -172,6 +172,9 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
   bool _zoomed = false;
   double _dismissDragY = 0;
 
+  /// Одиночный тап по фото скрывает/показывает верхний и нижний chrome.
+  bool _chromeHidden = false;
+
   /// Скрывает нижние FAB (ответить / переслать / …), пока активная страница — видео и оно играет.
   bool _galleryVideoPlaying = false;
 
@@ -479,7 +482,9 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
     final cur = _current;
     final currentIsVideo =
         cur != null && isChatGridGalleryVideo(cur.attachment);
-    final showTopChrome = !_zoomed && !(currentIsVideo && _galleryVideoPlaying);
+    final showTopChrome = !_zoomed &&
+        !(currentIsVideo && _galleryVideoPlaying) &&
+        !_chromeHidden;
     if (showTopChrome) {
       _scheduleTopChromeMeasure();
     }
@@ -569,6 +574,7 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                           _zoomed = false;
                           _galleryVideoPlaying = false;
                           _galleryVideoControlsVisible = true;
+                          _chromeHidden = false;
                         });
                         for (final e in _imageTransforms.entries) {
                           if (e.key != i) {
@@ -627,6 +633,10 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                           canGoNext: multi && i < _items.length - 1,
                           onGoPrev: goPrev,
                           onGoNext: goNext,
+                          onSingleTap: () {
+                            if (!mounted) return;
+                            setState(() => _chromeHidden = !_chromeHidden);
+                          },
                         );
                       },
                     ),
@@ -907,7 +917,7 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                         ),
                       ),
                     ),
-                  if (!_zoomed && !_galleryVideoPlaying)
+                  if (!_zoomed && !_galleryVideoPlaying && !_chromeHidden)
                     Positioned(
                       left: 0,
                       right: 0,

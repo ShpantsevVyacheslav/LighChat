@@ -5768,6 +5768,9 @@ class AppLocalizationsKk extends AppLocalizations {
   String get attach_files => 'Файлдар';
 
   @override
+  String get attach_scan => 'Сканерлеу';
+
+  @override
   String get attach_circle => 'Кружок';
 
   @override

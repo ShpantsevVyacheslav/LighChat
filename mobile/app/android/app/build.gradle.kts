@@ -71,4 +71,8 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // ML Kit Document Scanner (Google Play Services). Открывает нативное
+    // UI Google со сканом-edge-detection + perspective correction; модели
+    // и UI хостятся в Play Services, нашему APK добавляет <300 КБ.
+    implementation("com.google.android.gms:play-services-mlkit-document-scanner:16.0.0-beta1")
 }

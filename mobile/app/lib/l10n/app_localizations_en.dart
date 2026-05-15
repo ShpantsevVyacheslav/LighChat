@@ -5734,6 +5734,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get attach_files => 'Files';
 
   @override
+  String get attach_scan => 'Scan';
+
+  @override
   String get attach_circle => 'Circle';
 
   @override

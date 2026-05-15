@@ -92,6 +92,8 @@ import 'message_context_menu.dart';
 import 'message_html_text.dart';
 import 'report_sheet.dart';
 import 'chat_composer.dart';
+import 'smart_reply_chips.dart';
+import '../data/document_scanner.dart';
 import 'thread_route_payload.dart';
 import 'secret_chat_secure_scope.dart';
 import 'secret_chat_unlock_sheet.dart';
@@ -2496,7 +2498,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                           _recomputeComposerLimits();
                                         });
                                       }
-                                      return ChatComposer(
+                                      final smartReplyMessages =
+                                          _sortedHydratedAscCache.isNotEmpty
+                                              ? _sortedHydratedAscCache
+                                              : _sortedAscCache;
+                                      return Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SmartReplyChips(
+                                            messages: smartReplyMessages,
+                                            currentUserId: user.uid,
+                                            composerIsEmpty:
+                                                _controller.text.trim().isEmpty,
+                                            onPick: (text) {
+                                              _controller.text = text;
+                                              _controller.selection =
+                                                  TextSelection.collapsed(
+                                                      offset: text.length);
+                                              _composerFocusNode.requestFocus();
+                                              setState(() {});
+                                            },
+                                          ),
+                                          ChatComposer(
                                       controller: _controller,
                                       focusNode: _composerFocusNode,
                                       stickersPanelOpen: _stickersPanelOpen,
@@ -2753,7 +2776,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                       sendBlockedByLimits:
                                           _composerLimitsState?.isOverLimit ==
                                           true,
-                                    );
+                                    ),
+                                        ],
+                                      );
                                     }),
                                     Builder(
                                       builder: (context) {
@@ -5545,6 +5570,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         break;
       case ComposerAttachmentAction.format:
         setState(() => _composerFormattingOpen = true);
+        break;
+      case ComposerAttachmentAction.scanDocument:
+        try {
+          final paths = await DocumentScanner.instance.scan();
+          if (!mounted || paths.isEmpty) return;
+          final add = paths
+              .map((p) => XFile(p, name: p.split(Platform.pathSeparator).last))
+              .toList();
+          setState(() => _pendingAttachments.addAll(add));
+          _scheduleChatDraftSave();
+          _recomputeComposerLimits();
+        } catch (e) {
+          if (mounted) {
+            _toast(AppLocalizations.of(context)!.chat_file_pick_failed(e));
+          }
+        }
         break;
     }
   }

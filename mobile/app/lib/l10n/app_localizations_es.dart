@@ -5807,6 +5807,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get attach_files => 'Archivos';
 
   @override
+  String get attach_scan => 'Escanear';
+
+  @override
   String get attach_circle => 'Circular';
 
   @override
@@ -14141,6 +14144,9 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get attach_files => 'Archivos';
+
+  @override
+  String get attach_scan => 'Escanear';
 
   @override
   String get attach_circle => 'Circular';

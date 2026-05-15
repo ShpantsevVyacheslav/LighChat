@@ -178,10 +178,18 @@ private final class LiveTextViewerController: UIViewController {
         )
         await MainActor.run {
           self.interaction.analysis = analysis
-          // `.automatic` включает text selection + data detectors +
-          // visual look up в одном переключателе — Apple сам решает что
-          // показать пользователю.
-          self.interaction.preferredInteractionTypes = .automatic
+          // Явно перечисляем все типы. `.automatic` показывал у нас только
+          // text selection, без значка ✨ Visual Look Up на распознанных
+          // объектах (башни, животные, растения). На iOS 17+ добавляем
+          // `.visualLookUp` и `.imageSubject` (subject lift) — тогда iOS
+          // сам рисует ✨ в углу фото и подсветку объекта.
+          var types: ImageAnalysisInteraction.InteractionTypes =
+            [.textSelection, .dataDetectors]
+          if #available(iOS 17.0, *) {
+            types.insert(.visualLookUp)
+            types.insert(.imageSubject)
+          }
+          self.interaction.preferredInteractionTypes = types
         }
       } catch {
         NSLog("%@ analysis failed: %@", "[LiveText]", "\(error)")

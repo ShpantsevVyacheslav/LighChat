@@ -5756,6 +5756,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get attach_files => 'Berkas';
 
   @override
+  String get attach_scan => 'Pindai';
+
+  @override
   String get attach_circle => 'Lingkaran';
 
   @override

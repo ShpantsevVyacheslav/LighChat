@@ -5792,6 +5792,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get attach_files => 'Fayllar';
 
   @override
+  String get attach_scan => 'Skanerlash';
+
+  @override
   String get attach_circle => 'Doira';
 
   @override

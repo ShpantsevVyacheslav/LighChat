@@ -5760,6 +5760,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get attach_files => 'Файлы';
 
   @override
+  String get attach_scan => 'Скан';
+
+  @override
   String get attach_circle => 'Кружок';
 
   @override

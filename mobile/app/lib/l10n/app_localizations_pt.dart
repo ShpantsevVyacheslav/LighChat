@@ -5792,6 +5792,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get attach_files => 'Arquivos';
 
   @override
+  String get attach_scan => 'Digitalizar';
+
+  @override
   String get attach_circle => 'Nota em vídeo';
 
   @override
@@ -14112,6 +14115,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get attach_files => 'Arquivos';
+
+  @override
+  String get attach_scan => 'Digitalizar';
 
   @override
   String get attach_circle => 'Nota em vídeo';

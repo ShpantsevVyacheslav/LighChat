@@ -219,6 +219,10 @@ private final class LighChatIosPipBridge: NSObject, AVPictureInPictureController
       messenger: engineBridge.applicationRegistrar.messenger())
     HapticsBridge.shared.register(
       messenger: engineBridge.applicationRegistrar.messenger())
+    DocumentScannerBridge.shared.register(
+      messenger: engineBridge.applicationRegistrar.messenger())
+    CommunicationIntentsBridge.shared.register(
+      messenger: engineBridge.applicationRegistrar.messenger())
   }
 
   private func setupVoipRegistry() {

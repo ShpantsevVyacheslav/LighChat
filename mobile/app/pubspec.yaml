@@ -115,6 +115,11 @@ dependencies:
   # On-device выделение в тексте телефонов, email, дат, адресов, IBAN,
   # treking-номеров и т.п. — для quick-actions в чате.
   google_mlkit_entity_extraction: ^0.15.0
+  # On-device Smart Reply: предлагает 1-3 коротких ответа («Sure», «OK!»,
+  # «Sounds good!») на основе последних 10 сообщений диалога. Модель встроена
+  # в SDK, ничего качать не нужно. Поддерживает английский (для других языков —
+  # эвристика «если разговор похож на английский»).
+  google_mlkit_smart_reply: ^0.13.1
   # Material You (Android 12+): акценты приложения подстраиваются под
   # цветовую гамму системных обоев. На iOS / старом Android — fallback
   # на наш дефолтный ColorScheme.

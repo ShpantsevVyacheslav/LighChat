@@ -40,7 +40,9 @@ class KaraokePromptDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Center(
+    return Material(
+      type: MaterialType.transparency,
+      child: Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
         child: ConstrainedBox(
@@ -123,6 +125,7 @@ class KaraokePromptDialog extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }

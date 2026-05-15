@@ -1,6 +1,7 @@
 package com.lighchat.lighchat_mobile
 
 import android.app.PictureInPictureParams
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
@@ -21,6 +22,13 @@ class MainActivity : FlutterActivity() {
     // подключается отдельным native-PR. См. docs/mobile/meetings-virtual-background.md.
     private var virtualBgMode: String = "none"
     private var virtualBgImageAssetPath: String? = null
+
+    private var documentScanner: DocumentScannerBridge? = null
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (documentScanner?.handleActivityResult(requestCode, resultCode, data) == true) return
+        super.onActivityResult(requestCode, resultCode, data)
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -98,5 +106,8 @@ class MainActivity : FlutterActivity() {
             .register(flutterEngine.dartExecutor.binaryMessenger)
         HapticsBridge(applicationContext)
             .register(flutterEngine.dartExecutor.binaryMessenger)
+        documentScanner = DocumentScannerBridge(this).also {
+            it.register(flutterEngine.dartExecutor.binaryMessenger)
+        }
     }
 }

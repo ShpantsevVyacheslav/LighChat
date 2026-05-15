@@ -16,6 +16,10 @@ enum ComposerAttachmentAction {
   poll,
   stickersGif,
   format,
+
+  /// Нативный сканер документов (VisionKit / ML Kit) с edge-detection
+  /// и perspective correction. Несколько страниц — отдельные attachments.
+  scanDocument,
 }
 
 /// Стеклянная панель пунктов (иконка + подпись).
@@ -53,6 +57,12 @@ class ComposerAttachmentMenuPanel extends StatelessWidget {
             icon: Icons.insert_drive_file_outlined,
             label: AppLocalizations.of(context)!.attach_files,
             color: const Color(0xFF2D7BFF),
+          ),
+          (
+            action: ComposerAttachmentAction.scanDocument,
+            icon: Icons.document_scanner_outlined,
+            label: AppLocalizations.of(context)!.attach_scan,
+            color: const Color(0xFF00B894),
           ),
           (
             action: ComposerAttachmentAction.videoCircle,

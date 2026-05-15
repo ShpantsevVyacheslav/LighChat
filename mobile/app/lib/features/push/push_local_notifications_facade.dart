@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../l10n/app_localizations.dart';
+import 'communication_notification_helper.dart';
 import 'push_notification_payload.dart';
 
 /// Локальные уведомления для FCM data-only (как web `firebase-messaging-sw.js`).
@@ -126,6 +128,23 @@ class PushLocalNotificationsFacade {
     final body = m['body'] ?? '';
     final silent = m['silent'] == '1' || m['silent'] == 'true';
     final channelId = silent ? _channelSilent.id : _channelSound.id;
+    final conversationId = m['conversationId'] ?? '';
+    final senderUid = m['senderUid'] ?? '';
+    final isGroup = m['isGroup'] == '1' || m['isGroup'] == 'true';
+    final avatarUrl = m['icon'] ?? '';
+
+    // Скачиваем аватар в кэш (best-effort, ~5 секунд timeout).
+    final avatarPath =
+        await CommunicationNotificationHelper.downloadAvatar(avatarUrl);
+
+    final messagingStyle =
+        CommunicationNotificationHelper.buildAndroidMessagingStyle(
+      senderName: title,
+      body: body,
+      avatarLocalPath: avatarPath,
+      conversationTitle: isGroup ? null : title,
+      isGroup: isGroup,
+    );
 
     final android = AndroidNotificationDetails(
       channelId,
@@ -137,12 +156,18 @@ class PushLocalNotificationsFacade {
       priority: silent ? Priority.low : Priority.high,
       playSound: !silent,
       enableVibration: !silent,
+      styleInformation: messagingStyle,
+      // Иконка-аватар крупно слева на лок-скрине (Android 12+ pill row).
+      largeIcon: avatarPath != null
+          ? FilePathAndroidBitmap(avatarPath)
+          : null,
     );
 
     final darwin = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: !silent,
+      threadIdentifier: conversationId.isNotEmpty ? conversationId : null,
     );
 
     await _plugin.show(
@@ -156,6 +181,22 @@ class PushLocalNotificationsFacade {
       ),
       payload: _payloadJson(message),
     );
+
+    // iOS Communication Notifications: donate intent чтобы Siri/Spotlight
+    // знали о собеседнике (на лок-скрин без NSE богатая карточка не
+    // докатится, но «продолжить с X» в Share Sheet / Suggestions — да).
+    if (senderUid.isNotEmpty && conversationId.isNotEmpty) {
+      unawaited(
+        CommunicationNotificationHelper.donateIosIntent(
+          senderUid: senderUid,
+          senderName: title,
+          avatarLocalPath: avatarPath,
+          conversationId: conversationId,
+          body: body,
+          isGroup: isGroup,
+        ),
+      );
+    }
   }
 
   /// Cold start: приложение открыто тапом по локальному уведомлению.

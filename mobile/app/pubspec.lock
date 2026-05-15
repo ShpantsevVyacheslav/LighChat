@@ -1013,6 +1013,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.15.3"
+  google_mlkit_smart_reply:
+    dependency: "direct main"
+    description:
+      name: google_mlkit_smart_reply
+      sha256: e5c691c9243b3b123dfb5681590a136165c7b6fd76fdec43775ca66373664bb9
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.13.1"
   google_mlkit_translation:
     dependency: "direct main"
     description:

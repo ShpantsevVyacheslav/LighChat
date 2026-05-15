@@ -10120,6 +10120,12 @@ abstract class AppLocalizations {
   /// **'Файлы'**
   String get attach_files;
 
+  /// No description provided for @attach_scan.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скан'**
+  String get attach_scan;
+
   /// No description provided for @attach_circle.
   ///
   /// In ru, this message translates to:
