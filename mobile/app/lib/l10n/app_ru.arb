@@ -2509,6 +2509,8 @@
   "chat_settings_show_time_hint": "Время отправки под сообщениями",
   "chat_settings_auto_translate": "Авто-перевод входящих",
   "chat_settings_auto_translate_hint": "Сообщения на других языках переводятся on-device на ваш язык",
+  "chat_settings_native_composer": "Системное поле ввода (iOS)",
+  "chat_settings_native_composer_hint": "Использовать нативное iOS-поле с Вырезать/Копировать/Вставить/Заменить/Автозаполнение, Writing Tools (iOS 26+) и диктовкой. Выключите если возникнут проблемы с панелью форматирования или стикерами.",
   "message_auto_translated_label": "Переведено",
   "message_show_original": "Показать оригинал",
   "message_show_translation": "Показать перевод",

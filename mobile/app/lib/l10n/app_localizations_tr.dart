@@ -4889,6 +4889,13 @@ class AppLocalizationsTr extends AppLocalizations {
       'Yabancı dildeki mesajlar cihazda dilinize çevrilir';
 
   @override
+  String get chat_settings_native_composer => 'Sistem metin alanı (iOS)';
+
+  @override
+  String get chat_settings_native_composer_hint =>
+      'Sistem alanı Kes/Kopyala/Yapıştır/Değiştir/Otomatik Doldur, Writing Tools (iOS 26+) ve dikte ile.';
+
+  @override
   String get message_auto_translated_label => 'Çevrildi';
 
   @override

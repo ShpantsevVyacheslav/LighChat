@@ -2429,6 +2429,8 @@
   "chat_settings_show_time_hint": "Dikirim time under Pesan",
   "chat_settings_auto_translate": "Terjemahkan otomatis",
   "chat_settings_auto_translate_hint": "Pesan asing diterjemahkan di perangkat ke bahasa Anda",
+  "chat_settings_native_composer": "Bidang teks sistem (iOS)",
+  "chat_settings_native_composer_hint": "Gunakan bidang sistem dengan Cut/Copy/Paste/Replace/AutoFill, Writing Tools (iOS 26+) dan dikte.",
   "message_auto_translated_label": "Diterjemahkan",
   "message_show_original": "Tampilkan asli",
   "message_show_translation": "Tampilkan terjemahan",

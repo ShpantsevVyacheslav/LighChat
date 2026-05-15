@@ -8566,6 +8566,18 @@ abstract class AppLocalizations {
   /// **'Сообщения на других языках переводятся on-device на ваш язык'**
   String get chat_settings_auto_translate_hint;
 
+  /// No description provided for @chat_settings_native_composer.
+  ///
+  /// In ru, this message translates to:
+  /// **'Системное поле ввода (iOS)'**
+  String get chat_settings_native_composer;
+
+  /// No description provided for @chat_settings_native_composer_hint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Использовать нативное iOS-поле с Вырезать/Копировать/Вставить/Заменить/Автозаполнение, Writing Tools (iOS 26+) и диктовкой. Выключите если возникнут проблемы с панелью форматирования или стикерами.'**
+  String get chat_settings_native_composer_hint;
+
   /// No description provided for @message_auto_translated_label.
   ///
   /// In ru, this message translates to:

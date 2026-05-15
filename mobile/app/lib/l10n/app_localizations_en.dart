@@ -4855,6 +4855,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Foreign messages are translated on-device to your language';
 
   @override
+  String get chat_settings_native_composer => 'Native iOS composer';
+
+  @override
+  String get chat_settings_native_composer_hint =>
+      'Use the system text input with Cut/Copy/Paste/Replace/AutoFill, Writing Tools (iOS 26+) and dictation. Disable if you hit issues with formatting toolbar or stickers.';
+
+  @override
   String get message_auto_translated_label => 'Translated';
 
   @override

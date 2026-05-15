@@ -4886,6 +4886,13 @@ class AppLocalizationsRu extends AppLocalizations {
       'Сообщения на других языках переводятся on-device на ваш язык';
 
   @override
+  String get chat_settings_native_composer => 'Системное поле ввода (iOS)';
+
+  @override
+  String get chat_settings_native_composer_hint =>
+      'Использовать нативное iOS-поле с Вырезать/Копировать/Вставить/Заменить/Автозаполнение, Writing Tools (iOS 26+) и диктовкой. Выключите если возникнут проблемы с панелью форматирования или стикерами.';
+
+  @override
   String get message_auto_translated_label => 'Переведено';
 
   @override

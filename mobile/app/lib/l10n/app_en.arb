@@ -2453,6 +2453,8 @@
   "chat_settings_show_time_hint": "Sent time under messages",
   "chat_settings_auto_translate": "Auto-translate incoming",
   "chat_settings_auto_translate_hint": "Foreign messages are translated on-device to your language",
+  "chat_settings_native_composer": "Native iOS composer",
+  "chat_settings_native_composer_hint": "Use the system text input with Cut/Copy/Paste/Replace/AutoFill, Writing Tools (iOS 26+) and dictation. Disable if you hit issues with formatting toolbar or stickers.",
   "message_auto_translated_label": "Translated",
   "message_show_original": "Show original",
   "message_show_translation": "Show translation",

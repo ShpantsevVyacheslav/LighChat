@@ -4921,6 +4921,13 @@ class AppLocalizationsEs extends AppLocalizations {
       'Mensajes en otros idiomas se traducen en el dispositivo a tu idioma';
 
   @override
+  String get chat_settings_native_composer => 'Campo de texto nativo (iOS)';
+
+  @override
+  String get chat_settings_native_composer_hint =>
+      'Usa el campo del sistema con Cortar/Copiar/Pegar/Reemplazar/Autorrelleno, Writing Tools (iOS 26+) y dictado.';
+
+  @override
   String get message_auto_translated_label => 'Traducido';
 
   @override
@@ -13541,6 +13548,13 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   @override
   String get chat_settings_auto_translate_hint =>
       'Mensajes en otros idiomas se traducen en el dispositivo a tu idioma';
+
+  @override
+  String get chat_settings_native_composer => 'Campo de texto nativo (iOS)';
+
+  @override
+  String get chat_settings_native_composer_hint =>
+      'Usa el campo del sistema con Cortar/Copiar/Pegar/Reemplazar/Autorrelleno, Writing Tools (iOS 26+) y dictado.';
 
   @override
   String get message_auto_translated_label => 'Traducido';

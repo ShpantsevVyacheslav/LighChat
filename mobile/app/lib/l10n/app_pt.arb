@@ -2429,6 +2429,8 @@
   "chat_settings_show_time_hint": "Horário do envio abaixo das mensagens",
   "chat_settings_auto_translate": "Traduzir mensagens recebidas",
   "chat_settings_auto_translate_hint": "Mensagens em outros idiomas são traduzidas no dispositivo para o seu idioma",
+  "chat_settings_native_composer": "Campo de texto nativo (iOS)",
+  "chat_settings_native_composer_hint": "Usar o campo do sistema com Cortar/Copiar/Colar/Substituir/Autopreenchimento, Writing Tools (iOS 26+) e ditado.",
   "message_auto_translated_label": "Traduzido",
   "message_show_original": "Mostrar original",
   "message_show_translation": "Mostrar tradução",

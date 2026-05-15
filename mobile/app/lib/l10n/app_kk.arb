@@ -2429,6 +2429,8 @@
   "chat_settings_show_time_hint": "Время отправкжәне под хабарламаларми",
   "chat_settings_auto_translate": "Кіріс хаттарды аудару",
   "chat_settings_auto_translate_hint": "Бөтен тілдегі хаттар құрылғыда сіздің тіліңізге аударылады",
+  "chat_settings_native_composer": "Жүйелік мәтін өрісі (iOS)",
+  "chat_settings_native_composer_hint": "Жүйелік өрісті қолдану — Қию/Көшіру/Қою/Ауыстыру/Авто-толтыру, Writing Tools (iOS 26+) және диктовка.",
   "message_auto_translated_label": "Аударылған",
   "message_show_original": "Түпнұсқаны көрсету",
   "message_show_translation": "Аударманы көрсету",

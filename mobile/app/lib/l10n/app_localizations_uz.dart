@@ -4904,6 +4904,13 @@ class AppLocalizationsUz extends AppLocalizations {
       'Boshqa tildagi xabarlar qurilmangizda tilingizga tarjima qilinadi';
 
   @override
+  String get chat_settings_native_composer => 'Tizim matn maydoni (iOS)';
+
+  @override
+  String get chat_settings_native_composer_hint =>
+      'Kesish/Nusxalash/Joylashtirish/Almashtirish/Avto-toʻldirish, Writing Tools (iOS 26+) va diktor bilan tizim maydonidan foydalanish.';
+
+  @override
   String get message_auto_translated_label => 'Tarjima qilindi';
 
   @override

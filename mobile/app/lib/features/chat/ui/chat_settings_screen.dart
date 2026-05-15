@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -13,6 +14,7 @@ import 'package:lighchat_mobile/app_providers.dart';
 
 import '../../auth/ui/auth_glass.dart';
 import '../data/bottom_nav_icon_settings.dart';
+import '../data/native_composer_flag.dart';
 import '../data/animated_wallpapers.dart';
 import '../data/builtin_wallpapers.dart';
 import 'animated_wallpaper_layer.dart';
@@ -154,12 +156,24 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
   /// не влияют на превью, поэтому sticky-превью «отлипает».
   final GlobalKey _emojiSectionKey = GlobalKey();
   bool _hidePreview = false;
+  // Phase 1-3 native iOS composer (UITextView с системным меню и Writing
+  // Tools). Хранится в SharedPreferences а не в server-side chatSettings —
+  // это пер-устройство iOS-only фича, остальные платформы её скрывают.
+  bool _nativeComposerEnabled = false;
+  bool _nativeComposerVisible = false;
 
   @override
   void initState() {
     super.initState();
     _load();
     _scrollController.addListener(_handleScrollForPreviewVisibility);
+    if (Platform.isIOS) {
+      _nativeComposerVisible = true;
+      unawaited(NativeComposerFlag.instance.isEnabled().then((v) {
+        if (!mounted) return;
+        setState(() => _nativeComposerEnabled = v);
+      }));
+    }
   }
 
   @override
@@ -2182,6 +2196,54 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           ],
                         ),
                       ),
+                      // iOS-only: native UITextView composer (Phase 1-3).
+                      // Хранится в SharedPreferences, не в server settings.
+                      if (_nativeComposerVisible)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      l10n.chat_settings_native_composer,
+                                      style: TextStyle(
+                                        fontSize: _kBlockTitleSize,
+                                        fontWeight: FontWeight.w600,
+                                        color: textMain,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      l10n.chat_settings_native_composer_hint,
+                                      style: TextStyle(
+                                        fontSize: _kBodyTextSize,
+                                        color: textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Switch.adaptive(
+                                value: _nativeComposerEnabled,
+                                onChanged: (value) {
+                                  setState(
+                                    () => _nativeComposerEnabled = value,
+                                  );
+                                  unawaited(
+                                    NativeComposerFlag.instance
+                                        .setEnabled(value),
+                                  );
+                                },
+                                activeThumbColor: Colors.white,
+                                activeTrackColor: sectionBlue,
+                              ),
+                            ],
+                          ),
+                        ),
                       const SizedBox(height: 14),
                       SizedBox(
                         height: 54,

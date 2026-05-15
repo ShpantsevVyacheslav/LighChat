@@ -4870,6 +4870,13 @@ class AppLocalizationsId extends AppLocalizations {
       'Pesan asing diterjemahkan di perangkat ke bahasa Anda';
 
   @override
+  String get chat_settings_native_composer => 'Bidang teks sistem (iOS)';
+
+  @override
+  String get chat_settings_native_composer_hint =>
+      'Gunakan bidang sistem dengan Cut/Copy/Paste/Replace/AutoFill, Writing Tools (iOS 26+) dan dikte.';
+
+  @override
   String get message_auto_translated_label => 'Diterjemahkan';
 
   @override

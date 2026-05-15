@@ -4886,6 +4886,13 @@ class AppLocalizationsKk extends AppLocalizations {
       'Бөтен тілдегі хаттар құрылғыда сіздің тіліңізге аударылады';
 
   @override
+  String get chat_settings_native_composer => 'Жүйелік мәтін өрісі (iOS)';
+
+  @override
+  String get chat_settings_native_composer_hint =>
+      'Жүйелік өрісті қолдану — Қию/Көшіру/Қою/Ауыстыру/Авто-толтыру, Writing Tools (iOS 26+) және диктовка.';
+
+  @override
   String get message_auto_translated_label => 'Аударылған';
 
   @override

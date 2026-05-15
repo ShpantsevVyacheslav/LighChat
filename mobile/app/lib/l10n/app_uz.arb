@@ -2429,6 +2429,8 @@
   "chat_settings_show_time_hint": "Xabarlar ostida yuborish vaqti",
   "chat_settings_auto_translate": "Kirishni avto-tarjima",
   "chat_settings_auto_translate_hint": "Boshqa tildagi xabarlar qurilmangizda tilingizga tarjima qilinadi",
+  "chat_settings_native_composer": "Tizim matn maydoni (iOS)",
+  "chat_settings_native_composer_hint": "Kesish/Nusxalash/Joylashtirish/Almashtirish/Avto-toʻldirish, Writing Tools (iOS 26+) va diktor bilan tizim maydonidan foydalanish.",
   "message_auto_translated_label": "Tarjima qilindi",
   "message_show_original": "Asl matnni koʻrsatish",
   "message_show_translation": "Tarjimani koʻrsatish",

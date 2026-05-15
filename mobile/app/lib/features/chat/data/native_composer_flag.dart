@@ -3,25 +3,36 @@ import 'dart:io' show Platform;
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Feature flag для нативного iOS composer'а (Phase 1).
+/// Feature flag для нативного iOS composer'а (Phase 1+2+3 готовы).
 ///
-/// **OFF по умолчанию.** Пока нативный путь не достиг feature-parity с
-/// Flutter `TextField` (mentions, formatting toolbar, attach-paste,
-/// sticker keyboard accessory) — основной путь остаётся Flutter. Toggle
-/// нужен для разработки и QA на устройстве.
+/// **ON по умолчанию на iOS.** Native UITextView даёт системное меню
+/// Cut/Copy/Paste/Replace/AutoFill, Writing Tools (iOS 26+), диктовку,
+/// QuickType bar — без него composer теряет много нативной UX. Group
+/// mentions через token-rendering работают, paste-файлов из буфера
+/// перехватывается через override `paste(_:)`.
 ///
-/// Включается из debug-меню или через ручную правку preferences (ключ
-/// `chat.use_native_composer`).
+/// Что НЕ покрыто Phase 1-3 и работает только в Flutter TextField:
+///  - Bold/Italic из formatting toolbar (отключаем native когда юзер
+///    активирует toolbar — Phase 4),
+///  - Sticker search mode (single-line, нативная UX не нужна),
+///  - Android и desktop (там вообще нет нативного аналога — fallback).
+///
+/// Toggle для отключения — в Chat Settings → раздел «Композер». Ключ в
+/// preferences: `chat.use_native_composer`.
 class NativeComposerFlag {
   NativeComposerFlag._();
   static final NativeComposerFlag instance = NativeComposerFlag._();
 
   static const _key = 'chat.use_native_composer';
+  static const _defaultOnIos = true;
 
   bool? _cached;
   Future<bool>? _inflight;
 
-  /// Возвращает true только на iOS И если флаг явно включён.
+  /// Дефолт для UI-toggle'а — true на iOS, false иначе.
+  bool get defaultValue => Platform.isIOS ? _defaultOnIos : false;
+
+  /// Возвращает true только на iOS И если флаг (с дефолтом) включён.
   Future<bool> isEnabled() async {
     if (!Platform.isIOS) return false;
     final c = _cached;
@@ -42,9 +53,9 @@ class NativeComposerFlag {
   Future<bool> _read() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getBool(_key) ?? false;
+      return prefs.getBool(_key) ?? _defaultOnIos;
     } catch (_) {
-      return false;
+      return _defaultOnIos;
     }
   }
 

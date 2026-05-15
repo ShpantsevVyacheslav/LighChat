@@ -2429,6 +2429,8 @@
   "chat_settings_show_time_hint": "Mesajların altında gönderim zamanı",
   "chat_settings_auto_translate": "Gelenleri otomatik çevir",
   "chat_settings_auto_translate_hint": "Yabancı dildeki mesajlar cihazda dilinize çevrilir",
+  "chat_settings_native_composer": "Sistem metin alanı (iOS)",
+  "chat_settings_native_composer_hint": "Sistem alanı Kes/Kopyala/Yapıştır/Değiştir/Otomatik Doldur, Writing Tools (iOS 26+) ve dikte ile.",
   "message_auto_translated_label": "Çevrildi",
   "message_show_original": "Orijinali göster",
   "message_show_translation": "Çeviriyi göster",
