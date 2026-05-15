@@ -7885,10 +7885,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get animation_quality_lite => 'Leve';
 
   @override
-  String get animation_quality_balanced => 'Equilibrado';
+  String get animation_quality_balanced => 'Equilíbrio';
 
   @override
-  String get animation_quality_cinematic => 'Cinematográfico';
+  String get animation_quality_cinematic => 'Cinema';
 
   @override
   String get crop_aspect_original => 'Original';
@@ -16210,10 +16210,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get animation_quality_lite => 'Leve';
 
   @override
-  String get animation_quality_balanced => 'Equilibrado';
+  String get animation_quality_balanced => 'Equilíbrio';
 
   @override
-  String get animation_quality_cinematic => 'Cinematográfico';
+  String get animation_quality_cinematic => 'Cinema';
 
   @override
   String get crop_aspect_original => 'Original';

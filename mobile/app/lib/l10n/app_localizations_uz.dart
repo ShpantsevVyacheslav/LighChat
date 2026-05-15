@@ -7879,10 +7879,10 @@ class AppLocalizationsUz extends AppLocalizations {
   String get animation_quality_lite => 'Lite';
 
   @override
-  String get animation_quality_balanced => 'Muvozanatli';
+  String get animation_quality_balanced => 'Muvozanat';
 
   @override
-  String get animation_quality_cinematic => 'Kinematik';
+  String get animation_quality_cinematic => 'Kino';
 
   @override
   String get crop_aspect_original => 'Asl';

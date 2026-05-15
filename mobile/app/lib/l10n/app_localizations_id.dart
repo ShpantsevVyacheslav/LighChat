@@ -7842,7 +7842,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get animation_quality_balanced => 'Seimbang';
 
   @override
-  String get animation_quality_cinematic => 'Sinematik';
+  String get animation_quality_cinematic => 'Sinema';
 
   @override
   String get crop_aspect_original => 'Asli';

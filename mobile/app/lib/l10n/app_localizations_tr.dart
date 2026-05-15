@@ -7840,10 +7840,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get animation_quality_lite => 'Hafif';
 
   @override
-  String get animation_quality_balanced => 'Dengeli';
+  String get animation_quality_balanced => 'Denge';
 
   @override
-  String get animation_quality_cinematic => 'Sinematik';
+  String get animation_quality_cinematic => 'Sinema';
 
   @override
   String get crop_aspect_original => 'Orijinal';

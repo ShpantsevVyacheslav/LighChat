@@ -7808,10 +7808,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get animation_quality_lite => 'Lite';
 
   @override
-  String get animation_quality_balanced => 'Balanced';
+  String get animation_quality_balanced => 'Balance';
 
   @override
-  String get animation_quality_cinematic => 'Cinematic';
+  String get animation_quality_cinematic => 'Cinema';
 
   @override
   String get crop_aspect_original => 'Original';

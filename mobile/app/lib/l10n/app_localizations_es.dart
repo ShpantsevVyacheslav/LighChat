@@ -7896,10 +7896,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get animation_quality_lite => 'ligero';
 
   @override
-  String get animation_quality_balanced => 'Equilibrado';
+  String get animation_quality_balanced => 'Balance';
 
   @override
-  String get animation_quality_cinematic => 'Cinemático';
+  String get animation_quality_cinematic => 'Cine';
 
   @override
   String get crop_aspect_original => 'Original';
@@ -16235,10 +16235,10 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String get animation_quality_lite => 'ligero';
 
   @override
-  String get animation_quality_balanced => 'Equilibrado';
+  String get animation_quality_balanced => 'Balance';
 
   @override
-  String get animation_quality_cinematic => 'Cinemático';
+  String get animation_quality_cinematic => 'Cine';
 
   @override
   String get crop_aspect_original => 'Original';

@@ -7846,10 +7846,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get animation_quality_lite => 'Лёгкий';
 
   @override
-  String get animation_quality_balanced => 'Сбалансированный';
+  String get animation_quality_balanced => 'Баланс';
 
   @override
-  String get animation_quality_cinematic => 'Кинематографический';
+  String get animation_quality_cinematic => 'Кино';
 
   @override
   String get crop_aspect_original => 'Оригинал';

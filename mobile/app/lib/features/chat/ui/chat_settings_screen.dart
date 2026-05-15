@@ -142,10 +142,35 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
   bool _globalIconStyleExpanded = false;
   String? _iconStyleExpandedHref;
 
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _previewKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// Автоскролл к карточке превью — вызывается после изменения настройки,
+  /// которая влияет на отображаемый превью (фон, цвета пузырьков, шрифт,
+  /// форма, отметка времени), чтобы пользователь сразу видел эффект.
+  void _scrollToPreview() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _previewKey.currentContext;
+      if (ctx == null || !_scrollController.hasClients) return;
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+        alignment: 0.0,
+      );
+    });
   }
 
   Future<void> _load() async {
@@ -1348,6 +1373,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
               ),
               Expanded(
                 child: SingleChildScrollView(
+                  controller: _scrollController,
                   padding: EdgeInsets.fromLTRB(
                     16,
                     14,
@@ -1366,19 +1392,129 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      _ChatPreviewCard(
-                        wallpaperDecoration: _wallpaperDecoration(
-                          context,
-                          s.chatWallpaper,
+                      // Якорь автоскролла — после изменения любой настройки,
+                      // влияющей на внешний вид чата, экран прокручивается
+                      // обратно к этой карточке, чтобы пользователь сразу
+                      // видел эффект.
+                      KeyedSubtree(
+                        key: _previewKey,
+                        child: _ChatPreviewCard(
+                          wallpaperDecoration: _wallpaperDecoration(
+                            context,
+                            s.chatWallpaper,
+                          ),
+                          incomingBubbleColor: incomingColor,
+                          outgoingBubbleColor: outgoingColor,
+                          bubbleRadius: s.bubbleRadius,
+                          showTimestamps: s.showTimestamps,
+                          messageFontSize: _previewMessageFont(s.fontSize),
                         ),
-                        incomingBubbleColor: incomingColor,
-                        outgoingBubbleColor: outgoingColor,
-                        bubbleRadius: s.bubbleRadius,
-                        showTimestamps: s.showTimestamps,
-                        messageFontSize: _previewMessageFont(s.fontSize),
                       ),
                       const SizedBox(height: 20),
-                      _buildBottomNavIconsSection(s),
+                      // Обои чата — единый раздел: сначала фирменные
+                      // (kBuiltinWallpapers), затем классические градиенты-
+                      // пресеты, затем пользовательские изображения и кнопка
+                      // загрузки. Сетка 4×N для компактности.
+                      Text(
+                        l10n.chat_settings_chat_background,
+                        style: TextStyle(
+                          fontSize: _kBlockTitleSize,
+                          fontWeight: FontWeight.w600,
+                          color: textMain,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Builder(
+                        builder: (context) {
+                          final builtinCount = kBuiltinWallpapers.length;
+                          final presetCount = _wallpaperPresets(l10n).length;
+                          final customCount = s.customBackgrounds.length;
+                          return GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount:
+                                builtinCount +
+                                presetCount +
+                                customCount +
+                                1,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 4,
+                                  mainAxisSpacing: 8,
+                                  crossAxisSpacing: 8,
+                                  childAspectRatio: 1.04,
+                                ),
+                            itemBuilder: (context, index) {
+                              if (index <
+                                  builtinCount +
+                                      presetCount +
+                                      customCount) {
+                                String? value;
+                                BoxDecoration decoration;
+                                VoidCallback? onDelete;
+                                if (index < builtinCount) {
+                                  final wp = kBuiltinWallpapers[index];
+                                  value = wp.value;
+                                  decoration = _wallpaperDecoration(
+                                    context,
+                                    value,
+                                  );
+                                } else if (index <
+                                    builtinCount + presetCount) {
+                                  final preset = _wallpaperPresets(
+                                    l10n,
+                                  )[index - builtinCount];
+                                  value = preset.value;
+                                  decoration = _wallpaperDecoration(
+                                    context,
+                                    value,
+                                  );
+                                } else {
+                                  value = s.customBackgrounds[index -
+                                      builtinCount -
+                                      presetCount];
+                                  decoration = _wallpaperDecoration(
+                                    context,
+                                    value,
+                                  );
+                                  onDelete = () =>
+                                      _confirmRemoveCustomWallpaper(value!);
+                                }
+                                final selected = s.chatWallpaper == value;
+                                return _WallpaperTile(
+                                  selected: selected,
+                                  decoration: decoration,
+                                  onTap: () {
+                                    setState(
+                                      () => s.chatWallpaper = value,
+                                    );
+                                    _savePatch(<String, Object?>{
+                                      'chatWallpaper': value,
+                                    });
+                                    _scrollToPreview();
+                                  },
+                                  onDelete: onDelete,
+                                );
+                              }
+                              return _AddWallpaperTile(
+                                uploading: _uploading,
+                                onTap: _uploading
+                                    ? null
+                                    : _pickAndUploadWallpaper,
+                              );
+                            },
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.chat_settings_background_hint,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: _kBodyTextSize,
+                          color: textSecondary,
+                        ),
+                      ),
                       const SizedBox(height: 20),
                       Text(
                         l10n.chat_settings_outgoing_messages,
@@ -1397,6 +1533,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                         onSelect: (value) {
                           setState(() => s.bubbleColor = value);
                           _savePatch(<String, Object?>{'bubbleColor': value});
+                          _scrollToPreview();
                         },
                       ),
                       const SizedBox(height: 20),
@@ -1419,6 +1556,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           _savePatch(<String, Object?>{
                             'incomingBubbleColor': value,
                           });
+                          _scrollToPreview();
                         },
                       ),
                       const SizedBox(height: 20),
@@ -1442,6 +1580,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                                 _savePatch(<String, Object?>{
                                   'fontSize': 'small',
                                 });
+                                _scrollToPreview();
                               },
                             ),
                           ),
@@ -1455,6 +1594,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                                 _savePatch(<String, Object?>{
                                   'fontSize': 'medium',
                                 });
+                                _scrollToPreview();
                               },
                             ),
                           ),
@@ -1468,6 +1608,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                                 _savePatch(<String, Object?>{
                                   'fontSize': 'large',
                                 });
+                                _scrollToPreview();
                               },
                             ),
                           ),
@@ -1495,6 +1636,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                                 _savePatch(<String, Object?>{
                                   'bubbleRadius': 'rounded',
                                 });
+                                _scrollToPreview();
                               },
                             ),
                           ),
@@ -1509,131 +1651,11 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                                 _savePatch(<String, Object?>{
                                   'bubbleRadius': 'square',
                                 });
+                                _scrollToPreview();
                               },
                             ),
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 20),
-                      Text(
-                        l10n.chat_settings_chat_background,
-                        style: TextStyle(
-                          fontSize: _kBlockTitleSize,
-                          fontWeight: FontWeight.w600,
-                          color: textMain,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount:
-                            _wallpaperPresets(l10n).length +
-                            s.customBackgrounds.length +
-                            1,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              mainAxisSpacing: 10,
-                              crossAxisSpacing: 10,
-                              childAspectRatio: 1.04,
-                            ),
-                        itemBuilder: (context, index) {
-                          final presetCount = _wallpaperPresets(l10n).length;
-                          final customCount = s.customBackgrounds.length;
-
-                          if (index == presetCount + customCount) {
-                            return _AddWallpaperTile(
-                              uploading: _uploading,
-                              onTap: _uploading
-                                  ? null
-                                  : _pickAndUploadWallpaper,
-                            );
-                          }
-
-                          if (index < presetCount) {
-                            final preset = _wallpaperPresets(l10n)[index];
-                            final selected = s.chatWallpaper == preset.value;
-                            return _WallpaperTile(
-                              selected: selected,
-                              decoration: _wallpaperDecoration(
-                                context,
-                                preset.value,
-                              ),
-                              onTap: () {
-                                setState(() => s.chatWallpaper = preset.value);
-                                _savePatch(<String, Object?>{
-                                  'chatWallpaper': preset.value,
-                                });
-                              },
-                            );
-                          }
-
-                          final customUrl =
-                              s.customBackgrounds[index - presetCount];
-                          final selected = s.chatWallpaper == customUrl;
-                          return _WallpaperTile(
-                            selected: selected,
-                            decoration: _wallpaperDecoration(
-                              context,
-                              customUrl,
-                            ),
-                            onTap: () {
-                              setState(() => s.chatWallpaper = customUrl);
-                              _savePatch(<String, Object?>{
-                                'chatWallpaper': customUrl,
-                              });
-                            },
-                            onDelete: () =>
-                                _confirmRemoveCustomWallpaper(customUrl),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        l10n.chat_settings_builtin_wallpapers_heading,
-                        style: TextStyle(
-                          fontSize: _kBlockTitleSize,
-                          fontWeight: FontWeight.w600,
-                          color: textMain,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: kBuiltinWallpapers.length,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              mainAxisSpacing: 10,
-                              crossAxisSpacing: 10,
-                              childAspectRatio: 1.04,
-                            ),
-                        itemBuilder: (context, index) {
-                          final wp = kBuiltinWallpapers[index];
-                          final value = wp.value;
-                          final selected = s.chatWallpaper == value;
-                          return _WallpaperTile(
-                            selected: selected,
-                            decoration: _wallpaperDecoration(context, value),
-                            onTap: () {
-                              setState(() => s.chatWallpaper = value);
-                              _savePatch(<String, Object?>{
-                                'chatWallpaper': value,
-                              });
-                            },
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.chat_settings_background_hint,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: _kBodyTextSize,
-                          color: textSecondary,
-                        ),
                       ),
                       const SizedBox(height: 20),
                       Text(
@@ -1658,6 +1680,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           Expanded(
                             child: _SegmentButton(
                               label: l10n.animation_quality_lite,
+                              fontSize: 14,
                               active:
                                   s.emojiBurstAnimationProfile ==
                                   chatEmojiBurstAnimationProfileLite,
@@ -1677,6 +1700,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           Expanded(
                             child: _SegmentButton(
                               label: l10n.animation_quality_balanced,
+                              fontSize: 14,
                               active:
                                   s.emojiBurstAnimationProfile ==
                                   chatEmojiBurstAnimationProfileBalanced,
@@ -1696,6 +1720,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           Expanded(
                             child: _SegmentButton(
                               label: l10n.animation_quality_cinematic,
+                              fontSize: 14,
                               active:
                                   s.emojiBurstAnimationProfile ==
                                   chatEmojiBurstAnimationProfileCinematic,
@@ -1728,6 +1753,8 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           color: textSecondary,
                         ),
                       ),
+                      const SizedBox(height: 22),
+                      _buildBottomNavIconsSection(s),
                       const SizedBox(height: 22),
                       Text(
                         l10n.chat_settings_additional,
@@ -1784,6 +1811,7 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                                 _savePatch(<String, Object?>{
                                   'showTimestamps': value,
                                 });
+                                _scrollToPreview();
                               },
                               activeThumbColor: Colors.white,
                               activeTrackColor: sectionBlue,
@@ -2134,11 +2162,13 @@ class _SegmentButton extends StatelessWidget {
     required this.label,
     required this.active,
     required this.onTap,
+    this.fontSize = 16,
   });
 
   final String label;
   final bool active;
   final VoidCallback onTap;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -2149,6 +2179,7 @@ class _SegmentButton extends StatelessWidget {
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(0, 56),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         backgroundColor: active
             ? const Color(0xFF2F86FF)
             : (dark ? Colors.white : scheme.surfaceContainerHigh).withValues(
@@ -2163,8 +2194,11 @@ class _SegmentButton extends StatelessWidget {
       ),
       child: Text(
         label,
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          fontSize: 16,
+          fontSize: fontSize,
           fontWeight: FontWeight.w500,
           color: active
               ? Colors.white.withValues(alpha: 0.98)
