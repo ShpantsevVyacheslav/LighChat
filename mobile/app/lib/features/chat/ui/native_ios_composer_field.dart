@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show PlatformViewHitTestBehavior;
 import 'package:flutter/services.dart';
 
+import 'package:lighchat_mobile/core/app_logger.dart';
+
 /// Нативный iOS composer (Phase 1–7): оборачивает [UiKitView] с
 /// PlatformView'ем `lighchat/native_composer` (см. Swift
 /// `NativeComposerFactory`/`NativeComposerView`).
@@ -136,6 +138,10 @@ class NativeIosComposerFieldState extends State<NativeIosComposerField> {
   void _onFocusChanged() {
     final c = _channel;
     if (c == null) return;
+    appLogger.d(
+      '[panel-toggle] dart→native focus listener: '
+      'hasFocus=${widget.focusNode.hasFocus}',
+    );
     if (widget.focusNode.hasFocus) {
       unawaited(c.invokeMethod<void>('focus'));
     } else {
@@ -236,6 +242,10 @@ class NativeIosComposerFieldState extends State<NativeIosComposerField> {
       case 'focusChanged':
         final map = (call.arguments as Map?)?.cast<String, Object?>() ?? {};
         final focused = (map['focused'] as bool?) ?? false;
+        appLogger.d(
+          '[panel-toggle] native→dart focusChanged: native=$focused '
+          'dartHasFocus=${widget.focusNode.hasFocus}',
+        );
         if (focused && !widget.focusNode.hasFocus) {
           widget.focusNode.requestFocus();
         } else if (!focused && widget.focusNode.hasFocus) {

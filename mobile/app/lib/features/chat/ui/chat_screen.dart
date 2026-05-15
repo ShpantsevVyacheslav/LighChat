@@ -5601,6 +5601,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   Future<void> _openStickersGifPanelImpl() async {
+    appLogger.d(
+      '[panel-toggle] _openStickersGifPanelImpl: enter '
+      'panelOpen=$_stickersPanelOpen focus=${_composerFocusNode.hasFocus} '
+      'kbInset=${MediaQuery.viewInsetsOf(context).bottom}',
+    );
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
       _toast(AppLocalizations.of(context)!.forward_error_not_authorized);
@@ -5638,14 +5643,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         _stickerPanelLockedHeight = lockedH;
         _stickersPanelOpen = true;
       });
+      appLogger.d(
+        '[panel-toggle] _openStickersGifPanelImpl: setState→panelOpen=true '
+        'lockedH=$lockedH hadKeyboard=$hadKeyboard',
+      );
     }
     if (hadKeyboard) {
+      appLogger.d(
+        '[panel-toggle] _openStickersGifPanelImpl: hiding keyboard '
+        '(primaryFocus=${FocusManager.instance.primaryFocus?.debugLabel})',
+      );
       FocusManager.instance.primaryFocus?.unfocus();
       await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
     }
   }
 
   void _switchFromStickersToKeyboard() {
+    appLogger.d(
+      '[panel-toggle] _switchFromStickersToKeyboard: enter '
+      'panelOpen=$_stickersPanelOpen focus=${_composerFocusNode.hasFocus} '
+      'lockedH=$_stickerPanelLockedHeight lastKb=$_lastKeyboardHeight',
+    );
     // Используем locked-snapshot — захваченную при открытии шторки
     // высоту, она = реальной kb на тот момент. `_lastKeyboardHeight`
     // здесь брать НЕЛЬЗЯ: didChangeMetrics во время iOS-анимации
@@ -5660,12 +5678,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     _holdStickersFooterTransition(hold);
     _closeStickersPanel();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _composerFocusNode.requestFocus();
+      if (!mounted) return;
+      appLogger.d(
+        '[panel-toggle] _switchFromStickersToKeyboard: postFrame '
+        'requestFocus on composer',
+      );
+      _composerFocusNode.requestFocus();
     });
   }
 
   void _closeStickersPanel() {
     if (!mounted) return;
+    appLogger.d(
+      '[panel-toggle] _closeStickersPanel: was panelOpen=$_stickersPanelOpen '
+      'focus=${_composerFocusNode.hasFocus} '
+      'kbInset=${MediaQuery.viewInsetsOf(context).bottom}',
+    );
     setState(() {
       _stickersPanelOpen = false;
       _controller.text = _composerTextBeforeStickerSearch ?? _controller.text;
@@ -5686,7 +5714,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   /// панель закрывается синхронно — клавиатура и шторка mutually exclusive.
   void _onComposerFocusChangedClosePanel() {
     if (!mounted) return;
+    appLogger.d(
+      '[panel-toggle] focus listener fired: '
+      'hasFocus=${_composerFocusNode.hasFocus} panelOpen=$_stickersPanelOpen',
+    );
     if (_composerFocusNode.hasFocus && _stickersPanelOpen) {
+      appLogger.d(
+        '[panel-toggle] focus listener: closing panel (focus claimed it)',
+      );
       _closeStickersPanel();
     }
   }

@@ -279,11 +279,17 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
       }
       result(nil)
     case "focus":
+      NSLog(
+        "[panel-toggle] swift method `focus` called, "
+          + "isFirstResponder=\(textView.isFirstResponder)")
       if !textView.isFirstResponder {
         _ = textView.becomeFirstResponder()
       }
       result(nil)
     case "unfocus":
+      NSLog(
+        "[panel-toggle] swift method `unfocus` called, "
+          + "isFirstResponder=\(textView.isFirstResponder)")
       if textView.isFirstResponder {
         _ = textView.resignFirstResponder()
       }
@@ -698,10 +704,12 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
   }
 
   func textViewDidBeginEditing(_ textView: UITextView) {
+    NSLog("[panel-toggle] swift textViewDidBeginEditing")
     channel.invokeMethod("focusChanged", arguments: ["focused": true])
   }
 
   func textViewDidEndEditing(_ textView: UITextView) {
+    NSLog("[panel-toggle] swift textViewDidEndEditing")
     channel.invokeMethod("focusChanged", arguments: ["focused": false])
   }
 
