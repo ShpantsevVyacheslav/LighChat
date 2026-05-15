@@ -1502,19 +1502,30 @@ class _ChatMessageBubble extends StatelessWidget {
         ),
     ];
 
+    // Адаптивный цвет текста по luminance пузыря: на светлом фоне —
+    // тёмный текст, на тёмном — белый. Без этого custom-цвет пузыря
+    // (юзер выбрал светлый бирюзовый в настройках) делает белый текст
+    // нечитаемым. Threshold 0.5 — стандартная WCAG-граница.
+    Color textColorForBubble(Color bubble) {
+      final lum = bubble.computeLuminance();
+      return lum > 0.5
+          ? Colors.black.withValues(alpha: 0.92)
+          : Colors.white;
+    }
+
     final textBaseStyle = TextStyle(
       fontSize: textSize,
       fontWeight: FontWeight.w500,
       height: 1.25,
-      color: isMine
-          ? Colors.white
-          : (scheme.brightness == Brightness.dark
-                ? Colors.white.withValues(alpha: 0.92)
-                : scheme.onSurface),
+      color: textColorForBubble(isMine ? outgoingBg : incomingBg),
     );
-    final textLinkColor = isMine
-        ? Colors.white.withValues(alpha: 0.95)
-        : scheme.primary;
+    // Линки на тёмных пузырях — белые с альфой, на светлых — обычный
+    // primary-акцент темы (он по дизайну читаем на белом фоне).
+    final textLinkColor = textColorForBubble(isMine ? outgoingBg : incomingBg)
+                .computeLuminance() >
+            0.5
+        ? scheme.primary
+        : Colors.white.withValues(alpha: 0.95);
     final textQuoteMaxFallback =
         ChatMediaLayoutTokens.messageBubbleMaxWidth - 24.0;
     String resolveMentionDisplayName(String mentionUserId, String fallback) {
