@@ -317,7 +317,10 @@ class _PickerContent extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Row(
+                  // Симметричный header (иконка над названием) — тот же
+                  // паттерн что в [CalendarPickerSheet].
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Container(
                         width: 32,
@@ -332,30 +335,26 @@ class _PickerContent extends StatelessWidget {
                           color: Color(0xFF7C8DFF),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              l10n.navigator_picker_title,
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: fg,
-                              ),
-                            ),
-                            Text(
-                              address,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: fgMuted,
-                              ),
-                            ),
-                          ],
+                      const SizedBox(height: 10),
+                      Text(
+                        l10n.navigator_picker_title,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: fg,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        address,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: fgMuted,
                         ),
                       ),
                     ],

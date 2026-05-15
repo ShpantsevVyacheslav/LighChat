@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:google_mlkit_entity_extraction/google_mlkit_entity_extraction.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
+import 'local_text_language_detector.dart';
+
 /// On-device выделение сущностей в тексте через ML Kit (~3 МБ модели,
 /// скачиваются один раз с mlkit.gstatic.com при первом использовании).
 ///
@@ -32,13 +34,30 @@ class LocalEntityExtractor {
 
   /// Аннотирует строку. Возвращает аннотации в порядке появления.
   /// На пустом тексте / неподдерживаемом языке — пустой список.
+  ///
+  /// `languageHint` — обычно язык UI. Но он часто не совпадает с языком
+  /// сообщения (UI=en, юзер пишет по-русски «Береговая 29»). В таком
+  /// случае английский EntityExtractor не находит русский адрес/дату.
+  /// Поэтому сначала детектим язык самого текста через
+  /// [LocalTextLanguageDetector]; если детект уверен (≥ 0.6) и язык
+  /// поддерживается ML Kit'ом — берём detected, иначе fallback на hint.
   Future<List<EntityAnnotation>> annotate(
     String text, {
     required String languageHint,
   }) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return const [];
-    final lang = _mapLanguage(languageHint);
+
+    EntityExtractorLanguage? lang;
+    try {
+      final det = await LocalTextLanguageDetector.instance.detect(trimmed);
+      if (det.confidence >= 0.6) {
+        lang = _mapLanguage(det.language);
+      }
+    } catch (_) {
+      // detector упал — игнорируем, идём через hint.
+    }
+    lang ??= _mapLanguage(languageHint);
     if (lang == null) return const [];
 
     final key = '${lang.name}|${trimmed.length}|${trimmed.hashCode}';
@@ -52,7 +71,7 @@ class LocalEntityExtractor {
       }
       final extractor = _instances.putIfAbsent(
         lang,
-        () => EntityExtractor(language: lang),
+        () => EntityExtractor(language: lang!),
       );
       final annotations = await extractor.annotateText(trimmed);
       _cache[key] = annotations;

@@ -539,13 +539,20 @@ class _ChatComposerState extends State<ChatComposer> {
     final inStickerSearchMode =
         widget.stickersPanelOpen && widget.onStickersSearchChanged != null;
 
-    // Native composer (Phase 1): только в обычном режиме, не в sticker-
-    // search'е. Sticker-search использует короткое single-line поле — на
-    // нём нативная UX-плюшка (Cut/Copy/Replace/Writing Tools) не нужна,
-    // оставляем Flutter TextField. Paste-файлов / mention picker /
-    // formatting toolbar пока тоже идут через legacy путь — это Phase
-    // 2/3 нативного композера.
-    if (_useNativeComposer && !inStickerSearchMode) {
+    // Native composer (Phase 1+2+3): обычный режим, не sticker-search'е,
+    // и НЕ во время hold-to-record overlay.
+    //
+    // Почему `_holdRecordOverlayVisible` важен: hybrid composition
+    // PlatformView не уважает Flutter `AnimatedOpacity:0` снаружи —
+    // UITextView рендерится в свой iOS layer поверх Flutter view, и
+    // даже при opacity=0 он остаётся виден (включая жёлтую spellCheck
+    // wavy-подсветку). Поэтому во время записи войса полностью
+    // demount'им native widget — возвращаемся к Flutter `TextField`
+    // (он же сам станет невидим под AnimatedOpacity:0).
+    //
+    // Sticker-search использует короткое single-line поле, нативная
+    // UX-плюшка там не нужна.
+    if (_useNativeComposer && !inStickerSearchMode && !_holdRecordOverlayVisible) {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
