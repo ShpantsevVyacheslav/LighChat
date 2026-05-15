@@ -17,6 +17,50 @@ export type DailyStats = {
   breakdownBySignupMethod?: Record<string, number>;
 };
 
+/**
+ * Очищает `doc.data()` из коллекции `platformStats/daily/entries`
+ * от Firestore-классов (`Timestamp`, `DocumentReference` и пр.) и
+ * посторонних полей вроде `updatedAt`, которые пишет
+ * `rollupDailyAnalytics` cron. RSC border строго требует plain objects:
+ * Timestamp в payload server action → клиентская ошибка
+ * "Only plain objects … can be passed to Client Components".
+ */
+function sanitizeDailyStats(raw: FirebaseFirestore.DocumentData): DailyStats {
+  const numOrUndef = (v: unknown): number | undefined =>
+    typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+  const recordOfNumbers = (v: unknown): Record<string, number> | undefined => {
+    if (!v || typeof v !== 'object') return undefined;
+    const out: Record<string, number> = {};
+    for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+      if (typeof val === 'number' && Number.isFinite(val)) out[k] = val;
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
+  };
+  const byCountry = Array.isArray(raw.breakdownByCountry)
+    ? (raw.breakdownByCountry as unknown[])
+        .map((x) => {
+          if (!x || typeof x !== 'object') return null;
+          const obj = x as { code?: unknown; count?: unknown };
+          const code = typeof obj.code === 'string' ? obj.code : null;
+          const count = typeof obj.count === 'number' && Number.isFinite(obj.count) ? obj.count : null;
+          return code && count !== null ? { code, count } : null;
+        })
+        .filter((x): x is { code: string; count: number } => x !== null)
+    : undefined;
+  return {
+    date: typeof raw.date === 'string' ? raw.date : '',
+    activeUsers: numOrUndef(raw.activeUsers) ?? 0,
+    newRegistrations: numOrUndef(raw.newRegistrations) ?? 0,
+    messagesSent: numOrUndef(raw.messagesSent) ?? 0,
+    chatsCreated: numOrUndef(raw.chatsCreated),
+    callsStarted: numOrUndef(raw.callsStarted),
+    meetingsHeld: numOrUndef(raw.meetingsHeld),
+    breakdownByPlatform: recordOfNumbers(raw.breakdownByPlatform),
+    breakdownByCountry: byCountry && byCountry.length > 0 ? byCountry : undefined,
+    breakdownBySignupMethod: recordOfNumbers(raw.breakdownBySignupMethod),
+  };
+}
+
 export type AnalyticsSummary = {
   totalUsers: number;
   onlineNow: number;
@@ -61,7 +105,7 @@ export async function fetchAnalyticsAction(input: {
       .get();
 
     statsSnap.docs.forEach((doc) => {
-      dailyStats.push(doc.data() as DailyStats);
+      dailyStats.push(sanitizeDailyStats(doc.data()));
     });
     dailyStats.reverse();
 
@@ -251,7 +295,7 @@ export async function fetchEngagementMetricsAction(input: {
     let totalActive = 0;
 
     statsSnap.docs.forEach((doc) => {
-      const d = doc.data() as DailyStats;
+      const d = sanitizeDailyStats(doc.data());
       totalMessages += d.messagesSent ?? 0;
       totalChats += d.chatsCreated ?? 0;
       totalCalls += d.callsStarted ?? 0;
@@ -301,7 +345,7 @@ export async function fetchPlatformBreakdownAction(input: {
 
     const totals: Record<string, number> = {};
     statsSnap.docs.forEach((doc) => {
-      const d = doc.data() as DailyStats;
+      const d = sanitizeDailyStats(doc.data());
       const b = d.breakdownByPlatform ?? {};
       for (const [k, v] of Object.entries(b)) {
         totals[k] = (totals[k] ?? 0) + (typeof v === 'number' ? v : 0);
@@ -344,7 +388,7 @@ export async function fetchSignupFunnelAction(input: {
 
     const out: SignupFunnel[] = [];
     statsSnap.docs.forEach((doc) => {
-      const d = doc.data() as DailyStats;
+      const d = sanitizeDailyStats(doc.data());
       const breakdown = d.breakdownBySignupMethod ?? {};
       for (const [method, count] of Object.entries(breakdown)) {
         if (typeof count === 'number' && count > 0) {
