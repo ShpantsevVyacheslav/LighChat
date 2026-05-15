@@ -24,7 +24,8 @@
   - **iOS-обход для callable:** мобильный клиент (`mobile/packages/lighchat_firebase/lib/src/firebase_callable_http.dart`) на iOS вызывает часть функций прямым `POST https://us-central1-{projectId}.cloudfunctions.net/{name}` с `Authorization: Bearer <idToken>`, минуя плагин `cloud_functions`. Причина — SDK `FirebaseFunctions` 12.9.0 в `FunctionsContext.context(options:)` использует три параллельных `async let`, на которых Swift-рантайм iOS крашит Release-процесс в `_swift_task_dealloc_specific (.cold.2)` (SIGABRT, «freed pointer was not the last allocation»). Под обходом: `checkGroupInvitesAllowed`, secret-chat vault/unlock/media callables, игровые callables, `requestQrLogin`/`confirmQrLogin` и `updateDeviceLastLocation` (вызывается из `publishMobileDevice` на старте сессии и при открытии E2EE-чата через `MobileE2eeRuntime.ensureIdentity`). Контракт ответа (`{result: …}` / `{error: {status,message}}`) и семантика ошибок сохранены; Android/Web идут штатно через `cloud_functions`.
 - **Voice transcription (чат):** транскрипция голосовых сообщений выполняется **локально на устройстве** через нативные движки (iOS: `SFSpeechRecognizer` / Apple Speech Framework, Android 13+: `SpeechRecognizer.createOnDeviceSpeechRecognizer` с PCM-источником через `EXTRA_AUDIO_SOURCE`). Реализация в [`mobile/app/lib/features/chat/data/local_voice_transcriber.dart`](../../mobile/app/lib/features/chat/data/local_voice_transcriber.dart), нативные модули — `mobile/app/ios/Runner/Speech/VoiceTranscriberBridge.swift` и `mobile/app/android/app/src/main/kotlin/com/lighchat/lighchat_mobile/VoiceTranscriberBridge.kt`, общий `MethodChannel` — `lighchat/voice_transcribe`.
   - **Зачем локально:** OpenAI Whisper API недоступен пользователям из РФ и требует биллинга; on-device движки работают без интернета, без VPN и не зависят от внешних API. E2EE-чаты теперь тоже поддерживаются — расшифровка и распознавание происходят локально.
-  - **Хранение:** transcript кэшируется в памяти процесса (in-memory cache в `LocalVoiceTranscriber`) на время жизни приложения. Firestore-поле `voiceTranscript` mobile-клиент больше не пишет — оно остаётся только для совместимости со старыми сообщениями. Legacy серверная транскрипция (Cloud Function `transcribeVoiceMessage` через OpenAI Whisper) полностью удалена в 2026-05.
+  - **Хранение:** transcript кэшируется в памяти процесса (in-memory cache в `LocalVoiceTranscriber`) на время жизни приложения. Для **не-E2EE** сообщений отправитель ДОПОЛНИТЕЛЬНО публикует уже посчитанный transcript в Firestore-поле `voiceTranscript` через `repo.sendTextMessage(voiceTranscript: ...)` — получатель видит текст сразу без повторного ASR на своём устройстве. Для **E2EE-чатов** plaintext-leak недопустим, transcript остаётся только в локальном кэше отправителя (cross-device sync через `voiceTranscriptCipher` — будущая фича). Legacy серверная транскрипция (Cloud Function `transcribeVoiceMessage` через OpenAI Whisper) полностью удалена в 2026-05.
+  - **Preview перед отправкой:** в [`mobile/app/lib/features/chat/ui/voice_message_preview_bar.dart`](../../mobile/app/lib/features/chat/ui/voice_message_preview_bar.dart) после остановки записи (но до тапа «Отправить») запускается транскрибация на свежем файле; результат показывается над playback-row. Пользователь видит «что услышала модель» и может перезаписать. Поле `VoiceMessageRecordResult.transcript` пробрасывается в send-pipeline.
   - **Языки:** поддерживается полный список локалей, доступных на устройстве (на iOS ~50+, включая ru/en/es/pt/tr/id/kk/uz и др.). Выбор языка по `Localizations.localeOf(context)` с маппингом в BCP-47 и fallback на `en-US`.
   - **Permissions:** iOS требует `NSSpeechRecognitionUsageDescription` (Info.plist + локализованные `InfoPlist.strings`); запрос идёт через `SFSpeechRecognizer.requestAuthorization`. Android использует уже выданное `RECORD_AUDIO` и системный on-device пакет распознавания.
   - **Авто-детект языка:** после первого прогона распознавания текст пропускается через `NLLanguageRecognizer` (iOS); если определённый язык расходится с локалью рекогнайзера с уверенностью ≥ 0.75 — делается повторный прогон с правильной локалью. Это покрывает «UI на en, голосовое на ru». Если первый прогон возвращает пусто — Dart перебирает fallback-локали (для UI=en → `ru-RU`, для UI=ru → `en-US`, для прочих — обе пары).
@@ -82,6 +83,82 @@
 
 - Превью в ленте: Static Maps API при наличии `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (`src/lib/google-maps.ts`).
 - Полная карта **внутри приложения**: iframe по `buildGoogleMapsEmbedUrl` в `SharedLocationMapDialog` и в `LiveLocationMapDialog` (без ухода со страницы). Внешний браузер — опционально через кнопку «Открыть в браузере».
+
+## Apple Intelligence (Foundation Models, iOS 26+)
+
+On-device LLM через `SystemLanguageModel.default`. Доступен только когда юзер
+включил Apple Intelligence в Settings и модель скачана. На Android и старых
+iOS — gracefully возвращает `null` / `false`, UI скрывает AI-фичи.
+
+- **Bridge:** [`mobile/app/lib/features/chat/data/apple_intelligence.dart`](../../mobile/app/lib/features/chat/data/apple_intelligence.dart) +
+  native [`mobile/app/ios/Runner/Speech/AppleIntelligenceBridge.swift`](../../mobile/app/ios/Runner/Speech/AppleIntelligenceBridge.swift).
+  Channels: `lighchat/apple_intelligence` (method) и
+  `lighchat/apple_intelligence_stream` (EventChannel для streaming, события
+  `delta`/`done`/`error` с уникальным `streamId`, отмена через
+  `cancelStream(streamId)`).
+- **Операции:** `isAvailable()`, `availabilityStatus()` (статусы:
+  `available`, `appleIntelligenceNotEnabled`, `modelNotReady`,
+  `deviceNotEligible`, `unsupportedOs`, `sdkMissing`, `unknown`),
+  `summarize(text)`, `rewrite(text, style)`, `summarizeMessages(text)`,
+  `suggestContinuation(prefix)`, и streaming варианты `streamSummarize` /
+  `streamRewrite`.
+- **Стили rewrite:** 11 опций в `rewritePrompt` (Swift switch) —
+  `friendly` (default), `formal`, `youth` (молодёжный сленг), `strict`,
+  `blatnoy` (тюремный жаргон для русского / street/gangster для других
+  языков), `funny`, `romantic`, `sarcastic`, `shorter`, `longer`,
+  `proofread`. Любой новый стиль = парные изменения в Swift switch +
+  список `_kRewriteStyles` в `smart_compose_strip.dart` + i18n ключи
+  `ai_style_*` во всех 10 локалях.
+- **Bridge-translate для не-поддерживаемых языков:** Apple Intelligence
+  нативно знает `{en,es,fr,de,it,pt,ja,ko,zh,vi}`. Для русского/казахского/
+  узбекского и др. `_maybeViaBridge` автодетектит язык через
+  `LocalTextLanguageDetector` (порог `confidence ≥ 0.4`) и при
+  не-нативном языке гонит через ML Kit: source→en→AI→en→source. Для
+  streaming bridge выдаёт результат одним событием (накопительный
+  английский нельзя частично переводить в реальном времени без
+  «прыжков»).
+- **UX интеграции:**
+  - **Smart Compose** ([`smart_compose_strip.dart`](../../mobile/app/lib/features/chat/ui/smart_compose_strip.dart)) — sparkle-иконка
+    над композером появляется, когда в инпуте ≥4 символа. Короткий тап =
+    rewrite в последнем стиле (persist в SharedPreferences
+    `chat.smart_compose_last_style`). Long-press = bottom-sheet с
+    выбором из 11 стилей. Preview pill: тап = заменить текст,
+    long-press / крестик = отменить. **Undo** не ограничен таймером —
+    всегда возвращает к исходному тексту до первой AI-замены, сбрасывается
+    только когда композер очищен (после отправки).
+  - **AI digest** ([`ai_catch_me_up_pill.dart`](../../mobile/app/lib/features/chat/ui/ai_catch_me_up_pill.dart) +
+    [`ai_chat_digest.dart`](../../mobile/app/lib/features/chat/ui/ai_chat_digest.dart)) — pill над композером появляется, когда
+    AI доступен и в чате ≥5 непрочитанных входящих. Тап → AI-summary
+    последних N сообщений через `AppleIntelligence.summarizeMessages`.
+    Форматирование сообщений — [`chat_digest_formatter.dart`](../../mobile/app/lib/features/chat/data/chat_digest_formatter.dart): `Sender: text\n`,
+    нетекстовые типы сворачиваются в маркеры `[Image]` / `[Voice]` /
+    `[Location]` / etc.
+  - **AI rewrite sheet** ([`ai_text_action_sheet.dart`](../../mobile/app/lib/features/chat/ui/ai_text_action_sheet.dart)) — универсальный
+    premium-sheet с streaming-предпросмотром, style-pills и кнопками
+    Скопировать / Заменить. Используется для AI digest и rewrite из
+    formatting toolbar.
+
+## Text-to-Speech (Read aloud)
+
+Native TTS через `AVSpeechSynthesizer` (полностью оффлайн, никаких
+сетевых вызовов). Channel: `lighchat/text_to_speech`.
+
+- **Bridge:** [`local_text_to_speech.dart`](../../mobile/app/lib/features/chat/data/local_text_to_speech.dart) +
+  [`TextToSpeechBridge.swift`](../../mobile/app/ios/Runner/Speech/TextToSpeechBridge.swift) /
+  [`TextToSpeechBridge.kt`](../../mobile/app/android/app/src/main/kotlin/com/lighchat/lighchat_mobile/TextToSpeechBridge.kt).
+- **Методы:** `speak(text, languageTag, voiceIdentifier?, rate?)`,
+  `stop()`, `isSpeaking`, `voiceQualityInfo(languageTag)`,
+  `listVoices(languageTag)`.
+- **Auto-best голос:** `pickBestVoice` сортирует установленные iOS-голоса
+  premium > enhanced > default (Premium доступен только iOS 16+).
+  Compact голос — fallback, звучит как робот.
+- **User-picker:** [`tts_voice_picker_sheet.dart`](../../mobile/app/lib/features/chat/ui/tts_voice_picker_sheet.dart) — bottom-sheet со всеми
+  установленными голосами для языка, сгруппированы по качеству, novelty/
+  Eloquence голоса (Albert/Whisper/Trinoids) скрыты за переключателем
+  «Show all». Выбор сохраняется per-language в SharedPreferences
+  (`chat.tts_voice.<lang>`), используется в `speak` через
+  `voiceIdentifier`. После первого read-aloud юзеру показывается
+  snackbar «Выбрать голос» (один раз на язык), CTA открывает picker.
 
 ## Media/UX вспомогательные интеграции
 
