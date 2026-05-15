@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -119,10 +122,8 @@ class ChatNotificationsScreen extends ConsumerWidget {
                 final picked = await showModalBottomSheet<String?>(
                   context: context,
                   isScrollControlled: true,
-                  backgroundColor: Theme.of(context).colorScheme.surface,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                  ),
+                  backgroundColor: Colors.transparent,
+                  barrierColor: Colors.black.withValues(alpha: 0.62),
                   builder: (sheetCtx) => _RingtonePickerSheet(
                     forCalls: forCalls,
                     currentId: forCalls
@@ -151,8 +152,6 @@ class ChatNotificationsScreen extends ConsumerWidget {
                 onPickMessageRingtone: () =>
                     openRingtonePicker(forCalls: false),
                 onPickCallRingtone: () => openRingtonePicker(forCalls: true),
-                onHandRaiseSoundChanged: (v) =>
-                    savePatch(meetingHandRaiseSoundEnabled: v),
                 onReset: () => savePatch(reset: true),
               );
             },
@@ -181,7 +180,6 @@ class _NotificationsView extends StatelessWidget {
     required this.onPickQuietHoursEnd,
     required this.onPickMessageRingtone,
     required this.onPickCallRingtone,
-    required this.onHandRaiseSoundChanged,
     required this.onReset,
   });
 
@@ -194,7 +192,6 @@ class _NotificationsView extends StatelessWidget {
   final VoidCallback onPickQuietHoursEnd;
   final VoidCallback onPickMessageRingtone;
   final VoidCallback onPickCallRingtone;
-  final ValueChanged<bool> onHandRaiseSoundChanged;
   final VoidCallback onReset;
 
   @override
@@ -240,7 +237,7 @@ class _NotificationsView extends StatelessWidget {
                       onChanged: onPreviewChanged,
                       disabled: settings.muteAll,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     _RingtoneRow(
                       title: l10n.notifications_message_ringtone_label,
                       currentId: settings.messageRingtoneId,
@@ -248,7 +245,6 @@ class _NotificationsView extends StatelessWidget {
                       onTap: onPickMessageRingtone,
                       disabled: settings.muteAll || !settings.soundEnabled,
                     ),
-                    const SizedBox(height: 4),
                     _RingtoneRow(
                       title: l10n.notifications_call_ringtone_label,
                       currentId: settings.callRingtoneId,
@@ -256,15 +252,7 @@ class _NotificationsView extends StatelessWidget {
                       onTap: onPickCallRingtone,
                       disabled: settings.muteAll || !settings.soundEnabled,
                     ),
-                    const SizedBox(height: 4),
-                    NotificationSettingsSwitchRow(
-                      title: l10n.notifications_meeting_hand_raise_title,
-                      subtitle: l10n.notifications_meeting_hand_raise_subtitle,
-                      value: settings.meetingHandRaiseSoundEnabled,
-                      onChanged: onHandRaiseSoundChanged,
-                      disabled: settings.muteAll,
-                    ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -279,37 +267,43 @@ class _NotificationsView extends StatelessWidget {
                       disabled: settings.muteAll,
                     ),
                     if (settings.quietHoursEnabled && !settings.muteAll) ...[
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _TimeButton(
-                              label: null,
-                              value: settings.quietHoursStart,
-                              onTap: onPickQuietHoursStart,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(10, 22, 10, 0),
-                            child: Text(
-                              '—',
-                              style: TextStyle(
-                                fontSize: kNotificationSettingsCardTitleSize,
-                                color: (dark ? Colors.white : scheme.onSurface)
-                                    .withValues(alpha: dark ? 0.72 : 0.64),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _TimeButton(
+                                label: null,
+                                value: settings.quietHoursStart,
+                                onTap: onPickQuietHoursStart,
                               ),
                             ),
-                          ),
-                          Expanded(
-                            child: _TimeButton(
-                              label: null,
-                              value: settings.quietHoursEnd,
-                              onTap: onPickQuietHoursEnd,
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
+                              child: Text(
+                                '—',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color:
+                                      (dark ? Colors.white : scheme.onSurface)
+                                          .withValues(alpha: dark ? 0.62 : 0.52),
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                            Expanded(
+                              child: _TimeButton(
+                                label: null,
+                                value: settings.quietHoursEnd,
+                                onTap: onPickQuietHoursEnd,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 14),
                     ],
                   ],
                 ),
@@ -389,18 +383,18 @@ class _TimeButton extends StatelessWidget {
           const SizedBox(height: 4),
         ],
         SizedBox(
-          height: 66,
+          height: 48,
           child: OutlinedButton(
             onPressed: onTap,
             style: OutlinedButton.styleFrom(
               alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              side: BorderSide(color: fg.withValues(alpha: dark ? 0.18 : 0.14)),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              side: BorderSide(color: fg.withValues(alpha: dark ? 0.16 : 0.12)),
               backgroundColor:
                   (dark ? Colors.white : scheme.surfaceContainerHighest)
                       .withValues(alpha: dark ? 0.04 : 0.86),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
               ),
             ),
             child: Row(
@@ -584,6 +578,13 @@ String _ringtoneLabel(AppLocalizations l10n, String id) {
   }
 }
 
+/// Премиум-цвет акцента в пикере. Тот же оттенок что и у Switch.activeTrackColor
+/// (см. notification_settings_ui.dart) — но в пикере используется как мягкий
+/// глоу/свечение, а не плоская заливка.
+const Color _kAccent = Color(0xFF4DA2FF);
+
+/// Строка выбора рингтона внутри карточки настроек. Выравнена по тем же
+/// горизонтальным паддингам что и [NotificationSettingsSwitchRow] — 20 px.
 class _RingtoneRow extends StatelessWidget {
   const _RingtoneRow({
     required this.title,
@@ -609,45 +610,48 @@ class _RingtoneRow extends StatelessWidget {
     final displayName = displayId == null
         ? l10n.ringtone_default
         : _ringtoneLabel(l10n, displayId);
-    final muted = disabled ? 0.5 : 1.0;
     return Opacity(
-      opacity: muted,
-      child: InkWell(
-        onTap: disabled ? null : onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: kNotificationSettingsBodyTextSize,
-                        color: fg,
-                        fontWeight: FontWeight.w500,
+      opacity: disabled ? 0.5 : 1.0,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: disabled ? null : onTap,
+          child: Padding(
+            // 20px горизонтальный паддинг = совпадает со switch-строками выше.
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: kNotificationSettingsBodyTextSize,
+                          color: fg.withValues(alpha: dark ? 0.95 : 0.94),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      displayName,
-                      style: TextStyle(
-                        fontSize: kNotificationSettingsMutedTextSize,
-                        color: fg.withValues(alpha: dark ? 0.72 : 0.64),
+                      const SizedBox(height: 1),
+                      Text(
+                        displayName,
+                        style: TextStyle(
+                          fontSize: kNotificationSettingsMutedTextSize,
+                          color: fg.withValues(alpha: dark ? 0.56 : 0.62),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 22,
-                color: fg.withValues(alpha: dark ? 0.6 : 0.5),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 22,
+                  color: fg.withValues(alpha: dark ? 0.5 : 0.42),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -655,6 +659,8 @@ class _RingtoneRow extends StatelessWidget {
   }
 }
 
+/// Кастомный bottom-sheet выбора рингтона — премиум-look без Material radios:
+/// glassmorphism, мягкий градиент-фон, индикатор-точка с глоу.
 class _RingtonePickerSheet extends StatefulWidget {
   const _RingtonePickerSheet({
     required this.forCalls,
@@ -668,142 +674,357 @@ class _RingtonePickerSheet extends StatefulWidget {
   State<_RingtonePickerSheet> createState() => _RingtonePickerSheetState();
 }
 
-class _RingtonePickerSheetState extends State<_RingtonePickerSheet> {
+class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
+    with TickerProviderStateMixin {
   final AudioPlayer _previewPlayer = AudioPlayer();
   String? _previewingId;
+  StreamSubscription<PlayerState>? _stateSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _stateSub = _previewPlayer.playerStateStream.listen((state) {
+      if (!mounted) return;
+      if (state.processingState == ProcessingState.completed ||
+          !state.playing) {
+        if (_previewingId != null) {
+          setState(() => _previewingId = null);
+        }
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _stateSub?.cancel();
     _previewPlayer.dispose();
     super.dispose();
   }
 
-  Future<void> _preview(RingtonePreset preset) async {
+  RingtoneVariant get _variant =>
+      widget.forCalls ? RingtoneVariant.calls : RingtoneVariant.messages;
+
+  Future<void> _togglePreview(RingtonePreset preset) async {
     try {
-      if (_previewingId != preset.id) {
-        await _previewPlayer.setAsset(preset.assetPath);
-        setState(() => _previewingId = preset.id);
+      if (_previewingId == preset.id) {
+        await _previewPlayer.pause();
+        setState(() => _previewingId = null);
+        return;
       }
+      await _previewPlayer.stop();
+      await _previewPlayer.setAsset(preset.assetPath(_variant));
+      setState(() => _previewingId = preset.id);
       await _previewPlayer.seek(Duration.zero);
       await _previewPlayer.play();
-    } catch (_) {}
+    } catch (_) {
+      if (mounted) setState(() => _previewingId = null);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
+    final mq = MediaQuery.of(context);
     final title = widget.forCalls
         ? l10n.ringtone_picker_calls_title
         : l10n.ringtone_picker_messages_title;
     final selectedId = widget.currentId;
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: scheme.onSurface.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(2),
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 12,
+        right: 12,
+        bottom: 12 + mq.viewInsets.bottom,
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.all(Radius.circular(28)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF161B26),
+                  Color(0xFF0B0F18),
+                ],
+              ),
+              borderRadius: const BorderRadius.all(Radius.circular(28)),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.07),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  blurRadius: 32,
+                  offset: const Offset(0, 12),
                 ),
+              ],
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 10),
+                  // Drag handle.
+                  Center(
+                    child: Container(
+                      width: 38,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _PremiumPickerTile(
+                          label: l10n.ringtone_default,
+                          selected: selectedId == null,
+                          onTap: () => Navigator.of(context).pop(''),
+                          onTogglePreview: null,
+                          previewing: false,
+                        ),
+                        for (final p in kRingtonePresets)
+                          _PremiumPickerTile(
+                            label: _ringtoneLabel(l10n, p.id),
+                            selected: selectedId == p.id,
+                            onTap: () => Navigator.of(context).pop(p.id),
+                            onTogglePreview: () => _togglePreview(p),
+                            previewing: _previewingId == p.id,
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
               ),
             ),
-            const SizedBox(height: 14),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: scheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Дефолт-опция: "По умолчанию" — пустая строка как возвращаемое значение.
-            _PickerTile(
-              label: l10n.ringtone_default,
-              selected: selectedId == null,
-              onTap: () => Navigator.of(context).pop(''),
-              previewing: false,
-              onPreview: null,
-            ),
-            for (final p in kRingtonePresets)
-              _PickerTile(
-                label: _ringtoneLabel(l10n, p.id),
-                selected: selectedId == p.id,
-                onTap: () => Navigator.of(context).pop(p.id),
-                previewing: _previewingId == p.id && _previewPlayer.playing,
-                onPreview: () => _preview(p),
-              ),
-            const SizedBox(height: 8),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _PickerTile extends StatelessWidget {
-  const _PickerTile({
+/// Кастомная плитка пикера с анимированным акцент-индикатором и play-кнопкой.
+class _PremiumPickerTile extends StatelessWidget {
+  const _PremiumPickerTile({
     required this.label,
     required this.selected,
     required this.onTap,
+    required this.onTogglePreview,
     required this.previewing,
-    required this.onPreview,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final VoidCallback? onTogglePreview;
   final bool previewing;
-  final VoidCallback? onPreview;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final scheme = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        child: Row(
-          children: [
-            Icon(
-              selected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_unchecked,
-              color: selected ? scheme.primary : scheme.onSurface.withValues(alpha: 0.5),
-              size: 22,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: selected
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    _kAccent.withValues(alpha: 0.18),
+                    _kAccent.withValues(alpha: 0.04),
+                  ],
+                )
+              : null,
+          color: selected ? null : Colors.white.withValues(alpha: 0.025),
+          border: Border.all(
+            color: selected
+                ? _kAccent.withValues(alpha: 0.55)
+                : Colors.white.withValues(alpha: 0.06),
+            width: selected ? 1.2 : 1,
+          ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: _kAccent.withValues(alpha: 0.18),
+                    blurRadius: 18,
+                    spreadRadius: -2,
+                  ),
+                ]
+              : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(18),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+              child: Row(
+                children: [
+                  _SelectionDot(selected: selected),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 15.5,
+                        color: Colors.white.withValues(
+                          alpha: selected ? 0.98 : 0.86,
+                        ),
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.w500,
+                        letterSpacing: -0.1,
+                      ),
+                    ),
+                  ),
+                  if (onTogglePreview != null)
+                    _PreviewButton(
+                      playing: previewing,
+                      onPressed: onTogglePreview!,
+                      semanticLabel: l10n.ringtone_preview_play,
+                    ),
+                ],
+              ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: scheme.onSurface,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectionDot extends StatelessWidget {
+  const _SelectionDot({required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 22,
+      height: 22,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: selected
+                    ? _kAccent.withValues(alpha: 0.95)
+                    : Colors.white.withValues(alpha: 0.32),
+                width: 1.6,
+              ),
+              boxShadow: selected
+                  ? [
+                      BoxShadow(
+                        color: _kAccent.withValues(alpha: 0.55),
+                        blurRadius: 10,
+                        spreadRadius: -1,
+                      ),
+                    ]
+                  : null,
+            ),
+          ),
+          AnimatedScale(
+            scale: selected ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutBack,
+            child: Container(
+              width: 10,
+              height: 10,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF7BC1FF), _kAccent],
                 ),
               ),
             ),
-            if (onPreview != null)
-              IconButton(
-                onPressed: onPreview,
-                tooltip: l10n.ringtone_preview_play,
-                icon: Icon(
-                  previewing ? Icons.stop_circle_outlined : Icons.play_circle_outline,
-                  size: 26,
-                  color: scheme.onSurface.withValues(alpha: 0.75),
-                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreviewButton extends StatelessWidget {
+  const _PreviewButton({
+    required this.playing,
+    required this.onPressed,
+    required this.semanticLabel,
+  });
+
+  final bool playing;
+  final VoidCallback onPressed;
+  final String semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          customBorder: const CircleBorder(),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: playing
+                  ? _kAccent.withValues(alpha: 0.18)
+                  : Colors.white.withValues(alpha: 0.05),
+              border: Border.all(
+                color: playing
+                    ? _kAccent.withValues(alpha: 0.6)
+                    : Colors.white.withValues(alpha: 0.1),
+                width: 1,
               ),
-          ],
+            ),
+            child: Icon(
+              playing ? Icons.stop_rounded : Icons.play_arrow_rounded,
+              size: 20,
+              color: playing ? _kAccent : Colors.white.withValues(alpha: 0.78),
+            ),
+          ),
         ),
       ),
     );

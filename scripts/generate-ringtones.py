@@ -1,22 +1,26 @@
 #!/usr/bin/env python3
 """Generate built-in notification ringtones for LighChat.
 
-Synthesizes 5 ringtone presets and 1 system "hand raise" ping, writes
-each to MP3 in both:
-  - public/sounds/ringtones/        (web)
-  - mobile/app/assets/audio/ringtones/   (Flutter bundle)
-and the conference ping to:
+Two preset banks share the same 5 ids:
+  - messages: short (~0.5–0.8s), single mellow soft signal
+  - calls:    longer (~2.5–3s) gentle, loop-friendly tone
+
+Plus the system "raise hand" ping for video meetings.
+
+Output paths:
+  - public/sounds/ringtones/messages/<id>.mp3
+  - public/sounds/ringtones/calls/<id>.mp3
+  - mobile/app/assets/audio/ringtones/messages/<id>.mp3
+  - mobile/app/assets/audio/ringtones/calls/<id>.mp3
   - public/sounds/conference/hand_raise.mp3
   - mobile/app/assets/audio/conference/hand_raise.mp3
 
-Requires: numpy, ffmpeg on PATH. Re-run after editing — files are
-overwritten in place.
+Requires: numpy, ffmpeg on PATH.
 """
 
 from __future__ import annotations
 
 import shutil
-import struct
 import subprocess
 import sys
 import wave
@@ -25,17 +29,16 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT_WEB_RING = ROOT / "public" / "sounds" / "ringtones"
-OUT_MOBILE_RING = ROOT / "mobile" / "app" / "assets" / "audio" / "ringtones"
-OUT_WEB_CONF = ROOT / "public" / "sounds" / "conference"
-OUT_MOBILE_CONF = ROOT / "mobile" / "app" / "assets" / "audio" / "conference"
+OUT_WEB = ROOT / "public" / "sounds"
+OUT_MOBILE = ROOT / "mobile" / "app" / "assets" / "audio"
 
 SR = 44100  # sample rate
 
 
 def ensure_dirs() -> None:
-    for d in (OUT_WEB_RING, OUT_MOBILE_RING, OUT_WEB_CONF, OUT_MOBILE_CONF):
-        d.mkdir(parents=True, exist_ok=True)
+    for sub in ("ringtones/messages", "ringtones/calls", "conference"):
+        (OUT_WEB / sub).mkdir(parents=True, exist_ok=True)
+        (OUT_MOBILE / sub).mkdir(parents=True, exist_ok=True)
 
 
 def t_axis(duration_s: float) -> np.ndarray:
@@ -43,8 +46,8 @@ def t_axis(duration_s: float) -> np.ndarray:
 
 
 def bell_fm(freq: float, duration: float, mod_ratio: float = 1.4,
-            mod_index: float = 5.0, decay: float = 4.0) -> np.ndarray:
-    """Chowning-style bell via simple FM synthesis."""
+            mod_index: float = 3.0, decay: float = 3.5) -> np.ndarray:
+    """Chowning-style bell FM. Lower mod_index = mellower, less metallic."""
     t = t_axis(duration)
     env = np.exp(-decay * t)
     mod = np.sin(2 * np.pi * freq * mod_ratio * t) * mod_index * env
@@ -52,37 +55,47 @@ def bell_fm(freq: float, duration: float, mod_ratio: float = 1.4,
     return sig
 
 
-def marimba_hit(freq: float, duration: float, decay: float = 8.0) -> np.ndarray:
-    """Wooden mallet feel: fundamental + 4th partial, fast decay."""
+def soft_tone(freq: float, duration: float, attack: float = 0.015,
+              release: float = 0.35, harmonics: tuple[tuple[float, float], ...] = ()) -> np.ndarray:
+    """Sine + optional weak harmonics with smooth ADSR-like envelope."""
+    t = t_axis(duration)
+    sig = np.sin(2 * np.pi * freq * t)
+    for ratio, amp in harmonics:
+        sig = sig + amp * np.sin(2 * np.pi * freq * ratio * t)
+    sig = sig / (1.0 + sum(a for _, a in harmonics))
+    env = _envelope(len(t), attack, release)
+    return sig * env
+
+
+def warm_mallet(freq: float, duration: float, decay: float = 6.0) -> np.ndarray:
+    """Soft wooden mallet (marimba-like) with low harmonic clarity."""
     t = t_axis(duration)
     env = np.exp(-decay * t)
     fund = np.sin(2 * np.pi * freq * t)
-    harm = 0.35 * np.sin(2 * np.pi * freq * 4.0 * t) * np.exp(-decay * 2.0 * t)
-    # tiny pitch glide down (~5%)
-    glide = 1.0 - 0.05 * t / duration
-    sig = (fund * glide + harm) * env
+    sub = 0.25 * np.sin(2 * np.pi * freq * 0.5 * t) * np.exp(-decay * 0.8 * t)
+    harm = 0.18 * np.sin(2 * np.pi * freq * 4.0 * t) * np.exp(-decay * 2.4 * t)
+    glide = 1.0 - 0.04 * t / max(duration, 1e-6)
+    sig = (fund * glide + sub + harm) * env
     return sig
 
 
-def soft_sine(freq: float, duration: float, attack: float = 0.05,
-              release: float = 0.4) -> np.ndarray:
-    t = t_axis(duration)
-    sig = np.sin(2 * np.pi * freq * t)
-    env = np.ones_like(t)
+def _envelope(n: int, attack: float, release: float) -> np.ndarray:
+    env = np.ones(n, dtype=np.float64)
     a_n = int(attack * SR)
     r_n = int(release * SR)
     if a_n:
-        env[:a_n] = np.linspace(0.0, 1.0, a_n)
+        env[:a_n] = np.linspace(0.0, 1.0, a_n) ** 1.4
     if r_n:
-        env[-r_n:] *= np.linspace(1.0, 0.0, r_n)
-    return sig * env
+        tail = np.linspace(1.0, 0.0, r_n) ** 1.6
+        env[-r_n:] *= tail
+    return env
 
 
 def silence(duration: float) -> np.ndarray:
     return np.zeros(int(SR * duration), dtype=np.float64)
 
 
-def normalize(audio: np.ndarray, peak_db: float = -3.0) -> np.ndarray:
+def normalize(audio: np.ndarray, peak_db: float = -4.0) -> np.ndarray:
     peak = np.max(np.abs(audio))
     if peak < 1e-9:
         return audio
@@ -94,69 +107,202 @@ def gain_db(audio: np.ndarray, db: float) -> np.ndarray:
     return audio * (10 ** (db / 20.0))
 
 
-# ---- Preset compositions ----
+def edge_fades(audio: np.ndarray, fade_in_ms: float = 4.0,
+               fade_out_ms: float = 18.0) -> np.ndarray:
+    """Anti-click fades on both ends."""
+    n = len(audio)
+    fi = int(fade_in_ms * SR / 1000)
+    fo = int(fade_out_ms * SR / 1000)
+    out = audio.copy()
+    if fi > 0:
+        out[:fi] *= np.linspace(0.0, 1.0, fi)
+    if fo > 0 and fo <= n:
+        out[-fo:] *= np.linspace(1.0, 0.0, fo)
+    return out
 
-def build_classic_chime() -> np.ndarray:
-    # Descending two-note chime E5 -> C5, bell-like
-    e5 = bell_fm(659.25, 1.0, mod_ratio=1.4, mod_index=4.0, decay=3.5)
-    c5 = bell_fm(523.25, 1.4, mod_ratio=1.4, mod_index=4.0, decay=3.0)
-    out = np.concatenate([e5[: int(0.45 * SR)], silence(0.05), c5])
-    return normalize(out, -3.0)
+
+# ============================================================================
+# Pitch reference
+# ============================================================================
+C4 = 261.63
+E4 = 329.63
+G4 = 392.00
+A4 = 440.00
+C5 = 523.25
+D5 = 587.33
+E5 = 659.25
+G5 = 783.99
+A5 = 880.00
 
 
-def build_gentle_bells() -> np.ndarray:
-    # Arpeggio C5 E5 G5, soft bell timbre, mild overlap
-    notes = [(523.25, 0.0), (659.25, 0.18), (783.99, 0.36)]
-    total_n = int(2.0 * SR)
-    buf = np.zeros(total_n, dtype=np.float64)
-    for f, start in notes:
-        tone = bell_fm(f, 1.6, mod_ratio=2.0, mod_index=3.0, decay=2.5)
+# ============================================================================
+# MESSAGES — short, single mellow soft signal (~0.4–0.8s)
+# ============================================================================
+
+def msg_classic_chime() -> np.ndarray:
+    # Single warm bell at C5, very gentle.
+    sig = bell_fm(C5, 0.75, mod_ratio=2.0, mod_index=2.2, decay=4.5)
+    return normalize(edge_fades(sig), -5.0)
+
+
+def msg_gentle_bells() -> np.ndarray:
+    # One close-stacked soft chord ring: C5 + G5 quickly overlapping.
+    a = bell_fm(C5, 0.8, mod_ratio=2.0, mod_index=2.0, decay=4.0) * 0.85
+    b = bell_fm(G5, 0.65, mod_ratio=2.0, mod_index=1.6, decay=4.6) * 0.7
+    n = int(0.85 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    buf[: len(a)] += a[: min(len(a), n)]
+    s = int(0.06 * SR)
+    end = min(s + len(b), n)
+    buf[s:end] += b[: end - s]
+    return normalize(edge_fades(buf), -5.0)
+
+
+def msg_marimba_tap() -> np.ndarray:
+    # Single wooden tap with subtle sub.
+    sig = warm_mallet(A4, 0.55, decay=7.0)
+    return normalize(edge_fades(sig, fade_out_ms=24.0), -5.5)
+
+
+def msg_soft_pulse() -> np.ndarray:
+    # One short sine pulse with soft attack/release.
+    sig = soft_tone(E5, 0.55, attack=0.025, release=0.30,
+                    harmonics=((2.0, 0.15),))
+    return normalize(edge_fades(sig), -5.5)
+
+
+def msg_ascending_chord() -> np.ndarray:
+    # Tiny two-note grace: C5→E5, mellow bells, short.
+    a = bell_fm(C5, 0.55, mod_ratio=2.0, mod_index=1.8, decay=5.5)
+    b = bell_fm(E5, 0.55, mod_ratio=2.0, mod_index=1.8, decay=5.5)
+    n = int(0.78 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    buf[: len(a)] += a[: min(len(a), n)] * 0.85
+    s = int(0.18 * SR)
+    end = min(s + len(b), n)
+    buf[s:end] += b[: end - s] * 0.9
+    return normalize(edge_fades(buf), -5.0)
+
+
+# ============================================================================
+# CALLS — longer (~2.5–3s) gentle, loop-friendly, never harsh
+# ============================================================================
+
+def call_classic_chime() -> np.ndarray:
+    # Slow descending chime: E5 → C5 → G4, mellow bells.
+    a = bell_fm(E5, 1.2, mod_ratio=2.0, mod_index=2.4, decay=2.8)
+    b = bell_fm(C5, 1.4, mod_ratio=2.0, mod_index=2.2, decay=2.4)
+    c = bell_fm(G4, 1.6, mod_ratio=2.0, mod_index=2.0, decay=2.0)
+    n = int(2.8 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    pos = 0
+    for clip, step in ((a, 0.42), (b, 0.42), (c, None)):
+        end = min(pos + len(clip), n)
+        buf[pos:end] += clip[: end - pos]
+        if step is not None:
+            pos += int(step * SR)
+    return normalize(edge_fades(buf, fade_out_ms=120.0), -4.5)
+
+
+def call_gentle_bells() -> np.ndarray:
+    # Soft ostinato: C5 E5 G5 C5 ... two passes, light overlap.
+    notes = [
+        (C5, 0.00, 1.4),
+        (E5, 0.32, 1.4),
+        (G5, 0.64, 1.6),
+        (E5, 1.05, 1.4),
+        (C5, 1.45, 1.7),
+    ]
+    n = int(3.0 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    for f, start, dur in notes:
+        tone = bell_fm(f, dur, mod_ratio=2.0, mod_index=1.8, decay=2.6)
         s = int(start * SR)
-        end = min(s + len(tone), total_n)
+        end = min(s + len(tone), n)
+        buf[s:end] += tone[: end - s] * 0.7
+    return normalize(edge_fades(buf, fade_out_ms=160.0), -4.5)
+
+
+def call_marimba_tap() -> np.ndarray:
+    # Looping marimba phrase A4-C5-E5-D5-A4, two soft repeats.
+    pattern = [
+        (A4, 0.00, 0.5),
+        (C5, 0.22, 0.5),
+        (E5, 0.44, 0.6),
+        (D5, 0.72, 0.6),
+        (A4, 1.10, 0.9),
+        (A4, 1.55, 0.6),
+        (C5, 1.78, 0.6),
+        (E5, 2.05, 1.0),
+    ]
+    n = int(2.9 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    for f, start, dur in pattern:
+        tone = warm_mallet(f, dur, decay=5.5) * 0.85
+        s = int(start * SR)
+        end = min(s + len(tone), n)
         buf[s:end] += tone[: end - s]
-    return normalize(buf, -3.0)
+    return normalize(edge_fades(buf, fade_out_ms=140.0), -5.0)
 
 
-def build_marimba_tap() -> np.ndarray:
-    # A4 + E5 grace double-tap
-    a4 = marimba_hit(440.0, 0.6, decay=9.0)
-    e5 = marimba_hit(659.25, 0.5, decay=10.0)
-    out = np.concatenate([a4[: int(0.18 * SR)], silence(0.04), e5])
-    return normalize(out, -3.5)
-
-
-def build_soft_pulse() -> np.ndarray:
-    # Two soft sine pulses an octave apart, slow attack
-    p1 = soft_sine(440.0, 0.6, attack=0.08, release=0.35)
-    p2 = soft_sine(880.0, 0.7, attack=0.08, release=0.4) * 0.7
-    gap = silence(0.08)
-    out = np.concatenate([p1, gap, p2])
-    return normalize(out, -4.0)
-
-
-def build_ascending_chord() -> np.ndarray:
-    # C5-E5-G5 stacking, bell-ish, hold ringing tail
-    total = 2.2
-    total_n = int(total * SR)
-    buf = np.zeros(total_n, dtype=np.float64)
-    for i, f in enumerate([523.25, 659.25, 783.99]):
-        tone = bell_fm(f, 1.8, mod_ratio=1.4, mod_index=3.5, decay=2.2)
-        s = int((0.0 + i * 0.22) * SR)
-        end = min(s + len(tone), total_n)
+def call_soft_pulse() -> np.ndarray:
+    # Four breathy pulses at 330/440Hz, gentle alternation.
+    n = int(2.8 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    schedule = [
+        (E4, 0.0, 0.55),
+        (A4, 0.7, 0.55),
+        (E4, 1.4, 0.55),
+        (A4, 2.1, 0.65),
+    ]
+    for f, start, dur in schedule:
+        tone = soft_tone(f, dur, attack=0.06, release=0.30,
+                         harmonics=((2.0, 0.18), (3.0, 0.08)))
+        s = int(start * SR)
+        end = min(s + len(tone), n)
         buf[s:end] += tone[: end - s] * 0.85
-    return normalize(buf, -3.0)
+    return normalize(edge_fades(buf, fade_out_ms=140.0), -5.0)
 
 
-def build_hand_raise_ping() -> np.ndarray:
-    # Very short, polite double-blip at ~1200Hz, quiet (-10 dB)
-    p1 = soft_sine(1175.0, 0.13, attack=0.005, release=0.08)
-    p2 = soft_sine(1568.0, 0.18, attack=0.005, release=0.12) * 0.85
+def call_ascending_chord() -> np.ndarray:
+    # Sustained arpeggio C5-E5-G5 ringing into a soft tail.
+    n = int(3.0 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    starts = [(C5, 0.00, 2.6), (E5, 0.32, 2.4), (G5, 0.64, 2.4)]
+    for f, start, dur in starts:
+        tone = bell_fm(f, dur, mod_ratio=2.0, mod_index=2.0, decay=1.4) * 0.7
+        s = int(start * SR)
+        end = min(s + len(tone), n)
+        buf[s:end] += tone[: end - s]
+    # add quiet sustained pad chord under the tail
+    pad_t = t_axis(2.6)
+    pad = (
+        0.16 * np.sin(2 * np.pi * C5 * pad_t)
+        + 0.13 * np.sin(2 * np.pi * E5 * pad_t)
+        + 0.11 * np.sin(2 * np.pi * G5 * pad_t)
+    )
+    pad *= _envelope(len(pad_t), attack=0.35, release=1.2)
+    s = int(0.30 * SR)
+    end = min(s + len(pad), n)
+    buf[s:end] += pad[: end - s] * 0.6
+    return normalize(edge_fades(buf, fade_out_ms=200.0), -4.5)
+
+
+# ============================================================================
+# Hand-raise ping (unchanged: short, polite, quiet)
+# ============================================================================
+
+def hand_raise_ping() -> np.ndarray:
+    p1 = soft_tone(1175.0, 0.13, attack=0.005, release=0.08)
+    p2 = soft_tone(1568.0, 0.18, attack=0.005, release=0.12) * 0.85
     out = np.concatenate([p1, silence(0.04), p2])
-    out = normalize(out, -3.0)
-    return gain_db(out, -7.0)  # final perceived level ~ -10 dB
+    out = normalize(edge_fades(out), -3.0)
+    return gain_db(out, -7.0)
 
 
-# ---- Encoding ----
+# ============================================================================
+# Encoding
+# ============================================================================
 
 def write_wav(path: Path, audio: np.ndarray) -> None:
     pcm = np.clip(audio, -1.0, 1.0)
@@ -180,30 +326,37 @@ def wav_to_mp3(wav_path: Path, mp3_path: Path, bitrate: str = "96k") -> None:
     )
 
 
-def emit(name: str, audio: np.ndarray, web_dir: Path, mobile_dir: Path) -> None:
-    tmp_wav = web_dir / f"{name}.wav"
+def emit(rel_path: str, audio: np.ndarray) -> None:
+    web_path = OUT_WEB / f"{rel_path}.mp3"
+    mobile_path = OUT_MOBILE / f"{rel_path}.mp3"
+    tmp_wav = web_path.with_suffix(".wav")
     write_wav(tmp_wav, audio)
-    web_mp3 = web_dir / f"{name}.mp3"
-    wav_to_mp3(tmp_wav, web_mp3)
+    wav_to_mp3(tmp_wav, web_path)
     tmp_wav.unlink()
-    mobile_mp3 = mobile_dir / f"{name}.mp3"
-    shutil.copyfile(web_mp3, mobile_mp3)
+    shutil.copyfile(web_path, mobile_path)
     dur = len(audio) / SR
-    print(f"  {name}.mp3  duration={dur:.2f}s  size={web_mp3.stat().st_size} bytes")
+    print(f"  {rel_path}.mp3  duration={dur:.2f}s  size={web_path.stat().st_size} B")
 
 
 def main() -> int:
     ensure_dirs()
 
-    print("Ringtones →", OUT_WEB_RING, "+", OUT_MOBILE_RING)
-    emit("classic_chime", build_classic_chime(), OUT_WEB_RING, OUT_MOBILE_RING)
-    emit("gentle_bells", build_gentle_bells(), OUT_WEB_RING, OUT_MOBILE_RING)
-    emit("marimba_tap", build_marimba_tap(), OUT_WEB_RING, OUT_MOBILE_RING)
-    emit("soft_pulse", build_soft_pulse(), OUT_WEB_RING, OUT_MOBILE_RING)
-    emit("ascending_chord", build_ascending_chord(), OUT_WEB_RING, OUT_MOBILE_RING)
+    print("Messages (short, single soft signals):")
+    emit("ringtones/messages/classic_chime", msg_classic_chime())
+    emit("ringtones/messages/gentle_bells", msg_gentle_bells())
+    emit("ringtones/messages/marimba_tap", msg_marimba_tap())
+    emit("ringtones/messages/soft_pulse", msg_soft_pulse())
+    emit("ringtones/messages/ascending_chord", msg_ascending_chord())
 
-    print("\nConference ping →", OUT_WEB_CONF, "+", OUT_MOBILE_CONF)
-    emit("hand_raise", build_hand_raise_ping(), OUT_WEB_CONF, OUT_MOBILE_CONF)
+    print("\nCalls (longer, mellow):")
+    emit("ringtones/calls/classic_chime", call_classic_chime())
+    emit("ringtones/calls/gentle_bells", call_gentle_bells())
+    emit("ringtones/calls/marimba_tap", call_marimba_tap())
+    emit("ringtones/calls/soft_pulse", call_soft_pulse())
+    emit("ringtones/calls/ascending_chord", call_ascending_chord())
+
+    print("\nConference ping:")
+    emit("conference/hand_raise", hand_raise_ping())
 
     print("\nDone.")
     return 0

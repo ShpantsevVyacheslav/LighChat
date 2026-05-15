@@ -133,7 +133,7 @@ export function useNotifications() {
                 const preset = getRingtonePreset(ringtoneId) ?? getRingtonePreset(DEFAULT_MESSAGE_RINGTONE_ID);
                 if (preset) {
                   try {
-                    const audio = new Audio(ringtoneUrl(preset));
+                    const audio = new Audio(ringtoneUrl(preset, "messages"));
                     audio.volume = 0.9;
                     void audio.play().catch(() => {});
                   } catch {

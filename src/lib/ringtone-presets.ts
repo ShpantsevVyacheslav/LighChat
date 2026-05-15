@@ -1,10 +1,20 @@
 /**
  * Каталог встроенных пресетов рингтонов. Источник правды: общий с mobile
  * (mobile/app/lib/features/chat/data/ringtone_presets.dart) — id и имена
- * файлов синхронизированы. Файлы лежат в public/sounds/ringtones/.
+ * файлов синхронизированы.
+ *
+ * Каждый пресет существует в двух вариантах:
+ *   - messages: короткий мягкий одиночный сигнал (~0.5–0.8s)
+ *   - calls:    длиннее, мелодичный, не режущий слух (~2.5–3s)
+ *
+ * Файлы лежат в:
+ *   public/sounds/ringtones/messages/<id>.mp3
+ *   public/sounds/ringtones/calls/<id>.mp3
  *
  * Сгенерированы скриптом scripts/generate-ringtones.py.
  */
+
+export type RingtoneVariant = "messages" | "calls";
 
 export type RingtonePreset = {
   id: string;
@@ -28,8 +38,8 @@ export function getRingtonePreset(id: string | null | undefined): RingtonePreset
   return RINGTONE_PRESETS.find((p) => p.id === id) ?? null;
 }
 
-export function ringtoneUrl(preset: RingtonePreset): string {
-  return `/sounds/ringtones/${preset.fileName}`;
+export function ringtoneUrl(preset: RingtonePreset, variant: RingtoneVariant): string {
+  return `/sounds/ringtones/${variant}/${preset.fileName}`;
 }
 
 export const HAND_RAISE_SOUND_URL = "/sounds/conference/hand_raise.mp3";

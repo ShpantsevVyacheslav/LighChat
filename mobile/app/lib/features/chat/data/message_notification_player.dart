@@ -26,10 +26,11 @@ class MessageNotificationPlayer {
     final preset = ringtonePresetById(ringtoneId) ??
         ringtonePresetById(kDefaultMessageRingtoneId);
     if (preset == null) return;
+    final assetPath = preset.assetPath(RingtoneVariant.messages);
     try {
-      if (_loadedAssetPath != preset.assetPath) {
-        await _player.setAsset(preset.assetPath);
-        _loadedAssetPath = preset.assetPath;
+      if (_loadedAssetPath != assetPath) {
+        await _player.setAsset(assetPath);
+        _loadedAssetPath = assetPath;
       }
       await _player.seek(Duration.zero);
       await _player.play();

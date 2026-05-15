@@ -47,7 +47,7 @@ class ChatCallToneController {
     if (preset != null) {
       _ringtoneReady = await _loadFromAsset(
         player: _ringtonePlayer,
-        assetPath: preset.assetPath,
+        assetPath: preset.assetPath(RingtoneVariant.calls),
       );
     } else {
       _ringtoneReady = await _loadFromStorage(

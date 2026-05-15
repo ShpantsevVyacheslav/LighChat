@@ -200,7 +200,7 @@ export function AudioCallOverlay({ currentUser }: AudioCallOverlayProps) {
     const fetchAudio = async () => {
         try {
             const ringtone = presetForRingtone
-              ? ringtonePresetUrl(presetForRingtone)
+              ? ringtonePresetUrl(presetForRingtone, 'calls')
               : await getDownloadURL(storageRef(storage, 'audio/ringtone.mp3'));
             const ringbackUrl = await getDownloadURL(storageRef(storage, 'audio/ringback.mp3'));
             setStorageUrls({ ringtone, ringback: ringbackUrl });

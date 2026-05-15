@@ -109,6 +109,7 @@ export default function NotificationSettingsPage() {
             <RingtonePicker
               value={notificationSettings.messageRingtoneId ?? null}
               onChange={(v) => handleUpdate({ messageRingtoneId: v })}
+              variant="messages"
               disabled={notificationSettings.muteAll || !notificationSettings.soundEnabled}
               ariaLabel={t('notifications.messageRingtoneLabel')}
             />
@@ -121,19 +122,9 @@ export default function NotificationSettingsPage() {
             <RingtonePicker
               value={notificationSettings.callRingtoneId ?? null}
               onChange={(v) => handleUpdate({ callRingtoneId: v })}
+              variant="calls"
               disabled={notificationSettings.muteAll || !notificationSettings.soundEnabled}
               ariaLabel={t('notifications.callRingtoneLabel')}
-            />
-          </div>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <Label className="text-sm font-medium">{t('notifications.meetingHandRaiseLabel')}</Label>
-              <p className="text-xs text-muted-foreground">{t('notifications.meetingHandRaiseHint')}</p>
-            </div>
-            <Switch
-              checked={notificationSettings.meetingHandRaiseSoundEnabled !== false}
-              onCheckedChange={(v) => handleUpdate({ meetingHandRaiseSoundEnabled: v })}
-              disabled={notificationSettings.muteAll}
             />
           </div>
         </CardContent>

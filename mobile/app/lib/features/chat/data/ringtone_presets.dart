@@ -1,8 +1,16 @@
-/// Каталог встроенных пресетов рингтонов. Зеркало src/lib/ringtone-presets.ts:
-/// id и имена файлов синхронизированы между web и mobile. Файлы лежат в
-/// assets/audio/ringtones/ и assets/audio/conference/.
+/// Каталог встроенных пресетов рингтонов. Зеркало src/lib/ringtone-presets.ts.
+///
+/// Каждый пресет существует в двух вариантах:
+///   - messages: короткий мягкий одиночный сигнал (~0.5–0.8s)
+///   - calls:    длиннее, мелодичный, не режущий слух (~2.5–3s)
+///
+/// Файлы лежат в:
+///   `assets/audio/ringtones/messages/{id}.mp3`
+///   `assets/audio/ringtones/calls/{id}.mp3`
 ///
 /// Сгенерированы скриптом scripts/generate-ringtones.py.
+enum RingtoneVariant { messages, calls }
+
 class RingtonePreset {
   const RingtonePreset({
     required this.id,
@@ -16,7 +24,10 @@ class RingtonePreset {
   /// Ключ локализации для отображаемого имени пресета.
   final String labelKey;
 
-  String get assetPath => 'assets/audio/ringtones/$fileName';
+  String assetPath(RingtoneVariant variant) {
+    final folder = variant == RingtoneVariant.messages ? 'messages' : 'calls';
+    return 'assets/audio/ringtones/$folder/$fileName';
+  }
 }
 
 const List<RingtonePreset> kRingtonePresets = <RingtonePreset>[
