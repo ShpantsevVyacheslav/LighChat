@@ -2294,6 +2294,11 @@ export const messagesRu = {
       citySkyline: 'Силуэт города',
       neonGrid: 'Неоновая сетка',
       lavenderField: 'Лавандовое поле',
+      kittenYarn: 'Котёнок с клубком',
+      cuteFox: 'Милая лиса',
+      pandaBamboo: 'Панда в бамбуке',
+      owlNight: 'Ночная сова',
+      bunnyMeadow: 'Кролик на лугу',
     },
     bubbleRadius: {
       rounded: 'Скруглённые',

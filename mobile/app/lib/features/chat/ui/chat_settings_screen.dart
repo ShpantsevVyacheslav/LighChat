@@ -1579,9 +1579,28 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                       // (если фирменных >10) кнопка «Показать все», которая
                       // открывает полноэкранный picker с полным списком,
                       // включая классические градиенты-пресеты.
+                      //
+                      // Если выбранный фон — builtin за пределами топ-10,
+                      // он поднимается в начало списка, чтобы оставаться
+                      // видимым после возврата из picker'а.
                       Builder(
                         builder: (context) {
-                          final builtinAll = kBuiltinWallpapers;
+                          final current = s.chatWallpaper;
+                          final selectedBuiltinIdx = current == null
+                              ? -1
+                              : kBuiltinWallpapers.indexWhere(
+                                  (w) => w.value == current,
+                                );
+                          final builtinAll = selectedBuiltinIdx > 0
+                              ? <BuiltinWallpaper>[
+                                  kBuiltinWallpapers[selectedBuiltinIdx],
+                                  for (var i = 0;
+                                      i < kBuiltinWallpapers.length;
+                                      i++)
+                                    if (i != selectedBuiltinIdx)
+                                      kBuiltinWallpapers[i],
+                                ]
+                              : kBuiltinWallpapers;
                           const builtinPreviewCount = 10;
                           final builtinShown =
                               builtinAll.length <= builtinPreviewCount

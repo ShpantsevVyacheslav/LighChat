@@ -288,6 +288,56 @@ const List<BuiltinWallpaper> kBuiltinWallpapers = <BuiltinWallpaper>[
       colors: [Color(0xFFFCD7CD), Color(0xFFDCC8E6)],
     ),
   ),
+  BuiltinWallpaper(
+    slug: 'kitten-yarn',
+    lightAsset: 'assets/wallpapers/kitten-yarn-light.webp',
+    darkAsset: 'assets/wallpapers/kitten-yarn-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFCE8D7), Color(0xFFF0D7DC)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'cute-fox',
+    lightAsset: 'assets/wallpapers/cute-fox-light.webp',
+    darkAsset: 'assets/wallpapers/cute-fox-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFCDAC3), Color(0xFFDCE6D7)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'panda-bamboo',
+    lightAsset: 'assets/wallpapers/panda-bamboo-light.webp',
+    darkAsset: 'assets/wallpapers/panda-bamboo-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFEBF5DC), Color(0xFFD7E6C3)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'owl-night',
+    lightAsset: 'assets/wallpapers/owl-night-light.webp',
+    darkAsset: 'assets/wallpapers/owl-night-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFC8D7EB), Color(0xFFD7DCF0)],
+    ),
+  ),
+  BuiltinWallpaper(
+    slug: 'bunny-meadow',
+    lightAsset: 'assets/wallpapers/bunny-meadow-light.webp',
+    darkAsset: 'assets/wallpapers/bunny-meadow-dark.webp',
+    previewGradient: LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFD7E8F5), Color(0xFFC8E6C3)],
+    ),
+  ),
 ];
 
 bool isBuiltinWallpaperValue(String? value) =>

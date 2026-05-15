@@ -2277,6 +2277,11 @@ export const messagesEsMx = {
       citySkyline: 'Silueta urbana',
       neonGrid: 'Cuadrícula neón',
       lavenderField: 'Campo de lavanda',
+      kittenYarn: 'Gatito y ovillo',
+      cuteFox: 'Zorro lindo',
+      pandaBamboo: 'Panda y bambú',
+      owlNight: 'Búho nocturno',
+      bunnyMeadow: 'Conejito en la pradera',
     },
     bubbleRadius: {
       rounded: 'Redondeadas',

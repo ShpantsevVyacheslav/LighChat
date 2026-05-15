@@ -2277,6 +2277,11 @@ export const messagesUz = {
       citySkyline: 'Shahar silueti',
       neonGrid: 'Neon panjara',
       lavenderField: 'Lavanda dalasi',
+      kittenYarn: 'Mushukcha va kalava',
+      cuteFox: 'Yoqimli tulki',
+      pandaBamboo: 'Panda va bambuk',
+      owlNight: 'Tungi boyqush',
+      bunnyMeadow: 'Oʻtloqdagi quyon',
     },
     bubbleRadius: {
       rounded: 'Yumaloqlangan',

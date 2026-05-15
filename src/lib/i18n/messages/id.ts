@@ -2277,6 +2277,11 @@ export const messagesId = {
       citySkyline: 'Siluet Kota',
       neonGrid: 'Kisi Neon',
       lavenderField: 'Ladang Lavender',
+      kittenYarn: 'Anak Kucing & Benang',
+      cuteFox: 'Rubah Lucu',
+      pandaBamboo: 'Panda & Bambu',
+      owlNight: 'Burung Hantu Malam',
+      bunnyMeadow: 'Kelinci di Padang',
     },
     bubbleRadius: {
       rounded: 'Membulat',

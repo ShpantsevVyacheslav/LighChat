@@ -2277,6 +2277,11 @@ export const messagesKk = {
       citySkyline: 'Қала силуэті',
       neonGrid: 'Неон тор',
       lavenderField: 'Лаванда даласы',
+      kittenYarn: 'Мысықша және жіп',
+      cuteFox: 'Сүйкімді түлкі',
+      pandaBamboo: 'Панда мен бамбук',
+      owlNight: 'Түнгі үкі',
+      bunnyMeadow: 'Шалғындағы қоян',
     },
     bubbleRadius: {
       rounded: 'Дөңгелектенген',

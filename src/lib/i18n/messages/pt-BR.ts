@@ -2277,6 +2277,11 @@ export const messagesPtBr = {
       citySkyline: 'Silhueta da cidade',
       neonGrid: 'Grade de néon',
       lavenderField: 'Campo de lavanda',
+      kittenYarn: 'Gatinho com novelo',
+      cuteFox: 'Raposa fofa',
+      pandaBamboo: 'Panda e bambu',
+      owlNight: 'Coruja noturna',
+      bunnyMeadow: 'Coelho na campina',
     },
     bubbleRadius: {
       rounded: 'Arredondados',

@@ -2343,6 +2343,514 @@ def concept_lavender_field(theme):
     return bg.convert("RGB")
 
 
+# ---------------------------------------------------------------------------
+# Cute-animal concepts (extra set 4)
+# ---------------------------------------------------------------------------
+
+
+def draw_kitten(d, cx, cy, size, body_color, ear_inner, eye_color,
+                pupil_color):
+    """Сидящий котёнок в профиль (вид прямо). cx,cy — центр головы."""
+    s = size / 2
+    # Тело — яйцо (овал ниже головы)
+    d.ellipse([cx - s * 0.85, cy + s * 0.50, cx + s * 0.85, cy + s * 1.85],
+              fill=body_color)
+    # Голова — круг
+    d.ellipse([cx - s * 0.75, cy - s * 0.65, cx + s * 0.75, cy + s * 0.65],
+              fill=body_color)
+    # Уши — два треугольника
+    d.polygon([(cx - s * 0.65, cy - s * 0.40),
+               (cx - s * 0.45, cy - s * 1.05),
+               (cx - s * 0.20, cy - s * 0.55)], fill=body_color)
+    d.polygon([(cx + s * 0.20, cy - s * 0.55),
+               (cx + s * 0.45, cy - s * 1.05),
+               (cx + s * 0.65, cy - s * 0.40)], fill=body_color)
+    # Внутренности ушей (розовое)
+    d.polygon([(cx - s * 0.55, cy - s * 0.45),
+               (cx - s * 0.45, cy - s * 0.85),
+               (cx - s * 0.30, cy - s * 0.50)], fill=ear_inner)
+    d.polygon([(cx + s * 0.30, cy - s * 0.50),
+               (cx + s * 0.45, cy - s * 0.85),
+               (cx + s * 0.55, cy - s * 0.45)], fill=ear_inner)
+    # Глаза — большие овалы
+    d.ellipse([cx - s * 0.36, cy - s * 0.10, cx - s * 0.16, cy + s * 0.18],
+              fill=eye_color)
+    d.ellipse([cx + s * 0.16, cy - s * 0.10, cx + s * 0.36, cy + s * 0.18],
+              fill=eye_color)
+    # Зрачки
+    d.ellipse([cx - s * 0.31, cy - s * 0.05, cx - s * 0.21, cy + s * 0.13],
+              fill=pupil_color)
+    d.ellipse([cx + s * 0.21, cy - s * 0.05, cx + s * 0.31, cy + s * 0.13],
+              fill=pupil_color)
+    # Носик-сердечко
+    d.polygon([(cx - s * 0.06, cy + s * 0.28),
+               (cx + s * 0.06, cy + s * 0.28),
+               (cx, cy + s * 0.42)], fill=ear_inner)
+    # Усы
+    whisker_w = max(2, int(s * 0.04))
+    for y_off in (0.30, 0.36, 0.42):
+        d.line([(cx - s * 0.40, cy + s * y_off),
+                (cx - s * 0.85, cy + s * (y_off - 0.05))],
+               fill=pupil_color, width=whisker_w)
+        d.line([(cx + s * 0.40, cy + s * y_off),
+                (cx + s * 0.85, cy + s * (y_off - 0.05))],
+               fill=pupil_color, width=whisker_w)
+    # Хвост — кривая сбоку
+    d.ellipse([cx + s * 0.65, cy + s * 1.20, cx + s * 1.30, cy + s * 1.55],
+              fill=body_color)
+    d.ellipse([cx + s * 1.10, cy + s * 0.70, cx + s * 1.40, cy + s * 1.40],
+              fill=body_color)
+
+
+def draw_fox(d, cx, cy, size, body_color, belly_color, eye_color):
+    """Сидящая лиса фронтально. cx,cy — центр головы."""
+    s = size / 2
+    # Тело — груша
+    d.ellipse([cx - s * 0.65, cy + s * 0.40, cx + s * 0.65, cy + s * 1.65],
+              fill=body_color)
+    # Белый «фартук» на груди
+    d.ellipse([cx - s * 0.35, cy + s * 0.60, cx + s * 0.35, cy + s * 1.50],
+              fill=belly_color)
+    # Голова — большой треугольник вниз
+    d.polygon([(cx - s * 0.85, cy - s * 0.40),
+               (cx + s * 0.85, cy - s * 0.40),
+               (cx, cy + s * 0.65)], fill=body_color)
+    # Белая отметина на морде
+    d.polygon([(cx - s * 0.30, cy + s * 0.05),
+               (cx + s * 0.30, cy + s * 0.05),
+               (cx, cy + s * 0.65)], fill=belly_color)
+    # Уши
+    d.polygon([(cx - s * 0.85, cy - s * 0.40),
+               (cx - s * 0.55, cy - s * 1.05),
+               (cx - s * 0.30, cy - s * 0.45)], fill=body_color)
+    d.polygon([(cx + s * 0.30, cy - s * 0.45),
+               (cx + s * 0.55, cy - s * 1.05),
+               (cx + s * 0.85, cy - s * 0.40)], fill=body_color)
+    # Тёмные кончики ушей
+    d.polygon([(cx - s * 0.70, cy - s * 0.62),
+               (cx - s * 0.55, cy - s * 1.05),
+               (cx - s * 0.42, cy - s * 0.58)], fill=eye_color)
+    d.polygon([(cx + s * 0.42, cy - s * 0.58),
+               (cx + s * 0.55, cy - s * 1.05),
+               (cx + s * 0.70, cy - s * 0.62)], fill=eye_color)
+    # Глаза-точки
+    d.ellipse([cx - s * 0.36, cy - s * 0.10, cx - s * 0.18, cy + s * 0.10],
+              fill=eye_color)
+    d.ellipse([cx + s * 0.18, cy - s * 0.10, cx + s * 0.36, cy + s * 0.10],
+              fill=eye_color)
+    # Носик-точка
+    d.ellipse([cx - s * 0.07, cy + s * 0.42, cx + s * 0.07, cy + s * 0.55],
+              fill=eye_color)
+    # Лапки в нижней части тела
+    d.ellipse([cx - s * 0.35, cy + s * 1.50, cx - s * 0.10, cy + s * 1.75],
+              fill=body_color)
+    d.ellipse([cx + s * 0.10, cy + s * 1.50, cx + s * 0.35, cy + s * 1.75],
+              fill=body_color)
+    # Хвост (большой пушистый сбоку)
+    d.ellipse([cx + s * 0.50, cy + s * 0.80, cx + s * 1.40, cy + s * 1.65],
+              fill=body_color)
+    # Белый кончик хвоста
+    d.ellipse([cx + s * 1.15, cy + s * 0.85, cx + s * 1.45, cy + s * 1.20],
+              fill=belly_color)
+
+
+def draw_panda(d, cx, cy, size, body_color, dark_color, eye_white):
+    """Панда фронтально сидит. cx,cy — центр головы."""
+    s = size / 2
+    # Тело
+    d.ellipse([cx - s * 0.85, cy + s * 0.50, cx + s * 0.85, cy + s * 1.95],
+              fill=body_color)
+    # Чёрные лапки
+    d.ellipse([cx - s * 0.95, cy + s * 0.85, cx - s * 0.40, cy + s * 1.40],
+              fill=dark_color)
+    d.ellipse([cx + s * 0.40, cy + s * 0.85, cx + s * 0.95, cy + s * 1.40],
+              fill=dark_color)
+    # Чёрные нижние лапки
+    d.ellipse([cx - s * 0.55, cy + s * 1.65, cx - s * 0.05, cy + s * 2.00],
+              fill=dark_color)
+    d.ellipse([cx + s * 0.05, cy + s * 1.65, cx + s * 0.55, cy + s * 2.00],
+              fill=dark_color)
+    # Голова
+    d.ellipse([cx - s * 0.95, cy - s * 0.85, cx + s * 0.95, cy + s * 0.85],
+              fill=body_color)
+    # Уши — два чёрных круга наверху
+    d.ellipse([cx - s * 0.95, cy - s * 1.10, cx - s * 0.55, cy - s * 0.65],
+              fill=dark_color)
+    d.ellipse([cx + s * 0.55, cy - s * 1.10, cx + s * 0.95, cy - s * 0.65],
+              fill=dark_color)
+    # Чёрные «маски» вокруг глаз
+    d.ellipse([cx - s * 0.55, cy - s * 0.30, cx - s * 0.10, cy + s * 0.20],
+              fill=dark_color)
+    d.ellipse([cx + s * 0.10, cy - s * 0.30, cx + s * 0.55, cy + s * 0.20],
+              fill=dark_color)
+    # Белки и зрачки
+    d.ellipse([cx - s * 0.42, cy - s * 0.15, cx - s * 0.22, cy + s * 0.05],
+              fill=eye_white)
+    d.ellipse([cx + s * 0.22, cy - s * 0.15, cx + s * 0.42, cy + s * 0.05],
+              fill=eye_white)
+    d.ellipse([cx - s * 0.36, cy - s * 0.08, cx - s * 0.28, cy + s * 0.00],
+              fill=dark_color)
+    d.ellipse([cx + s * 0.28, cy - s * 0.08, cx + s * 0.36, cy + s * 0.00],
+              fill=dark_color)
+    # Носик-сердечко
+    d.polygon([(cx - s * 0.10, cy + s * 0.30),
+               (cx + s * 0.10, cy + s * 0.30),
+               (cx, cy + s * 0.45)], fill=dark_color)
+
+
+def draw_owl(d, cx, cy, size, body_color, belly_color, eye_white,
+             pupil_color):
+    """Сова фронтально на ветке. cx,cy — центр тела."""
+    s = size / 2
+    # Тело-капля
+    d.ellipse([cx - s * 0.85, cy - s * 0.85, cx + s * 0.85, cy + s * 1.05],
+              fill=body_color)
+    # Светлое брюшко
+    d.ellipse([cx - s * 0.55, cy - s * 0.10, cx + s * 0.55, cy + s * 0.95],
+              fill=belly_color)
+    # Перья на груди — мелкие дуги
+    for ry, rx in [(0.10, 0.40), (0.40, 0.50), (0.70, 0.55)]:
+        d.arc([cx - s * rx, cy + s * (ry - 0.10),
+               cx + s * rx, cy + s * (ry + 0.20)],
+              start=0, end=180, fill=body_color,
+              width=max(2, int(s * 0.05)))
+    # Уши-кисточки
+    d.polygon([(cx - s * 0.65, cy - s * 0.65),
+               (cx - s * 0.40, cy - s * 1.10),
+               (cx - s * 0.20, cy - s * 0.55)], fill=body_color)
+    d.polygon([(cx + s * 0.20, cy - s * 0.55),
+               (cx + s * 0.40, cy - s * 1.10),
+               (cx + s * 0.65, cy - s * 0.65)], fill=body_color)
+    # Глаза — большие
+    d.ellipse([cx - s * 0.55, cy - s * 0.55, cx - s * 0.10, cy - s * 0.10],
+              fill=eye_white)
+    d.ellipse([cx + s * 0.10, cy - s * 0.55, cx + s * 0.55, cy - s * 0.10],
+              fill=eye_white)
+    # Зрачки
+    d.ellipse([cx - s * 0.42, cy - s * 0.42, cx - s * 0.22, cy - s * 0.22],
+              fill=pupil_color)
+    d.ellipse([cx + s * 0.22, cy - s * 0.42, cx + s * 0.42, cy - s * 0.22],
+              fill=pupil_color)
+    # Блики в глазах
+    d.ellipse([cx - s * 0.36, cy - s * 0.40, cx - s * 0.30, cy - s * 0.34],
+              fill=eye_white)
+    d.ellipse([cx + s * 0.30, cy - s * 0.40, cx + s * 0.36, cy - s * 0.34],
+              fill=eye_white)
+    # Клюв-треугольник
+    d.polygon([(cx - s * 0.08, cy - s * 0.10),
+               (cx + s * 0.08, cy - s * 0.10),
+               (cx, cy + s * 0.10)], fill=(225, 165, 65))
+    # Лапки внизу
+    d.line([(cx - s * 0.30, cy + s * 1.05), (cx - s * 0.30, cy + s * 1.20)],
+           fill=(225, 165, 65), width=max(2, int(s * 0.06)))
+    d.line([(cx + s * 0.30, cy + s * 1.05), (cx + s * 0.30, cy + s * 1.20)],
+           fill=(225, 165, 65), width=max(2, int(s * 0.06)))
+
+
+def draw_bunny(d, cx, cy, size, body_color, ear_inner, eye_color):
+    """Кролик фронтально сидит. cx,cy — центр головы."""
+    s = size / 2
+    # Длинные уши — два узких овала вверху
+    d.ellipse([cx - s * 0.40, cy - s * 1.50, cx - s * 0.18, cy - s * 0.30],
+              fill=body_color)
+    d.ellipse([cx + s * 0.18, cy - s * 1.50, cx + s * 0.40, cy - s * 0.30],
+              fill=body_color)
+    # Розовая внутренняя часть ушей
+    d.ellipse([cx - s * 0.34, cy - s * 1.35, cx - s * 0.24, cy - s * 0.45],
+              fill=ear_inner)
+    d.ellipse([cx + s * 0.24, cy - s * 1.35, cx + s * 0.34, cy - s * 0.45],
+              fill=ear_inner)
+    # Голова — круг
+    d.ellipse([cx - s * 0.65, cy - s * 0.45, cx + s * 0.65, cy + s * 0.65],
+              fill=body_color)
+    # Тело
+    d.ellipse([cx - s * 0.75, cy + s * 0.45, cx + s * 0.75, cy + s * 1.65],
+              fill=body_color)
+    # Глаза
+    d.ellipse([cx - s * 0.32, cy - s * 0.10, cx - s * 0.18, cy + s * 0.06],
+              fill=eye_color)
+    d.ellipse([cx + s * 0.18, cy - s * 0.10, cx + s * 0.32, cy + s * 0.06],
+              fill=eye_color)
+    # Носик
+    d.polygon([(cx - s * 0.06, cy + s * 0.20),
+               (cx + s * 0.06, cy + s * 0.20),
+               (cx, cy + s * 0.30)], fill=ear_inner)
+    # Лапки
+    d.ellipse([cx - s * 0.55, cy + s * 1.40, cx - s * 0.10, cy + s * 1.75],
+              fill=body_color)
+    d.ellipse([cx + s * 0.10, cy + s * 1.40, cx + s * 0.55, cy + s * 1.75],
+              fill=body_color)
+    # Усы
+    whisker_w = max(2, int(s * 0.04))
+    for y_off in (0.18, 0.26):
+        d.line([(cx - s * 0.20, cy + s * y_off),
+                (cx - s * 0.60, cy + s * (y_off + 0.04))],
+               fill=eye_color, width=whisker_w)
+        d.line([(cx + s * 0.20, cy + s * y_off),
+                (cx + s * 0.60, cy + s * (y_off + 0.04))],
+               fill=eye_color, width=whisker_w)
+
+
+def concept_kitten_yarn(theme):
+    """Серый котёнок с клубком ниток на тёплом фоне."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (252, 232, 215), (240, 215, 220))
+        body = (155, 155, 160)
+        ear_inner = (245, 175, 195)
+        eye_color = (200, 220, 100)
+        pupil = (40, 40, 50)
+        yarn = (235, 130, 145)
+    else:
+        bg = vertical_gradient((W, H), (18, 22, 38), (32, 28, 50))
+        body = (90, 95, 115)
+        ear_inner = (220, 140, 175)
+        eye_color = (220, 230, 130)
+        pupil = (15, 18, 30)
+        yarn = (220, 110, 145)
+    if theme == "dark":
+        bg.paste(starfield((W, H), density=120, seed=8), (0, 0),
+                 starfield((W, H), density=120, seed=8))
+    # Котёнок — крупно по центру
+    cat = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    cd = ImageDraw.Draw(cat)
+    draw_kitten(cd, int(W * 0.50), int(H * 0.40), int(W * 0.55),
+                body + (255,), ear_inner + (255,),
+                eye_color + (255,), pupil + (255,))
+    bg.paste(cat, (0, 0), cat)
+    # Клубок ниток — большой круг в нижнем правом
+    yarn_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    yd = ImageDraw.Draw(yarn_layer)
+    yc = (int(W * 0.72), int(H * 0.78))
+    yr = int(W * 0.13)
+    yd.ellipse([yc[0] - yr, yc[1] - yr, yc[0] + yr, yc[1] + yr],
+               fill=yarn + (255,))
+    # Линии-обмотки
+    line_w = max(3, int(yr * 0.06))
+    yarn_dark = (max(0, yarn[0] - 40), max(0, yarn[1] - 40),
+                 max(0, yarn[2] - 40))
+    for ang_deg in range(-60, 60, 12):
+        ang = math.radians(ang_deg)
+        x1 = yc[0] + math.cos(ang) * yr * 0.95
+        y1 = yc[1] + math.sin(ang) * yr * 0.95
+        x2 = yc[0] - math.cos(ang) * yr * 0.95
+        y2 = yc[1] - math.sin(ang) * yr * 0.95
+        yd.line([(x1, y1), (x2, y2)], fill=yarn_dark + (200,), width=line_w)
+    # Свисающая нитка к котёнку
+    yd.line([(yc[0] - yr, yc[1] - yr * 0.2),
+             (int(W * 0.55), int(H * 0.62))],
+            fill=yarn_dark + (220,), width=line_w)
+    bg.paste(yarn_layer, (0, 0), yarn_layer)
+    return bg.convert("RGB")
+
+
+def concept_cute_fox(theme):
+    """Лиса в траве/снегу."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (252, 218, 195), (220, 230, 215))
+        body = (220, 110, 60)
+        belly = (252, 248, 240)
+        eye = (40, 35, 50)
+        ground_color = (180, 200, 170)
+    else:
+        bg = vertical_gradient((W, H), (10, 18, 36), (26, 32, 50))
+        body = (190, 95, 55)
+        belly = (220, 215, 200)
+        eye = (10, 14, 28)
+        ground_color = (28, 36, 50)
+    sun = radial_glow((W, H), (int(W * 0.30), int(H * 0.20)), int(H * 0.13),
+                      (255, 215, 160) if theme == "light"
+                                       else (240, 215, 250),
+                      alpha=200)
+    bg.paste(sun, (0, 0), sun)
+    if theme == "dark":
+        bg.paste(starfield((W, H), density=180, seed=14), (0, 0),
+                 starfield((W, H), density=180, seed=14))
+    # Земля/снег
+    ground = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(ground)
+    gd.polygon([(0, int(H * 0.78)),
+                (int(W * 0.30), int(H * 0.74)),
+                (int(W * 0.65), int(H * 0.77)),
+                (W, int(H * 0.74)),
+                (W, H), (0, H)], fill=ground_color + (255,))
+    bg.paste(ground, (0, 0), ground)
+    # Дальние ёлки (мелкие)
+    rng = random.Random(57)
+    pines = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    pd = ImageDraw.Draw(pines)
+    forest_color = (60, 95, 70) if theme == "light" else (16, 28, 30)
+    for _ in range(8):
+        x = rng.randint(0, W)
+        y = int(H * 0.68) + rng.randint(-10, 15)
+        sz = rng.randint(int(W * 0.04), int(W * 0.08))
+        draw_pine(pd, x, y, sz * 2, forest_color, alpha=235, layers=4)
+    bg.paste(pines, (0, 0), pines)
+    # Лиса крупно по центру-низу
+    fox = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    fd = ImageDraw.Draw(fox)
+    draw_fox(fd, int(W * 0.50), int(H * 0.55), int(W * 0.50),
+             body + (255,), belly + (255,), eye + (255,))
+    bg.paste(fox, (0, 0), fox)
+    return bg.convert("RGB")
+
+
+def concept_panda_bamboo(theme):
+    """Панда среди бамбука."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (235, 245, 220), (215, 230, 195))
+        body = (252, 252, 252)
+        dark = (28, 30, 40)
+        eye_white = (255, 255, 255)
+        cane_color = (115, 150, 95)
+    else:
+        bg = vertical_gradient((W, H), (16, 26, 20), (28, 38, 30))
+        body = (220, 220, 220)
+        dark = (12, 14, 22)
+        eye_white = (245, 245, 245)
+        cane_color = (50, 80, 55)
+    # Стебли бамбука по краям
+    for x_frac, alpha in [(0.05, 220), (0.12, 200), (0.88, 220), (0.95, 200)]:
+        cane_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        cd = ImageDraw.Draw(cane_layer)
+        x = int(W * x_frac)
+        cw = int(W * 0.022)
+        cd.rectangle([x - cw // 2, 0, x + cw // 2, H],
+                     fill=cane_color + (alpha,))
+        # Узлы
+        for ny in range(int(H * 0.05), H, int(H * 0.10)):
+            cd.rectangle([x - cw // 2 - 2, ny - 4,
+                          x + cw // 2 + 2, ny + 4],
+                         fill=(max(0, cane_color[0] - 40),
+                               max(0, cane_color[1] - 40),
+                               max(0, cane_color[2] - 40)) + (alpha,))
+        bg.paste(cane_layer, (0, 0), cane_layer)
+    # Панда крупно по центру
+    panda = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    pd = ImageDraw.Draw(panda)
+    draw_panda(pd, int(W * 0.50), int(H * 0.42), int(W * 0.50),
+               body + (255,), dark + (255,), eye_white + (255,))
+    bg.paste(panda, (0, 0), panda)
+    return bg.convert("RGB")
+
+
+def concept_owl_night(theme):
+    """Сова на ветке + луна + звёзды."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (200, 215, 235), (215, 220, 240))
+        moon_color = (255, 245, 220)
+        body = (140, 105, 80)
+        belly = (230, 210, 175)
+        eye_white = (252, 252, 252)
+        pupil = (28, 30, 50)
+        branch_color = (75, 50, 35)
+    else:
+        bg = vertical_gradient((W, H), (8, 14, 30), (16, 22, 42))
+        moon_color = (250, 245, 230)
+        body = (75, 55, 45)
+        belly = (170, 145, 110)
+        eye_white = (250, 250, 250)
+        pupil = (12, 14, 28)
+        branch_color = (35, 22, 18)
+    # Луна — большой круг
+    moon_glow = radial_glow((W, H), (int(W * 0.78), int(H * 0.22)),
+                             int(H * 0.10), moon_color, alpha=220)
+    bg.paste(moon_glow, (0, 0), moon_glow)
+    moon = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    md = ImageDraw.Draw(moon)
+    mr = int(H * 0.07)
+    md.ellipse([int(W * 0.78) - mr, int(H * 0.22) - mr,
+                int(W * 0.78) + mr, int(H * 0.22) + mr],
+               fill=moon_color + (255,))
+    bg.paste(moon, (0, 0), moon)
+    if theme == "dark":
+        bg.paste(starfield((W, H), density=240, seed=22), (0, 0),
+                 starfield((W, H), density=240, seed=22))
+    # Ветка под совой
+    branch = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    bd = ImageDraw.Draw(branch)
+    bd.line([(int(W * 0.05), int(H * 0.74)),
+             (int(W * 0.95), int(H * 0.78))],
+            fill=branch_color + (255,), width=int(W * 0.024))
+    # Маленькие веточки
+    for x_frac, dy in [(0.20, -0.06), (0.40, -0.05), (0.70, -0.07)]:
+        bd.line([(int(W * x_frac), int(H * (0.74 + dy * 0.25))),
+                 (int(W * (x_frac + 0.05)), int(H * (0.74 + dy)))],
+                fill=branch_color + (255,), width=int(W * 0.012))
+    bg.paste(branch, (0, 0), branch)
+    # Сова на ветке (центр)
+    owl = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    od = ImageDraw.Draw(owl)
+    draw_owl(od, int(W * 0.50), int(H * 0.55), int(W * 0.42),
+             body + (255,), belly + (255,), eye_white + (255,),
+             pupil + (255,))
+    bg.paste(owl, (0, 0), owl)
+    return bg.convert("RGB")
+
+
+def concept_bunny_meadow(theme):
+    """Кролик на лугу с цветами."""
+    if theme == "light":
+        bg = vertical_gradient((W, H), (215, 232, 245), (200, 230, 195))
+        body = (252, 245, 235)
+        ear_inner = (250, 175, 195)
+        eye = (40, 35, 50)
+        grass_color = (135, 180, 110)
+        flower_palette = [(255, 200, 100), (255, 130, 165), (160, 195, 245)]
+        sun_color = (255, 230, 175)
+    else:
+        bg = vertical_gradient((W, H), (12, 20, 36), (24, 36, 38))
+        body = (220, 215, 205)
+        ear_inner = (215, 140, 165)
+        eye = (12, 14, 28)
+        grass_color = (35, 60, 45)
+        flower_palette = [(220, 175, 110), (220, 120, 155), (130, 165, 215)]
+        sun_color = (240, 215, 250)
+    sun = radial_glow((W, H), (int(W * 0.78), int(H * 0.20)), int(H * 0.13),
+                      sun_color, alpha=200)
+    bg.paste(sun, (0, 0), sun)
+    if theme == "dark":
+        bg.paste(starfield((W, H), density=160, seed=99), (0, 0),
+                 starfield((W, H), density=160, seed=99))
+    # Луг
+    grass = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(grass)
+    gd.polygon([(0, int(H * 0.72)),
+                (int(W * 0.30), int(H * 0.68)),
+                (int(W * 0.60), int(H * 0.71)),
+                (W, int(H * 0.68)),
+                (W, H), (0, H)], fill=grass_color + (255,))
+    bg.paste(grass, (0, 0), grass)
+    # Цветы — 5-лепестковые, разбросаны по лугу
+    flowers = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    fd = ImageDraw.Draw(flowers)
+    rng = random.Random(33)
+    for _ in range(45):
+        cx = rng.randint(0, W)
+        cy = rng.randint(int(H * 0.72), H)
+        color = rng.choice(flower_palette)
+        r = rng.randint(int(W * 0.012), int(W * 0.022))
+        # 5 лепестков
+        for k in range(5):
+            ang = math.radians(k * 72 - 90)
+            px = cx + math.cos(ang) * r * 0.7
+            py = cy + math.sin(ang) * r * 0.7
+            fd.ellipse([px - r * 0.6, py - r * 0.6,
+                        px + r * 0.6, py + r * 0.6],
+                       fill=color + (220,))
+        # Серединка
+        fd.ellipse([cx - r * 0.4, cy - r * 0.4,
+                    cx + r * 0.4, cy + r * 0.4],
+                   fill=(255, 235, 130, 240))
+    bg.paste(flowers, (0, 0), flowers)
+    # Кролик
+    bunny = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    bnd = ImageDraw.Draw(bunny)
+    draw_bunny(bnd, int(W * 0.50), int(H * 0.42), int(W * 0.40),
+               body + (255,), ear_inner + (255,), eye + (255,))
+    bg.paste(bunny, (0, 0), bunny)
+    return bg.convert("RGB")
+
+
 CONCEPTS = {
     "lighthouse-dawn": concept_lighthouse_dawn,
     "keeper-watch": concept_keeper_watch,
@@ -2370,6 +2878,11 @@ CONCEPTS = {
     "city-skyline": concept_city_skyline,
     "neon-grid": concept_neon_grid,
     "lavender-field": concept_lavender_field,
+    "kitten-yarn": concept_kitten_yarn,
+    "cute-fox": concept_cute_fox,
+    "panda-bamboo": concept_panda_bamboo,
+    "owl-night": concept_owl_night,
+    "bunny-meadow": concept_bunny_meadow,
 }
 
 

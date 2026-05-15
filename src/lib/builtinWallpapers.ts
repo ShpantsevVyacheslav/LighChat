@@ -34,7 +34,12 @@ export type BuiltinWallpaperSlug =
   | 'desert-dunes'
   | 'city-skyline'
   | 'neon-grid'
-  | 'lavender-field';
+  | 'lavender-field'
+  | 'kitten-yarn'
+  | 'cute-fox'
+  | 'panda-bamboo'
+  | 'owl-night'
+  | 'bunny-meadow';
 
 export interface BuiltinWallpaper {
   slug: BuiltinWallpaperSlug;
@@ -230,6 +235,41 @@ export const BUILTIN_WALLPAPERS: readonly BuiltinWallpaper[] = [
     light: '/wallpapers/lavender-field-light.webp',
     dark: '/wallpapers/lavender-field-dark.webp',
     previewGradient: 'linear-gradient(180deg, #FCD7CD 0%, #DCC8E6 100%)',
+  },
+  {
+    slug: 'kitten-yarn',
+    labelKey: 'kittenYarn',
+    light: '/wallpapers/kitten-yarn-light.webp',
+    dark: '/wallpapers/kitten-yarn-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #FCE8D7 0%, #F0D7DC 100%)',
+  },
+  {
+    slug: 'cute-fox',
+    labelKey: 'cuteFox',
+    light: '/wallpapers/cute-fox-light.webp',
+    dark: '/wallpapers/cute-fox-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #FCDAC3 0%, #DCE6D7 100%)',
+  },
+  {
+    slug: 'panda-bamboo',
+    labelKey: 'pandaBamboo',
+    light: '/wallpapers/panda-bamboo-light.webp',
+    dark: '/wallpapers/panda-bamboo-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #EBF5DC 0%, #D7E6C3 100%)',
+  },
+  {
+    slug: 'owl-night',
+    labelKey: 'owlNight',
+    light: '/wallpapers/owl-night-light.webp',
+    dark: '/wallpapers/owl-night-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #C8D7EB 0%, #D7DCF0 100%)',
+  },
+  {
+    slug: 'bunny-meadow',
+    labelKey: 'bunnyMeadow',
+    light: '/wallpapers/bunny-meadow-light.webp',
+    dark: '/wallpapers/bunny-meadow-dark.webp',
+    previewGradient: 'linear-gradient(180deg, #D7E8F5 0%, #C8E6C3 100%)',
   },
 ] as const;
 

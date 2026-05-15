@@ -2292,6 +2292,11 @@ export const messagesEn = {
       citySkyline: 'City Skyline',
       neonGrid: 'Neon Grid',
       lavenderField: 'Lavender Field',
+      kittenYarn: 'Kitten & Yarn',
+      cuteFox: 'Cute Fox',
+      pandaBamboo: 'Panda & Bamboo',
+      owlNight: 'Night Owl',
+      bunnyMeadow: 'Bunny in the Meadow',
     },
     bubbleRadius: {
       rounded: 'Rounded',

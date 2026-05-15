@@ -2277,6 +2277,11 @@ export const messagesTr = {
       citySkyline: 'Şehir Silueti',
       neonGrid: 'Neon Izgara',
       lavenderField: 'Lavanta Tarlası',
+      kittenYarn: 'Yavru kedi ve yün',
+      cuteFox: 'Sevimli Tilki',
+      pandaBamboo: 'Panda ve Bambu',
+      owlNight: 'Gece Baykuşu',
+      bunnyMeadow: 'Çayırdaki Tavşan',
     },
     bubbleRadius: {
       rounded: 'Yuvarlatılmış',
