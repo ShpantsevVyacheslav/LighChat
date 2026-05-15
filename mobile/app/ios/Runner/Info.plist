@@ -11,6 +11,10 @@
 		<string>yandexnavi</string>
 		<string>dgis</string>
 		<string>waze</string>
+		<string>yandextaxi</string>
+		<string>uber</string>
+		<string>indriver</string>
+		<string>citymobil</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>LighChat использует локальную сеть для установки прямых peer-to-peer соединений при голосовых и видеозвонках, что улучшает качество связи и снижает задержку.</string>

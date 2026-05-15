@@ -5,6 +5,7 @@ import 'package:google_mlkit_entity_extraction/google_mlkit_entity_extraction.da
 import '../data/chat_haptics.dart';
 import '../data/local_entity_extractor.dart';
 import '../data/user_profile.dart';
+import 'calendar_picker_sheet.dart';
 import 'navigator_picker_sheet.dart';
 
 /// Ряд кликабельных «чипов» под сообщением — quick-actions для
@@ -25,11 +26,18 @@ class EntityChipsRow extends StatefulWidget {
     required this.isMine,
     this.attachmentLabels = const <String>[],
     this.knownProfiles = const <UserProfile>[],
+    this.forceDarkPanel = false,
   });
 
   final String text;
   final String languageHint;
   final bool isMine;
+
+  /// `true` — чипы рендерятся на гарантированно тёмном фоне (например внутри
+  /// voice attachment glass-panel). Тогда текст и иконки переключаются на
+  /// белые с alpha, иначе они унаследовали бы scheme.onSurface (тёмный в
+  /// light-теме → нечитаемо).
+  final bool forceDarkPanel;
 
   /// Имена / краткие подписи вложений сообщения. Добавляются в description
   /// события календаря, чтобы пользователь видел контекст «к этому событию
@@ -79,9 +87,14 @@ class _EntityChipsRowState extends State<EntityChipsRow> {
     final ann = _annotations;
     if (ann == null || ann.isEmpty) return const SizedBox.shrink();
 
+    // Подготовка: смерджим близко расположенные date+time аннотации в одну
+    // (например ML Kit отдельно распознал «15 мая» и «15:00», в чате нужен
+    // один чип «15 мая в 15:00» с точным timestamp).
+    final merged = _mergeDateTimeAnnotations(ann, widget.text);
+
     final seen = <String>{};
     final chips = <_EntityChipData>[];
-    for (final a in ann) {
+    for (final a in merged) {
       for (final e in a.entities) {
         final icon = _iconFor(e.type);
         if (icon == null) continue;
@@ -106,6 +119,7 @@ class _EntityChipsRowState extends State<EntityChipsRow> {
             .map((c) => _EntityChip(
                   data: c,
                   isMine: widget.isMine,
+                  forceDarkPanel: widget.forceDarkPanel,
                   onLongPressDate: c.entity.type == EntityType.dateTime
                       ? () => _addDateToCalendar(c)
                       : null,
@@ -180,12 +194,8 @@ class _EntityChipsRowState extends State<EntityChipsRow> {
         emailInvites: attendees.isEmpty ? null : attendees,
       ),
     );
-    try {
-      await cal.Add2Calendar.addEvent2Cal(event);
-      await ChatHaptics.instance.success();
-    } catch (_) {
-      await ChatHaptics.instance.error();
-    }
+    if (!mounted) return;
+    await CalendarPickerSheet.show(context: context, event: event);
   }
 
   /// Ищем в тексте сообщения упоминания участников из [profiles] по имени.
@@ -294,6 +304,74 @@ class _EntityChipsRowState extends State<EntityChipsRow> {
       return cal.Recurrence(frequency: cal.Frequency.yearly);
     }
     return null;
+  }
+
+  /// Сливаем подряд идущие DateTime-аннотации в одну. ML Kit может вернуть
+  /// «15 мая» и «15:00» отдельными матчами с разной granularity. Если в
+  /// исходном тексте между ними ≤6 символов (типичный союз/пробел «в»,
+  /// «,», «—»), мерджим:
+  ///  - display = подстрока из min(start)..max(end)
+  ///  - timestamp = из той аннотации, чья granularity мельче (минуты/секунды
+  ///    предпочтительнее дня)
+  ///  - granularity = более точная из двух
+  static List<EntityAnnotation> _mergeDateTimeAnnotations(
+    List<EntityAnnotation> input,
+    String text,
+  ) {
+    if (input.length < 2) return input;
+    final sorted = [...input]..sort((a, b) => a.start.compareTo(b.start));
+    final out = <EntityAnnotation>[];
+    EntityAnnotation? pending;
+    for (final a in sorted) {
+      if (pending == null) {
+        pending = a;
+        continue;
+      }
+      final pendingIsDate =
+          pending.entities.any((e) => e.type == EntityType.dateTime);
+      final currentIsDate =
+          a.entities.any((e) => e.type == EntityType.dateTime);
+      final gap = a.start - pending.end;
+      if (pendingIsDate && currentIsDate && gap >= 0 && gap <= 6) {
+        // Берём ту дату, чья granularity мельче (точное время > день).
+        final pendingDt = pending.entities.whereType<DateTimeEntity>().first;
+        final currentDt = a.entities.whereType<DateTimeEntity>().first;
+        final betterEntity = _isFinerGranularity(
+          currentDt.dateTimeGranularity,
+          pendingDt.dateTimeGranularity,
+        )
+            ? currentDt
+            : pendingDt;
+        // А вот timestamp лучше брать комбинированный: дата из «дневной»
+        // аннотации + время из той, что с timeOfDay. ML Kit уже комбинирует
+        // это в одном из них (тот, что точнее), поэтому просто берём better.
+        final newStart = pending.start < a.start ? pending.start : a.start;
+        final newEnd = pending.end > a.end ? pending.end : a.end;
+        final newText =
+            newStart >= 0 && newEnd <= text.length && newStart < newEnd
+                ? text.substring(newStart, newEnd)
+                : '${pending.text} ${a.text}';
+        pending = EntityAnnotation(
+          start: newStart,
+          end: newEnd,
+          text: newText,
+          entities: <Entity>[betterEntity],
+        );
+      } else {
+        out.add(pending);
+        pending = a;
+      }
+    }
+    if (pending != null) out.add(pending);
+    return out;
+  }
+
+  static bool _isFinerGranularity(
+    DateTimeGranularity a,
+    DateTimeGranularity b,
+  ) {
+    // Чем меньше index в enum, тем мельче (секунды первыми).
+    return a.index < b.index;
   }
 
   /// Ищем в списке аннотаций первую с типом `address`. Если найдена —
@@ -434,10 +512,12 @@ class _EntityChip extends StatelessWidget {
     required this.data,
     required this.isMine,
     required this.onLongPressDate,
+    this.forceDarkPanel = false,
   });
 
   final _EntityChipData data;
   final bool isMine;
+  final bool forceDarkPanel;
 
   /// Long-press handler — только для date-чипов. На остальных `null`.
   final VoidCallback? onLongPressDate;
@@ -445,7 +525,11 @@ class _EntityChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final fg = isMine ? scheme.onPrimary : scheme.onSurface;
+    // На тёмной glass-панели (voice attachment) принудительно белый, иначе
+    // нечитаемо в light-теме. В обычном bubble — следуем colorScheme.
+    final fg = forceDarkPanel
+        ? Colors.white
+        : (isMine ? scheme.onPrimary : scheme.onSurface);
     return Material(
       color: Colors.transparent,
       child: InkWell(

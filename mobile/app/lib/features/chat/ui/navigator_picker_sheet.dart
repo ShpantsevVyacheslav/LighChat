@@ -128,6 +128,54 @@ class NavigatorPickerSheet {
       ));
     }
 
+    // === Taxi ===
+
+    // Яндекс Go (бывш. Yandex Taxi).
+    if (await _canLaunch(Uri.parse('yandextaxi://'))) {
+      out.add(_NavApp(
+        id: 'yandex_go',
+        label: 'Яндекс Go',
+        icon: Icons.local_taxi_rounded,
+        color: const Color(0xFFFFCC00),
+        url: 'yandextaxi://route?end-address=$encoded&appmetrica_tracking_id=1178268795219780156',
+      ));
+    }
+
+    // Uber.
+    if (await _canLaunch(Uri.parse('uber://'))) {
+      out.add(_NavApp(
+        id: 'uber',
+        label: 'Uber',
+        icon: Icons.local_taxi_outlined,
+        color: const Color(0xFF000000),
+        url: 'uber://?action=setPickup&pickup=my_location'
+            '&dropoff[formatted_address]=$encoded',
+      ));
+    }
+
+    // inDrive.
+    if (await _canLaunch(Uri.parse('indriver://'))) {
+      out.add(_NavApp(
+        id: 'indrive',
+        label: 'inDrive',
+        icon: Icons.directions_car_rounded,
+        color: const Color(0xFFC4FF00),
+        url: 'indriver://',
+      ));
+    }
+
+    // Citymobil — нет официальной схемы, открываем веб-fallback только
+    // если установлено приложение (схема `citymobil://`).
+    if (await _canLaunch(Uri.parse('citymobil://'))) {
+      out.add(_NavApp(
+        id: 'citymobil',
+        label: 'Ситимобил',
+        icon: Icons.local_taxi_rounded,
+        color: const Color(0xFF00B86B),
+        url: 'citymobil://',
+      ));
+    }
+
     return out;
   }
 

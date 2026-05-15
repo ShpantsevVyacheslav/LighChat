@@ -1868,6 +1868,17 @@ class AppLocalizationsKk extends AppLocalizations {
   String get navigator_picker_title => 'Қайда ашу';
 
   @override
+  String get calendar_picker_title => 'Күнтізбеге қосу';
+
+  @override
+  String get calendar_picker_native_subtitle =>
+      'Барлық тіркелгілермен жүйелік күнтізбе';
+
+  @override
+  String get calendar_picker_web_subtitle =>
+      'Тіркелгіні таңдау үшін браузерде ашу';
+
+  @override
   String get ai_style_friendly => 'Жайлырақ';
 
   @override

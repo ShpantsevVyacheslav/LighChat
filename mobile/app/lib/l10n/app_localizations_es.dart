@@ -1884,6 +1884,17 @@ class AppLocalizationsEs extends AppLocalizations {
   String get navigator_picker_title => 'Abrir en';
 
   @override
+  String get calendar_picker_title => 'Agregar al calendario';
+
+  @override
+  String get calendar_picker_native_subtitle =>
+      'Calendario del sistema con todas tus cuentas';
+
+  @override
+  String get calendar_picker_web_subtitle =>
+      'Abrir en navegador para elegir cuenta';
+
+  @override
   String get ai_style_friendly => 'Más amigable';
 
   @override
@@ -10292,6 +10303,17 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get navigator_picker_title => 'Abrir en';
+
+  @override
+  String get calendar_picker_title => 'Agregar al calendario';
+
+  @override
+  String get calendar_picker_native_subtitle =>
+      'Calendario del sistema con todas tus cuentas';
+
+  @override
+  String get calendar_picker_web_subtitle =>
+      'Abrir en navegador para elegir cuenta';
 
   @override
   String get ai_style_friendly => 'Más amigable';

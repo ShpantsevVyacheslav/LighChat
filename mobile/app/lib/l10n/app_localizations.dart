@@ -3322,6 +3322,24 @@ abstract class AppLocalizations {
   /// **'Открыть в'**
   String get navigator_picker_title;
 
+  /// No description provided for @calendar_picker_title.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавить в календарь'**
+  String get calendar_picker_title;
+
+  /// No description provided for @calendar_picker_native_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Системный календарь со всеми вашими аккаунтами'**
+  String get calendar_picker_native_subtitle;
+
+  /// No description provided for @calendar_picker_web_subtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть в браузере для выбора аккаунта'**
+  String get calendar_picker_web_subtitle;
+
   /// No description provided for @ai_style_friendly.
   ///
   /// In ru, this message translates to:

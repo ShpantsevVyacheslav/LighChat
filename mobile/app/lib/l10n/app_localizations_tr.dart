@@ -1869,6 +1869,16 @@ class AppLocalizationsTr extends AppLocalizations {
   String get navigator_picker_title => 'Şurada aç';
 
   @override
+  String get calendar_picker_title => 'Takvime ekle';
+
+  @override
+  String get calendar_picker_native_subtitle =>
+      'Tüm hesaplarınızla sistem takvimi';
+
+  @override
+  String get calendar_picker_web_subtitle => 'Hesap seçmek için tarayıcıda aç';
+
+  @override
   String get ai_style_friendly => 'Daha samimi';
 
   @override

@@ -1875,6 +1875,17 @@ class AppLocalizationsUz extends AppLocalizations {
   String get navigator_picker_title => 'Qayerda ochish';
 
   @override
+  String get calendar_picker_title => 'Kalendarga qoʻshish';
+
+  @override
+  String get calendar_picker_native_subtitle =>
+      'Barcha hisoblar bilan tizim kalendari';
+
+  @override
+  String get calendar_picker_web_subtitle =>
+      'Hisobni tanlash uchun brauzerda ochish';
+
+  @override
   String get ai_style_friendly => 'Doʻstona';
 
   @override

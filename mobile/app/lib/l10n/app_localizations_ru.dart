@@ -1871,6 +1871,17 @@ class AppLocalizationsRu extends AppLocalizations {
   String get navigator_picker_title => 'Открыть в';
 
   @override
+  String get calendar_picker_title => 'Добавить в календарь';
+
+  @override
+  String get calendar_picker_native_subtitle =>
+      'Системный календарь со всеми вашими аккаунтами';
+
+  @override
+  String get calendar_picker_web_subtitle =>
+      'Открыть в браузере для выбора аккаунта';
+
+  @override
   String get ai_style_friendly => 'Дружелюбнее';
 
   @override

@@ -791,6 +791,7 @@ class _TranscriptControlsState extends State<_TranscriptControls> {
                                           Localizations.localeOf(context)
                                               .languageCode,
                                       isMine: widget.isMine,
+                                      forceDarkPanel: true,
                                     ),
                                     if (wpm != null ||
                                         _sentimentEmoji != null) ...[

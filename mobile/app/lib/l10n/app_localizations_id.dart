@@ -1864,6 +1864,16 @@ class AppLocalizationsId extends AppLocalizations {
   String get navigator_picker_title => 'Buka di';
 
   @override
+  String get calendar_picker_title => 'Tambahkan ke kalender';
+
+  @override
+  String get calendar_picker_native_subtitle =>
+      'Kalender sistem dengan semua akun Anda';
+
+  @override
+  String get calendar_picker_web_subtitle => 'Buka di browser untuk pilih akun';
+
+  @override
   String get ai_style_friendly => 'Lebih ramah';
 
   @override

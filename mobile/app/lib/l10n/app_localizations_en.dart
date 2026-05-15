@@ -1856,6 +1856,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navigator_picker_title => 'Open in';
 
   @override
+  String get calendar_picker_title => 'Add to calendar';
+
+  @override
+  String get calendar_picker_native_subtitle =>
+      'System calendar with all your accounts';
+
+  @override
+  String get calendar_picker_web_subtitle =>
+      'Open in browser to choose account';
+
+  @override
   String get ai_style_friendly => 'Friendlier';
 
   @override
