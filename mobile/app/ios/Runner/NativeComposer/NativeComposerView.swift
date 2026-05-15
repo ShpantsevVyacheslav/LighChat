@@ -2,20 +2,55 @@ import Flutter
 import Foundation
 import UIKit
 
-/// Один instance нативного composer-инпута. Внутри — обычный `UITextView`,
-/// поэтому:
+/// Subclass `UITextView` с перехватом `paste(_:)`. Если в pasteboard'е
+/// есть изображения/файлы (не только текст), отдаём control в Dart: тот
+/// прочитает `super_clipboard` payload (включая HEIC, PNG, web-images,
+/// drag&drop URI) и зашлёт в send-pipeline композера как attachment.
+/// Plain-text-only paste идёт штатным путём `super.paste(sender)`.
+final class ComposerTextView: UITextView {
+  /// Вызывается, когда `paste` детектит файловое содержимое (не только
+  /// текст). Возвращает `true` чтобы перехватить и заблокировать
+  /// дефолтную вставку, `false` — пускаем `super.paste`.
+  var onPasteRequest: (() -> Bool)?
+
+  override func paste(_ sender: Any?) {
+    let pb = UIPasteboard.general
+    let hasNonText = pb.hasImages || pb.hasURLs ||
+      pb.types.contains(where: { type in
+        // Любой типизированный pasteboard кроме обычного текста:
+        // file-url, image/*, video/*, application/*, public.movie и т.п.
+        type == "public.image" || type == "public.movie" ||
+          type == "public.url" || type == "public.file-url" ||
+          type.hasPrefix("public.image.") ||
+          type.contains("png") || type.contains("jpeg") ||
+          type.contains("heic") || type.contains("webp")
+      })
+    if hasNonText, onPasteRequest?() == true {
+      // Dart взял control. НЕ зовём super → курсор не дёргается, и
+      // текст из pasteboard'а не «протекает» как fallback.
+      return
+    }
+    super.paste(sender)
+  }
+}
+
+/// Один instance нативного composer-инпута. Внутри — `ComposerTextView`
+/// (subclass UITextView), поэтому:
 ///  - системное меню Cut/Copy/Paste/Replace/AutoFill срабатывает «из коробки»,
 ///  - Writing Tools (iOS 26+ Apple Intelligence) появляются в long-press меню,
-///  - кнопка диктовки в QuickType bar, smart selection — всё бесплатно.
+///  - кнопка диктовки в QuickType bar, smart selection — всё бесплатно,
+///  - paste файлов из буфера (Phase 2) перехватывается и идёт через Dart
+///    `onClipboardToolbarPaste`.
 ///
 /// Двусторонний sync с Dart через `lighchat/native_composer_<viewId>`:
 ///  - Dart→Swift: `setText(text)`, `focus()`, `unfocus()`, `setStyle(args)`,
 ///    `setHint(text)`.
 ///  - Swift→Dart: `textChanged(text)`, `selectionChanged(start,end)`,
-///    `focusChanged(focused)`, `contentHeightChanged(height)`.
+///    `focusChanged(focused)`, `contentHeightChanged(height)`,
+///    `pasteRequested()` (когда юзер тапнул Paste с файлом в буфере).
 final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegate {
   private let container: UIView
-  private let textView: UITextView
+  private let textView: ComposerTextView
   private let hintLabel: UILabel
   private let channel: FlutterMethodChannel
   /// «Защита от эха»: когда Dart прислал setText, мы не должны отправлять
@@ -31,7 +66,7 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
     container = UIView(frame: frame)
     container.backgroundColor = .clear
 
-    textView = UITextView(frame: .zero)
+    textView = ComposerTextView(frame: .zero)
     textView.backgroundColor = .clear
     textView.translatesAutoresizingMaskIntoConstraints = false
     textView.textContainerInset = .zero
@@ -72,6 +107,18 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
     ])
 
     applyArgs(args)
+
+    // Перехват paste: если в буфере есть файл/изображение, спрашиваем
+    // Dart. Возвращаем true (перехватить) если Dart-side подключён —
+    // тогда дефолтное поведение `super.paste` не сработает и UITextView
+    // не вставит мусорный fallback-текст.
+    textView.onPasteRequest = { [weak self] in
+      guard let self = self else { return false }
+      self.channel.invokeMethod("pasteRequested", arguments: nil)
+      // Всегда true: Dart-side в любом случае попытается обработать;
+      // если не получится — он сам решит что показать пользователю.
+      return true
+    }
 
     channel.setMethodCallHandler { [weak self] call, result in
       self?.handle(call: call, result: result)

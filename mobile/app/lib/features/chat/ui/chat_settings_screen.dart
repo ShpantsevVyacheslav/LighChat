@@ -310,16 +310,21 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
   /// Автоскролл к карточке превью — вызывается после изменения настройки,
   /// которая влияет на отображаемый превью (фон, цвета пузырьков, шрифт,
   /// форма, отметка времени), чтобы пользователь сразу видел эффект.
+  /// Превью теперь sticky (закреплено в `SliverPersistentHeader` сверху)
+  /// и всегда видно при изменении настроек, влияющих на его внешний вид.
+  /// Метод оставлен для обратной совместимости — если scroll отъехал
+  /// далеко вниз (раздел эмодзи / дополнительно), возвращаем к началу,
+  /// чтобы пользователь сразу увидел эффект.
   void _scrollToPreview() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final ctx = _previewKey.currentContext;
-      if (ctx == null || !_scrollController.hasClients) return;
-      Scrollable.ensureVisible(
-        ctx,
-        duration: const Duration(milliseconds: 320),
-        curve: Curves.easeOutCubic,
-        alignment: 0.0,
-      );
+      if (!_scrollController.hasClients) return;
+      if (_scrollController.offset > 4) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutCubic,
+        );
+      }
     });
   }
 
@@ -1535,48 +1540,73 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                 ),
               ),
               Expanded(
-                child: SingleChildScrollView(
+                // Sticky-превью: карточка чат-превью закреплена сверху
+                // через `SliverPersistentHeader(pinned: true)`. Все
+                // настройки, влияющие на внешний вид (обои, цвета,
+                // шрифт, форма пузырьков, отметки времени), при
+                // изменении сразу видны без необходимости скроллить
+                // обратно к превью.
+                child: CustomScrollView(
                   controller: _scrollController,
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    14,
-                    16,
-                    24 + MediaQuery.paddingOf(context).bottom,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.settings_chats_preview,
-                        style: TextStyle(
-                          fontSize: _kSectionTitleSize,
-                          fontWeight: FontWeight.w700,
-                          color: sectionBlue,
+                  slivers: [
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _PreviewHeaderDelegate(
+                        height: 374,
+                        background: dark
+                            ? const Color(0xFF04070C)
+                            : scheme.surface,
+                        child: KeyedSubtree(
+                          key: _previewKey,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text(
+                                  AppLocalizations.of(context)!
+                                      .settings_chats_preview,
+                                  style: TextStyle(
+                                    fontSize: _kSectionTitleSize,
+                                    fontWeight: FontWeight.w700,
+                                    color: sectionBlue,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                _ChatPreviewCard(
+                                  wallpaperDecoration: _wallpaperDecoration(
+                                    context,
+                                    s.chatWallpaper,
+                                  ),
+                                  animatedWallpaper: resolveAnimatedWallpaper(
+                                    s.chatWallpaper,
+                                  ),
+                                  incomingBubbleColor: incomingColor,
+                                  outgoingBubbleColor: outgoingColor,
+                                  bubbleRadius: s.bubbleRadius,
+                                  showTimestamps: s.showTimestamps,
+                                  messageFontSize:
+                                      _previewMessageFont(s.fontSize),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      // Якорь автоскролла — после изменения любой настройки,
-                      // влияющей на внешний вид чата, экран прокручивается
-                      // обратно к этой карточке, чтобы пользователь сразу
-                      // видел эффект.
-                      KeyedSubtree(
-                        key: _previewKey,
-                        child: _ChatPreviewCard(
-                          wallpaperDecoration: _wallpaperDecoration(
-                            context,
-                            s.chatWallpaper,
-                          ),
-                          animatedWallpaper: resolveAnimatedWallpaper(
-                            s.chatWallpaper,
-                          ),
-                          incomingBubbleColor: incomingColor,
-                          outgoingBubbleColor: outgoingColor,
-                          bubbleRadius: s.bubbleRadius,
-                          showTimestamps: s.showTimestamps,
-                          messageFontSize: _previewMessageFont(s.fontSize),
-                        ),
+                    ),
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        4,
+                        16,
+                        24 + MediaQuery.paddingOf(context).bottom,
                       ),
-                      const SizedBox(height: 20),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const SizedBox(height: 4),
                       // Обои чата — единый раздел: сначала фирменные
                       // (kBuiltinWallpapers), затем классические градиенты-
                       // пресеты, затем пользовательские изображения и кнопка
@@ -1985,21 +2015,11 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           color: sectionBlue,
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(22),
-                          color:
-                              (dark
-                                      ? const Color(0xFF151A22)
-                                      : scheme.surfaceContainerLow)
-                                  .withValues(alpha: dark ? 0.76 : 0.9),
-                          border: Border.all(
-                            color: (dark ? Colors.white : scheme.onSurface)
-                                .withValues(alpha: dark ? 0.15 : 0.1),
-                          ),
-                        ),
+                      const SizedBox(height: 4),
+                      // «Показать время» — стиль toggle-row без отдельной
+                      // карточки (тот же шаблон, что у «Авто-перевод» ниже).
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
                         child: Row(
                           children: [
                             Expanded(
@@ -2040,7 +2060,6 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 14),
                       // Auto-translate incoming messages: ML Kit on-device,
                       // язык назначения = язык UI пользователя.
                       Padding(
@@ -2122,8 +2141,12 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                            ],
+                          ),
+                        ]),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -2132,6 +2155,38 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
       ),
     );
   }
+}
+
+/// Sliver-делегат для sticky-превью в `CustomScrollView`. Превью имеет
+/// фиксированную высоту, не сжимается, остаётся приклеенным сверху при
+/// скролле остального контента.
+class _PreviewHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _PreviewHeaderDelegate({
+    required this.child,
+    required this.height,
+    required this.background,
+  });
+
+  final Widget child;
+  final double height;
+  final Color background;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(color: background, height: height, child: child);
+  }
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  double get minExtent => height;
+
+  @override
+  bool shouldRebuild(covariant _PreviewHeaderDelegate old) =>
+      old.height != height ||
+      old.background != background ||
+      old.child != child;
 }
 
 class _ChatPreviewCard extends StatelessWidget {
@@ -2163,11 +2218,12 @@ class _ChatPreviewCard extends StatelessWidget {
     final fg = dark ? Colors.white : scheme.onSurface;
     final isSquare = bubbleRadius == 'square';
     final metaColor = fg.withValues(alpha: dark ? 0.48 : 0.56);
-    // Высота 460 даёт соотношение ≈3:4 на стандартных мобильных ширинах,
-    // чтобы вертикальный wallpaper (1440×2880, 1:2) показывался почти
-    // целиком при `BoxFit.cover` — без сильной обрезки сверху/снизу.
+    // Высота 320 — компромисс: вертикальный wallpaper (1440×2880, 1:2)
+    // показывается почти целиком при `BoxFit.cover`, но не занимает
+    // больше половины экрана (важно потому, что превью теперь sticky —
+    // см. `CustomScrollView` ниже).
     return Container(
-      height: 460,
+      height: 320,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: fg.withValues(alpha: dark ? 0.15 : 0.12)),

@@ -569,6 +569,7 @@ class _ChatComposerState extends State<ChatComposer> {
                 cursorColor: scheme.primary,
                 minLines: 1,
                 maxLines: 6,
+                onPasteRequested: paste,
               ),
             ),
           ),

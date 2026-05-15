@@ -40,6 +40,7 @@ class NativeIosComposerField extends StatefulWidget {
     this.minLines = 1,
     this.maxLines = 6,
     this.onSubmitted,
+    this.onPasteRequested,
   });
 
   final TextEditingController controller;
@@ -51,6 +52,12 @@ class NativeIosComposerField extends StatefulWidget {
   final int minLines;
   final int maxLines;
   final ValueChanged<String>? onSubmitted;
+
+  /// Срабатывает когда юзер тапнул «Paste» в системном контекстном меню
+  /// и pasteboard содержит изображение/файл (а не только plain text).
+  /// Caller обрабатывает через [readComposerClipboardPayload] +
+  /// добавление в `pendingAttachments`.
+  final Future<void> Function()? onPasteRequested;
 
   @override
   State<NativeIosComposerField> createState() => _NativeIosComposerFieldState();
@@ -197,6 +204,15 @@ class _NativeIosComposerFieldState extends State<NativeIosComposerField> {
         final h = (map['height'] as num?)?.toDouble() ?? 0;
         if ((h - _measuredHeight).abs() >= 0.5) {
           setState(() => _measuredHeight = h);
+        }
+        break;
+      case 'pasteRequested':
+        // Native перехватил Paste с файлом/картинкой. Делегируем в Dart-
+        // pipeline композера; если callback не задан — fallback silent
+        // (native уже заблокировал дефолтную вставку plain-text'а).
+        final cb = widget.onPasteRequested;
+        if (cb != null) {
+          unawaited(cb());
         }
         break;
     }
