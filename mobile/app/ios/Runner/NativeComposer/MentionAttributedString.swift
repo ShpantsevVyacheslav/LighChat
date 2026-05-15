@@ -172,7 +172,7 @@ enum MentionAttributedString {
     return out
   }
 
-  // MARK: - Plain offset → visible offset (для курсора)
+  // MARK: - Plain offset ↔ visible offset (для курсора)
 
   static func plainOffsetToVisible(plain: String, plainOffset: Int) -> Int {
     let ns = plain as NSString
@@ -190,6 +190,101 @@ enum MentionAttributedString {
       }
     }
     return visible
+  }
+
+  /// Обратная функция: по visible-offset в attributed-string-е (там, где
+  /// mention отображается как `@label`, а HTML-теги/`<span data-anim>` —
+  /// невидимые) возвращает plain-offset в rich-text'е (где mention — это
+  /// длинный escape-токен, а теги — реальные символы).
+  ///
+  /// Нужно для `textChanged`/`selectionChanged` событий: native UITextView
+  /// оперирует visible-offset'ами, а Dart `controller.text` и логика типа
+  /// `_recomputeMentionState` работают в plain-offset'ах. Без перекодировки
+  /// курсор «прыгает» внутрь токена и mention-picker не триггерится после
+  /// первой вставленной @-метки в одном сообщении.
+  ///
+  /// Курсор внутри mention-chip'а клампится к ближайшей границе токена.
+  static func visibleOffsetToPlain(plain: String, visibleOffset: Int) -> Int {
+    let ns = plain as NSString
+    let target = max(0, visibleOffset)
+    let lexer = _Lexer(input: plain)
+    var visible = 0
+    while true {
+      let beforeIdx = lexer.i
+      guard let tok = lexer.next() else { break }
+      let afterIdx = lexer.i
+      let plainStartNS = plain.utf16.distance(
+        from: plain.startIndex, to: beforeIdx)
+      let plainEndNS = plain.utf16.distance(
+        from: plain.startIndex, to: afterIdx)
+      switch tok {
+      case .text(let s):
+        let visLen = (s as NSString).length
+        if visible + visLen >= target {
+          // Курсор внутри text-токена. Маппим visible → plain учитывая
+          // HTML-entities (`&amp;` = 1 visible / 5 plain).
+          let needInTok = target - visible
+          let inner = _innerVisibleToPlainOffsetNs(
+            input: plain,
+            rangeStart: beforeIdx,
+            rangeEnd: afterIdx,
+            target: needInTok)
+          return plainStartNS + inner
+        }
+        visible += visLen
+      case .mention(_, let label):
+        let visLen = ("@\(label)" as NSString).length
+        if visible + visLen >= target {
+          // Курсор внутри chip-а — клампим к ближайшей границе токена.
+          let inside = target - visible
+          return inside * 2 <= visLen ? plainStartNS : plainEndNS
+        }
+        visible += visLen
+      case .openTag, .closeTag, .openEffect, .closeEffect:
+        // Теги/effect-span'ы visible не двигают. Если target == visible
+        // прямо на стыке — отдаём конец последнего пройденного non-tag
+        // фрагмента, что и есть `plainEndNS` (тег только что прошёл).
+        break
+      }
+    }
+    return ns.length
+  }
+
+  /// Внутренний хелпер: по visible-offset внутри одного text-run'а (от
+  /// `rangeStart` до `rangeEnd` в `input`) — возвращает plain-NS-offset
+  /// (utf16) внутри этого run'а. Учитывает HTML-entities, которые
+  /// «сжимаются» в 1 visible char.
+  private static func _innerVisibleToPlainOffsetNs(
+    input: String,
+    rangeStart: String.Index,
+    rangeEnd: String.Index,
+    target: Int
+  ) -> Int {
+    var visible = 0
+    var i = rangeStart
+    var nsOff = 0
+    while i < rangeEnd {
+      if visible == target { return nsOff }
+      let c = input[i]
+      if c == "&" {
+        // Попытаться раскрыть entity до `;`.
+        if let semi = input[i..<rangeEnd].firstIndex(of: ";") {
+          let entity = String(input[input.index(after: i)..<semi]).lowercased()
+          let known: Set<String> = ["amp", "lt", "gt", "quot", "nbsp", "#39"]
+          if known.contains(entity) {
+            visible += 1
+            let chunk = String(input[i...semi])
+            nsOff += (chunk as NSString).length
+            i = input.index(after: semi)
+            continue
+          }
+        }
+      }
+      visible += 1
+      nsOff += (String(c) as NSString).length
+      i = input.index(after: i)
+    }
+    return nsOff
   }
 
   // MARK: - Token decoder (для mention-токенов)

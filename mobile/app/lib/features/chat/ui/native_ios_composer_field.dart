@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show PlatformViewHitTestBehavior;
 import 'package:flutter/services.dart';
 
-/// Phase 1 нативного iOS composer'а: оборачивает [UiKitView] с
+/// Нативный iOS composer (Phase 1–7): оборачивает [UiKitView] с
 /// PlatformView'ем `lighchat/native_composer` (см. Swift
 /// `NativeComposerFactory`/`NativeComposerView`).
 ///
@@ -13,18 +13,22 @@ import 'package:flutter/services.dart';
 /// Cut/Copy/Paste/Replace/AutoFill/Writing Tools / диктовку. Нативный
 /// `UITextView` даёт всё это бесплатно.
 ///
-/// **Scope Phase 1:**
-///  - двусторонняя синхронизация text + selection с [controller],
-///  - управление фокусом через [focusNode] (resign/becomeFirstResponder),
-///  - стили (font, цвета, hint),
-///  - auto-grow по contentHeight в пределах `minLines..maxLines`.
-///
-/// Не покрыто Phase 1 (см. Phase 2/3 в плане):
-///  - mentions @ (нужен dart-side picker, отдельные команды
-///    `insertMention(label, userId, range)`),
-///  - paste файлов из буфера (нужен `UITextPasteDelegate`),
-///  - bold/italic formatting toolbar (нужен NSAttributedString sync),
-///  - sticker keyboard accessory.
+/// **Что реализовано:**
+///  - двусторонняя синхронизация text + selection с [controller]
+///    (Swift конвертирует visible→plain offset через
+///    `MentionAttributedString.visibleOffsetToPlain`, чтобы курсор после
+///    chip-токена / HTML-форматирования корректно попадал в Dart-плэйн
+///    текст и mention-логика типа `_recomputeMentionState` срабатывала
+///    после первой @-метки в сообщении),
+///  - управление фокусом через [focusNode],
+///  - стили (font, цвета, hint), auto-grow по contentHeight,
+///  - mention-chip render + атомарное удаление backspace'ом
+///    (chip-suggestions overlay живёт на Flutter-стороне; `@`-триггер
+///    распознаётся прозрачно через controller listener),
+///  - paste файлов из буфера через `pasteRequested` → Dart pipeline,
+///  - inline-форматирование B/I/U/S/code и animated effects через
+///    [toggleFormat] (Phase 4–6),
+///  - HTML round-trip с `<strong>/<em>/<u>/<s>/<code>/<span data-anim>`.
 ///
 /// На Android/desktop возвращает [TextField] fallback — нативного аналога
 /// нет, и логика композера на тех платформах остаётся прежней.

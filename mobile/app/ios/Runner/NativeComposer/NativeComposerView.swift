@@ -406,14 +406,17 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
       textView.selectedRange = selRange
       isApplyingRemoteText = false
       // Notify Dart — текст по семантике HTML изменился (хотя length тот же).
-      channel.invokeMethod(
-        "textChanged",
-        arguments: [
-          "text": currentPlainText(),
-          "selectionStart": textView.selectedRange.location,
-          "selectionEnd": textView.selectedRange.location
-            + textView.selectedRange.length,
-        ])
+      do {
+        let plain = currentPlainText()
+        let sel = plainSelection(plain)
+        channel.invokeMethod(
+          "textChanged",
+          arguments: [
+            "text": plain,
+            "selectionStart": sel.start,
+            "selectionEnd": sel.end,
+          ])
+      }
     } else {
       // Курсор без selection — модифицируем typingAttributes на следующий
       // ввод. UITextView сам применит их на новые символы.
@@ -466,14 +469,17 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
       textView.attributedText = mut
       textView.selectedRange = selRange
       isApplyingRemoteText = false
-      channel.invokeMethod(
-        "textChanged",
-        arguments: [
-          "text": currentPlainText(),
-          "selectionStart": textView.selectedRange.location,
-          "selectionEnd": textView.selectedRange.location
-            + textView.selectedRange.length,
-        ])
+      do {
+        let plain = currentPlainText()
+        let sel = plainSelection(plain)
+        channel.invokeMethod(
+          "textChanged",
+          arguments: [
+            "text": plain,
+            "selectionStart": sel.start,
+            "selectionEnd": sel.end,
+          ])
+      }
     } else {
       var ta = textView.typingAttributes
       patchAttrs(&ta)
@@ -503,27 +509,47 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
 
   // MARK: - UITextViewDelegate
 
+  /// Конвертирует visible-offset UITextView'а в plain-offset rich-text'а
+  /// для отправки в Dart. Все события `textChanged`/`selectionChanged`/
+  /// `toggleFormat`/`toggleEffect` обязаны конвертировать selection через
+  /// эту функцию — иначе после первой mention'и (или внутри HTML-формата)
+  /// курсор «попадает в середину токена» в Dart-`controller.text`.
+  private func plainSelection(_ plain: String) -> (start: Int, end: Int) {
+    let sel = textView.selectedRange
+    let s = MentionAttributedString.visibleOffsetToPlain(
+      plain: plain, visibleOffset: sel.location)
+    let e =
+      sel.length == 0
+      ? s
+      : MentionAttributedString.visibleOffsetToPlain(
+        plain: plain, visibleOffset: sel.location + sel.length)
+    return (s, e)
+  }
+
   func textViewDidChange(_ textView: UITextView) {
     updateHintVisibility()
     notifyContentHeightIfChanged()
     if isApplyingRemoteText { return }
+    let plain = currentPlainText()
+    let sel = plainSelection(plain)
     channel.invokeMethod(
       "textChanged",
       arguments: [
-        "text": currentPlainText(),
-        "selectionStart": textView.selectedRange.location,
-        "selectionEnd": textView.selectedRange.location
-          + textView.selectedRange.length,
+        "text": plain,
+        "selectionStart": sel.start,
+        "selectionEnd": sel.end,
       ])
   }
 
   func textViewDidChangeSelection(_ textView: UITextView) {
     if isApplyingRemoteText { return }
+    let plain = currentPlainText()
+    let sel = plainSelection(plain)
     channel.invokeMethod(
       "selectionChanged",
       arguments: [
-        "start": textView.selectedRange.location,
-        "end": textView.selectedRange.location + textView.selectedRange.length,
+        "start": sel.start,
+        "end": sel.end,
       ])
   }
 
