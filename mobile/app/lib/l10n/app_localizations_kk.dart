@@ -777,6 +777,21 @@ class AppLocalizationsKk extends AppLocalizations {
   String get ringtone_ascending_chord => 'Көтеріңкі аккорд';
 
   @override
+  String get ringtone_glass_drop => 'Шыны тамшы';
+
+  @override
+  String get ringtone_wood_block => 'Ағаш блок';
+
+  @override
+  String get ringtone_sparkle => 'Ұшқын';
+
+  @override
+  String get ringtone_airy_note => 'Жеңіл нота';
+
+  @override
+  String get ringtone_tap_tone => 'Соғу';
+
+  @override
   String get ringtone_storage_original => 'Түпнұсқа';
 
   @override

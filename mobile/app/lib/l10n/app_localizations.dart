@@ -1414,6 +1414,36 @@ abstract class AppLocalizations {
   /// **'Восходящий аккорд'**
   String get ringtone_ascending_chord;
 
+  /// No description provided for @ringtone_glass_drop.
+  ///
+  /// In ru, this message translates to:
+  /// **'Капля стекла'**
+  String get ringtone_glass_drop;
+
+  /// No description provided for @ringtone_wood_block.
+  ///
+  /// In ru, this message translates to:
+  /// **'Деревянный блок'**
+  String get ringtone_wood_block;
+
+  /// No description provided for @ringtone_sparkle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Искра'**
+  String get ringtone_sparkle;
+
+  /// No description provided for @ringtone_airy_note.
+  ///
+  /// In ru, this message translates to:
+  /// **'Воздушная нота'**
+  String get ringtone_airy_note;
+
+  /// No description provided for @ringtone_tap_tone.
+  ///
+  /// In ru, this message translates to:
+  /// **'Постукивание'**
+  String get ringtone_tap_tone;
+
   /// No description provided for @ringtone_storage_original.
   ///
   /// In ru, this message translates to:

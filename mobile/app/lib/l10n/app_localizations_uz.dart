@@ -782,6 +782,21 @@ class AppLocalizationsUz extends AppLocalizations {
   String get ringtone_ascending_chord => 'Koʻtarilayotgan akkord';
 
   @override
+  String get ringtone_glass_drop => 'Shisha tomchi';
+
+  @override
+  String get ringtone_wood_block => 'Yogʻoch blok';
+
+  @override
+  String get ringtone_sparkle => 'Uchqun';
+
+  @override
+  String get ringtone_airy_note => 'Yengil nota';
+
+  @override
+  String get ringtone_tap_tone => 'Urish';
+
+  @override
   String get ringtone_storage_original => 'Asl';
 
   @override

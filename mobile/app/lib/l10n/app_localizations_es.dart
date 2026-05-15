@@ -790,6 +790,21 @@ class AppLocalizationsEs extends AppLocalizations {
   String get ringtone_ascending_chord => 'Acorde ascendente';
 
   @override
+  String get ringtone_glass_drop => 'Gota de cristal';
+
+  @override
+  String get ringtone_wood_block => 'Bloque de madera';
+
+  @override
+  String get ringtone_sparkle => 'Destello';
+
+  @override
+  String get ringtone_airy_note => 'Nota aérea';
+
+  @override
+  String get ringtone_tap_tone => 'Toque';
+
+  @override
   String get ringtone_storage_original => 'Original';
 
   @override
@@ -9395,6 +9410,21 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get ringtone_ascending_chord => 'Acorde ascendente';
+
+  @override
+  String get ringtone_glass_drop => 'Gota de cristal';
+
+  @override
+  String get ringtone_wood_block => 'Bloque de madera';
+
+  @override
+  String get ringtone_sparkle => 'Destello';
+
+  @override
+  String get ringtone_airy_note => 'Nota aérea';
+
+  @override
+  String get ringtone_tap_tone => 'Toque';
 
   @override
   String get ringtone_storage_original => 'Original';

@@ -772,6 +772,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ringtone_ascending_chord => 'Ascending chord';
 
   @override
+  String get ringtone_glass_drop => 'Glass drop';
+
+  @override
+  String get ringtone_wood_block => 'Wood block';
+
+  @override
+  String get ringtone_sparkle => 'Sparkle';
+
+  @override
+  String get ringtone_airy_note => 'Airy note';
+
+  @override
+  String get ringtone_tap_tone => 'Tap tone';
+
+  @override
   String get ringtone_storage_original => 'Original';
 
   @override

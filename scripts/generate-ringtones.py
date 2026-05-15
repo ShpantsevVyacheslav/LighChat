@@ -128,11 +128,16 @@ C4 = 261.63
 E4 = 329.63
 G4 = 392.00
 A4 = 440.00
+B4 = 493.88
 C5 = 523.25
 D5 = 587.33
 E5 = 659.25
+F5 = 698.46
 G5 = 783.99
 A5 = 880.00
+C6 = 1046.50
+E6 = 1318.51
+G6 = 1567.98
 
 
 # ============================================================================
@@ -182,6 +187,51 @@ def msg_ascending_chord() -> np.ndarray:
     end = min(s + len(b), n)
     buf[s:end] += b[: end - s] * 0.9
     return normalize(edge_fades(buf), -5.0)
+
+
+def msg_glass_drop() -> np.ndarray:
+    # Single bright glass-like drop with a subtle shimmer partial.
+    sig = bell_fm(D5, 0.62, mod_ratio=3.0, mod_index=1.6, decay=5.2)
+    shimmer = bell_fm(D5 * 2, 0.4, mod_ratio=3.0, mod_index=1.2, decay=8.0) * 0.32
+    n = max(len(sig), len(shimmer))
+    buf = np.zeros(n, dtype=np.float64)
+    buf[: len(sig)] += sig
+    buf[: len(shimmer)] += shimmer
+    return normalize(edge_fades(buf), -5.0)
+
+
+def msg_wood_block() -> np.ndarray:
+    # Crisp wooden tap — short and dry.
+    sig = warm_mallet(G4, 0.40, decay=12.0)
+    return normalize(edge_fades(sig, fade_out_ms=18.0), -5.5)
+
+
+def msg_sparkle() -> np.ndarray:
+    # Two high quick bells C6→E6, sparkly but soft.
+    a = bell_fm(C6, 0.42, mod_ratio=2.5, mod_index=1.4, decay=6.0)
+    b = bell_fm(E6, 0.42, mod_ratio=2.5, mod_index=1.4, decay=6.0)
+    n = int(0.72 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    buf[: len(a)] += a[: min(len(a), n)] * 0.9
+    s = int(0.12 * SR)
+    end = min(s + len(b), n)
+    buf[s:end] += b[: end - s] * 0.85
+    return normalize(edge_fades(buf), -5.5)
+
+
+def msg_airy_note() -> np.ndarray:
+    # Airy single tone with soft harmonics, breathy character.
+    sig = soft_tone(F5, 0.70, attack=0.07, release=0.40,
+                    harmonics=((1.5, 0.20), (2.0, 0.10)))
+    return normalize(edge_fades(sig), -5.5)
+
+
+def msg_tap_tone() -> np.ndarray:
+    # Polite double-blip in mid range, no harshness.
+    a = soft_tone(A5, 0.16, attack=0.005, release=0.10)
+    b = soft_tone(A5, 0.20, attack=0.005, release=0.14)
+    out = np.concatenate([a, silence(0.06), b])
+    return normalize(edge_fades(out), -5.0)
 
 
 # ============================================================================
@@ -288,6 +338,99 @@ def call_ascending_chord() -> np.ndarray:
     return normalize(edge_fades(buf, fade_out_ms=200.0), -4.5)
 
 
+def call_glass_drop() -> np.ndarray:
+    # 4 glass drops drifting upward into a held tail.
+    notes = [(D5, 0.00, 0.9), (F5, 0.45, 1.0), (A5, 0.90, 1.1), (D5, 1.55, 1.7)]
+    n = int(3.0 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    for f, start, dur in notes:
+        tone = bell_fm(f, dur, mod_ratio=3.0, mod_index=1.6, decay=3.4) * 0.75
+        s = int(start * SR)
+        end = min(s + len(tone), n)
+        buf[s:end] += tone[: end - s]
+    return normalize(edge_fades(buf, fade_out_ms=180.0), -4.8)
+
+
+def call_wood_block() -> np.ndarray:
+    # Wooden phrase G4-B4-D5 repeated, gentle decay.
+    pattern = [
+        (G4, 0.00, 0.40),
+        (B4, 0.18, 0.40),
+        (D5, 0.36, 0.50),
+        (B4, 0.60, 0.50),
+        (G4, 0.85, 0.70),
+        (G4, 1.45, 0.45),
+        (B4, 1.65, 0.45),
+        (D5, 1.88, 0.55),
+        (G4, 2.20, 0.70),
+    ]
+    n = int(2.9 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    for f, start, dur in pattern:
+        tone = warm_mallet(f, dur, decay=6.5) * 0.85
+        s = int(start * SR)
+        end = min(s + len(tone), n)
+        buf[s:end] += tone[: end - s]
+    return normalize(edge_fades(buf, fade_out_ms=120.0), -5.0)
+
+
+def call_sparkle() -> np.ndarray:
+    # Sparkle arpeggio C6 E6 G6 with shimmer cascade.
+    pattern = [
+        (C6, 0.00, 1.4),
+        (E6, 0.20, 1.4),
+        (G6, 0.42, 1.5),
+        (E6, 0.72, 1.4),
+        (C6, 1.05, 1.7),
+        (G6, 1.45, 1.5),
+        (E6, 1.80, 1.7),
+    ]
+    n = int(3.0 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    for f, start, dur in pattern:
+        tone = bell_fm(f, dur, mod_ratio=2.5, mod_index=1.4, decay=2.4) * 0.55
+        s = int(start * SR)
+        end = min(s + len(tone), n)
+        buf[s:end] += tone[: end - s]
+    return normalize(edge_fades(buf, fade_out_ms=160.0), -5.0)
+
+
+def call_airy_note() -> np.ndarray:
+    # Sustained breathy phrase F5 → A5 → C6 with pad-like tail.
+    notes = [(F5, 0.00, 1.4), (A5, 0.55, 1.4), (C6, 1.10, 2.0)]
+    n = int(3.1 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    for f, start, dur in notes:
+        tone = soft_tone(f, dur, attack=0.10, release=0.5,
+                         harmonics=((1.5, 0.18), (2.0, 0.10))) * 0.7
+        s = int(start * SR)
+        end = min(s + len(tone), n)
+        buf[s:end] += tone[: end - s]
+    return normalize(edge_fades(buf, fade_out_ms=220.0), -4.8)
+
+
+def call_tap_tone() -> np.ndarray:
+    # Polite repeated taps with breathing pauses.
+    pattern = [
+        (A5, 0.00),
+        (A5, 0.30),
+        (A5, 0.60),
+        (A5, 1.10),
+        (A5, 1.40),
+        (A5, 1.70),
+        (A5, 2.20),
+        (A5, 2.50),
+    ]
+    n = int(2.9 * SR)
+    buf = np.zeros(n, dtype=np.float64)
+    for f, start in pattern:
+        tone = soft_tone(f, 0.18, attack=0.005, release=0.10) * 0.8
+        s = int(start * SR)
+        end = min(s + len(tone), n)
+        buf[s:end] += tone[: end - s]
+    return normalize(edge_fades(buf, fade_out_ms=100.0), -5.0)
+
+
 # ============================================================================
 # Hand-raise ping (unchanged: short, polite, quiet)
 # ============================================================================
@@ -347,6 +490,11 @@ def main() -> int:
     emit("ringtones/messages/marimba_tap", msg_marimba_tap())
     emit("ringtones/messages/soft_pulse", msg_soft_pulse())
     emit("ringtones/messages/ascending_chord", msg_ascending_chord())
+    emit("ringtones/messages/glass_drop", msg_glass_drop())
+    emit("ringtones/messages/wood_block", msg_wood_block())
+    emit("ringtones/messages/sparkle", msg_sparkle())
+    emit("ringtones/messages/airy_note", msg_airy_note())
+    emit("ringtones/messages/tap_tone", msg_tap_tone())
 
     print("\nCalls (longer, mellow):")
     emit("ringtones/calls/classic_chime", call_classic_chime())
@@ -354,6 +502,11 @@ def main() -> int:
     emit("ringtones/calls/marimba_tap", call_marimba_tap())
     emit("ringtones/calls/soft_pulse", call_soft_pulse())
     emit("ringtones/calls/ascending_chord", call_ascending_chord())
+    emit("ringtones/calls/glass_drop", call_glass_drop())
+    emit("ringtones/calls/wood_block", call_wood_block())
+    emit("ringtones/calls/sparkle", call_sparkle())
+    emit("ringtones/calls/airy_note", call_airy_note())
+    emit("ringtones/calls/tap_tone", call_tap_tone())
 
     print("\nConference ping:")
     emit("conference/hand_raise", hand_raise_ping())

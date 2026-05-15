@@ -575,6 +575,16 @@ String _ringtoneLabel(AppLocalizations l10n, String id) {
       return l10n.ringtone_soft_pulse;
     case 'ascending_chord':
       return l10n.ringtone_ascending_chord;
+    case 'glass_drop':
+      return l10n.ringtone_glass_drop;
+    case 'wood_block':
+      return l10n.ringtone_wood_block;
+    case 'sparkle':
+      return l10n.ringtone_sparkle;
+    case 'airy_note':
+      return l10n.ringtone_airy_note;
+    case 'tap_tone':
+      return l10n.ringtone_tap_tone;
     case kStorageRingtoneId:
       return l10n.ringtone_storage_original;
     default:
@@ -685,9 +695,23 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
   String? _storageUrlCache;
   StreamSubscription<PlayerState>? _stateSub;
 
+  /// Кэш предзаготовленных `AudioSource` для каждого пресета. Создаются один
+  /// раз при открытии шита — сам setAsset/load выполняется лениво именно при
+  /// play, но объект-источник переиспользуется (быстрее и стабильнее, чем
+  /// строить путь заново на каждый тап).
+  late final Map<String, AudioSource> _presetSources;
+
+  /// Текущий запрос превью. Защищает от гонки между тапами — поздний finish
+  /// старого запроса не должен отменить отображение нового.
+  int _previewRequestId = 0;
+
   @override
   void initState() {
     super.initState();
+    _presetSources = {
+      for (final p in kRingtonePresets)
+        p.id: AudioSource.asset(p.assetPath(_variant)),
+    };
     // Сбрасываем индикатор только когда дорожка ДОИГРАЛА (completed) —
     // не реагируем на промежуточные buffering/idle, иначе превью гасится
     // мгновенно во время setAsset → play цепочки.
@@ -711,39 +735,49 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
   RingtoneVariant get _variant =>
       widget.forCalls ? RingtoneVariant.calls : RingtoneVariant.messages;
 
-  Future<void> _togglePreview(RingtonePreset preset) async {
+  Future<void> _playSource(String id, AudioSource source) async {
+    final requestId = ++_previewRequestId;
     try {
-      if (_previewingId == preset.id) {
-        await _previewPlayer.pause();
-        if (mounted) setState(() => _previewingId = null);
-        return;
-      }
+      // Гарантированно тормозим текущий плеер ДО смены источника.
       await _previewPlayer.stop();
-      await _previewPlayer.setAsset(preset.assetPath(_variant));
-      if (mounted) setState(() => _previewingId = preset.id);
-      await _previewPlayer.seek(Duration.zero);
+      if (!mounted || requestId != _previewRequestId) return;
+      // preload: true заставляет дождаться полной загрузки/буферизации;
+      // без него на iOS первая play() могла рассинхрониться.
+      await _previewPlayer.setAudioSource(source, preload: true);
+      if (!mounted || requestId != _previewRequestId) return;
+      setState(() => _previewingId = id);
       await _previewPlayer.play();
     } catch (e, s) {
-      debugPrint('Ringtone preview failed: $e\n$s');
-      if (mounted) setState(() => _previewingId = null);
+      debugPrint('Ringtone preview failed for $id: $e\n$s');
+      if (mounted && requestId == _previewRequestId) {
+        setState(() => _previewingId = null);
+      }
     }
   }
 
-  Future<void> _toggleStoragePreview() async {
-    try {
-      if (_previewingId == kStorageRingtoneId) {
-        await _previewPlayer.pause();
-        if (mounted) setState(() => _previewingId = null);
-        return;
-      }
+  Future<void> _togglePreview(RingtonePreset preset) async {
+    if (_previewingId == preset.id) {
       await _previewPlayer.stop();
-      final url = _storageUrlCache ??
-          await FirebaseStorage.instance.ref('audio/ringtone.mp3').getDownloadURL();
-      _storageUrlCache = url;
-      await _previewPlayer.setAudioSource(AudioSource.uri(Uri.parse(url)));
-      if (mounted) setState(() => _previewingId = kStorageRingtoneId);
-      await _previewPlayer.seek(Duration.zero);
-      await _previewPlayer.play();
+      if (mounted) setState(() => _previewingId = null);
+      return;
+    }
+    final source = _presetSources[preset.id];
+    if (source == null) return;
+    await _playSource(preset.id, source);
+  }
+
+  Future<void> _toggleStoragePreview() async {
+    if (_previewingId == kStorageRingtoneId) {
+      await _previewPlayer.stop();
+      if (mounted) setState(() => _previewingId = null);
+      return;
+    }
+    try {
+      _storageUrlCache ??= await FirebaseStorage.instance
+          .ref('audio/ringtone.mp3')
+          .getDownloadURL();
+      final source = AudioSource.uri(Uri.parse(_storageUrlCache!));
+      await _playSource(kStorageRingtoneId, source);
     } catch (e, s) {
       debugPrint('Storage ringtone preview failed: $e\n$s');
       if (mounted) setState(() => _previewingId = null);

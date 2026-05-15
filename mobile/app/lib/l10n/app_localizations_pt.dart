@@ -780,6 +780,21 @@ class AppLocalizationsPt extends AppLocalizations {
   String get ringtone_ascending_chord => 'Acorde ascendente';
 
   @override
+  String get ringtone_glass_drop => 'Gota de cristal';
+
+  @override
+  String get ringtone_wood_block => 'Bloco de madeira';
+
+  @override
+  String get ringtone_sparkle => 'Brilho';
+
+  @override
+  String get ringtone_airy_note => 'Nota aérea';
+
+  @override
+  String get ringtone_tap_tone => 'Toque';
+
+  @override
   String get ringtone_storage_original => 'Original';
 
   @override
@@ -9370,6 +9385,21 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get ringtone_ascending_chord => 'Acorde ascendente';
+
+  @override
+  String get ringtone_glass_drop => 'Gota de cristal';
+
+  @override
+  String get ringtone_wood_block => 'Bloco de madeira';
+
+  @override
+  String get ringtone_sparkle => 'Brilho';
+
+  @override
+  String get ringtone_airy_note => 'Nota aérea';
+
+  @override
+  String get ringtone_tap_tone => 'Toque';
 
   @override
   String get ringtone_storage_original => 'Original';

@@ -779,6 +779,21 @@ class AppLocalizationsId extends AppLocalizations {
   String get ringtone_ascending_chord => 'Akor naik';
 
   @override
+  String get ringtone_glass_drop => 'Tetes kaca';
+
+  @override
+  String get ringtone_wood_block => 'Balok kayu';
+
+  @override
+  String get ringtone_sparkle => 'Kilauan';
+
+  @override
+  String get ringtone_airy_note => 'Nada lapang';
+
+  @override
+  String get ringtone_tap_tone => 'Ketukan';
+
+  @override
   String get ringtone_storage_original => 'Asli';
 
   @override

@@ -29,6 +29,11 @@ export const RINGTONE_PRESETS: readonly RingtonePreset[] = [
   { id: "marimba_tap", fileName: "marimba_tap.mp3", labelKey: "ringtone_marimba_tap" },
   { id: "soft_pulse", fileName: "soft_pulse.mp3", labelKey: "ringtone_soft_pulse" },
   { id: "ascending_chord", fileName: "ascending_chord.mp3", labelKey: "ringtone_ascending_chord" },
+  { id: "glass_drop", fileName: "glass_drop.mp3", labelKey: "ringtone_glass_drop" },
+  { id: "wood_block", fileName: "wood_block.mp3", labelKey: "ringtone_wood_block" },
+  { id: "sparkle", fileName: "sparkle.mp3", labelKey: "ringtone_sparkle" },
+  { id: "airy_note", fileName: "airy_note.mp3", labelKey: "ringtone_airy_note" },
+  { id: "tap_tone", fileName: "tap_tone.mp3", labelKey: "ringtone_tap_tone" },
 ] as const;
 
 export const DEFAULT_MESSAGE_RINGTONE_ID = "classic_chime";

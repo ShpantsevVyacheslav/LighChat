@@ -780,6 +780,21 @@ class AppLocalizationsRu extends AppLocalizations {
   String get ringtone_ascending_chord => 'Восходящий аккорд';
 
   @override
+  String get ringtone_glass_drop => 'Капля стекла';
+
+  @override
+  String get ringtone_wood_block => 'Деревянный блок';
+
+  @override
+  String get ringtone_sparkle => 'Искра';
+
+  @override
+  String get ringtone_airy_note => 'Воздушная нота';
+
+  @override
+  String get ringtone_tap_tone => 'Постукивание';
+
+  @override
   String get ringtone_storage_original => 'Оригинальная';
 
   @override

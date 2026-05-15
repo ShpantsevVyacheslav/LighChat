@@ -36,6 +36,11 @@ const List<RingtonePreset> kRingtonePresets = <RingtonePreset>[
   RingtonePreset(id: 'marimba_tap', fileName: 'marimba_tap.mp3', labelKey: 'ringtone_marimba_tap'),
   RingtonePreset(id: 'soft_pulse', fileName: 'soft_pulse.mp3', labelKey: 'ringtone_soft_pulse'),
   RingtonePreset(id: 'ascending_chord', fileName: 'ascending_chord.mp3', labelKey: 'ringtone_ascending_chord'),
+  RingtonePreset(id: 'glass_drop', fileName: 'glass_drop.mp3', labelKey: 'ringtone_glass_drop'),
+  RingtonePreset(id: 'wood_block', fileName: 'wood_block.mp3', labelKey: 'ringtone_wood_block'),
+  RingtonePreset(id: 'sparkle', fileName: 'sparkle.mp3', labelKey: 'ringtone_sparkle'),
+  RingtonePreset(id: 'airy_note', fileName: 'airy_note.mp3', labelKey: 'ringtone_airy_note'),
+  RingtonePreset(id: 'tap_tone', fileName: 'tap_tone.mp3', labelKey: 'ringtone_tap_tone'),
 ];
 
 const String kDefaultMessageRingtoneId = 'classic_chime';

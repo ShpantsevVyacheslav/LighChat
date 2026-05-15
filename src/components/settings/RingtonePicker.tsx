@@ -34,6 +34,11 @@ const RINGTONE_LABEL_KEYS: Record<string, string> = {
   marimba_tap: "notifications.ringtoneMarimbaTap",
   soft_pulse: "notifications.ringtoneSoftPulse",
   ascending_chord: "notifications.ringtoneAscendingChord",
+  glass_drop: "notifications.ringtoneGlassDrop",
+  wood_block: "notifications.ringtoneWoodBlock",
+  sparkle: "notifications.ringtoneSparkle",
+  airy_note: "notifications.ringtoneAiryNote",
+  tap_tone: "notifications.ringtoneTapTone",
   [STORAGE_RINGTONE_ID]: "notifications.ringtoneStorageOriginal",
 };
 

@@ -783,6 +783,21 @@ class AppLocalizationsTr extends AppLocalizations {
   String get ringtone_ascending_chord => 'Yükselen akor';
 
   @override
+  String get ringtone_glass_drop => 'Cam damlası';
+
+  @override
+  String get ringtone_wood_block => 'Tahta blok';
+
+  @override
+  String get ringtone_sparkle => 'Pırıltı';
+
+  @override
+  String get ringtone_airy_note => 'Hafif nota';
+
+  @override
+  String get ringtone_tap_tone => 'Vuruş';
+
+  @override
   String get ringtone_storage_original => 'Orijinal';
 
   @override
