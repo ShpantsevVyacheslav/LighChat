@@ -227,6 +227,14 @@ private final class LighChatIosPipBridge: NSObject, AVPictureInPictureController
       messenger: engineBridge.applicationRegistrar.messenger())
     SpotlightBridge.shared.register(
       messenger: engineBridge.applicationRegistrar.messenger())
+    // Native composer (Phase 1): PlatformView с настоящим UITextView,
+    // даёт системные Cut/Copy/Paste/Replace/AutoFill/Writing Tools.
+    // Использование гейтится Dart-side feature flag — пока виджет
+    // подключён только в тестовой ветке.
+    let composerFactory = NativeComposerFactory(
+      messenger: engineBridge.applicationRegistrar.messenger())
+    engineBridge.applicationRegistrar.register(
+      composerFactory, withId: NativeComposerFactory.viewType)
   }
 
   override func application(

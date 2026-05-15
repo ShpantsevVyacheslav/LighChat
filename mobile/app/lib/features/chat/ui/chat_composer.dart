@@ -9,6 +9,7 @@ import 'package:lighchat_models/lighchat_models.dart';
 import '../data/composer_attachment_limits.dart';
 import '../data/composer_html_editing.dart';
 import '../data/link_preview_url_extractor.dart';
+import '../data/native_composer_flag.dart';
 import '../../../l10n/app_localizations.dart';
 import 'composer_attachment_menu.dart';
 import 'composer_editing_banner.dart';
@@ -16,6 +17,7 @@ import 'composer_formatting_toolbar.dart';
 import 'composer_link_preview.dart';
 import 'composer_pending_attachments_strip.dart';
 import 'composer_reply_banner.dart';
+import 'native_ios_composer_field.dart';
 import 'message_html_text.dart';
 import '../data/group_mention_candidates.dart';
 import '../data/mention_editor_query.dart';
@@ -164,6 +166,10 @@ class _ChatComposerState extends State<ChatComposer> {
   OverlayEntry? _attachmentOverlayEntry;
   OverlayEntry? _sendLongPressMenuEntry;
   bool _hasTypedText = false;
+  // Feature flag: использовать ли нативный UITextView (Phase 1) вместо
+  // Flutter `TextField`. Загружается асинхронно из SharedPreferences;
+  // до загрузки и на не-iOS платформах — всегда false.
+  bool _useNativeComposer = false;
   String? _mentionQuery;
   int? _mentionAtStartOffset;
   List<GroupMentionCandidate> _mentionFiltered = const [];
@@ -317,6 +323,10 @@ class _ChatComposerState extends State<ChatComposer> {
     _recomputeMentionState();
     _recomputeLinkPreview();
     widget.controller.addListener(_onComposerTextChanged);
+    unawaited(NativeComposerFlag.instance.isEnabled().then((v) {
+      if (!mounted || v == _useNativeComposer) return;
+      setState(() => _useNativeComposer = v);
+    }));
   }
 
   @override
@@ -528,6 +538,63 @@ class _ChatComposerState extends State<ChatComposer> {
     final paste = widget.onClipboardToolbarPaste;
     final inStickerSearchMode =
         widget.stickersPanelOpen && widget.onStickersSearchChanged != null;
+
+    // Native composer (Phase 1): только в обычном режиме, не в sticker-
+    // search'е. Sticker-search использует короткое single-line поле — на
+    // нём нативная UX-плюшка (Cut/Copy/Replace/Writing Tools) не нужна,
+    // оставляем Flutter TextField. Paste-файлов / mention picker /
+    // formatting toolbar пока тоже идут через legacy путь — это Phase
+    // 2/3 нативного композера.
+    if (_useNativeComposer && !inStickerSearchMode) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(0, 10, 0, 6),
+              child: NativeIosComposerField(
+                controller: widget.controller,
+                focusNode: widget.focusNode,
+                hint: l10n.chat_composer_hint_message,
+                textStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: fg,
+                ),
+                hintStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: hintFg,
+                ),
+                cursorColor: scheme.primary,
+                minLines: 1,
+                maxLines: 6,
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: l10n.chat_composer_tooltip_stickers,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            onPressed: widget.sendBusy
+                ? null
+                : (widget.stickersPanelOpen
+                      ? _openKeyboardFromStickerMode
+                      : _openStickersPanel),
+            icon: Icon(
+              widget.stickersPanelOpen
+                  ? Icons.keyboard_rounded
+                  : Icons.emoji_emotions_outlined,
+              size: 20,
+              color: widget.sendBusy
+                  ? hintFg.withValues(alpha: 0.65)
+                  : fg.withValues(alpha: 0.88),
+            ),
+          ),
+        ],
+      );
+    }
+
     final tf = TextField(
       controller: widget.controller,
       focusNode: widget.focusNode,
