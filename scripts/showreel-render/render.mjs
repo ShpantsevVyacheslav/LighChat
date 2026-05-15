@@ -4,7 +4,9 @@
  *
  * Pipeline:
  *  1. Парсит `voiceover.json` (тексты сцен + длительности).
- *  2. `say` генерирует .aiff для каждой сцены, мы паддим silence'ом до целевой длительности.
+ *  2. ElevenLabs TTS API генерирует .mp3 для каждой сцены (модель
+ *     `eleven_multilingual_v2`, голоса Rachel/Bella). Паддим silence'ом
+ *     до целевой длительности.
  *  3. Конкатим все сегменты в один `voiceover.m4a`.
  *  4. Playwright Chromium открывает `showreel-standalone.html?lang=ru` в headless,
  *     записывает .webm через page.video() ровно столько, сколько играется showreel.
@@ -12,7 +14,9 @@
  *     (h264 + AAC).
  *
  * Запуск:
- *   node render.mjs --lang=ru
+ *   ELEVENLABS_API_KEY=sk_... node render.mjs --lang=ru
+ *   (или положите ключ в `.env.local` — он подхватится автоматически).
+ *
  *   node render.mjs --lang=en  --width=1920 --height=1080
  */
 
@@ -21,8 +25,39 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, statSync, r
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+// --- .env.local loader (mini-dotenv) ---------------------------------------
+// Не тянем зависимостей: читаем `KEY=VALUE` построчно из .env.local,
+// если файл есть. Уже выставленные переменные не перезаписываются.
+function loadEnvLocal(scriptDir) {
+  const file = join(scriptDir, '.env.local');
+  if (!existsSync(file)) return;
+  for (const raw of readFileSync(file, 'utf8').split('\n')) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq < 0) continue;
+    const key = line.slice(0, eq).trim();
+    let val = line.slice(eq + 1).trim();
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    if (!process.env[key]) process.env[key] = val;
+  }
+}
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..', '..');
+
+loadEnvLocal(__dirname);
+
+const ELEVEN_API_KEY = process.env.ELEVENLABS_API_KEY;
+if (!ELEVEN_API_KEY) {
+  console.error('✖ ELEVENLABS_API_KEY не задан.');
+  console.error('  Создайте scripts/showreel-render/.env.local со строкой:');
+  console.error('    ELEVENLABS_API_KEY=sk_...');
+  console.error('  Или экспортируйте переменную перед запуском.');
+  process.exit(1);
+}
 
 // --- CLI args ---------------------------------------------------------------
 
@@ -53,45 +88,96 @@ mkdirSync(VIDEO_DIR, { recursive: true });
 console.log(`▶ LighChat showreel renderer · lang=${LANG} · ${WIDTH}×${HEIGHT}`);
 console.log(`  out → ${OUT_MP4}`);
 
-// --- Step 1: voiceover via say + ffmpeg padding ----------------------------
+// --- Step 1: voiceover via ElevenLabs API + ffmpeg padding -----------------
 
 const vo = JSON.parse(readFileSync(VO_JSON, 'utf8'))[LANG];
 if (!vo) throw new Error(`No voiceover for lang=${LANG}`);
+if (!vo.elevenlabs) throw new Error(`voiceover.json: no .elevenlabs config for ${LANG}`);
+
+const el = vo.elevenlabs;
+console.log(`  · TTS engine: ElevenLabs · voice=${el.voiceName} (${el.voiceId}) · model=${el.modelId}`);
+
+async function elevenLabsTts(text, outMp3Path, { retries = 3 } = {}) {
+  const url = `https://api.elevenlabs.io/v1/text-to-speech/${el.voiceId}?output_format=mp3_44100_128`;
+  const body = JSON.stringify({
+    text,
+    model_id: el.modelId,
+    voice_settings: {
+      stability: el.stability ?? 0.5,
+      similarity_boost: el.similarityBoost ?? 0.75,
+      style: el.style ?? 0,
+      use_speaker_boost: el.speakerBoost ?? true,
+    },
+  });
+  // Ретраим только сетевые ошибки и 5xx. 4xx (например 402 paid_plan_required)
+  // повторять бессмысленно — это конфигурационная проблема, не транзиентная.
+  let lastErr;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': ELEVEN_API_KEY,
+          'Content-Type': 'application/json',
+          accept: 'audio/mpeg',
+        },
+        body,
+      });
+      if (res.ok) {
+        const buf = Buffer.from(await res.arrayBuffer());
+        writeFileSync(outMp3Path, buf);
+        return buf.length;
+      }
+      const errText = await res.text().catch(() => '');
+      if (res.status < 500) {
+        // 4xx — не ретраим
+        throw new Error(`ElevenLabs HTTP ${res.status}: ${errText.slice(0, 400)}`);
+      }
+      lastErr = new Error(`ElevenLabs HTTP ${res.status}: ${errText.slice(0, 400)}`);
+    } catch (e) {
+      lastErr = e;
+      // network errors (UND_ERR_SOCKET, ECONNRESET, fetch failed) — ретраим
+      if (!/fetch failed|SocketError|ECONN|ENETUNREACH|HTTP 5\d\d/.test(String(e.message || e))) {
+        throw e;
+      }
+    }
+    const delay = 1000 * attempt; // 1s, 2s, 3s
+    console.warn(`    ⚠ TTS attempt ${attempt}/${retries} failed (${lastErr.message}); retrying in ${delay}ms…`);
+    await new Promise((r) => setTimeout(r, delay));
+  }
+  throw lastErr;
+}
 
 const segmentFiles = [];
 let totalMs = 0;
+let totalChars = 0;
 
 for (const [idx, scene] of vo.scenes.entries()) {
   const seg = String(idx).padStart(2, '0') + '_' + scene.id;
-  const aiff = join(VO_DIR, `${seg}.aiff`);
+  const mp3 = join(VO_DIR, `${seg}.mp3`);
   const m4a = join(VO_DIR, `${seg}.m4a`);
-  console.log(`  · vo ${seg} (${scene.durationMs}ms)`);
+  console.log(`  · vo ${seg} (${scene.durationMs}ms · ${scene.text.length} chars)`);
+  totalChars += scene.text.length;
 
-  // 1.1. Сначала генерим речь
-  const sayRes = spawnSync(
-    'say',
-    ['-v', vo.voice, '-r', String(vo.rate), '-o', aiff, scene.text],
-    { stdio: 'inherit' },
-  );
-  if (sayRes.status !== 0) throw new Error(`say failed for scene ${scene.id}`);
+  // 1.1. Генерим речь через ElevenLabs (возвращает mp3 44.1kHz 128kbps)
+  const audioBytes = await elevenLabsTts(scene.text, mp3);
+  if (audioBytes < 1000) throw new Error(`tts produced suspiciously small audio for ${seg}: ${audioBytes}B`);
 
   // 1.2. Узнаём реальную длительность speech (sec)
   const probe = spawnSync(
     'ffprobe',
-    ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', aiff],
+    ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', mp3],
     { encoding: 'utf8' },
   );
   const speechSec = Number(String(probe.stdout).trim()) || 0;
   const speechMs = Math.round(speechSec * 1000);
   const targetMs = scene.durationMs;
-  // Делаем audio ровно `targetMs` миллисекунд: speech + silence padding
+  // Делаем audio ровно `targetMs` миллисекунд: speech + silence padding.
+  // Если речь длиннее сцены — atrim обрежет конец (не должно случаться при
+  // нормальных тайминигах, но страхует).
   const padMs = Math.max(0, targetMs - speechMs);
 
   // 1.3. Конвертим в AAC c паддингом silence через apad+atrim.
-  // Формула:
-  //   apad=pad_dur=PAD_SEC   — добавить тишины в конец
-  //   atrim=end=TARGET_SEC   — обрезать ровно по целевой длительности
-  //   aresample=async=1      — выравнивание клока
   const targetSec = (targetMs / 1000).toFixed(3);
   const padSec = (padMs / 1000).toFixed(3);
   const filter = `apad=pad_dur=${padSec},atrim=end=${targetSec},aresample=async=1`;
@@ -100,12 +186,12 @@ for (const [idx, scene] of vo.scenes.entries()) {
     'ffmpeg',
     [
       '-y',
-      '-i', aiff,
+      '-i', mp3,
       '-af', filter,
       '-ac', '2',
       '-ar', '44100',
       '-c:a', 'aac',
-      '-b:a', '128k',
+      '-b:a', '160k',
       m4a,
     ],
     { stdio: 'inherit' },
@@ -115,6 +201,8 @@ for (const [idx, scene] of vo.scenes.entries()) {
   segmentFiles.push(m4a);
   totalMs += targetMs;
 }
+
+console.log(`  ✓ ElevenLabs spent: ${totalChars} chars (free tier = 10 000/mo)`);
 
 console.log(`  ✓ voiceover: ${segmentFiles.length} segments, total ${(totalMs / 1000).toFixed(1)}s`);
 

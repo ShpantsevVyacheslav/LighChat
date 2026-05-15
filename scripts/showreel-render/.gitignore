@@ -2,3 +2,6 @@ node_modules/
 .work/
 *.mp4
 *.webm
+.env
+.env.*
+!.env.example

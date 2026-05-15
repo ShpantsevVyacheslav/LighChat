@@ -2,6 +2,15 @@
   "ru": {
     "voice": "Milena",
     "rate": 200,
+    "elevenlabs": {
+      "voiceId": "EXAVITQu4vr4xnSDxMaL",
+      "voiceName": "Sarah",
+      "modelId": "eleven_multilingual_v2",
+      "stability": 0.55,
+      "similarityBoost": 0.78,
+      "style": 0.15,
+      "speakerBoost": true
+    },
     "scenes": [
       { "id": "intro", "durationMs": 8000, "text": "Знакомьтесь с LighChat. Мессенджер, который объединяет переписку, звонки, видеовстречи, игры и AI прямо на вашем устройстве." },
       { "id": "encryption", "durationMs": 14000, "text": "Сквозное шифрование. Включите E2EE — и сообщения видите только вы и собеседник. Сервер LighChat физически не может их прочитать. Сравните отпечатки ключей, чтобы убедиться: посередине нет третьего." },
@@ -24,6 +33,15 @@
   "en": {
     "voice": "Samantha",
     "rate": 195,
+    "elevenlabs": {
+      "voiceId": "Xb7hH8MSUJpSbSDYk0k2",
+      "voiceName": "Alice",
+      "modelId": "eleven_multilingual_v2",
+      "stability": 0.6,
+      "similarityBoost": 0.8,
+      "style": 0.1,
+      "speakerBoost": true
+    },
     "scenes": [
       { "id": "intro", "durationMs": 8000, "text": "Meet LighChat. A messenger that brings chat, calls, video meetings, games, and AI together right on your device." },
       { "id": "encryption", "durationMs": 14000, "text": "End-to-end encryption. Turn it on, and only you and the recipient can read the messages. LighChat servers physically cannot decrypt them. Compare the key fingerprints to make sure no one is in the middle." },
