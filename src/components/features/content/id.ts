@@ -16,6 +16,7 @@ export const id_ID: FeaturesContent = {
   relatedTitle: 'Lihat juga',
   backToList: 'Kembali ke fitur',
   fromWelcomeBadge: 'Tur',
+  showreelCta: 'Tonton tur dengan narasi',
   welcomeOverlay: {
     title: 'Temukan fitur-fitur LighChat',
     subtitle:
@@ -471,5 +472,9 @@ export const id_ID: FeaturesContent = {
     privacyShowEmail: 'Email',
     privacyShowPhone: 'Telepon',
     privacyMoreFields: 'dan lainnya: tanggal lahir, bio',
+    aiPickerTitle: 'Pilih gaya',
+    navOpenInMaps: 'Buka di peta',
+    navOpenInTaxi: 'Panggil taksi',
+    navAddToCalendar: 'Tambah ke kalender',
   },
 };

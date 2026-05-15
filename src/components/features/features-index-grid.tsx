@@ -2,7 +2,8 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, Sparkles } from 'lucide-react';
+import { ArrowUpRight, Play, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/hooks/use-i18n';
@@ -10,13 +11,17 @@ import { ACCENT_CLASSES, FEATURE_TOPICS } from './features-data';
 import { FeatureMockFrame } from './feature-mock-frame';
 import { MockHero } from './illustrations/hero';
 import { getFeaturesContent } from './features-content';
+import { FeaturesShowreel } from './showreel/features-showreel';
+import { SHOWREEL_TOTAL_MS } from './showreel/showreel-scenes';
 
 export function FeaturesIndexGrid({ source }: { source?: string }) {
   const { locale } = useI18n();
   const content = React.useMemo(() => getFeaturesContent(locale), [locale]);
+  const [showreelOpen, setShowreelOpen] = React.useState(false);
 
   const flagships = FEATURE_TOPICS.filter((t) => t.highlight);
   const others = FEATURE_TOPICS.filter((t) => !t.highlight);
+  const totalMin = Math.round(SHOWREEL_TOTAL_MS / 60000);
 
   return (
     <div className="space-y-12">
@@ -35,11 +40,25 @@ export function FeaturesIndexGrid({ source }: { source?: string }) {
           <p className="max-w-xl text-base text-muted-foreground sm:text-lg">
             {content.pageHeroSecondary}
           </p>
+          {/* CTA «Watch the tour» — открывает showreel-плеер */}
+          <Button
+            type="button"
+            variant="default"
+            size="lg"
+            onClick={() => setShowreelOpen(true)}
+            className="mt-3 gap-2 shadow-lg shadow-primary/25"
+          >
+            <Play className="h-4 w-4 fill-current" aria-hidden />
+            {content.showreelCta}
+            <span className="text-xs font-medium opacity-80">· {totalMin} min</span>
+          </Button>
         </div>
         <div className="relative h-[260px] sm:h-[340px] lg:h-[400px]">
           <MockHero />
         </div>
       </section>
+
+      <FeaturesShowreel open={showreelOpen} onClose={() => setShowreelOpen(false)} />
 
       {/* Highlights */}
       <section className="space-y-4">

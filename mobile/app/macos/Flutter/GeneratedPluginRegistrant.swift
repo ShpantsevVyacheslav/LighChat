@@ -28,6 +28,7 @@ import firebase_storage
 import flutter_contacts
 import flutter_local_notifications
 import flutter_secure_storage_macos
+import flutter_tts
 import flutter_webrtc
 import gal
 import geolocator_apple
@@ -73,6 +74,7 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   FlutterContactsPlugin.register(with: registry.registrar(forPlugin: "FlutterContactsPlugin"))
   FlutterLocalNotificationsPlugin.register(with: registry.registrar(forPlugin: "FlutterLocalNotificationsPlugin"))
   FlutterSecureStoragePlugin.register(with: registry.registrar(forPlugin: "FlutterSecureStoragePlugin"))
+  FlutterTtsPlugin.register(with: registry.registrar(forPlugin: "FlutterTtsPlugin"))
   FlutterWebRTCPlugin.register(with: registry.registrar(forPlugin: "FlutterWebRTCPlugin"))
   GalPlugin.register(with: registry.registrar(forPlugin: "GalPlugin"))
   GeolocatorPlugin.register(with: registry.registrar(forPlugin: "GeolocatorPlugin"))

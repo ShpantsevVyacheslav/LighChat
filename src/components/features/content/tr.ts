@@ -17,6 +17,7 @@ export const tr: FeaturesContent = {
   relatedTitle: 'Ayrıca bakın',
   backToList: 'Özelliklere dön',
   fromWelcomeBadge: 'Tur',
+  showreelCta: 'Anlatımlı turu izle',
   welcomeOverlay: {
     title: 'LighChat özelliklerini keşfedin',
     subtitle:
@@ -472,5 +473,9 @@ export const tr: FeaturesContent = {
     privacyShowEmail: 'E-posta',
     privacyShowPhone: 'Telefon',
     privacyMoreFields: 've daha: doğum tarihi, bio',
+    aiPickerTitle: 'Stil seçin',
+    navOpenInMaps: 'Haritalarda aç',
+    navOpenInTaxi: 'Taksi çağır',
+    navAddToCalendar: 'Takvime ekle',
   },
 };

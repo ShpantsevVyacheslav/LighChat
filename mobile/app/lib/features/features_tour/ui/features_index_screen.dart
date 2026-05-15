@@ -56,6 +56,18 @@ class FeaturesIndexScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Text(content.heroSecondary,
               style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.65))),
+          const SizedBox(height: 14),
+          // CTA «Смотреть тур» — открывает FeaturesShowreelScreen с озвучкой
+          // через flutter_tts (на iOS — AVSpeechSynthesizer premium voice).
+          FilledButton.icon(
+            onPressed: () => context.push('/features/showreel'),
+            icon: const Icon(Icons.play_arrow_rounded, size: 20),
+            label: Text(content.showreelCta),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+          ),
           const SizedBox(height: 24),
           Text(content.highlightTitle,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),

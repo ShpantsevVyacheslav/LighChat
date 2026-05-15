@@ -137,6 +137,12 @@ export type FeaturesMockText = {
   privacyShowEmail: string;
   privacyShowPhone: string;
   privacyMoreFields: string;
+  // AI Smart Compose
+  aiPickerTitle: string;
+  // Navigator + Calendar picker
+  navOpenInMaps: string;
+  navOpenInTaxi: string;
+  navAddToCalendar: string;
 };
 
 export type FeaturesContent = {
@@ -153,6 +159,8 @@ export type FeaturesContent = {
   relatedTitle: string;
   backToList: string;
   fromWelcomeBadge: string;
+  /** CTA-кнопка «Watch the 3-min tour» в hero на странице фич. */
+  showreelCta: string;
   welcomeOverlay: {
     title: string;
     subtitle: string;
@@ -180,6 +188,7 @@ const ru: FeaturesContent = {
   relatedTitle: 'Смотрите также',
   backToList: 'К списку возможностей',
   fromWelcomeBadge: 'Знакомство',
+  showreelCta: 'Смотреть тур с озвучкой',
   welcomeOverlay: {
     title: 'Откройте возможности LighChat',
     subtitle:
@@ -635,6 +644,10 @@ const ru: FeaturesContent = {
     privacyShowEmail: 'Email',
     privacyShowPhone: 'Телефон',
     privacyMoreFields: 'и ещё: дата рождения, био',
+    aiPickerTitle: 'Выберите стиль',
+    navOpenInMaps: 'Открыть в картах',
+    navOpenInTaxi: 'Вызвать такси',
+    navAddToCalendar: 'Добавить в календарь',
   },
 };
 
@@ -654,6 +667,7 @@ const en: FeaturesContent = {
   relatedTitle: 'See also',
   backToList: 'Back to features',
   fromWelcomeBadge: 'Tour',
+  showreelCta: 'Watch the voiced tour',
   welcomeOverlay: {
     title: 'Discover LighChat features',
     subtitle:
@@ -1109,6 +1123,10 @@ const en: FeaturesContent = {
     privacyShowEmail: 'Email',
     privacyShowPhone: 'Phone',
     privacyMoreFields: 'plus: date of birth, bio',
+    aiPickerTitle: 'Pick a style',
+    navOpenInMaps: 'Open in maps',
+    navOpenInTaxi: 'Hail a taxi',
+    navAddToCalendar: 'Add to calendar',
   },
 };
 
@@ -1128,6 +1146,7 @@ const ptBR: FeaturesContent = {
   relatedTitle: 'Veja também',
   backToList: 'Voltar aos recursos',
   fromWelcomeBadge: 'Tour',
+  showreelCta: 'Assistir tour com narração',
   welcomeOverlay: {
     title: 'Descubra os recursos do LighChat',
     subtitle:
@@ -1583,6 +1602,10 @@ const ptBR: FeaturesContent = {
     privacyShowEmail: 'E-mail',
     privacyShowPhone: 'Telefone',
     privacyMoreFields: 'e mais: data de nascimento, bio',
+    aiPickerTitle: 'Escolha um estilo',
+    navOpenInMaps: 'Abrir nos mapas',
+    navOpenInTaxi: 'Chamar um táxi',
+    navAddToCalendar: 'Adicionar ao calendário',
   },
 };
 
@@ -1602,6 +1625,7 @@ const esMX: FeaturesContent = {
   relatedTitle: 'Ver también',
   backToList: 'Volver a las funciones',
   fromWelcomeBadge: 'Tour',
+  showreelCta: 'Ver tour con narración',
   welcomeOverlay: {
     title: 'Descubre las funciones de LighChat',
     subtitle:
@@ -2057,6 +2081,10 @@ const esMX: FeaturesContent = {
     privacyShowEmail: 'Correo',
     privacyShowPhone: 'Teléfono',
     privacyMoreFields: 'y más: fecha de nacimiento, bio',
+    aiPickerTitle: 'Elige un estilo',
+    navOpenInMaps: 'Abrir en mapas',
+    navOpenInTaxi: 'Pedir un taxi',
+    navAddToCalendar: 'Añadir al calendario',
   },
 };
 

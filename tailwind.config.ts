@@ -274,6 +274,11 @@ export default {
           '95%': { offsetDistance: '100%' },
           '100%': { offsetDistance: '0%' },
         },
+        /** Лёгкий Ken-Burns зум на сцене showreel: 1.0 → 1.06 за сцену. */
+        'feat-ken-burns': {
+          '0%': { transform: 'scale(1)' },
+          '100%': { transform: 'scale(1.06)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -311,6 +316,8 @@ export default {
         /** Live-location: trail + бегущий пин — 16s цикл, согласованы. */
         'feat-live-trail': 'feat-live-trail 16s ease-in-out infinite',
         'feat-live-pin': 'feat-live-pin 16s ease-in-out infinite',
+        /** Showreel: лёгкий Ken-Burns на длительность одной сцены (~12s). */
+        'feat-ken-burns': 'feat-ken-burns 12s ease-out forwards',
       },
     },
   },

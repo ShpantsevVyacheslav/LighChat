@@ -16,6 +16,7 @@ export const uz: FeaturesContent = {
   relatedTitle: 'Shuningdek qarang',
   backToList: 'Imkoniyatlarga qaytish',
   fromWelcomeBadge: 'Sayohat',
+  showreelCta: 'Ovozli sayohatni tomosha qilish',
   welcomeOverlay: {
     title: 'LighChat imkoniyatlarini kashf eting',
     subtitle:
@@ -471,5 +472,9 @@ export const uz: FeaturesContent = {
     privacyShowEmail: 'Email',
     privacyShowPhone: 'Telefon',
     privacyMoreFields: 'va yana: tugʻilgan kun, bio',
+    aiPickerTitle: 'Uslubni tanlang',
+    navOpenInMaps: 'Xaritalarda ochish',
+    navOpenInTaxi: 'Taksi chaqirish',
+    navAddToCalendar: 'Kalendarga qoʻshish',
   },
 };

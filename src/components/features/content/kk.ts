@@ -16,6 +16,7 @@ export const kk: FeaturesContent = {
   relatedTitle: 'Тағы қараңыз',
   backToList: 'Мүмкіндіктер тізіміне',
   fromWelcomeBadge: 'Танысу',
+  showreelCta: 'Дауыспен тур қарау',
   welcomeOverlay: {
     title: 'LighChat мүмкіндіктерін ашыңыз',
     subtitle:
@@ -471,6 +472,10 @@ export const kk: FeaturesContent = {
     privacyShowEmail: 'Email',
     privacyShowPhone: 'Телефон',
     privacyMoreFields: 'және тағы: туған күн, био',
+    aiPickerTitle: 'Стиль таңдаңыз',
+    navOpenInMaps: 'Карталарда ашу',
+    navOpenInTaxi: 'Такси шақыру',
+    navAddToCalendar: 'Күнтізбеге қосу',
   },
 };
 

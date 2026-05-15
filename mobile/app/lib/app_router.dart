@@ -57,6 +57,7 @@ import 'features/welcome/data/first_login_animation_storage.dart';
 import 'features/welcome/ui/welcome_animation_screen.dart';
 import 'features/features_tour/data/features_data.dart';
 import 'features/features_tour/ui/features_index_screen.dart';
+import 'features/features_tour/ui/features_showreel_screen.dart';
 import 'features/features_tour/ui/features_topic_screen.dart';
 import 'features/legal/data/legal_documents.dart' as legal_data;
 import 'features/legal/ui/legal_document_screen.dart';
@@ -257,6 +258,10 @@ GoRouter createRouter() {
           final source = state.uri.queryParameters['source'];
           return FeaturesIndexScreen(fromWelcome: source == 'welcome');
         },
+      ),
+      GoRoute(
+        path: '/features/showreel',
+        builder: (context, state) => const FeaturesShowreelScreen(),
       ),
       GoRoute(
         path: '/features/:topic',

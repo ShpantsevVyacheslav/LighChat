@@ -296,6 +296,7 @@ class FeaturesContent {
     required this.relatedTitle,
     required this.backToList,
     required this.fromWelcomeBadge,
+    required this.showreelCta,
     required this.welcomeTitle,
     required this.welcomeSubtitle,
     required this.welcomePrimaryCta,
@@ -317,6 +318,7 @@ class FeaturesContent {
   final String relatedTitle;
   final String backToList;
   final String fromWelcomeBadge;
+  final String showreelCta;
   final String welcomeTitle;
   final String welcomeSubtitle;
   final String welcomePrimaryCta;
@@ -459,6 +461,7 @@ const _kRu = FeaturesContent(
   relatedTitle: 'Смотрите также',
   backToList: 'К списку возможностей',
   fromWelcomeBadge: 'Знакомство',
+  showreelCta: 'Смотреть тур с озвучкой',
   welcomeTitle: 'Откройте возможности LighChat',
   welcomeSubtitle:
       'За две минуты покажем, чем LighChat отличается от привычных мессенджеров: шифрование, секретные чаты, игры и встречи. К туру можно вернуться в любой момент через меню настроек.',
@@ -936,6 +939,7 @@ const _kEn = FeaturesContent(
   relatedTitle: 'See also',
   backToList: 'Back to features',
   fromWelcomeBadge: 'Tour',
+  showreelCta: 'Watch the voiced tour',
   welcomeTitle: 'Discover LighChat features',
   welcomeSubtitle:
       'Two minutes to see what makes LighChat different: encryption, secret chats, games and meetings. You can come back to the tour any time from the settings menu.',
