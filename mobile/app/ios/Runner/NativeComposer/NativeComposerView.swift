@@ -314,6 +314,13 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
   /// текстового изменения `textViewDidChange` сериализует attributed
   /// обратно в HTML и шлёт в Dart, всё совместимо.
   private func toggleFormat(tag: String) {
+    // Format sheet (modal над клавиатурой) может временно отнять
+    // firstResponder у UITextView — тогда `typingAttributes`, которые мы
+    // выставим ниже, не применятся к следующему вводу. Гарантируем что
+    // UITextView активен перед мутацией.
+    if !textView.isFirstResponder {
+      _ = textView.becomeFirstResponder()
+    }
     // Animated text effects (Phase 6) идут отдельной веткой: они
     // мутируют только `effectKey`, не font traits.
     if MentionAttributedString.knownEffects.contains(tag) {
@@ -447,10 +454,15 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
     func patchAttrs(_ attrs: inout [NSAttributedString.Key: Any]) {
       if let e = nextEffect {
         attrs[MentionAttributedString.effectKey] = e
-        // Визуально подкрашиваем — semibold + accent, чтобы юзер видел
-        // что блок особый.
-        attrs[.font] = UIFont.systemFont(ofSize: baseFont.pointSize, weight: .semibold)
-        attrs[.foregroundColor] = accentColor
+        // Big/Small меняют реальный pointSize, чтобы юзер видел
+        // изменение в композере (bug 5). На receiver-side
+        // `AnimatedTextSpan` рендерит тот же масштаб (bug 4 закрывается
+        // автоматически — HTML уже корректно сохраняет `data-anim`).
+        // Animated effects (shake/nod/…) — только semibold + accent;
+        // саму анимацию проигрывает receiver.
+        MentionAttributedString._applyEffectVisualStyle(
+          &attrs, effect: e, baseFont: baseFont,
+          baseColor: baseColor, accentColor: accentColor)
       } else {
         attrs.removeValue(forKey: MentionAttributedString.effectKey)
         attrs[.font] = baseFont
@@ -531,15 +543,20 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
     notifyContentHeightIfChanged()
     if isApplyingRemoteText { return }
     // Phase 8: системная emoji-клавиатура (вкладка Stickers/Memoji/Genmoji)
-    // вставляет картинку в UITextView как `NSTextAttachment`. Наш
-    // `serialize()` не знает про attachment-runs — нужно их вытащить,
-    // сохранить в tmp PNG, удалить из attributedText и отдать Dart как
-    // обычные image-attachment'ы (через pendingAttachments pipeline).
+    // вставляет картинку в UITextView как `NSTextAttachment` или (iOS 18+)
+    // как `NSAdaptiveImageGlyph`. Наш `serialize()` не знает про
+    // attachment-runs — нужно их вытащить, сохранить в tmp PNG, удалить
+    // из attributedText и отдать Dart как обычные image-attachment'ы.
     let extracted = extractAndRemoveInlineImageAttachments()
     if !extracted.isEmpty {
       channel.invokeMethod(
         "attachmentInserted", arguments: ["paths": extracted])
     }
+    // Bug 6: системное iOS Format menu (iOS 18+) умеет менять цвет
+    // шрифта, но наш HTML-протокол его не передаёт. Сбрасываем кастомные
+    // foregroundColor'ы обратно в baseColor, чтобы UX был honest: цвет
+    // в композере не «застревает» после того как юзер ткнул на palette.
+    normalizeForegroundColorsToBase()
     let plain = currentPlainText()
     let sel = plainSelection(plain)
     channel.invokeMethod(
@@ -549,6 +566,35 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
         "selectionStart": sel.start,
         "selectionEnd": sel.end,
       ])
+  }
+
+  /// Обходит все runs `attributedText`, для не-mention и не-effect runs
+  /// сбрасывает `foregroundColor` обратно в `baseColor`. Mention-чипы и
+  /// animated/size effect-run'ы оставляем — у них кастомный цвет
+  /// (accent / faded) задан осознанно.
+  private func normalizeForegroundColorsToBase() {
+    let attr = textView.attributedText
+    guard let attr = attr, attr.length > 0 else { return }
+    let mut = NSMutableAttributedString(attributedString: attr)
+    let full = NSRange(location: 0, length: attr.length)
+    var changed = false
+    mut.enumerateAttributes(in: full, options: []) { attrs, range, _ in
+      if attrs[MentionAttributedString.tokenKey] != nil { return }
+      if attrs[MentionAttributedString.effectKey] != nil { return }
+      if let c = attrs[.foregroundColor] as? UIColor, c != baseColor {
+        mut.removeAttribute(.foregroundColor, range: range)
+        mut.addAttribute(.foregroundColor, value: baseColor, range: range)
+        changed = true
+      }
+    }
+    if changed {
+      let sel = textView.selectedRange
+      isApplyingRemoteText = true
+      textView.attributedText = mut
+      textView.selectedRange = NSRange(
+        location: min(sel.location, mut.length), length: sel.length)
+      isApplyingRemoteText = false
+    }
   }
 
   /// Ищет в `attributedText` все `NSTextAttachment`-run'ы с реальной
@@ -565,19 +611,40 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
     guard let attr = attr, attr.length > 0 else { return [] }
     let full = NSRange(location: 0, length: attr.length)
     var hits: [(range: NSRange, image: UIImage)] = []
+    // Classic stickers / memoji legacy: вставляются как NSTextAttachment
+    // с image либо dynamic `image(forBounds:textContainer:...)`. Передаём
+    // настоящий textContainer — без него iOS возвращает nil для рендеров,
+    // которые зависят от layout (часть memoji-вариантов).
     attr.enumerateAttribute(.attachment, in: full, options: []) {
       val, range, _ in
       guard let attach = val as? NSTextAttachment else { return }
       var img: UIImage? = attach.image
       if img == nil {
         img = attach.image(
-          forBounds: attach.bounds, textContainer: nil,
+          forBounds: attach.bounds,
+          textContainer: textView.textContainer,
           characterIndex: range.location)
       }
       if img == nil, let data = attach.contents {
         img = UIImage(data: data)
       }
       if let i = img { hits.append((range, i)) }
+    }
+    // Bug 2: Genmoji (iOS 18.1+ Apple Intelligence) вставляется НЕ как
+    // attachment, а как обычный «adaptive image glyph» character — через
+    // NSAttributedString.Key.adaptiveImageGlyph + NSAdaptiveImageGlyph,
+    // у которого есть `imageContent: Data` (PNG/HEIC raw).
+    if #available(iOS 18.0, *) {
+      let key = NSAttributedString.Key("NSAdaptiveImageGlyph")
+      attr.enumerateAttribute(key, in: full, options: []) { val, range, _ in
+        // NSAdaptiveImageGlyph — Obj-C class; используем KVC чтобы не
+        // тащить новый import (тип объявлен в UIKit/CoreText).
+        guard let any = val as? NSObject else { return }
+        let data = any.value(forKey: "imageContent") as? Data
+        if let d = data, let img = UIImage(data: d) {
+          hits.append((range, img))
+        }
+      }
     }
     if hits.isEmpty { return [] }
 

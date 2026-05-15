@@ -22,9 +22,21 @@ Future<void> showComposerFormatSheet({
 }) {
   return showModalBottomSheet<void>(
     context: context,
+    // isScrollControlled позволяет sheet'у занимать пространство сверх
+    // дефолтных 56%, и (важно!) подсчитывать MediaQuery.viewInsets.bottom
+    // — иначе клавиатура перекрывает кнопки форматирования.
+    isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.32),
-    builder: (_) => _FormatSheetBody(onToggle: onToggle),
+    builder: (ctx) {
+      // Bug 3: sheet был спрятан под клавиатурой. Поднимаем над неё
+      // ровно на её высоту через viewInsets.bottom — sheet «сидит» на
+      // верхушке клавиатуры, как Apple Notes / iMessage Format.
+      return Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(ctx).bottom),
+        child: _FormatSheetBody(onToggle: onToggle),
+      );
+    },
   );
 }
 

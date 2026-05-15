@@ -50,11 +50,9 @@ enum MentionAttributedString {
           for: traits, baseFont: baseFont, baseColor: baseColor)
         if let effect = activeEffect {
           attrs[effectKey] = effect
-          // Визуально в редакторе показываем effect-run чуть отличным:
-          // semibold + accent цвет (анимация только на receiver-side).
-          attrs[.font] = UIFont.systemFont(
-            ofSize: baseFont.pointSize, weight: .semibold)
-          attrs[.foregroundColor] = accentColor
+          _applyEffectVisualStyle(
+            &attrs, effect: effect, baseFont: baseFont,
+            baseColor: baseColor, accentColor: accentColor)
         }
         result.append(NSAttributedString(string: s, attributes: attrs))
       case .mention(let full, let label):
@@ -77,6 +75,40 @@ enum MentionAttributedString {
       }
     }
     return result
+  }
+
+  /// Применяет визуальный стиль animated/size effect-а к атрибутам:
+  ///  - `big` — реальный масштаб 1.4× + semibold (Receiver-side тоже даёт
+  ///    1.4×, см. `AnimatedTextSpan`),
+  ///  - `small` — масштаб 0.72× + лёгкое затухание (parity с receiver),
+  ///  - shake/nod/ripple/bloom/jitter — semibold + accent (anim
+  ///    проигрывается только на receiver-side).
+  ///
+  /// Используется при render'е (`<span data-anim="X">…`) и при
+  /// `toggleEffect`. Без этой нормализации `big`/`small` визуально
+  /// идентичны обычному тексту в композере, и юзеру не видно что
+  /// эффект применился.
+  static func _applyEffectVisualStyle(
+    _ attrs: inout [NSAttributedString.Key: Any],
+    effect: String,
+    baseFont: UIFont,
+    baseColor: UIColor,
+    accentColor: UIColor
+  ) {
+    switch effect {
+    case "big":
+      attrs[.font] = UIFont.systemFont(
+        ofSize: baseFont.pointSize * 1.4, weight: .semibold)
+      attrs[.foregroundColor] = accentColor
+    case "small":
+      attrs[.font] = UIFont.systemFont(
+        ofSize: baseFont.pointSize * 0.72, weight: .regular)
+      attrs[.foregroundColor] = baseColor.withAlphaComponent(0.78)
+    default:
+      attrs[.font] = UIFont.systemFont(
+        ofSize: baseFont.pointSize, weight: .semibold)
+      attrs[.foregroundColor] = accentColor
+    }
   }
 
   private static func _attributes(
