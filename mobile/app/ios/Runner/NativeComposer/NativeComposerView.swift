@@ -295,8 +295,145 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
     case "setStyle":
       applyArgs(call.arguments as? [String: Any] ?? [:])
       result(nil)
+    case "toggleFormat":
+      let map = call.arguments as? [String: Any] ?? [:]
+      let tag = (map["tag"] as? String ?? "").lowercased()
+      toggleFormat(tag: tag)
+      result(nil)
     default:
       result(FlutterMethodNotImplemented)
+    }
+  }
+
+  /// Phase 4 Format sheet: переключает inline-формат (B/I/U/S/code) на
+  /// выделенном фрагменте — или на `typingAttributes` если нет selection
+  /// (= последующая печать пойдёт в этом стиле).
+  ///
+  /// Внутри идёт через тот же font-traits/decoration механизм, что и
+  /// системное меню iOS (`allowsEditingTextAttributes=true`) — после
+  /// текстового изменения `textViewDidChange` сериализует attributed
+  /// обратно в HTML и шлёт в Dart, всё совместимо.
+  private func toggleFormat(tag: String) {
+    let selRange = textView.selectedRange
+    let baseFont = self.baseFont
+    let baseColor = self.baseColor
+
+    func mutateAttrs(
+      _ attrs: inout [NSAttributedString.Key: Any], shouldActivate: Bool
+    ) {
+      // Сохраняем текущие traits, переключаем нужный.
+      var font = (attrs[.font] as? UIFont) ?? baseFont
+      var symbolic = font.fontDescriptor.symbolicTraits
+      let isMono = font.fontName.lowercased().contains("mono")
+      var underline = (attrs[.underlineStyle] as? Int ?? 0) != 0
+      var strike = (attrs[.strikethroughStyle] as? Int ?? 0) != 0
+      var monoOn = isMono
+      switch tag {
+      case "bold":
+        if shouldActivate {
+          symbolic.insert(.traitBold)
+        } else {
+          symbolic.remove(.traitBold)
+        }
+      case "italic":
+        if shouldActivate {
+          symbolic.insert(.traitItalic)
+        } else {
+          symbolic.remove(.traitItalic)
+        }
+      case "underline":
+        underline = shouldActivate
+      case "strikethrough", "strike":
+        strike = shouldActivate
+      case "code":
+        monoOn = shouldActivate
+      default:
+        return
+      }
+      // Пересобираем font: code → monospace, иначе system+traits.
+      if monoOn {
+        font = UIFont.monospacedSystemFont(
+          ofSize: baseFont.pointSize, weight: .regular)
+      } else {
+        var newFont = UIFont.systemFont(
+          ofSize: baseFont.pointSize, weight: .regular)
+        if let d = newFont.fontDescriptor.withSymbolicTraits(symbolic) {
+          newFont = UIFont(descriptor: d, size: baseFont.pointSize)
+        }
+        font = newFont
+      }
+      attrs[.font] = font
+      attrs[.foregroundColor] = attrs[.foregroundColor] ?? baseColor
+      if underline {
+        attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue
+      } else {
+        attrs.removeValue(forKey: .underlineStyle)
+      }
+      if strike {
+        attrs[.strikethroughStyle] = NSUnderlineStyle.single.rawValue
+      } else {
+        attrs.removeValue(forKey: .strikethroughStyle)
+      }
+    }
+
+    // Определяем — выключать или включать? Берём traits в начале selection
+    // (или у курсора), если уже активен → выключаем, иначе включаем.
+    let probeLoc = selRange.length > 0 ? selRange.location : max(0, selRange.location - 1)
+    let probeRange = NSRange(location: probeLoc, length: 0)
+    let probeAttrs: [NSAttributedString.Key: Any] =
+      (probeLoc < textView.attributedText.length && probeLoc >= 0)
+      ? textView.attributedText.attributes(at: probeLoc, effectiveRange: nil)
+      : textView.typingAttributes
+    let isActive = _isTagActive(tag: tag, attrs: probeAttrs)
+    let shouldActivate = !isActive
+
+    if selRange.length > 0 {
+      // Применяем к выделенному фрагменту.
+      let mut = NSMutableAttributedString(attributedString: textView.attributedText)
+      mut.enumerateAttributes(in: selRange, options: []) { attrs, range, _ in
+        var copy = attrs
+        mutateAttrs(&copy, shouldActivate: shouldActivate)
+        mut.setAttributes(copy, range: range)
+      }
+      isApplyingRemoteText = true
+      textView.attributedText = mut
+      textView.selectedRange = selRange
+      isApplyingRemoteText = false
+      // Notify Dart — текст по семантике HTML изменился (хотя length тот же).
+      channel.invokeMethod(
+        "textChanged",
+        arguments: [
+          "text": currentPlainText(),
+          "selectionStart": textView.selectedRange.location,
+          "selectionEnd": textView.selectedRange.location
+            + textView.selectedRange.length,
+        ])
+    } else {
+      // Курсор без selection — модифицируем typingAttributes на следующий
+      // ввод. UITextView сам применит их на новые символы.
+      var ta = textView.typingAttributes
+      mutateAttrs(&ta, shouldActivate: shouldActivate)
+      textView.typingAttributes = ta
+    }
+  }
+
+  private func _isTagActive(
+    tag: String, attrs: [NSAttributedString.Key: Any]
+  ) -> Bool {
+    let font = (attrs[.font] as? UIFont) ?? baseFont
+    switch tag {
+    case "bold":
+      return font.fontDescriptor.symbolicTraits.contains(.traitBold)
+    case "italic":
+      return font.fontDescriptor.symbolicTraits.contains(.traitItalic)
+    case "underline":
+      return (attrs[.underlineStyle] as? Int ?? 0) != 0
+    case "strikethrough", "strike":
+      return (attrs[.strikethroughStyle] as? Int ?? 0) != 0
+    case "code":
+      return font.fontName.lowercased().contains("mono")
+    default:
+      return false
     }
   }
 

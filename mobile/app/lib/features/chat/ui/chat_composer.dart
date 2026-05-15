@@ -13,6 +13,7 @@ import '../data/native_composer_flag.dart';
 import '../../../l10n/app_localizations.dart';
 import 'composer_attachment_menu.dart';
 import 'composer_editing_banner.dart';
+import 'composer_format_sheet.dart';
 import 'composer_formatting_toolbar.dart';
 import 'composer_link_preview.dart';
 import 'composer_pending_attachments_strip.dart';
@@ -163,6 +164,10 @@ class _ChatComposerState extends State<ChatComposer> {
   static const double _kComposerCursorHeight = 18;
   final GlobalKey _composerColumnKey = GlobalKey();
   final GlobalKey _sendButtonKey = GlobalKey();
+  // GlobalKey для native composer'а — нужен чтобы [showComposerFormatSheet]
+  // мог вызвать `toggleFormat` на конкретном инстансе UITextView.
+  final GlobalKey<NativeIosComposerFieldState> _nativeFieldKey =
+      GlobalKey<NativeIosComposerFieldState>();
   OverlayEntry? _attachmentOverlayEntry;
   OverlayEntry? _sendLongPressMenuEntry;
   bool _hasTypedText = false;
@@ -560,6 +565,7 @@ class _ChatComposerState extends State<ChatComposer> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(0, 10, 0, 6),
               child: NativeIosComposerField(
+                key: _nativeFieldKey,
                 controller: widget.controller,
                 focusNode: widget.focusNode,
                 hint: l10n.chat_composer_hint_message,
@@ -578,6 +584,31 @@ class _ChatComposerState extends State<ChatComposer> {
                 maxLines: 6,
                 onPasteRequested: paste,
               ),
+            ),
+          ),
+          // «Aa» — Format sheet (Apple Notes-стиль). Только для native
+          // composer (UITextView), где toggleFormat применяется через
+          // NSAttributedString. Для Flutter TextField и sticker-search
+          // эта кнопка не нужна — там legacy formatting toolbar.
+          IconButton(
+            tooltip: 'Format',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            onPressed: widget.sendBusy
+                ? null
+                : () {
+                    unawaited(showComposerFormatSheet(
+                      context: context,
+                      onToggle: (tag) =>
+                          _nativeFieldKey.currentState?.toggleFormat(tag),
+                    ));
+                  },
+            icon: Icon(
+              Icons.text_format_rounded,
+              size: 22,
+              color: widget.sendBusy
+                  ? hintFg.withValues(alpha: 0.65)
+                  : fg.withValues(alpha: 0.88),
             ),
           ),
           IconButton(

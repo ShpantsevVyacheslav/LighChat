@@ -60,10 +60,10 @@ class NativeIosComposerField extends StatefulWidget {
   final Future<void> Function()? onPasteRequested;
 
   @override
-  State<NativeIosComposerField> createState() => _NativeIosComposerFieldState();
+  State<NativeIosComposerField> createState() => NativeIosComposerFieldState();
 }
 
-class _NativeIosComposerFieldState extends State<NativeIosComposerField> {
+class NativeIosComposerFieldState extends State<NativeIosComposerField> {
   static const _viewType = 'lighchat/native_composer';
 
   MethodChannel? _channel;
@@ -136,6 +136,19 @@ class _NativeIosComposerFieldState extends State<NativeIosComposerField> {
     final c = _channel;
     if (c == null) return;
     unawaited(c.invokeMethod<void>('setStyle', _styleArgs()));
+  }
+
+  /// Phase 4 Format sheet: переключает inline-формат на selection (или
+  /// typingAttributes если selection пустое). `tag` — один из:
+  /// `bold`, `italic`, `underline`, `strikethrough`, `code`.
+  ///
+  /// Native сам сериализует обновлённый attributed-text обратно в HTML
+  /// (`<strong>`, `<em>`, `<u>`, `<s>`, `<code>`) и шлёт через
+  /// `textChanged`, так что controller.text сразу в нужном формате.
+  void toggleFormat(String tag) {
+    final c = _channel;
+    if (c == null) return;
+    unawaited(c.invokeMethod<void>('toggleFormat', {'tag': tag}));
   }
 
 
