@@ -22,6 +22,7 @@ import '../../settings/data/energy_saving_preference.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../meetings/data/active_meeting_provider.dart';
 
+import 'chat_avatar.dart';
 import 'chat_folder_bar.dart';
 import 'chat_folders_rail.dart' show activeFoldersRailIdProvider;
 import 'chat_list_item.dart';
@@ -2504,7 +2505,12 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                 ),
                               ),
                             ),
-                            onSubmitted: (_) => submit(),
+                            // Тап по «галочке» на клавиатуре только прячет
+                            // её — submit идёт через явную кнопку «Создать»
+                            // ниже. Иначе клавиша return дублирует submit и
+                            // юзер случайно создаёт папку, не успев выбрать
+                            // чаты.
+                            onSubmitted: (_) => focus.unfocus(),
                           ),
                           const SizedBox(height: 16),
                           Row(
@@ -2654,40 +2660,18 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
                                               Stack(
                                                 clipBehavior: Clip.none,
                                                 children: [
-                                                  CircleAvatar(
+                                                  // Используем общий
+                                                  // [ChatAvatar] — он же
+                                                  // в основном списке
+                                                  // чатов. Внутри: цветной
+                                                  // gradient + первая
+                                                  // буква имени, если
+                                                  // нет реального avatar
+                                                  // URL.
+                                                  ChatAvatar(
+                                                    title: chat.title,
                                                     radius: 22,
-                                                    backgroundColor: modalFg
-                                                        .withValues(
-                                                          alpha: 0.10,
-                                                        ),
-                                                    backgroundImage:
-                                                        chat.avatarUrl ==
-                                                                null ||
-                                                            chat
-                                                                .avatarUrl!
-                                                                .isEmpty
-                                                        ? null
-                                                        : NetworkImage(
-                                                            chat.avatarUrl!,
-                                                          ),
-                                                    child:
-                                                        chat.avatarUrl ==
-                                                                null ||
-                                                            chat
-                                                                .avatarUrl!
-                                                                .isEmpty
-                                                        ? Text(
-                                                            _initials(
-                                                              chat.title,
-                                                            ),
-                                                            style: TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w700,
-                                                              color: modalFg,
-                                                            ),
-                                                          )
-                                                        : null,
+                                                    avatarUrl: chat.avatarUrl,
                                                   ),
                                                   Positioned(
                                                     right: -2,
@@ -2967,20 +2951,6 @@ class _ChatListBodyState extends ConsumerState<_ChatListBody> {
     final list = uniqueByKey.values.toList(growable: false)
       ..sort((a, b) => b.sortTs.compareTo(a.sortTs));
     return list;
-  }
-
-  String _initials(String value) {
-    final parts = value
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((part) => part.isNotEmpty)
-        .toList(growable: false);
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) {
-      return parts.first.substring(0, 1).toUpperCase();
-    }
-    return (parts.first.substring(0, 1) + parts.last.substring(0, 1))
-        .toUpperCase();
   }
 
   String? _usernameLabel(String? username) {
