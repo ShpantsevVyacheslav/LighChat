@@ -2198,6 +2198,21 @@ class AppLocalizationsPt extends AppLocalizations {
   String get media_viewer_action_live_text => 'Live Text';
 
   @override
+  String get media_viewer_action_subject_lift => 'Recortar Objeto';
+
+  @override
+  String get media_viewer_action_subject_send => 'Enviar para este chat';
+
+  @override
+  String get media_viewer_action_subject_save => 'Salvar nas Fotos';
+
+  @override
+  String get media_viewer_action_subject_share => 'Compartilhar';
+
+  @override
+  String get media_viewer_subject_saved => 'Salvo nas Fotos';
+
+  @override
   String get media_viewer_action_show_in_chat => 'Mostrar no chat';
 
   @override
@@ -10521,6 +10536,21 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get media_viewer_action_live_text => 'Live Text';
+
+  @override
+  String get media_viewer_action_subject_lift => 'Recortar Objeto';
+
+  @override
+  String get media_viewer_action_subject_send => 'Enviar para este chat';
+
+  @override
+  String get media_viewer_action_subject_save => 'Salvar nas Fotos';
+
+  @override
+  String get media_viewer_action_subject_share => 'Compartilhar';
+
+  @override
+  String get media_viewer_subject_saved => 'Salvo nas Fotos';
 
   @override
   String get media_viewer_action_show_in_chat => 'Mostrar no chat';

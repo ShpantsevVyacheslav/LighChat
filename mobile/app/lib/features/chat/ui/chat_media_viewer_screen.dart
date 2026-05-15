@@ -22,6 +22,7 @@ import 'chat_gallery_video_local_cache.dart';
 import 'chat_media_viewer_photo_page.dart';
 import 'chat_vlc_network_media.dart';
 import '../data/live_text.dart';
+import '../data/subject_lift.dart';
 import '../../../l10n/app_localizations.dart';
 
 String formatChatMediaViewerDate(BuildContext context, DateTime utcOrLocal) {
@@ -128,6 +129,7 @@ class ChatMediaViewerScreen extends StatefulWidget {
     required this.onForward,
     required this.onDeleteItem,
     this.onShowInChat,
+    this.onAttachToComposer,
     this.allowForward = true,
     this.allowSave = true,
     this.allowExternalShare = true,
@@ -150,6 +152,12 @@ class ChatMediaViewerScreen extends StatefulWidget {
 
   /// Переход к сообщению во внутреннем чате (из fullscreen-viewer).
   final void Function(ChatMediaGalleryItem item)? onShowInChat;
+
+  /// Опционально: callback для прикрепления локального файла как нового
+  /// attachment в текущем чате. Используется Subject Lift action sheet —
+  /// «Отправить в этот чат» вставляет извлечённый PNG в composer.
+  /// Если `null` — пункт отключён.
+  final void Function(String filePath)? onAttachToComposer;
 
   final bool allowForward;
   final bool allowSave;
@@ -187,6 +195,9 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
   /// один раз при инициализации — состояние стабильно за время жизни вью.
   bool _liveTextAvailable = false;
 
+  /// Subject Lift (iOS 17+ VisionKit) — вырезание объекта с фона.
+  bool _subjectLiftAvailable = false;
+
   @override
   void initState() {
     super.initState();
@@ -197,6 +208,9 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
     _pageController = PageController(initialPage: start);
     unawaited(LiveTextViewer.instance.isAvailable().then((v) {
       if (mounted) setState(() => _liveTextAvailable = v);
+    }));
+    unawaited(SubjectLift.instance.isAvailable().then((v) {
+      if (mounted) setState(() => _subjectLiftAvailable = v);
     }));
   }
 
@@ -264,6 +278,132 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
     final url = cur.attachment.url.trim();
     if (url.isEmpty) return;
     await LiveTextViewer.instance.present(imageUrl: url);
+  }
+
+  /// Открыть Subject Lift фуллскрин (iOS 17+). После выбора объекта
+  /// показываем action-sheet: «Отправить в этот чат / Сохранить в галерею
+  /// / Поделиться». Файл — PNG с прозрачным альфа-каналом.
+  Future<void> _openSubjectLift() async {
+    final cur = _current;
+    if (cur == null) return;
+    final url = cur.attachment.url.trim();
+    if (url.isEmpty) return;
+    final pngPath = await SubjectLift.instance.lift(imageUrl: url);
+    if (!mounted || pngPath == null || pngPath.isEmpty) return;
+    await _showSubjectLiftSheet(pngPath);
+  }
+
+  Future<void> _showSubjectLiftSheet(String pngPath) async {
+    final l10n = AppLocalizations.of(context)!;
+    final isDark =
+        MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      builder: (ctx) {
+        return ClipRRect(
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(28)),
+          child: Container(
+            color: isDark
+                ? const Color(0xFF15171C)
+                : const Color(0xFFF5F6F8),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 38,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: (isDark ? Colors.white : Colors.black)
+                              .withValues(alpha: 0.22),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: Container(
+                        constraints: const BoxConstraints(
+                          maxHeight: 180,
+                          maxWidth: 220,
+                        ),
+                        decoration: BoxDecoration(
+                          color: (isDark ? Colors.white : Colors.black)
+                              .withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.all(8),
+                        child: Image.file(File(pngPath), fit: BoxFit.contain),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _SubjectLiftActionTile(
+                      icon: Icons.send_rounded,
+                      label: l10n.media_viewer_action_subject_send,
+                      isDark: isDark,
+                      onTap: () async {
+                        Navigator.of(ctx).maybePop();
+                        widget.onAttachToComposer?.call(pngPath);
+                      },
+                      enabled: widget.onAttachToComposer != null,
+                    ),
+                    const SizedBox(height: 8),
+                    _SubjectLiftActionTile(
+                      icon: Icons.download_rounded,
+                      label: l10n.media_viewer_action_subject_save,
+                      isDark: isDark,
+                      onTap: () async {
+                        Navigator.of(ctx).maybePop();
+                        try {
+                          await Gal.putImage(pngPath);
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              duration: const Duration(milliseconds: 1500),
+                              content: Text(l10n.media_viewer_subject_saved),
+                            ),
+                          );
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                l10n.media_viewer_error_save_failed(e),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    _SubjectLiftActionTile(
+                      icon: Icons.ios_share_rounded,
+                      label: l10n.media_viewer_action_subject_share,
+                      isDark: isDark,
+                      onTap: () async {
+                        Navigator.of(ctx).maybePop();
+                        await SharePlus.instance.share(
+                          ShareParams(files: [XFile(pngPath)]),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _saveCurrent() async {
@@ -764,6 +904,8 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                     return;
                                   case 'live_text':
                                     unawaited(_openLiveText());
+                                  case 'subject_lift':
+                                    unawaited(_openSubjectLift());
                                     return;
                                   case 'show_in_chat':
                                     _showInChat();
@@ -865,6 +1007,26 @@ class _ChatMediaViewerScreenState extends State<ChatMediaViewerScreen> {
                                           const SizedBox(width: 12),
                                           Text(
                                             l10n.media_viewer_action_live_text,
+                                            style: TextStyle(
+                                              color: hi,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  if (_subjectLiftAvailable && !currentIsVideo)
+                                    PopupMenuItem(
+                                      value: 'subject_lift',
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.auto_awesome_rounded,
+                                            color: hi,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            l10n.media_viewer_action_subject_lift,
                                             style: TextStyle(
                                               color: hi,
                                               fontWeight: FontWeight.w600,
@@ -2225,5 +2387,74 @@ class _PictureInPictureBridge {
       }
     } catch (_) {}
     return false;
+  }
+}
+
+/// Tile в Subject-Lift action sheet: 56pt высота, icon + label, premium-look.
+class _SubjectLiftActionTile extends StatelessWidget {
+  const _SubjectLiftActionTile({
+    required this.icon,
+    required this.label,
+    required this.isDark,
+    required this.onTap,
+    this.enabled = true,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool isDark;
+  final Future<void> Function() onTap;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = isDark ? const Color(0xFF1E2127) : Colors.white;
+    final fg = enabled
+        ? (isDark ? const Color(0xFFE6E7EA) : const Color(0xFF1A1C22))
+        : (isDark
+              ? const Color(0xFFA0A4AD)
+              : const Color(0xFF5C6470).withValues(alpha: 0.5));
+    final border = isDark
+        ? const Color(0x14FFFFFF)
+        : const Color(0x0F000000);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: enabled ? () => onTap() : null,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          height: 56,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: border, width: 1),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 22, color: fg),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: fg,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+              ),
+              if (enabled)
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 22,
+                  color: fg.withValues(alpha: 0.5),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

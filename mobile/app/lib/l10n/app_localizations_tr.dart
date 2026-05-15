@@ -2194,6 +2194,21 @@ class AppLocalizationsTr extends AppLocalizations {
   String get media_viewer_action_live_text => 'Canlı Metin';
 
   @override
+  String get media_viewer_action_subject_lift => 'Nesneyi Kes';
+
+  @override
+  String get media_viewer_action_subject_send => 'Bu sohbete gönder';
+
+  @override
+  String get media_viewer_action_subject_save => 'Fotoğraflara Kaydet';
+
+  @override
+  String get media_viewer_action_subject_share => 'Paylaş';
+
+  @override
+  String get media_viewer_subject_saved => 'Fotoğraflara kaydedildi';
+
+  @override
   String get media_viewer_action_show_in_chat => 'Sohbette göster';
 
   @override

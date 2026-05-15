@@ -3841,6 +3841,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           allowSave: allowSave,
           allowExternalShare: allowSave,
           onDeleteItem: _confirmDeleteMediaGalleryItem,
+          onAttachToComposer: (path) {
+            if (!mounted) return;
+            setState(() {
+              _pendingAttachments.add(XFile(path, name: 'subject.png'));
+            });
+            _scheduleChatDraftSave();
+            _recomputeComposerLimits();
+          },
           onShowInChat: (galleryItem) {
             _scrollToMessageId(galleryItem.message.id);
           },

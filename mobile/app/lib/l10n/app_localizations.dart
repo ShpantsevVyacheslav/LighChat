@@ -3868,6 +3868,36 @@ abstract class AppLocalizations {
   /// **'Live Text'**
   String get media_viewer_action_live_text;
 
+  /// No description provided for @media_viewer_action_subject_lift.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вырезать объект'**
+  String get media_viewer_action_subject_lift;
+
+  /// No description provided for @media_viewer_action_subject_send.
+  ///
+  /// In ru, this message translates to:
+  /// **'В этот чат'**
+  String get media_viewer_action_subject_send;
+
+  /// No description provided for @media_viewer_action_subject_save.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить в Фото'**
+  String get media_viewer_action_subject_save;
+
+  /// No description provided for @media_viewer_action_subject_share.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поделиться'**
+  String get media_viewer_action_subject_share;
+
+  /// No description provided for @media_viewer_subject_saved.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранено в Фото'**
+  String get media_viewer_subject_saved;
+
   /// No description provided for @media_viewer_action_show_in_chat.
   ///
   /// In ru, this message translates to:
@@ -13771,13 +13801,13 @@ abstract class AppLocalizations {
   /// No description provided for @animation_quality_balanced.
   ///
   /// In ru, this message translates to:
-  /// **'Сбалансированный'**
+  /// **'Баланс'**
   String get animation_quality_balanced;
 
   /// No description provided for @animation_quality_cinematic.
   ///
   /// In ru, this message translates to:
-  /// **'Кинематографический'**
+  /// **'Кино'**
   String get animation_quality_cinematic;
 
   /// No description provided for @crop_aspect_original.

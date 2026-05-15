@@ -2178,6 +2178,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get media_viewer_action_live_text => 'Live Text';
 
   @override
+  String get media_viewer_action_subject_lift => 'Lift Subject';
+
+  @override
+  String get media_viewer_action_subject_send => 'Send to this chat';
+
+  @override
+  String get media_viewer_action_subject_save => 'Save to Photos';
+
+  @override
+  String get media_viewer_action_subject_share => 'Share';
+
+  @override
+  String get media_viewer_subject_saved => 'Saved to Photos';
+
+  @override
   String get media_viewer_action_show_in_chat => 'Show in chat';
 
   @override

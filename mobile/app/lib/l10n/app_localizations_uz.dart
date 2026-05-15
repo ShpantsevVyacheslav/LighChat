@@ -2201,6 +2201,21 @@ class AppLocalizationsUz extends AppLocalizations {
   String get media_viewer_action_live_text => 'Live Text';
 
   @override
+  String get media_viewer_action_subject_lift => 'Obyektni ajratish';
+
+  @override
+  String get media_viewer_action_subject_send => 'Bu chatga yuborish';
+
+  @override
+  String get media_viewer_action_subject_save => 'Fotosuratlarga saqlash';
+
+  @override
+  String get media_viewer_action_subject_share => 'Ulashish';
+
+  @override
+  String get media_viewer_subject_saved => 'Fotosuratlarga saqlandi';
+
+  @override
   String get media_viewer_action_show_in_chat => 'Chatda koʻrsatish';
 
   @override

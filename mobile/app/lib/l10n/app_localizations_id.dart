@@ -2188,6 +2188,21 @@ class AppLocalizationsId extends AppLocalizations {
   String get media_viewer_action_live_text => 'Live Text';
 
   @override
+  String get media_viewer_action_subject_lift => 'Pisahkan Objek';
+
+  @override
+  String get media_viewer_action_subject_send => 'Kirim ke obrolan ini';
+
+  @override
+  String get media_viewer_action_subject_save => 'Simpan ke Foto';
+
+  @override
+  String get media_viewer_action_subject_share => 'Bagikan';
+
+  @override
+  String get media_viewer_subject_saved => 'Tersimpan ke Foto';
+
+  @override
   String get media_viewer_action_show_in_chat => 'Tampilkan in Obrolan';
 
   @override

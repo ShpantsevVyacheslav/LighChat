@@ -2195,6 +2195,21 @@ class AppLocalizationsRu extends AppLocalizations {
   String get media_viewer_action_live_text => 'Live Text';
 
   @override
+  String get media_viewer_action_subject_lift => 'Вырезать объект';
+
+  @override
+  String get media_viewer_action_subject_send => 'В этот чат';
+
+  @override
+  String get media_viewer_action_subject_save => 'Сохранить в Фото';
+
+  @override
+  String get media_viewer_action_subject_share => 'Поделиться';
+
+  @override
+  String get media_viewer_subject_saved => 'Сохранено в Фото';
+
+  @override
   String get media_viewer_action_show_in_chat => 'Показать в чате';
 
   @override
