@@ -448,13 +448,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     WidgetsBinding.instance.addObserver(this);
     _scrollController.addListener(_onPinnedBarScrollSync);
     _controller.addListener(_scheduleChatDraftSave);
-    // Bug 1: пользователь открывал sticker-шторку → потом тапал в композер
-    // (хотел набрать текст). Раньше state `_stickersPanelOpen = true` не
-    // сбрасывался автоматически при получении фокуса — клавиатура
-    // поднималась поверх шторки, и при следующем тапе на смайлы шторка
-    // снова рендерилась ПОД уже открытой клавиатурой. Listener закрывает
-    // панель синхронно при первом focus-событии композера.
-    _composerFocusNode.addListener(_onComposerFocusChangedClosePanel);
     _captureKeyboardHeight();
     // Прогреваем `_lastKeyboardHeight` из персистентного кэша, чтобы при
     // первом открытии панели стикеров (до того как клавиатура успеет
@@ -1056,7 +1049,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     WidgetsBinding.instance.removeObserver(this);
     _scrollController.removeListener(_onPinnedBarScrollSync);
     _controller.removeListener(_scheduleChatDraftSave);
-    _composerFocusNode.removeListener(_onComposerFocusChangedClosePanel);
     _composerFocusNode.dispose();
     _scrollController.dispose();
     _controller.dispose();
@@ -5708,24 +5700,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     });
   }
 
-  /// Bug 1: пользователь открыл sticker-шторку, потом тапнул в композер —
-  /// клавиатура поднялась ПОВЕРХ шторки, потому что `_stickersPanelOpen`
-  /// оставался true. При следующем тапе на смайлы шторка перерисовывалась
-  /// ПОД уже открытой клавиатурой. Теперь как только композер фокусируется,
-  /// панель закрывается синхронно — клавиатура и шторка mutually exclusive.
-  void _onComposerFocusChangedClosePanel() {
-    if (!mounted) return;
-    appLogger.d(
-      '[panel-toggle] focus listener fired: '
-      'hasFocus=${_composerFocusNode.hasFocus} panelOpen=$_stickersPanelOpen',
-    );
-    if (_composerFocusNode.hasFocus && _stickersPanelOpen) {
-      appLogger.d(
-        '[panel-toggle] focus listener: closing panel (focus claimed it)',
-      );
-      _closeStickersPanel();
-    }
-  }
 
   void _insertEmojiIntoComposer(String emoji) {
     final ctrl = _controller;
