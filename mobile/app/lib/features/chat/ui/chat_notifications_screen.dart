@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'package:lighchat_mobile/app_providers.dart';
 
@@ -725,6 +728,13 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
   String? _selectedId;
   String? _storageUrlCache;
 
+  /// Кэш материализованных файлов по asset-пути (assetPath → file:// URI).
+  /// just_audio на iOS использует встроенный HTTP-прокси для AudioSource.asset,
+  /// который падает в офлайне (логи показывают Operation Stopped -11849, когда
+  /// нет сетевого route). Обходим: один раз копируем asset в tmp-файл и
+  /// проигрываем через file://-URI.
+  final Map<String, String> _materializedUriCache = {};
+
   /// Монотонный счётчик для тегирования логов — легко связать события
   /// одного тапа в Console.
   int _tapCounter = 0;
@@ -843,6 +853,34 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
     }
   }
 
+  /// Копируем asset в tmp-файл (один раз за сессию) и возвращаем file:// URI.
+  /// Это критично для iOS: AudioSource.asset на just_audio через локальный
+  /// HTTP-прокси падает в офлайне с -11849 Operation Stopped.
+  Future<String> _materializeAsset(int tap, String assetPath) async {
+    final cached = _materializedUriCache[assetPath];
+    if (cached != null) {
+      _log(tap, '  using cached materialized URI: $cached');
+      return cached;
+    }
+    _log(tap, '  materializing asset: $assetPath');
+    final dir = await getTemporaryDirectory();
+    final fileName = assetPath.replaceAll('/', '_');
+    final file = File('${dir.path}/$fileName');
+    if (!await file.exists()) {
+      final byteData = await rootBundle.load(assetPath);
+      await file.writeAsBytes(
+        byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
+        flush: true,
+      );
+      _log(tap, '  wrote ${byteData.lengthInBytes} bytes to ${file.path}');
+    } else {
+      _log(tap, '  already exists at ${file.path}');
+    }
+    final uri = Uri.file(file.path).toString();
+    _materializedUriCache[assetPath] = uri;
+    return uri;
+  }
+
   Future<void> _togglePreview(RingtonePreset preset) async {
     final tap = ++_tapCounter;
     _log(tap, 'togglePreview tap: id=${preset.id} '
@@ -855,7 +893,16 @@ class _RingtonePickerSheetState extends State<_RingtonePickerSheet>
     }
     final assetPath = preset.assetPath(_variant);
     _log(tap, '  assetPath=$assetPath');
-    await _playSource(tap, preset.id, AudioSource.asset(assetPath));
+    final String fileUri;
+    try {
+      fileUri = await _materializeAsset(tap, assetPath);
+    } catch (e, s) {
+      _log(tap, '  materialize ERROR: $e');
+      _log(tap, '  STACK: $s');
+      if (mounted) setState(() => _previewingId = null);
+      return;
+    }
+    await _playSource(tap, preset.id, AudioSource.uri(Uri.parse(fileUri)));
   }
 
   Future<void> _toggleStoragePreview() async {
