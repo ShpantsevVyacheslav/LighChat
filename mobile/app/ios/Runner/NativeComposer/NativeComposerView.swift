@@ -367,6 +367,26 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
       let tag = (map["tag"] as? String ?? "").lowercased()
       toggleFormat(tag: tag)
       result(nil)
+    case "setReturnKeyType":
+      // Bug A: в режиме location-share Dart переключает return-key на
+      // `search` (лупа), чтобы клавиатура подсказывала «ищу адрес», а
+      // не «новая строка». Поддерживаем `default`, `search`, `done`,
+      // `go`, `send`. Если клавиатура сейчас видима — перерисуем её
+      // через reloadInputViews(), иначе iOS не подтянет новый тип
+      // ключа до следующего becomeFirstResponder.
+      let map = call.arguments as? [String: Any] ?? [:]
+      let typeName = (map["type"] as? String ?? "default").lowercased()
+      switch typeName {
+      case "search": textView.returnKeyType = .search
+      case "done": textView.returnKeyType = .done
+      case "go": textView.returnKeyType = .go
+      case "send": textView.returnKeyType = .send
+      default: textView.returnKeyType = .default
+      }
+      if textView.isFirstResponder {
+        textView.reloadInputViews()
+      }
+      result(nil)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -738,6 +758,23 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
       : MentionAttributedString.visibleOffsetToPlain(
         plain: plain, visibleOffset: sel.location + sel.length)
     return (s, e)
+  }
+
+  /// Bug A: если returnKeyType установлен в `.search` (режим location-
+  /// share для ввода адреса), перехватываем нажатие Enter: вместо
+  /// вставки `\n` шлём `submitRequested` в Dart и блокируем
+  /// дефолтную обработку. Для других returnKeyType-ов поведение
+  /// прежнее.
+  func textView(
+    _ textView: UITextView,
+    shouldChangeTextIn range: NSRange,
+    replacementText text: String
+  ) -> Bool {
+    if text == "\n" && textView.returnKeyType == .search {
+      channel.invokeMethod("submitRequested", arguments: nil)
+      return false
+    }
+    return true
   }
 
   func textViewDidChange(_ textView: UITextView) {

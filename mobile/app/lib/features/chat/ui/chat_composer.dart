@@ -71,6 +71,7 @@ class ChatComposer extends StatefulWidget {
     this.onCancelPendingLocationShare,
     this.locationPanelOpen = false,
     this.onCloseLocationPanel,
+    this.onLocationAddressSubmit,
     this.stickerSuggestionBuilder,
     this.e2eeDisabledBanner,
     this.groupMentionCandidates,
@@ -165,6 +166,11 @@ class ChatComposer extends StatefulWidget {
   /// location panel. Caller должен закрыть панель (см.
   /// `_closeLocationPanel` в chat_screen).
   final VoidCallback? onCloseLocationPanel;
+
+  /// Bug A: пользователь тапнул Search-кнопку клавиатуры в режиме
+  /// location-share (returnKeyType=.search). Caller форсирует
+  /// forwardGeocode для текущего текста + скрывает клавиатуру.
+  final VoidCallback? onLocationAddressSubmit;
 
   /// Необязательный строитель строки быстрых стикеров над полем ввода.
   ///
@@ -412,6 +418,15 @@ class ChatComposerState extends State<ChatComposer> {
     }
     _recomputeMentionState();
     _recomputeLinkPreview();
+    // Bug A: переключаем return-key UITextView'я native composer'а
+    // когда location panel открывается/закрывается. `search` даёт лупу
+    // на клавиатуре и блокирует вставку `\n` (нам не нужен новый
+    // абзац — нужен submit для геокодинга).
+    if (oldWidget.locationPanelOpen != widget.locationPanelOpen) {
+      _nativeFieldKey.currentState?.setReturnKeyType(
+        widget.locationPanelOpen ? 'search' : 'default',
+      );
+    }
   }
 
   @override
@@ -674,31 +689,42 @@ class ChatComposerState extends State<ChatComposer> {
                 maxLines: 6,
                 onPasteRequested: paste,
                 onAttachmentInserted: widget.onNativeStickerInserted,
+                // Bug A: тап Search-кнопки на клавиатуре в режиме
+                // location-share — caller сам решает что делать
+                // (обычно: пнуть forwardGeocode и спрятать
+                // клавиатуру, чтобы юзер видел карту).
+                onSubmitted: widget.locationPanelOpen
+                    ? (_) => widget.onLocationAddressSubmit?.call()
+                    : null,
               ),
             ),
           ),
           // «Aa» уехала из строки композера в floating-кнопку над
           // composer'ом (см. `_buildFormatFloatingButton`), которая
           // появляется/исчезает синхронно с клавиатурой.
-          IconButton(
-            tooltip: l10n.chat_composer_tooltip_stickers,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-            onPressed: widget.sendBusy
-                ? null
-                : (widget.stickersPanelOpen
-                      ? _openKeyboardFromStickerMode
-                      : _openStickersPanel),
-            icon: Icon(
-              widget.stickersPanelOpen
-                  ? Icons.keyboard_rounded
-                  : Icons.emoji_emotions_outlined,
-              size: 20,
-              color: widget.sendBusy
-                  ? hintFg.withValues(alpha: 0.65)
-                  : fg.withValues(alpha: 0.88),
+          // Bug B: в режиме location-share прячем кнопку
+          // стикеров/emoji — в этом контексте она ведёт в side-flow
+          // (ввод адреса) и сбивает фокус.
+          if (!widget.locationPanelOpen)
+            IconButton(
+              tooltip: l10n.chat_composer_tooltip_stickers,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+              onPressed: widget.sendBusy
+                  ? null
+                  : (widget.stickersPanelOpen
+                        ? _openKeyboardFromStickerMode
+                        : _openStickersPanel),
+              icon: Icon(
+                widget.stickersPanelOpen
+                    ? Icons.keyboard_rounded
+                    : Icons.emoji_emotions_outlined,
+                size: 20,
+                color: widget.sendBusy
+                    ? hintFg.withValues(alpha: 0.65)
+                    : fg.withValues(alpha: 0.88),
+              ),
             ),
-          ),
         ],
       );
     }
@@ -773,25 +799,29 @@ class ChatComposerState extends State<ChatComposer> {
         // padding компенсирует эту оптическую несимметрию в капсуле 40 px.
         contentPadding: const EdgeInsets.fromLTRB(0, 12, 0, 8),
         isCollapsed: false,
-        suffixIcon: IconButton(
-          tooltip: l10n.chat_composer_tooltip_stickers,
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-          onPressed: widget.sendBusy
-              ? null
-              : (widget.stickersPanelOpen
-                    ? _openKeyboardFromStickerMode
-                    : _openStickersPanel),
-          icon: Icon(
-            widget.stickersPanelOpen
-                ? Icons.keyboard_rounded
-                : Icons.emoji_emotions_outlined,
-            size: 20,
-            color: widget.sendBusy
-                ? hintFg.withValues(alpha: 0.65)
-                : fg.withValues(alpha: 0.88),
-          ),
-        ),
+        // Bug B: прячем emoji/stickers suffix в режиме location-share.
+        suffixIcon: widget.locationPanelOpen
+            ? null
+            : IconButton(
+                tooltip: l10n.chat_composer_tooltip_stickers,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                    minWidth: 34, minHeight: 34),
+                onPressed: widget.sendBusy
+                    ? null
+                    : (widget.stickersPanelOpen
+                          ? _openKeyboardFromStickerMode
+                          : _openStickersPanel),
+                icon: Icon(
+                  widget.stickersPanelOpen
+                      ? Icons.keyboard_rounded
+                      : Icons.emoji_emotions_outlined,
+                  size: 20,
+                  color: widget.sendBusy
+                      ? hintFg.withValues(alpha: 0.65)
+                      : fg.withValues(alpha: 0.88),
+                ),
+              ),
         suffixIconConstraints: const BoxConstraints(
           minWidth: 34,
           minHeight: 34,
@@ -1001,9 +1031,12 @@ class ChatComposerState extends State<ChatComposer> {
                     // источник истины (нативный TextChanged пробрасывает
                     // текст в controller). Размер 40×40 совпадает с send,
                     // визуально пара кнопок справа.
+                    // Bug B: inline Aa-кнопка не показывается в режиме
+                    // location-share (форматирование адреса не нужно).
                     if (_useNativeComposer &&
                         _hasTypedText &&
                         !widget.stickersPanelOpen &&
+                        !widget.locationPanelOpen &&
                         !_holdRecordOverlayVisible) ...[
                       const SizedBox(width: 6),
                       Container(

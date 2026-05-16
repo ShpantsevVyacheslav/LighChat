@@ -2069,28 +2069,52 @@ class _ChatMessageBubble extends StatelessWidget {
         hasText &&
         !hasMedia &&
         !hasPoll) {
-      // Bug #10: было — карта inline внутрь textBubble через
-      // `insertBeforeText`, что давало толстую обволакивающую рамку
-      // вокруг карты. Теперь — paritет с фото+подписью: карта
-      // отдельным верхним блоком (свой ClipRRect), подпись —
-      // compact-bubble снизу. Параллель с веткой `hasMedia && hasText`
-      // выше.
+      // Bug E (новая итерация): объединённый пузырь карта + подпись.
+      // Между ними нет промежутка/рамки — карта примыкает к верхнему
+      // краю bubble, текст к нижнему. clipBehavior=antiAlias обрезает
+      // карту по радиусу bubble, поэтому inner-ClipRRect карты (radius
+      // 18) визуально совпадает с outer-радиусом пузыря.
+      final captionBlock = textContentOnly(compact: true);
       body = Column(
         crossAxisAlignment: bubbleStackCrossAlign,
         children: [
-          MessageLocationCard(
-            share: message.locationShare!,
-            senderId: message.senderId,
-            isMine: isMine,
-            createdAt: message.createdAt,
-            // В составном расположении время сообщения уходит в
-            // textMetaOutside() — на самой карте дублировать не нужно.
-            showTimestamps: false,
-            deliveryStatus: message.deliveryStatus,
-            readAt: message.readAt,
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(radius),
+              color: isMine ? outgoingBg : incomingBg,
+              border: Border.all(
+                color: isMine
+                    ? const Color(0xFF4D92FF).withValues(alpha: 0.32)
+                    : Colors.white.withValues(
+                        alpha: scheme.brightness == Brightness.dark
+                            ? 0.10
+                            : 0.24,
+                      ),
+              ),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                MessageLocationCard(
+                  share: message.locationShare!,
+                  senderId: message.senderId,
+                  isMine: isMine,
+                  createdAt: message.createdAt,
+                  showTimestamps: false,
+                  deliveryStatus: message.deliveryStatus,
+                  readAt: message.readAt,
+                  flat: true,
+                ),
+                if (captionBlock != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                    child: captionBlock,
+                  ),
+              ],
+            ),
           ),
-          const SizedBox(height: ChatMediaLayoutTokens.mediaToCaptionGap),
-          textBubble(compact: true),
           textMetaOutside(),
         ],
       );

@@ -32,6 +32,7 @@ class MessageLocationCard extends StatelessWidget {
     required this.showTimestamps,
     this.deliveryStatus,
     this.readAt,
+    this.flat = false,
   });
 
   final ChatLocationShare share;
@@ -41,6 +42,12 @@ class MessageLocationCard extends StatelessWidget {
   final bool showTimestamps;
   final String? deliveryStatus;
   final DateTime? readAt;
+
+  /// Bug E: когда `true`, не оборачиваем содержимое в свой ClipRRect
+  /// и не накладываем maxWidth — карта примыкает к краям родителя.
+  /// Используется в combined location+caption bubble, где внешний
+  /// контейнер уже клипает по своему радиусу.
+  final bool flat;
 
   String _timeHm(DateTime dt) {
     final hh = dt.hour.toString().padLeft(2, '0');
@@ -156,15 +163,11 @@ class MessageLocationCard extends StatelessWidget {
         final useNativeMap = Platform.isIOS;
         final cardOnTap = useNativeMap ? null : () => _openMap(context);
 
-        return ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: ChatMediaLayoutTokens.locationPreviewMaxWidth),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: cardOnTap,
-                child: Stack(
+        final stackBody = Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: cardOnTap,
+            child: Stack(
                   clipBehavior: Clip.none,
                   children: [
                     if (useNativeMap)
@@ -249,10 +252,22 @@ class MessageLocationCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                  ],
-                ),
-              ),
+              ],
             ),
+          ),
+        );
+        if (flat) {
+          // Bug E: внешний bubble уже клипает по своему радиусу +
+          // конструирует maxWidth; не оборачиваем ничем.
+          return stackBody;
+        }
+        return ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: ChatMediaLayoutTokens.locationPreviewMaxWidth,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: stackBody,
           ),
         );
       },

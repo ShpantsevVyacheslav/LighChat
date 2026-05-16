@@ -2940,6 +2940,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                           _locationPanelOpen
                                               ? _closeLocationPanel
                                               : null,
+                                      onLocationAddressSubmit:
+                                          _locationPanelOpen
+                                              ? _handleLocationAddressSubmit
+                                              : null,
                                       showFormattingToolbar:
                                           _composerFormattingOpen,
                                       onCloseFormattingToolbar: () => setState(
@@ -5509,6 +5513,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     _forwardGeocodeDebounce = Timer(const Duration(milliseconds: 600), () {
       unawaited(_runForwardGeocodeForLocationPanel(query));
     });
+  }
+
+  /// Bug A: Search-кнопка на клавиатуре в режиме location panel —
+  /// форсируем forwardGeocode прямо сейчас (без debounce) и
+  /// прячем клавиатуру, чтобы юзер увидел карту с новым центром.
+  void _handleLocationAddressSubmit() {
+    _forwardGeocodeDebounce?.cancel();
+    final query = _controller.text.trim();
+    if (query.length >= 3) {
+      unawaited(_runForwardGeocodeForLocationPanel(query));
+    }
+    _composerFocusNode.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
+    unawaited(SystemChannels.textInput.invokeMethod<void>('TextInput.hide'));
   }
 
   Future<void> _runForwardGeocodeForLocationPanel(String query) async {

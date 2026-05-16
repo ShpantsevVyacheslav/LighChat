@@ -163,6 +163,15 @@ class NativeIosComposerFieldState extends State<NativeIosComposerField> {
   /// Native сам сериализует обновлённый attributed-text обратно в HTML
   /// (`<strong>`, `<em>`, `<u>`, `<s>`, `<code>`) и шлёт через
   /// `textChanged`, так что controller.text сразу в нужном формате.
+  /// Bug A: переключение типа return-key (UIReturnKeyType) native
+  /// UITextView'я. В режиме location-share пробрасываем `'search'`,
+  /// иначе `'default'` (обычная клавиатура с Enter→newline).
+  void setReturnKeyType(String type) {
+    final c = _channel;
+    if (c == null) return;
+    unawaited(c.invokeMethod<void>('setReturnKeyType', {'type': type}));
+  }
+
   void toggleFormat(String tag) {
     final c = _channel;
     if (c == null) return;
@@ -283,6 +292,13 @@ class NativeIosComposerFieldState extends State<NativeIosComposerField> {
         if (cb != null) {
           unawaited(cb());
         }
+        break;
+      case 'submitRequested':
+        // Bug A: native перехватил Return-key (только когда
+        // returnKeyType=.search — режим location-share). Эмитим
+        // onSubmitted с текущим контейнером — caller решает, что
+        // делать (форсировать forwardGeocode / hide keyboard и т.п.).
+        widget.onSubmitted?.call(widget.controller.text);
         break;
       case 'attachmentInserted':
         // Phase 8: системная emoji-клавиатура вставила inline-стикер

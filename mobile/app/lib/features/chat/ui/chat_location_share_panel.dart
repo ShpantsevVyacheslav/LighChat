@@ -56,27 +56,26 @@ class ChatLocationSharePanel extends StatelessWidget {
             controller: controller,
           ),
         ),
-        // Floating row of pills overlay внизу.
+        // Bug C: пилюли в ~1.5 раза меньше и обе прозрачные (glass-blur).
+        // Не растягиваем на всю ширину — Wrap по контенту, центрируем
+        // снизу.
         Positioned(
           left: 14,
           right: 14,
-          bottom: mq.padding.bottom + 14,
+          bottom: mq.padding.bottom + 10,
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Expanded(
-                child: _Pill(
-                  label: requestLabel,
-                  filled: false,
-                  onTap: onRequest,
-                ),
+              _Pill(
+                label: requestLabel,
+                filled: false,
+                onTap: onRequest,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _Pill(
-                  label: shareLabel,
-                  filled: true,
-                  onTap: onShare,
-                ),
+              const SizedBox(width: 8),
+              _Pill(
+                label: shareLabel,
+                filled: true,
+                onTap: onShare,
               ),
             ],
           ),
@@ -104,42 +103,25 @@ class _Pill extends StatelessWidget {
     final disabled = onTap == null;
     const appleBlue = Color(0xFF007AFF);
 
-    // Filled: solid Apple-blue, без blur (как iMessage primary).
-    // Outlined: blur-translucent поверх карты, тонкая граница.
-    if (filled) {
-      return Material(
-        color: disabled ? appleBlue.withValues(alpha: 0.5) : appleBlue,
-        shape: const StadiumBorder(),
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const StadiumBorder(),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 11),
-            child: Center(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                  letterSpacing: -0.1,
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
+    // Bug C: обе пилюли теперь glass-translucent (раньше filled был
+    // solid Apple-blue). Размер уменьшен ~в 1.5 раза: padding 6×12
+    // вместо 11px вертикали + полная ширина; font 13.
     final base = dark ? Colors.white : Colors.black;
-    final fillBg = (dark ? Colors.black : Colors.white).withValues(
-      alpha: dark ? 0.32 : 0.78,
+    final outlinedFill = (dark ? Colors.black : Colors.white).withValues(
+      alpha: dark ? 0.28 : 0.62,
     );
+    final filledFill = filled
+        ? appleBlue.withValues(alpha: disabled ? 0.30 : 0.55)
+        : outlinedFill;
+    final fg = filled
+        ? Colors.white.withValues(alpha: disabled ? 0.55 : 0.96)
+        : base.withValues(alpha: disabled ? 0.35 : 0.92);
     return ClipRRect(
       borderRadius: BorderRadius.circular(99),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
         child: Material(
-          color: fillBg,
+          color: filledFill,
           shape: StadiumBorder(
             side: BorderSide(
               color: base.withValues(alpha: dark ? 0.18 : 0.10),
@@ -150,16 +132,17 @@ class _Pill extends StatelessWidget {
             onTap: onTap,
             customBorder: const StadiumBorder(),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 11),
-              child: Center(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: base.withValues(alpha: disabled ? 0.35 : 0.92),
-                    letterSpacing: -0.1,
-                  ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 7,
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: fg,
+                  letterSpacing: -0.1,
                 ),
               ),
             ),
