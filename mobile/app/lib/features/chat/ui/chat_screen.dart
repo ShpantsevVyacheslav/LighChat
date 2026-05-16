@@ -232,6 +232,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   double? _locationPanelLat;
   double? _locationPanelLng;
 
+  /// Phase 12.3: id locationRequest-message, на который сейчас
+  /// отвечает юзер. Заполняется в `_handleAcceptLocationRequest`,
+  /// читается в `_flushPendingLocationShare` чтобы пометить request
+  /// accepted после успешной отправки share.
+  String? _pendingAcceptRequestMessageId;
+
   /// Снимок предсэндовых лимитов вложений (см. `composer_attachment_limits.dart`).
   /// Пересчитывается при каждом изменении `_pendingAttachments` и при смене
   /// `convIsE2ee` (e2ee переключился — лимит уменьшился с 20 до 5/96 МБ).
@@ -2144,6 +2150,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                                 context.pop();
                                                               }
                                                             },
+                                                            onAcceptLocationRequest:
+                                                                (m) => unawaited(
+                                                                  _handleAcceptLocationRequest(
+                                                                    m,
+                                                                  ),
+                                                                ),
+                                                            onDeclineLocationRequest:
+                                                                (m) => unawaited(
+                                                                  _handleDeclineLocationRequest(
+                                                                    m,
+                                                                  ),
+                                                                ),
                                                             onOutboxRetry: (mid) {
                                                               handleOutboxRetry(
                                                                 ref,
@@ -3003,9 +3021,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                               onShare: () => unawaited(
                                                 _handleLocationPanelShareTap(),
                                               ),
-                                              // Phase 12.3 будет: запрос
-                                              // локации у собеседника.
-                                              onRequest: null,
+                                              onRequest: () => unawaited(
+                                                _handleLocationPanelRequestTap(),
+                                              ),
                                             ),
                                           );
                                         }
@@ -5365,6 +5383,82 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     });
   }
 
+  /// Phase 12.3: тап «Запросить» в location panel. Отправляем
+  /// специальное сообщение `locationRequest`; получатель видит bubble
+  /// с Accept/Decline, отправитель — pulsing pin.
+  Future<void> _handleLocationPanelRequestTap() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) {
+      _toast(AppLocalizations.of(context)!.chat_repository_unavailable);
+      return;
+    }
+    final convAsync = ref.read(
+      conversationsProvider((
+        key: conversationIdsCacheKey([widget.conversationId]),
+      )),
+    );
+    final convList = convAsync.asData?.value;
+    final conv = convList != null && convList.isNotEmpty
+        ? convList.first
+        : null;
+    if (conv == null) return;
+    final participantIds = conv.data.participantIds;
+    if (participantIds.isEmpty) return;
+    _closeLocationPanel();
+    try {
+      await repo.sendLocationRequestMessage(
+        conversationId: widget.conversationId,
+        senderId: uid,
+        participantIds: participantIds,
+      );
+      _scheduleAutoScrollToBottomIfNeeded();
+    } catch (e) {
+      if (mounted) {
+        _toast(AppLocalizations.of(context)!.chat_location_send_failed(e));
+      }
+    }
+  }
+
+  /// Phase 12.3: получатель тапнул «Поделиться» в request-bubble.
+  /// Открываем location-panel; при выборе duration отправим обычный
+  /// location-share + обновим status request'а на `accepted` со
+  /// ссылкой на новый share-message.
+  Future<void> _handleAcceptLocationRequest(ChatMessage requestMessage) async {
+    // Reuse main panel-open flow. После выбора duration в
+    // `_handleLocationPanelShareTap` уже создаётся pending-location.
+    // Но Send отправит обычный share без связки с request'ом.
+    // Pragmatic shortcut: после share открыть respond с
+    // acceptedShareMessageId (требует получения id нового сообщения,
+    // которое создаётся в `sendLocationShareMessage`). Сейчас
+    // sendLocationShareMessage не возвращает id; помечаем request
+    // accepted без ссылки (UI юзера всё равно увидит share-bubble
+    // ниже в timeline). Доработать в следующем заходе.
+    _pendingAcceptRequestMessageId = requestMessage.id;
+    await _sendLocationShare();
+  }
+
+  /// Phase 12.3: получатель тапнул «Отклонить» — просто помечаем
+  /// request как declined.
+  Future<void> _handleDeclineLocationRequest(
+    ChatMessage requestMessage,
+  ) async {
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    try {
+      await repo.respondToLocationRequest(
+        conversationId: widget.conversationId,
+        requestMessageId: requestMessage.id,
+        accepted: false,
+      );
+    } catch (e) {
+      if (mounted) {
+        _toast(AppLocalizations.of(context)!.chat_location_send_failed(e));
+      }
+    }
+  }
+
   /// Тап «Поделиться» на location-panel: показывает Cupertino-action
   /// sheet длительности, при выборе закрывает panel и заносит
   /// pending-location в state (inline-превью над композером появится
@@ -5441,6 +5535,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         userLiveExpiresAt: userLiveExpiresAtForSend(durationId),
         text: inlineText,
       );
+      // Phase 12.3: если эта отправка — ответ на location request,
+      // помечаем сам request accepted (отдельным update). UI у sender'а
+      // обновится через snapshot listener — pulsing pin меняется на
+      // «Локация получена».
+      final acceptId = _pendingAcceptRequestMessageId;
+      if (acceptId != null) {
+        try {
+          await repo.respondToLocationRequest(
+            conversationId: widget.conversationId,
+            requestMessageId: acceptId,
+            accepted: true,
+          );
+        } catch (_) {
+          // не критично — share ушёл, request останется pending,
+          // UI разумно деградирует.
+        }
+        _pendingAcceptRequestMessageId = null;
+      }
       if (mounted) {
         setState(() {
           _pendingLocationShare = null;

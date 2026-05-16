@@ -869,6 +869,59 @@ class ChatMessageE2eePayload {
       Object.hash(protocolVersion, epoch, ivB64, ciphertextB64, senderDeviceId);
 }
 
+/// Phase 12.3: запрос локации (iMessage «Request Location»). Хранится
+/// внутри сообщения вместе с текстом-приглашением. Получатель видит
+/// bubble с кнопками Accept/Decline; при Accept создаётся отдельное
+/// location-share сообщение, и id записывается в `acceptedShareMessageId`.
+class ChatLocationRequest {
+  const ChatLocationRequest({
+    required this.requesterId,
+    required this.status,
+    required this.requestedAt,
+    this.acceptedShareMessageId,
+    this.respondedAt,
+  });
+
+  final String requesterId;
+  /// `pending` | `accepted` | `declined`
+  final String status;
+  final String requestedAt;
+  final String? acceptedShareMessageId;
+  final String? respondedAt;
+
+  bool get isPending => status == 'pending';
+  bool get isAccepted => status == 'accepted';
+  bool get isDeclined => status == 'declined';
+
+  static ChatLocationRequest? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final m = raw.map((k, v) => MapEntry(k.toString(), v));
+    final requesterId = (m['requesterId'] as String?)?.trim() ?? '';
+    if (requesterId.isEmpty) return null;
+    final status = (m['status'] as String?)?.trim();
+    if (status == null || status.isEmpty) return null;
+    final requestedAt = (m['requestedAt'] as String?)?.trim() ?? '';
+    return ChatLocationRequest(
+      requesterId: requesterId,
+      status: status,
+      requestedAt: requestedAt,
+      acceptedShareMessageId:
+          (m['acceptedShareMessageId'] as String?)?.trim(),
+      respondedAt: (m['respondedAt'] as String?)?.trim(),
+    );
+  }
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'requesterId': requesterId,
+        'status': status,
+        'requestedAt': requestedAt,
+        if (acceptedShareMessageId != null && acceptedShareMessageId!.isNotEmpty)
+          'acceptedShareMessageId': acceptedShareMessageId,
+        if (respondedAt != null && respondedAt!.isNotEmpty)
+          'respondedAt': respondedAt,
+      };
+}
+
 class ChatMessage {
   const ChatMessage({
     required this.id,
@@ -886,6 +939,7 @@ class ChatMessage {
     this.deliveryStatus,
     this.chatPollId,
     this.locationShare,
+    this.locationRequest,
     this.threadCount,
     this.unreadThreadCounts,
     this.lastThreadMessageText,
@@ -928,6 +982,12 @@ class ChatMessage {
 
   /// Веб `locationShare`.
   final ChatLocationShare? locationShare;
+
+  /// Phase 12.3 (iMessage-paritет): запрос локации у собеседника.
+  /// Pending до ответа, потом accepted (с `acceptedShareMessageId` →
+  /// id отдельного location-share message) или declined. Render —
+  /// специальный bubble в chat_message_list.
+  final ChatLocationRequest? locationRequest;
 
   /// Количество сообщений в ветке `.../messages/{id}/thread` (веб `threadCount`).
   final int? threadCount;
@@ -990,6 +1050,8 @@ class ChatMessage {
         ? chatPollIdRaw.trim()
         : null;
     final locationShare = ChatLocationShare.fromJson(data['locationShare']);
+    final locationRequest =
+        ChatLocationRequest.fromJson(data['locationRequest']);
     final mediaNorm = ChatMediaNorm.fromJson(data['mediaNorm']);
     final emojiBurst = ChatEmojiBurstEvent.fromJson(data['emojiBurst']);
     final e2eePayload = ChatMessageE2eePayload.fromJson(data['e2ee']);
@@ -1119,6 +1181,7 @@ class ChatMessage {
       deliveryStatus: deliveryStatus,
       chatPollId: chatPollId,
       locationShare: locationShare,
+      locationRequest: locationRequest,
       threadCount: threadCount,
       unreadThreadCounts: unreadThreadCounts,
       lastThreadMessageText: lastThreadMessageText,

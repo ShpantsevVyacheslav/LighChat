@@ -32,6 +32,7 @@ import 'message_bubble_delivery_icons.dart';
 import 'message_chat_poll.dart';
 import 'message_deleted_stub.dart';
 import 'message_location_card.dart';
+import 'message_location_request_bubble.dart';
 import 'link_webview_screen.dart';
 import 'message_html_text.dart';
 import 'message_link_preview_card.dart';
@@ -89,6 +90,8 @@ class ChatMessageList extends ConsumerStatefulWidget {
     this.onEmitEmojiBurstEvent,
     this.onSwipeReply,
     this.onSwipeBack,
+    this.onAcceptLocationRequest,
+    this.onDeclineLocationRequest,
     this.e2eeDecryptedTextByMessageId,
     this.e2eeDecryptionFailedMessageIds,
     this.onOutboxRetry,
@@ -184,6 +187,12 @@ class ChatMessageList extends ConsumerStatefulWidget {
 
   /// Свайп **вправо** — назад (например [Navigator.pop] / `context.pop`).
   final VoidCallback? onSwipeBack;
+
+  /// Phase 12.3: тап «Поделиться» в pending location-request bubble.
+  /// Caller открывает location-panel и после выбора duration вызывает
+  /// `respondToLocationRequest(accepted: true, …)`.
+  final void Function(ChatMessage requestMessage)? onAcceptLocationRequest;
+  final void Function(ChatMessage requestMessage)? onDeclineLocationRequest;
 
   /// Предвычисленные plaintext'ы для E2EE-сообщений (Phase 4).
   ///
@@ -814,6 +823,8 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
                 onOutboxDismiss: widget.onOutboxDismiss,
                 isStalePending: _isStalePending(m),
                 conversationVoiceTracks: conversationVoiceTracks,
+                onAcceptLocationRequest: widget.onAcceptLocationRequest,
+                onDeclineLocationRequest: widget.onDeclineLocationRequest,
               ),
             );
             final rowKey = widget.messageItemKeys[m.id];
@@ -1281,6 +1292,8 @@ class _ChatMessageBubble extends StatelessWidget {
     this.onOutboxDismiss,
     this.isStalePending = false,
     this.conversationVoiceTracks,
+    this.onAcceptLocationRequest,
+    this.onDeclineLocationRequest,
   });
 
   final ChatMessage message;
@@ -1328,6 +1341,10 @@ class _ChatMessageBubble extends StatelessWidget {
 
   /// Все голосовые сообщения чата для prev/next в karaoke.
   final List<VoiceMessageTrack>? conversationVoiceTracks;
+
+  /// Phase 12.3: see ChatMessageList.onAcceptLocationRequest.
+  final void Function(ChatMessage requestMessage)? onAcceptLocationRequest;
+  final void Function(ChatMessage requestMessage)? onDeclineLocationRequest;
 
   @override
   Widget build(BuildContext context) {
@@ -2091,6 +2108,19 @@ class _ChatMessageBubble extends StatelessWidget {
             showTimestamps: showTimestamps,
             deliveryStatus: message.deliveryStatus,
             readAt: message.readAt,
+          ),
+          SizedBox(height: ChatMediaLayoutTokens.mediaToCaptionGap),
+        ],
+        // Phase 12.3: location-request bubble. Если message — это
+        // request, рендерим спец-виджет с pulsing pin для sender'а
+        // или Accept/Decline для receiver'а.
+        if (message.locationRequest != null) ...[
+          MessageLocationRequestBubble(
+            request: message.locationRequest!,
+            isMine: isMine,
+            requesterName: profileMap?[message.senderId]?.name,
+            onAccept: () => onAcceptLocationRequest?.call(message),
+            onDecline: () => onDeclineLocationRequest?.call(message),
           ),
           SizedBox(height: ChatMediaLayoutTokens.mediaToCaptionGap),
         ],

@@ -1220,6 +1220,78 @@ class ChatRepository {
     _logger.i('Location share sent in $conversationId');
   }
 
+  /// Phase 12.3: send location request. Receiver видит специальный
+  /// bubble с Accept/Decline, у sender — pending state с анимацией
+  /// ожидания (UI handled in chat_message_list).
+  Future<String> sendLocationRequestMessage({
+    required String conversationId,
+    required String senderId,
+    required List<String> participantIds,
+  }) async {
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    final payload = <String, Object?>{
+      'senderId': senderId,
+      'createdAt': nowIso,
+      'locationRequest': <String, Object?>{
+        'requesterId': senderId,
+        'status': 'pending',
+        'requestedAt': nowIso,
+      },
+    };
+    final ref = await _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .add(payload);
+
+    final convRef = _firestore.collection('conversations').doc(conversationId);
+    final unread = <String, Object?>{};
+    for (final id in participantIds) {
+      if (id.isNotEmpty && id != senderId) {
+        unread['unreadCounts.$id'] = FieldValue.increment(1);
+      }
+    }
+    await convRef.update(<String, Object?>{
+      'lastMessageText': '📍 Запрос геолокации',
+      'lastMessageTimestamp': nowIso,
+      'lastMessageSenderId': senderId,
+      'lastMessageIsThread': false,
+      ...unread,
+    });
+    _logger.i('Location request sent in $conversationId (${ref.id})');
+    return ref.id;
+  }
+
+  /// Phase 12.3: ответ на location request. `accepted=true` ставит
+  /// status `accepted` и оставляет `acceptedShareMessageId` (caller
+  /// уже создал отдельный location-share через `sendLocationShareMessage`).
+  /// `accepted=false` → status `declined`.
+  Future<void> respondToLocationRequest({
+    required String conversationId,
+    required String requestMessageId,
+    required bool accepted,
+    String? acceptedShareMessageId,
+  }) async {
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    final updates = <String, Object?>{
+      'locationRequest.status': accepted ? 'accepted' : 'declined',
+      'locationRequest.respondedAt': nowIso,
+    };
+    if (accepted && acceptedShareMessageId != null) {
+      updates['locationRequest.acceptedShareMessageId'] = acceptedShareMessageId;
+    }
+    await _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .doc(requestMessageId)
+        .update(updates);
+    _logger.i(
+      'Location request $requestMessageId responded: '
+      '${accepted ? "accepted" : "declined"}',
+    );
+  }
+
   /// Web-parity: find existing 1:1 chat between users or create it.
   /// NOTE: this mirrors `src/lib/direct-chat.ts` (index scan + getDoc).
   Future<String> createOrOpenDirectChat({
