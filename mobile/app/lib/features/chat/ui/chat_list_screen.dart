@@ -12,6 +12,7 @@ import '../data/spotlight_indexer.dart';
 import '../data/user_profile.dart';
 import '../data/user_contacts_repository.dart';
 import '../data/chat_list_offline_cache.dart';
+import '../data/live_location_tracker.dart';
 import '../data/dm_display_title.dart';
 import '../data/saved_messages_chat.dart';
 import '../data/chat_message_draft_storage.dart';
@@ -166,6 +167,18 @@ class _ChatListPaneState extends ConsumerState<ChatListPane> {
         unawaited(showFeaturesWelcomeSheet(context));
       });
     }
+    // Bug 13: подключаем глобальный LiveLocationTracker. Он
+    // слушает users/{uid}.liveLocationShare и пишет trackPoints в
+    // sub-collection пока share активен. ChatListPane —
+    // долгоживущий root экран мобильной навигации, поэтому attach
+    // здесь = tracker жив всю сессию пользователя.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final repo = ref.read(chatRepositoryProvider);
+      if (repo != null) {
+        LiveLocationTracker.instance.attach(repo);
+      }
+    });
   }
 
   void _retryBoot({String? uid}) {

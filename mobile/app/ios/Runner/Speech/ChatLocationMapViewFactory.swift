@@ -51,6 +51,7 @@ final class ChatLocationMapView: NSObject, FlutterPlatformView, MKMapViewDelegat
   private let container: UIView
   private let mapView: MKMapView
   private var pinAnnotation: MKPointAnnotation?
+  private var trackPolyline: MKPolyline?
   private let channel: FlutterMethodChannel?
   private let interactive: Bool
   private let draggablePin: Bool
@@ -114,6 +115,21 @@ final class ChatLocationMapView: NSObject, FlutterPlatformView, MKMapViewDelegat
           result(FlutterError(
             code: "bad_args", message: "lat/lng required", details: nil))
         }
+      case "setPolyline":
+        // Bug 13: получатель прислал актуальный track. Заменяем
+        // существующий overlay новым (или удаляем если points пуст).
+        let args = (call.arguments as? [String: Any]) ?? [:]
+        let raw = (args["points"] as? [[String: Any]]) ?? []
+        var coords: [CLLocationCoordinate2D] = []
+        coords.reserveCapacity(raw.count)
+        for p in raw {
+          guard let lat = (p["lat"] as? NSNumber)?.doubleValue,
+                let lng = (p["lng"] as? NSNumber)?.doubleValue
+          else { continue }
+          coords.append(CLLocationCoordinate2D(latitude: lat, longitude: lng))
+        }
+        self.applyPolyline(coords: coords)
+        result(nil)
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -150,7 +166,35 @@ final class ChatLocationMapView: NSObject, FlutterPlatformView, MKMapViewDelegat
     pinAnnotation = pin
   }
 
+  /// Bug 13: применяет новый набор координат как MKPolyline overlay.
+  /// Удаляет предыдущий overlay (нет diff'инга — replace cheap для
+  /// сотен точек, и Flutter всегда шлёт полный snapshot).
+  private func applyPolyline(coords: [CLLocationCoordinate2D]) {
+    if let prev = trackPolyline {
+      mapView.removeOverlay(prev)
+      trackPolyline = nil
+    }
+    guard coords.count >= 2 else { return }
+    let line = MKPolyline(coordinates: coords, count: coords.count)
+    mapView.addOverlay(line, level: .aboveRoads)
+    trackPolyline = line
+  }
+
   // MARK: MKMapViewDelegate
+
+  /// Bug 13: renderer для MKPolyline — синяя линия 4pt со скруглёнными
+  /// концами. Цвет совпадает с Apple-blue (системный action accent).
+  func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+    if let line = overlay as? MKPolyline {
+      let r = MKPolylineRenderer(polyline: line)
+      r.strokeColor = UIColor.systemBlue.withAlphaComponent(0.92)
+      r.lineWidth = 4
+      r.lineCap = .round
+      r.lineJoin = .round
+      return r
+    }
+    return MKOverlayRenderer(overlay: overlay)
+  }
 
   /// Bug #6: возвращаем MKPinAnnotationView с isDraggable=true когда
   /// флаг включён. Default annotation view без `viewFor` отрисуется

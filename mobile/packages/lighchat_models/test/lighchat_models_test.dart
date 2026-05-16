@@ -52,6 +52,91 @@ void main() {
     expect(msg?.expireAt?.toUtc(), DateTime.utc(2026, 1, 1, 12, 30));
   });
 
+  group('ChatLocationTrackPoint.fromJson — Bug 13 (Phase 13)', () {
+    test('валидная точка парсится', () {
+      final pt = ChatLocationTrackPoint.fromJson({
+        'lat': 55.75,
+        'lng': 37.61,
+        'ts': '2026-05-16T10:00:00Z',
+        'accuracyM': 12.5,
+      });
+      expect(pt, isNotNull);
+      expect(pt!.lat, 55.75);
+      expect(pt.lng, 37.61);
+      expect(pt.ts, '2026-05-16T10:00:00Z');
+      expect(pt.accuracyM, 12.5);
+    });
+
+    test('accuracyM опционален', () {
+      final pt = ChatLocationTrackPoint.fromJson({
+        'lat': 0.0,
+        'lng': 0.0,
+        'ts': '2026-05-16T10:00:00Z',
+      });
+      expect(pt, isNotNull);
+      expect(pt!.accuracyM, isNull);
+    });
+
+    test('lat/lng обязательны — без них null', () {
+      expect(
+        ChatLocationTrackPoint.fromJson({
+          'lng': 37.61,
+          'ts': '2026-05-16T10:00:00Z',
+        }),
+        isNull,
+      );
+      expect(
+        ChatLocationTrackPoint.fromJson({
+          'lat': 55.75,
+          'ts': '2026-05-16T10:00:00Z',
+        }),
+        isNull,
+      );
+    });
+
+    test('ts обязателен, пустой — null', () {
+      expect(
+        ChatLocationTrackPoint.fromJson({
+          'lat': 0.0,
+          'lng': 0.0,
+        }),
+        isNull,
+      );
+      expect(
+        ChatLocationTrackPoint.fromJson({
+          'lat': 0.0,
+          'lng': 0.0,
+          'ts': '',
+        }),
+        isNull,
+      );
+    });
+
+    test('toJson round-trip', () {
+      const original = ChatLocationTrackPoint(
+        lat: 1.5,
+        lng: -2.5,
+        ts: '2026-05-16T10:00:00Z',
+        accuracyM: 3.0,
+      );
+      final back = ChatLocationTrackPoint.fromJson(original.toJson());
+      expect(back, isNotNull);
+      expect(back!.lat, original.lat);
+      expect(back.lng, original.lng);
+      expect(back.ts, original.ts);
+      expect(back.accuracyM, original.accuracyM);
+    });
+
+    test('toJson без accuracyM не включает поле', () {
+      const pt = ChatLocationTrackPoint(
+        lat: 1.0,
+        lng: 2.0,
+        ts: 'iso',
+      );
+      expect(pt.toJson().containsKey('accuracyM'), isFalse);
+    });
+  });
+
   group('UserLiveLocationShare.fromJson — Bug #15 conversationId', () {
     Map<String, Object?> baseValid({Object? conversationId}) {
       return <String, Object?>{

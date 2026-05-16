@@ -1144,15 +1144,12 @@ class ChatRepository {
 
   /// Паритет `ChatWindow.handleSendLocationShare`.
   ///
-  /// TODO(Phase 13/14): для длительных трансляций (`activateUserLiveShare`
-  /// && durationId != 'once') добавить writeLiveLocationTrackPoint(
-  /// uid, position) метод, который пишет в sub-collection
-  /// `users/{uid}/liveLocationShare/current/trackPoints/{ts}`.
-  /// Caller (mobile-фон) подписывается на Geolocator.getPositionStream
-  /// (distanceFilter=15, accuracy=high), частит 1 fix/30с, и зовёт
-  /// этот метод пока `liveLocationShare.active && expiresAt > now`.
-  /// Cleanup при `liveLocationShare.delete()` — каскад из CF
-  /// onuserlivelocationsharedeleted (ещё не реализован).
+  /// Bug 13 (Phase 13): для длительных трансляций (durationId != 'once')
+  /// LiveLocationTracker автоматически стартует Geolocator stream и
+  /// пишет track-points в sub-collection через
+  /// [writeLiveLocationTrackPoint] (см. ниже). Cleanup — клиентский
+  /// через [clearLiveLocationTrackPoints] (вызывается при Stop в
+  /// LiveLocationStopBanner и при старте нового share).
   Future<void> sendLocationShareMessage({
     required String conversationId,
     required String senderId,
@@ -1308,6 +1305,95 @@ class ChatRepository {
       'Location request $requestMessageId responded: '
       '${accepted ? "accepted" : "declined"}',
     );
+  }
+
+  /// Bug 13 (Phase 13): записать одну точку пройденного трека live-
+  /// location-share. Документы лежат в `users/{uid}/
+  /// liveLocationTrackPoints/{tsMillis}` — id = millisecondsSinceEpoch
+  /// в виде строки. Stable id даёт идемпотентность (повторный fix с
+  /// тем же ts перепишет существующий, не создаст дубль) и orderBy
+  /// без дополнительного индекса. Также обновляем lat/lng/updatedAt
+  /// в `users/{uid}.liveLocationShare` — для прежнего web-paritета
+  /// «последняя точка видна как пин» (без задержки на чтение
+  /// trackPoints).
+  Future<void> writeLiveLocationTrackPoint({
+    required String uid,
+    required double lat,
+    required double lng,
+    double? accuracyM,
+  }) async {
+    final now = DateTime.now().toUtc();
+    final tsIso = now.toIso8601String();
+    final tsMillis = now.millisecondsSinceEpoch.toString();
+    final userRef = _firestore.collection('users').doc(uid);
+    final pointPayload = <String, Object?>{
+      'lat': lat,
+      'lng': lng,
+      'ts': tsIso,
+    };
+    if (accuracyM != null) {
+      pointPayload['accuracyM'] = accuracyM;
+    }
+    await userRef
+        .collection('liveLocationTrackPoints')
+        .doc(tsMillis)
+        .set(pointPayload);
+    final shareUpdates = <String, Object?>{
+      'liveLocationShare.lat': lat,
+      'liveLocationShare.lng': lng,
+      'liveLocationShare.updatedAt': tsIso,
+    };
+    if (accuracyM != null) {
+      shareUpdates['liveLocationShare.accuracyM'] = accuracyM;
+    }
+    await userRef.update(shareUpdates);
+  }
+
+  /// Bug 13: поток точек трека отсортированный по ts. Получатель
+  /// подписывается и рисует MKPolyline. `limit` ограничивает
+  /// клиента — старые точки можно держать в Firestore до cleanup,
+  /// но в UI рисуем последние ~720 (24h × 30 точек/час) чтобы не
+  /// раздувать память.
+  Stream<List<ChatLocationTrackPoint>> liveLocationTrackPointsStream({
+    required String uid,
+    int limit = 720,
+  }) {
+    return _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('liveLocationTrackPoints')
+        .orderBy('ts')
+        .limitToLast(limit)
+        .snapshots()
+        .map((snap) {
+      final out = <ChatLocationTrackPoint>[];
+      for (final doc in snap.docs) {
+        final pt = ChatLocationTrackPoint.fromJson(doc.data());
+        if (pt != null) out.add(pt);
+      }
+      return out;
+    });
+  }
+
+  /// Bug 13: cleanup при Stop / истечении live-share. Удаляет ВСЕ
+  /// trackPoints отправителя. Без Cloud Function — клиент сам
+  /// выполняет batched delete (Firestore-rules должны разрешать
+  /// удаление документов в этой sub-collection владельцу).
+  Future<void> clearLiveLocationTrackPoints({required String uid}) async {
+    final col = _firestore
+        .collection('users')
+        .doc(uid)
+        .collection('liveLocationTrackPoints');
+    while (true) {
+      final batchSnap = await col.limit(400).get();
+      if (batchSnap.docs.isEmpty) return;
+      final batch = _firestore.batch();
+      for (final doc in batchSnap.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+      if (batchSnap.docs.length < 400) return;
+    }
   }
 
   /// Web-parity: find existing 1:1 chat between users or create it.

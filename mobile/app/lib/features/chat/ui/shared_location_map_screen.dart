@@ -29,14 +29,15 @@ bool get _supportsInlineWebView {
 bool get _useNativeAppleMap =>
     !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
-/// Полноэкранная карта: WebView (OSM + Leaflet) + назад + открыть во внешнем браузере.
+/// Полноэкранная карта.
 ///
-/// TODO(Phase 14): на iOS заменить WebView+OSM на нативную MKMapView
-/// с MKPolyline overlay из live-tracking sub-collection (см.
-/// docs/arcitecture/04-runtime-flows.md пункт 7.5). PlatformView
-/// ChatLocationMapView уже умеет показывать pin и принимать
-/// setCenter — расширить до приёма `polyline: List<{lat,lng}>` и
-/// перерисовки на каждом push'е track-point.
+/// На iOS — нативный Apple MKMapView через [ChatLocationMapView]
+/// (Bug D, Phase 14). MKPolyline overlay трека (Bug 13) рисуется
+/// автоматически, когда передан `senderUidForTracking` — view
+/// сама подписывается на sub-collection `users/{uid}/
+/// liveLocationTrackPoints` и обновляет overlay по snapshot'ам.
+/// На Android и macOS — WebView (OSM + Leaflet); на Windows /
+/// Linux — placeholder с кнопкой «Открыть в браузере».
 class SharedLocationMapScreen extends StatefulWidget {
   const SharedLocationMapScreen({
     super.key,
@@ -44,12 +45,18 @@ class SharedLocationMapScreen extends StatefulWidget {
     required this.lng,
     this.externalMapsUrl,
     this.liveExpiresAtIso,
+    this.senderUidForTracking,
   });
 
   final double lat;
   final double lng;
   final String? externalMapsUrl;
   final String? liveExpiresAtIso;
+
+  /// Bug 13: uid отправителя для подписки на trackPoints. Если задан
+  /// и live-session ещё активна — fullscreen MKMapView (на iOS)
+  /// будет рисовать MKPolyline пройденного пути.
+  final String? senderUidForTracking;
 
   @override
   State<SharedLocationMapScreen> createState() => _SharedLocationMapScreenState();
@@ -142,10 +149,13 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
           if (_useNativeAppleMap)
             // Bug D: нативный Apple MKMapView на iOS — interactive
             // (pan/zoom) + dark mode parity с системой.
+            // Bug 13: если переданы координаты отправителя и live-
+            // session активна — отрисовываем MKPolyline трека.
             ChatLocationMapView(
               lat: widget.lat,
               lng: widget.lng,
               interactive: true,
+              trackPointsForUid: widget.senderUidForTracking,
             )
           else if (web != null)
             WebViewWidget(controller: web)

@@ -519,6 +519,52 @@ class ChatLocationShare {
   }
 }
 
+/// Bug 13: одна точка пройденного трека live-location-share (Phase 13).
+///
+/// Документы лежат в sub-collection
+/// `users/{uid}/liveLocationTrackPoints/{tsMillis}` — id = millisecond
+/// timestamp в виде строки, чтобы получатель мог orderBy(ts) без
+/// дополнительного индекса. Точка остаётся в коллекции до явного
+/// cleanup'а отправителем при Stop (`clearLiveLocationTrackPoints`)
+/// или до удаления самого live-share.
+class ChatLocationTrackPoint {
+  const ChatLocationTrackPoint({
+    required this.lat,
+    required this.lng,
+    required this.ts,
+    this.accuracyM,
+  });
+
+  final double lat;
+  final double lng;
+  /// ISO-8601 UTC момент fix'а с устройства.
+  final String ts;
+  final double? accuracyM;
+
+  static ChatLocationTrackPoint? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final m = raw.map((k, v) => MapEntry(k.toString(), v));
+    final lat = _jsonDouble(m['lat']);
+    final lng = _jsonDouble(m['lng']);
+    final ts = m['ts'];
+    if (lat == null || lng == null) return null;
+    if (ts is! String || ts.isEmpty) return null;
+    return ChatLocationTrackPoint(
+      lat: lat,
+      lng: lng,
+      ts: ts,
+      accuracyM: _jsonDouble(m['accuracyM']),
+    );
+  }
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'lat': lat,
+        'lng': lng,
+        'ts': ts,
+        if (accuracyM != null) 'accuracyM': accuracyM,
+      };
+}
+
 /// `users/{uid}.liveLocationShare`.
 class UserLiveLocationShare {
   const UserLiveLocationShare({

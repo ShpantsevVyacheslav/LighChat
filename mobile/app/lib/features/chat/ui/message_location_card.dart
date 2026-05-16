@@ -93,13 +93,18 @@ class MessageLocationCard extends StatelessWidget {
         ? share.mapsUrl
         : buildGoogleMapsPlaceUrl(share.lat, share.lng);
     final liveExp = share.liveSession?.expiresAt;
+    final hasLive = liveExp != null && liveExp.isNotEmpty;
+    // Bug 13: если share — live (есть expiresAt), пробрасываем uid
+    // отправителя — full-screen карта подпишется на trackPoints и
+    // нарисует MKPolyline трека (на iOS).
     Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => SharedLocationMapScreen(
           lat: share.lat,
           lng: share.lng,
           externalMapsUrl: external,
-          liveExpiresAtIso: (liveExp != null && liveExp.isNotEmpty) ? liveExp : null,
+          liveExpiresAtIso: hasLive ? liveExp : null,
+          senderUidForTracking: hasLive ? senderId : null,
         ),
       ),
     );
@@ -184,17 +189,16 @@ class MessageLocationCard extends StatelessWidget {
                     if (useNativeMap)
                       AspectRatio(
                         aspectRatio: aspect,
-                        // TODO(Phase 13): когда подключим live-tracking
-                        // sub-collection (users/{uid}/liveLocationShare/
-                        // current/trackPoints), пробросить сюда поток
-                        // точек и нарисовать MKPolyline через ещё
-                        // не существующий `trackPolyline` параметр
-                        // ChatLocationMapView. См. docs/arcitecture/
-                        // 04-runtime-flows.md, пункт 7.5.
+                        // Bug 13: live-tracking. Если share — длительная
+                        // трансляция (liveSession.expiresAt в будущем
+                        // → stillStreaming==true), подписываемся на
+                        // sub-collection trackPoints отправителя и
+                        // рисуем MKPolyline overlay поверх MKMapView.
                         child: ChatLocationMapView(
                           lat: share.lat,
                           lng: share.lng,
                           interactive: true,
+                          trackPointsForUid: stillStreaming ? senderId : null,
                         ),
                       )
                     else if (staticUrl != null && staticUrl.isNotEmpty)

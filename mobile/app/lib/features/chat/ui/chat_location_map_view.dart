@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show Factory;
 import 'package:flutter/gestures.dart'
     show EagerGestureRecognizer, OneSequenceGestureRecognizer;
@@ -30,6 +32,19 @@ class ChatLocationMapController {
       'lng': lng,
     });
   }
+
+  /// Bug 13: пересоздаёт MKPolyline overlay из переданного списка
+  /// точек (lat,lng). Пустой список — удаляет overlay. Native side
+  /// сам решает `fitOverlay` для региона (центрируем по последней
+  /// точке, чтобы пин и pin совпадали).
+  Future<void> setPolyline(List<ChatLocationPinPosition> points) async {
+    final coords = points
+        .map((p) => <String, Object?>{'lat': p.lat, 'lng': p.lng})
+        .toList(growable: false);
+    await _channel?.invokeMethod<void>('setPolyline', <String, Object?>{
+      'points': coords,
+    });
+  }
 }
 
 /// Native MKMapView preview карта для location share (Phase 11).
@@ -57,6 +72,7 @@ class ChatLocationMapView extends StatefulWidget {
     this.draggablePin = false,
     this.onPinMoved,
     this.controller,
+    this.trackPointsForUid,
   });
 
   final double lat;
@@ -65,6 +81,13 @@ class ChatLocationMapView extends StatefulWidget {
   final bool draggablePin;
   final ValueChanged<ChatLocationPinPosition>? onPinMoved;
   final ChatLocationMapController? controller;
+
+  /// Bug 13: если задан — подписываемся на sub-collection
+  /// `users/{uid}/liveLocationTrackPoints` и рисуем MKPolyline
+  /// overlay из пройденных точек. Перерисовываем на каждый snapshot
+  /// (Firestore сам диффает, оверхеда нет). Null — overlay не
+  /// создаётся (статичная точка как раньше).
+  final String? trackPointsForUid;
 
   static const _viewType = 'lighchat/location_map_preview';
 
@@ -80,6 +103,12 @@ class ChatLocationMapView extends StatefulWidget {
 
 class _ChatLocationMapViewState extends State<ChatLocationMapView> {
   MethodChannel? _channel;
+  StreamSubscription<QuerySnapshot<Map<String, Object?>>>? _trackSub;
+  final ChatLocationMapController _internalController =
+      ChatLocationMapController();
+
+  ChatLocationMapController get _effectiveController =>
+      widget.controller ?? _internalController;
 
   void _onPlatformViewCreated(int id) {
     final ch = MethodChannel(
@@ -87,6 +116,7 @@ class _ChatLocationMapViewState extends State<ChatLocationMapView> {
     );
     _channel = ch;
     widget.controller?._bind(ch);
+    _internalController._bind(ch);
     ch.setMethodCallHandler((call) async {
       if (call.method == 'pinMoved') {
         final args = call.arguments as Map<Object?, Object?>?;
@@ -99,6 +129,16 @@ class _ChatLocationMapViewState extends State<ChatLocationMapView> {
       }
       return null;
     });
+    // Если уже подписаны на trackPoints (subscribe сделал
+    // didUpdateWidget / initState до того как PlatformView был
+    // создан) — push последнего значения уже отрисуется автоматом
+    // в _onTrackSnapshot.
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _subscribeToTrackPointsIfNeeded();
   }
 
   @override
@@ -108,6 +148,45 @@ class _ChatLocationMapViewState extends State<ChatLocationMapView> {
     if (oldWidget.controller != widget.controller && _channel != null) {
       widget.controller?._bind(_channel!);
     }
+    if (oldWidget.trackPointsForUid != widget.trackPointsForUid) {
+      _trackSub?.cancel();
+      _trackSub = null;
+      _subscribeToTrackPointsIfNeeded();
+    }
+  }
+
+  @override
+  void dispose() {
+    _trackSub?.cancel();
+    super.dispose();
+  }
+
+  void _subscribeToTrackPointsIfNeeded() {
+    final uid = widget.trackPointsForUid;
+    if (uid == null || uid.isEmpty) return;
+    _trackSub = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('liveLocationTrackPoints')
+        .orderBy('ts')
+        .limitToLast(720)
+        .snapshots()
+        .listen(_onTrackSnapshot, onError: (Object e, StackTrace _) {
+      debugPrint('[map-view] track snapshot error: $e');
+    });
+  }
+
+  void _onTrackSnapshot(QuerySnapshot<Map<String, Object?>> snap) {
+    final points = <ChatLocationPinPosition>[];
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final lat = (data['lat'] as num?)?.toDouble();
+      final lng = (data['lng'] as num?)?.toDouble();
+      if (lat == null || lng == null) continue;
+      points.add((lat: lat, lng: lng));
+    }
+    debugPrint('[map-view] polyline update: ${points.length} points');
+    unawaited(_effectiveController.setPolyline(points));
   }
 
   @override

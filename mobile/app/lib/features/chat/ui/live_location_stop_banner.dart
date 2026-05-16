@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import 'package:lighchat_mobile/app_providers.dart';
 import '../../../l10n/app_localizations.dart';
 import '../data/live_location_utils.dart';
 
@@ -15,21 +17,33 @@ import '../data/live_location_utils.dart';
 /// записан другой id — рендерим пустой виджет. Для backward-compat
 /// со старыми записями без `conversationId` — показываем banner
 /// (consider them legacy-active в текущем открытом чате).
-class LiveLocationStopBanner extends StatelessWidget {
+class LiveLocationStopBanner extends ConsumerWidget {
   const LiveLocationStopBanner({super.key, this.conversationId});
 
   final String? conversationId;
 
-  Future<void> _stop(String uid) async {
+  Future<void> _stop(String uid, WidgetRef ref) async {
     try {
       await FirebaseFirestore.instance.collection('users').doc(uid).update(
         <String, Object?>{'liveLocationShare': FieldValue.delete()},
       );
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[live-stop] delete liveLocationShare failed: $e');
+    }
+    // Bug 13: cleanup sub-collection trackPoints. Без этого
+    // следующий live-share подцепит «хвост» прошлого трека.
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo != null) {
+      try {
+        await repo.clearLiveLocationTrackPoints(uid: uid);
+      } catch (e) {
+        debugPrint('[live-stop] clearLiveLocationTrackPoints failed: $e');
+      }
+    }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return const SizedBox.shrink();
 
@@ -88,7 +102,7 @@ class LiveLocationStopBanner extends StatelessWidget {
                     ),
                   ),
                   TextButton.icon(
-                    onPressed: () => _stop(user.uid),
+                    onPressed: () => _stop(user.uid, ref),
                     icon: const Icon(Icons.close_rounded, size: 16, color: Colors.white),
                     label: Text(
                       AppLocalizations.of(context)!.live_location_stop,

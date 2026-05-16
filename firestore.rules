@@ -552,6 +552,27 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
 
+      /**
+       * Bug 13 (Phase 13): trackPoints для live-location-share.
+       * Записывает только владелец, читать может ЛЮБОЙ
+       * authenticated user — паритет с `users/{uid}` ridor (профиль
+       * виден всем, кому не заблокирован). Конкретный track-point
+       * сам по себе ничего секретного не содержит (lat/lng — то же,
+       * что в `users/{uid}.liveLocationShare`). UI-side проверка:
+       * получатель сравнивает `users/{senderId}.liveLocationShare`
+       * с conversation membership.
+       *
+       * Документ-id = millisecondsSinceEpoch (строка). Stable id
+       * даёт идемпотентность повторной записи того же tick'а.
+       *
+       * Запись разрешена только владельцу. Делит — только владелец
+       * (cleanup при Stop / истечении).
+       */
+      match /liveLocationTrackPoints/{tsMillis} {
+        allow read: if isSignedIn() && !isAnonymousGuest();
+        allow write, delete: if isSignedIn() && request.auth.uid == userId;
+      }
+
       /** Реестр устройств пользователя: текущие клиентские сессии, active/lastSeen/fcm. */
       match /devices/{deviceId} {
         allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
