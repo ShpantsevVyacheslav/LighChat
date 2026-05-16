@@ -53,6 +53,38 @@ final class ComposerTextView: UITextView {
     }
     super.paste(sender)
   }
+
+  /// iOS 16+ override callout-меню при выделении текста. Скрываем
+  /// системный Format submenu (Apple Notes-style большой popover c
+  /// B/I/U/S + color wheel + Default Font + alignment), потому что Apple
+  /// показывает его на месте клавиатуры — а не поверх композера, как
+  /// просит UX. Юзер использует нашу кнопку «Aa» которая вызывает наш
+  /// собственный popover (overlay над композером, не закрывает поле
+  /// ввода).
+  ///
+  /// Cut/Copy/Paste/Lookup/Replace/Translate/Writing Tools оставляем —
+  /// это обычное системное контекстное меню, ничего лишнего не
+  /// перекрывает.
+  ///
+  /// Хоткеи Cmd+B/I/U продолжат работать (это `allowsEditingTextAttributes`
+  /// + UIKeyCommand, не зависит от callout).
+  override func editMenu(
+    for textRange: UITextRange,
+    suggestedActions: [UIMenuElement]
+  ) -> UIMenu? {
+    let filtered = suggestedActions.compactMap { element -> UIMenuElement? in
+      if let menu = element as? UIMenu {
+        let id = menu.identifier.rawValue.lowercased()
+        // `com.apple.menu.format` — основной Format submenu.
+        // `com.apple.menu.text-style` / `text-styles` — варианты под iOS 18+.
+        if id.contains("format") || id.contains("text-style") {
+          return nil
+        }
+      }
+      return element
+    }
+    return UIMenu(children: filtered)
+  }
 }
 
 /// Один instance нативного composer-инпута. Внутри — `ComposerTextView`
