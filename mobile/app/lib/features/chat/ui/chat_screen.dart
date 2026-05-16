@@ -5054,9 +5054,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     // (с attachments combined-send не поддержан, пусть idет text-only
     // вторым сообщением как раньше). Если location-only — тоже одно
     // сообщение.
+    debugPrint(
+      '[combined-send] _submitComposer: '
+      'pendingLocation=${_pendingLocationShare != null} '
+      'pendingDuration=$_pendingLocationDurationId '
+      'plainOutLen=${plainOut.length} '
+      'pendingAtt=${_pendingAttachments.length} '
+      'conv=${conv != null}',
+    );
     if (_pendingLocationShare != null && conv != null) {
       final canCombineWithText =
           plainOut.isNotEmpty && _pendingAttachments.isEmpty;
+      debugPrint(
+        '[combined-send] canCombineWithText=$canCombineWithText '
+        'preparedLen=${prepared.length}',
+      );
       final ok = await _flushPendingLocationShare(
         uid, repo, conv,
         inlineText: canCombineWithText ? prepared : null,

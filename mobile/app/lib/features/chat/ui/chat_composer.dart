@@ -389,6 +389,11 @@ class _ChatComposerState extends State<ChatComposer> {
 
   void _onFocusChangeForFormatBtn() {
     if (mounted) setState(() {});
+    debugPrint(
+      '[format-btn] focus changed: hasFocus=${widget.focusNode.hasFocus} '
+      'useNative=$_useNativeComposer panelOpen=${widget.stickersPanelOpen} '
+      'holdRecord=$_holdRecordOverlayVisible',
+    );
   }
 
   @override
