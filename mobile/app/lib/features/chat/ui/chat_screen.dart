@@ -5155,15 +5155,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   Future<void> _sendLocationShare() async {
-    appLogger.d('[location-share] _sendLocationShare: enter');
+    debugPrint('[location-share] _sendLocationShare: enter');
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      appLogger.d('[location-share] _sendLocationShare: uid==null, abort');
+      debugPrint('[location-share] _sendLocationShare: uid==null, abort');
       return;
     }
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) {
-      appLogger.d('[location-share] _sendLocationShare: repo==null, abort');
+      debugPrint('[location-share] _sendLocationShare: repo==null, abort');
       _toast(AppLocalizations.of(context)!.chat_repository_unavailable);
       return;
     }
@@ -5186,11 +5186,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       return;
     }
 
-    appLogger.d('[location-share] _sendLocationShare: about to show settings sheet');
+    debugPrint('[location-share] _sendLocationShare: about to show settings sheet');
     final durationId = await showShareLocationSettingsSheet(context);
-    appLogger.d('[location-share] _sendLocationShare: settings sheet returned durationId=$durationId mounted=$mounted');
+    debugPrint('[location-share] _sendLocationShare: settings sheet returned durationId=$durationId mounted=$mounted');
     if (!mounted || durationId == null) {
-      appLogger.d('[location-share] _sendLocationShare: aborting (no duration / unmounted)');
+      debugPrint('[location-share] _sendLocationShare: aborting (no duration / unmounted)');
       return;
     }
 
@@ -5225,20 +5225,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         return;
       }
 
-      appLogger.d('[location-share] getting current position…');
+      debugPrint('[location-share] getting current position…');
       final pos = await Geolocator.getCurrentPosition();
-      appLogger.d('[location-share] got pos lat=${pos.latitude} lng=${pos.longitude} acc=${pos.accuracy}');
+      debugPrint('[location-share] got pos lat=${pos.latitude} lng=${pos.longitude} acc=${pos.accuracy}');
       if (!mounted) return;
       setState(() => _sendBusy = false);
 
-      appLogger.d('[location-share] opening preview sheet');
+      debugPrint('[location-share] opening preview sheet');
       final confirmed = await showLocationSendPreviewSheet(
         context,
         lat: pos.latitude,
         lng: pos.longitude,
         accuracyM: pos.accuracy,
       );
-      appLogger.d('[location-share] preview sheet returned confirmed=$confirmed');
+      debugPrint('[location-share] preview sheet returned confirmed=$confirmed');
       if (!mounted || !confirmed) return;
 
       setState(() => _sendBusy = true);
@@ -5936,7 +5936,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         unawaited(_openVideoCircleCapture());
         break;
       case ComposerAttachmentAction.location:
-        appLogger.d('[location-share] attachment menu: location action selected');
+        debugPrint('[location-share] attachment menu: location action selected');
         unawaited(_sendLocationShare());
         break;
       case ComposerAttachmentAction.poll:

@@ -69,7 +69,9 @@ final class ComposerTextView: UITextView {
 ///  - Swift→Dart: `textChanged(text)`, `selectionChanged(start,end)`,
 ///    `focusChanged(focused)`, `contentHeightChanged(height)`,
 ///    `pasteRequested()` (когда юзер тапнул Paste с файлом в буфере).
-final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegate {
+final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegate,
+  NSTextStorageDelegate
+{
   private let container: UIView
   private let textView: ComposerTextView
   private let hintLabel: UILabel
@@ -132,6 +134,10 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
     super.init()
 
     textView.delegate = self
+    // Sticker диагностика (Phase 8): textViewDidChange может не сработать
+    // когда iOS Sticker keyboard вставляет UISticker через UITextInteraction
+    // / private API. textStorage.delegate ловит ВСЁ — это backup-канал.
+    textView.textStorage.delegate = self
     container.addSubview(textView)
     container.addSubview(hintLabel)
     NSLayoutConstraint.activate([
@@ -548,12 +554,20 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
     updateHintVisibility()
     notifyContentHeightIfChanged()
     if isApplyingRemoteText { return }
+    // Diagnostic dump (Phase 8 sticker bug): перед extract'ом перечислим
+    // все runs/attribute keys в attributedText. Если стикер вставился
+    // через Apple-private API без NSTextAttachment / NSAdaptiveImageGlyph,
+    // это поможет увидеть какой именно key/class он использует.
+    debugDumpAttributedText(tag: "textViewDidChange")
     // Phase 8: системная emoji-клавиатура (вкладка Stickers/Memoji/Genmoji)
     // вставляет картинку в UITextView как `NSTextAttachment` или (iOS 18+)
     // как `NSAdaptiveImageGlyph`. Наш `serialize()` не знает про
     // attachment-runs — нужно их вытащить, сохранить в tmp PNG, удалить
     // из attributedText и отдать Dart как обычные image-attachment'ы.
     let extracted = extractAndRemoveInlineImageAttachments()
+    NSLog(
+      "[sticker-debug] extractAndRemoveInlineImageAttachments → \(extracted.count) paths"
+    )
     if !extracted.isEmpty {
       channel.invokeMethod(
         "attachmentInserted", arguments: ["paths": extracted])
@@ -572,6 +586,38 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
         "selectionStart": sel.start,
         "selectionEnd": sel.end,
       ])
+  }
+
+  /// Diagnostic: перечисляет все runs в `attributedText` и для каждого
+  /// печатает все attribute keys + class имя value (если объект). Помогает
+  /// найти Apple-private attribute key через который iOS Sticker keyboard
+  /// вставляет UISticker / Genmoji / Memoji. После того как мы найдём key
+  /// — добавим его в `extractAndRemoveInlineImageAttachments` и удалим
+  /// этот дамп.
+  private func debugDumpAttributedText(tag: String) {
+    let attr = textView.attributedText
+    guard let attr = attr else {
+      NSLog("[sticker-debug] [\(tag)] attributedText=nil")
+      return
+    }
+    NSLog(
+      "[sticker-debug] [\(tag)] attributedText.length=\(attr.length) "
+        + "string=\"\(attr.string.replacingOccurrences(of: "\n", with: "\\n"))\""
+    )
+    let full = NSRange(location: 0, length: attr.length)
+    var runIdx = 0
+    attr.enumerateAttributes(in: full, options: []) { attrs, range, _ in
+      var keysDesc = ""
+      for (k, v) in attrs {
+        let cls = type(of: v as AnyObject)
+        keysDesc += "  • \(k.rawValue) → \(cls)\n"
+      }
+      NSLog(
+        "[sticker-debug] [\(tag)] run #\(runIdx) range=\(NSStringFromRange(range)) "
+          + "attrs=\n\(keysDesc.isEmpty ? "  (none)" : keysDesc)"
+      )
+      runIdx += 1
+    }
   }
 
   /// Обходит все runs `attributedText`, для не-mention и не-effect runs
@@ -711,6 +757,35 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
   func textViewDidEndEditing(_ textView: UITextView) {
     NSLog("[panel-toggle] swift textViewDidEndEditing")
     channel.invokeMethod("focusChanged", arguments: ["focused": false])
+  }
+
+  // MARK: - NSTextStorageDelegate (sticker diagnostic)
+
+  /// Backup-канал для sticker insert'ов: triggers даже когда
+  /// `textViewDidChange` не вызывается (sticker keyboard вставляет через
+  /// UITextInteraction). Если видим `editedAttributes` без
+  /// `editedCharacters` — значит изменился только attribute (например
+  /// добавился UISticker через NSTextAttachment в существующий character).
+  func textStorage(
+    _ textStorage: NSTextStorage,
+    didProcessEditing editedMask: NSTextStorage.EditActions,
+    range editedRange: NSRange,
+    changeInLength delta: Int
+  ) {
+    if isApplyingRemoteText { return }
+    let chars = editedMask.contains(.editedCharacters)
+    let attrs = editedMask.contains(.editedAttributes)
+    NSLog(
+      "[sticker-debug] textStorage didProcessEditing "
+        + "chars=\(chars) attrs=\(attrs) range=\(NSStringFromRange(editedRange)) delta=\(delta)"
+    )
+    // Если textViewDidChange по какой-то причине не вызовется (Apple's
+    // private path для UISticker), сделаем extract здесь же. defer чтобы
+    // dump шёл после возврата UITextView из processing.
+    DispatchQueue.main.async { [weak self] in
+      guard let self = self, !self.isApplyingRemoteText else { return }
+      self.debugDumpAttributedText(tag: "textStorage.didProcessEditing")
+    }
   }
 
   // MARK: - Hint label
