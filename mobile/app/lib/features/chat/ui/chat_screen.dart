@@ -6089,8 +6089,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   Future<void> _openStickersGifPanelImpl() async {
+    // Sentinel: если в логах виден `BUILD=Phase14.3`, значит iOS-app
+    // содержит мои новые fix-ы. Если только `BUILD=Phase14.0` (или
+    // вообще никакого) — нужен полный rebuild (`flutter clean &&
+    // cd ios && pod install && cd .. && flutter run`). Hot-reload
+    // НЕ применяет Swift-side изменения, поэтому без rebuild
+    // resign-firstResponder останется async и kb будет «висеть».
     debugPrint(
-      '[panel-toggle] _openStickersGifPanelImpl: enter '
+      '[panel-toggle] _openStickersGifPanelImpl: BUILD=Phase14.3 enter '
       'panelOpen=$_stickersPanelOpen focus=${_composerFocusNode.hasFocus} '
       'kbInset=${MediaQuery.viewInsetsOf(context).bottom}',
     );
@@ -6160,13 +6166,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         'kbInsetNow=${MediaQuery.viewInsetsOf(context).bottom}',
       );
       // Дать iOS время на keyboard-hide animation (~250ms по дефолту).
-      await Future<void>.delayed(const Duration(milliseconds: 260));
+      await Future<void>.delayed(const Duration(milliseconds: 280));
       if (!mounted) return;
+      double kbAfter = MediaQuery.viewInsetsOf(context).bottom;
       debugPrint(
-        '[panel-toggle] _openStickersGifPanelImpl: 260ms elapsed, '
-        'kbInsetAfter=${MediaQuery.viewInsetsOf(context).bottom} '
-        'floor=$_stickersTransitionFooterFloor',
+        '[panel-toggle] _openStickersGifPanelImpl: 280ms elapsed, '
+        'kbInsetAfter=$kbAfter floor=$_stickersTransitionFooterFloor',
       );
+      // Safety-loop: если kb всё ещё видна (>50px), ждём ещё ~250ms
+      // мелкими шагами. Без этого на старых iOS / медленных симуляторах
+      // /при async resignFirstResponder в Swift (до Phase14.3-rebuild)
+      // мы открываем sticker-шторку поверх не успевшей закрыться kb.
+      var safetyTicks = 0;
+      while (kbAfter > 50 && safetyTicks < 5 && mounted) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        if (!mounted) return;
+        kbAfter = MediaQuery.viewInsetsOf(context).bottom;
+        safetyTicks++;
+        debugPrint(
+          '[panel-toggle] _openStickersGifPanelImpl: safety-tick #$safetyTicks '
+          'kbInset=$kbAfter',
+        );
+      }
     }
     setState(() {
       _composerTextBeforeStickerSearch = _controller.text;

@@ -3,7 +3,6 @@ import 'dart:async' show unawaited;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import 'animated_text_span.dart';
 import '../data/chat_haptics.dart';
 
 /// Format-popover для нативного композера (Phase 9). Раньше был
@@ -487,11 +486,20 @@ class _BtnLabeled extends StatelessWidget {
 /// Кнопка эффекта с **живым preview**: внутри сидит [AnimatedTextSpan],
 /// который проигрывает соответствующий эффект на label'е (Big/Small/
 /// Shake/Nod/Ripple/Bloom/Jitter). Это и есть «Apple Messages Text
-/// Effects» UX — юзер видит как именно эффект будет выглядеть до того
-/// как применить.
+/// Effects» UX. ВАЖНО (Phase 14, fix): live preview-эффекты убраны.
+/// `AnimatedTextSpan` использует `Transform.scale/translate/rotate`
+/// внутри, и каждый `Transform` поверх hybrid-composition
+/// PlatformView (native UITextView, который сидит прямо под popover'ом)
+/// создаёт новый transform-layer. iOS render pipeline валит в консоль
+/// поток `[ERROR:flutter/flow/layers/transform_layer.cc] invalid matrix`
+/// и иногда popover вообще не дорисовывается. Текст label'а теперь
+/// статичный — пользователь применяет эффект тапом и видит результат
+/// на своём тексте в композере (где AnimatedTextSpan живёт без проблем,
+/// потому что message-list рендерится Skia без PlatformView под).
 class _EffectBtnPreview extends StatelessWidget {
   const _EffectBtnPreview({
     required this.label,
+    // ignore: unused_element_parameter
     required this.effect,
     required this.fg,
     required this.onTap,
@@ -516,17 +524,13 @@ class _EffectBtnPreview extends StatelessWidget {
             color: fg.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(10),
           ),
-          // AnimatedTextSpan ожидает, что его передают inside RichText/
-          // WidgetSpan. У нас он сам — Widget, поэтому просто оборачиваем
-          // в фиксированный baseline и отдаём строку.
-          child: AnimatedTextSpan(
-            text: label,
+          child: Text(
+            label,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: fg,
             ),
-            effect: effect,
           ),
         ),
       ),
