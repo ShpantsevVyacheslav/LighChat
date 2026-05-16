@@ -160,7 +160,11 @@ void main() {
       expect(focusNode.hasFocus, isTrue,
           reason: 'pre-condition: focusNode подхватил focus');
 
-      composerKey.currentState!.unfocusComposer();
+      // unfocusComposer() возвращает Future, но в widget-тесте без
+      // native PlatformView'a invokeMethod просто не доходит до Swift
+      // (channel=null), и Future resolveится сразу. Поэтому хватает
+      // одного `pump` после.
+      await composerKey.currentState!.unfocusComposer();
       await tester.pump();
 
       expect(focusNode.hasFocus, isFalse,
@@ -238,6 +242,13 @@ void main() {
       expect(find.byIcon(Icons.keyboard_rounded), findsOneWidget);
       expect(find.byIcon(Icons.emoji_emotions_outlined), findsNothing);
     });
+
+    // Note: Format popover widget-test пропущен — `_EffectBtnPreview`
+    // внутри popover'а использует `AnimatedTextSpan` который требует
+    // bounded constraints от parent Stack/Positioned. В test-environment
+    // без MaterialApp/MediaQuery overlay-layout роняет hasSize-assert.
+    // Реальная проверка popover'а делается на устройстве по логам
+    // `[format-popover] open: ...` → `[format-popover] _emit tag=...`.
 
     testWidgets('sendBusy=true → CircularProgressIndicator', (tester) async {
       final controller = ChatHtmlComposerController(text: 'hi');

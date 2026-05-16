@@ -3119,29 +3119,29 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                 );
                                           }
                                         }
-                                        // AnimatedContainer (а не AnimatedSize)
-                                        // — explicit height не зависит от
-                                        // intrinsic size ребёнка, поэтому
-                                        // нет «0→N» анимации на первом
-                                        // кадре, которой страдал прежний
-                                        // AnimatedSize. Это сглаживает
-                                        // прыжок при cliff-drop'е footer-
-                                        // floor'а (Bug 2 в Phase 14): когда
-                                        // locked-высота шторки больше
-                                        // реальной клавиатуры, после release
-                                        // floor композер плавно опускается
-                                        // на дельту вместо instant-jump.
-                                        // Для kb-driven кадров (rise/fall)
-                                        // лаг порядка половины duration —
-                                        // визуально терпимо.
-                                        return AnimatedContainer(
-                                          duration: const Duration(
-                                            milliseconds: 140,
-                                          ),
-                                          curve: Curves.easeOutCubic,
-                                          height: footerHeight <= 0
-                                              ? 0
-                                              : footerHeight,
+                                        // ВАЖНО (Phase 14, fix): не AnimatedContainer
+                                        // и не AnimatedSize. Footer
+                                        // содержит ComposerStickerGifPanel
+                                        // / ChatLocationSharePanel, которые
+                                        // в свою очередь содержат
+                                        // hybrid-composition PlatformView
+                                        // элементы и BackdropFilter'ы.
+                                        // Любая implicit-анимация высоты
+                                        // обёртки → save-layer + transform
+                                        // → console flood
+                                        // `[ERROR:flutter/flow/layers/transform_layer.cc]
+                                        // invalid matrix` и иногда blank-
+                                        // рендер. Smoothing «прыжка»
+                                        // высоты решаем удержанием
+                                        // `_stickersTransitionFooterFloor`
+                                        // на актуальной kb-высоте
+                                        // (см. `_holdStickersFooterTransition`
+                                        // и kb-sync ниже).
+                                        if (footerHeight <= 0) {
+                                          return const SizedBox.shrink();
+                                        }
+                                        return SizedBox(
+                                          height: footerHeight,
                                           child: footerChild,
                                         );
                                       },
@@ -6127,20 +6127,46 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     // под уезжающей клавиатурой, и пользователь видит «шторка под
     // клавой» (баг п.4).
     if (hadKeyboard) {
+      // ВАЖНО (Phase 14, fix): удерживаем footer-floor на kb-высоте
+      // ДО unfocus. Без этого пока kb опускается (260ms), kbInset
+      // уходит в 0, footer тоже падает к 0, и композер вместе со всей
+      // input-полосой «проваливается» вниз экрана. Юзер видит как
+      // composer падает → потом подскакивает обратно когда мы
+      // открываем sticker-шторку. С удержанием floor=keyboardInset
+      // композер статично стоит на уровне kb пока kb сворачивается,
+      // потом footerHeight = max(panelH=lockedH, floor, ...) = lockedH
+      // ≈ keyboardInset → композер не двигается.
+      _holdStickersFooterTransition(
+        keyboardInset,
+        hold: const Duration(milliseconds: 900),
+      );
       debugPrint(
-        '[panel-toggle] _openStickersGifPanelImpl: hiding keyboard FIRST '
+        '[panel-toggle] _openStickersGifPanelImpl: holding floor='
+        '$keyboardInset, hiding keyboard FIRST '
         '(primaryFocus=${FocusManager.instance.primaryFocus?.debugLabel} '
         'composerFocus.hasFocus=${_composerFocusNode.hasFocus})',
       );
-      // Прямой путь к Swift `resignFirstResponder` через GlobalKey —
-      // без него UITextView мог удерживать first-responder и обе панели
-      // (клавиатура + sticker-шторка) висели одновременно.
-      _chatComposerKey.currentState?.unfocusComposer();
+      // Прямой путь к Swift `resignFirstResponder` через GlobalKey,
+      // С AWAIT: гарантия что Swift отработал resign до того как
+      // мы продолжим pipeline. Без await клавиатура продолжала
+      // висеть поверх sticker-шторки (одновременно).
+      await _chatComposerKey.currentState?.unfocusComposer();
       FocusManager.instance.primaryFocus?.unfocus();
       await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+      if (!mounted) return;
+      debugPrint(
+        '[panel-toggle] _openStickersGifPanelImpl: unfocus done, '
+        'waiting 260ms for kb-hide animation. '
+        'kbInsetNow=${MediaQuery.viewInsetsOf(context).bottom}',
+      );
       // Дать iOS время на keyboard-hide animation (~250ms по дефолту).
       await Future<void>.delayed(const Duration(milliseconds: 260));
       if (!mounted) return;
+      debugPrint(
+        '[panel-toggle] _openStickersGifPanelImpl: 260ms elapsed, '
+        'kbInsetAfter=${MediaQuery.viewInsetsOf(context).bottom} '
+        'floor=$_stickersTransitionFooterFloor',
+      );
     }
     setState(() {
       _composerTextBeforeStickerSearch = _controller.text;

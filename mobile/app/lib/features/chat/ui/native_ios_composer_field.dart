@@ -182,10 +182,20 @@ class NativeIosComposerFieldState extends State<NativeIosComposerField> {
   /// firstResponder в UITextView без полагания на Flutter focusNode
   /// listener (который иногда даёт гонку если Flutter primaryFocus
   /// держит не наш focusNode).
-  void unfocus() {
+  ///
+  /// Возвращает Future, который завершается когда Swift-side завершил
+  /// resignFirstResponder. Caller (chat_screen → `_openStickersGifPanelImpl`)
+  /// `await`-ит результат, чтобы гарантировать что клавиатура реально
+  /// начала скрываться ДО того как откроется sticker-шторка.
+  Future<void> unfocus() async {
     final c = _channel;
-    if (c == null) return;
-    unawaited(c.invokeMethod<void>('unfocus'));
+    if (c == null) {
+      debugPrint('[panel-toggle] dart unfocus(): channel=null, skip');
+      return;
+    }
+    debugPrint('[panel-toggle] dart unfocus(): invokeMethod start');
+    await c.invokeMethod<void>('unfocus');
+    debugPrint('[panel-toggle] dart unfocus(): invokeMethod done');
   }
 
   /// Зеркальный к [unfocus]: напрямую дёргает Swift becomeFirstResponder

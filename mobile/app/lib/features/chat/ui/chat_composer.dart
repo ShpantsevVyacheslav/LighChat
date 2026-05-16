@@ -614,9 +614,25 @@ class ChatComposerState extends State<ChatComposer> {
   /// на наш FocusNode (UITextView держит first-responder снаружи Flutter
   /// focus tree), и listener-путь не отрабатывает. Прямой канал
   /// гарантирует `resignFirstResponder` на Swift-стороне.
-  void unfocusComposer() {
+  ///
+  /// Возвращает Future, который завершается когда Swift отработал
+  /// resign. Caller'у важно `await`-ить (см. `_openStickersGifPanelImpl`):
+  /// без этого открытие sticker-шторки могло начаться до того как kb
+  /// успела начать сворачиваться, и обе панели висели одновременно.
+  Future<void> unfocusComposer() async {
+    debugPrint(
+      '[panel-toggle] unfocusComposer(): focusNode.hasFocus='
+      '${widget.focusNode.hasFocus} nativeKey.mounted='
+      '${_nativeFieldKey.currentState != null}',
+    );
     widget.focusNode.unfocus();
-    _nativeFieldKey.currentState?.unfocus();
+    final native = _nativeFieldKey.currentState;
+    if (native == null) {
+      debugPrint('[panel-toggle] unfocusComposer(): native=null, skip');
+      return;
+    }
+    await native.unfocus();
+    debugPrint('[panel-toggle] unfocusComposer(): done');
   }
 
   void _openKeyboardFromStickerMode() {
@@ -1040,13 +1056,28 @@ class ChatComposerState extends State<ChatComposer> {
                     // источник истины (нативный TextChanged пробрасывает
                     // текст в controller). Размер 40×40 совпадает с send,
                     // визуально пара кнопок справа.
-                    // Bug B: inline Aa-кнопка не показывается в режиме
-                    // location-share (форматирование адреса не нужно).
-                    if (_useNativeComposer &&
-                        _hasTypedText &&
-                        !widget.stickersPanelOpen &&
-                        !widget.locationPanelOpen &&
-                        !_holdRecordOverlayVisible) ...[
+                    // Bug B (parallel branch): inline Aa-кнопка не
+                    // показывается в режиме location-share (форматирование
+                    // адреса не нужно).
+                    if (() {
+                      final show = _useNativeComposer &&
+                          _hasTypedText &&
+                          !widget.stickersPanelOpen &&
+                          !widget.locationPanelOpen &&
+                          !_holdRecordOverlayVisible;
+                      // Лог при каждом rebuild — видно почему Aa
+                      // НЕ показывается (какое из 5 условий false).
+                      debugPrint(
+                        '[format-btn] inline Aa show=$show '
+                        '(useNative=$_useNativeComposer '
+                        'hasTypedText=$_hasTypedText '
+                        'panelOpen=${widget.stickersPanelOpen} '
+                        'locationOpen=${widget.locationPanelOpen} '
+                        'holdRecord=$_holdRecordOverlayVisible '
+                        'textLen=${widget.controller.text.length})',
+                      );
+                      return show;
+                    }()) ...[
                       const SizedBox(width: 6),
                       Container(
                         width: _kComposerControlSize,

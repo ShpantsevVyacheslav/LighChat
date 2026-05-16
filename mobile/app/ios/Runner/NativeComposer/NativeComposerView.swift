@@ -342,18 +342,23 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
       NSLog(
         "[panel-toggle] swift method `unfocus` called, "
           + "isFirstResponder=\(textView.isFirstResponder)")
-      // Async на main, как и `focus` — `resignFirstResponder` во время
-      // Flutter rebuild-tick'а иногда тихо игнорируется (UIKit считает
-      // что responder-цепочка ещё не стабильна), и клавиатура остаётся
-      // висеть. Перенос на следующий run-loop tick гарантирует, что
-      // UITextView действительно отпустит first-responder.
-      DispatchQueue.main.async { [weak self] in
-        guard let self = self else { return }
-        if self.textView.isFirstResponder {
-          NSLog("[panel-toggle] swift resignFirstResponder (async)")
-          _ = self.textView.resignFirstResponder()
-        }
+      // ВАЖНО: synchronous resignFirstResponder. Раньше был
+      // DispatchQueue.main.async (зеркально к `focus`), но это создавало
+      // race: chat_screen вызывает unfocus → ждёт 260ms → открывает
+      // sticker panel. Если async-call попадал на следующий tick после
+      // того как Flutter уже инициировал rebuild, UIKit мог вообще не
+      // выполнить resign, и клавиатура оставалась поверх sticker-шторки.
+      // Sync-вариант возвращает результат до того как Dart-side получит
+      // ответ от MethodChannel и продолжит pipeline.
+      if textView.isFirstResponder {
+        NSLog("[panel-toggle] swift resignFirstResponder (sync)")
+        _ = textView.resignFirstResponder()
       }
+      // Принудительно дёрнем focusChanged(false) — иногда UITextView
+      // не присылает textViewDidEndEditing если resignFirstResponder
+      // вызван не из view-hierarchy-ивента. Без этого Flutter focusNode
+      // не узнает про потерю focus'а.
+      channel.invokeMethod("focusChanged", arguments: ["focused": false])
       result(nil)
     case "setHint":
       let map = call.arguments as? [String: Any] ?? [:]

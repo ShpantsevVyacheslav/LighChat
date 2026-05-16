@@ -1,5 +1,4 @@
 import 'dart:async' show unawaited;
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -103,20 +102,27 @@ class _FormatPopoverBody extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
     final fg = dark ? const Color(0xFFE6E7EA) : const Color(0xFF1A1C22);
-    final bgFill = (dark ? const Color(0xFF12141A) : Colors.white)
-        .withValues(alpha: dark ? 0.78 : 0.92);
     final border = (dark ? Colors.white : Colors.black)
         .withValues(alpha: dark ? 0.10 : 0.08);
 
+    // ВАЖНО (Phase 14, fix): убран BackdropFilter (ImageFilter.blur).
+    // Popover рендерится поверх hybrid-composition PlatformView
+    // (нативный UITextView). BackdropFilter создаёт save-layer, который
+    // конфликтует с iOS render pipeline'ом и валит в консоль
+    // `[ERROR:flutter/flow/layers/transform_layer.cc] invalid matrix`,
+    // а сам popover при этом иногда не появляется на экране (рендер
+    // обрывается). Solid bgFill (с увеличенной непрозрачностью) даёт
+    // тот же визуальный «glass» эффект без save-layer'а.
+    final solidBg = dark
+        ? const Color(0xFF1B1E26).withValues(alpha: 0.96)
+        : Colors.white.withValues(alpha: 0.98);
     return Material(
       type: MaterialType.transparency,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-          child: Container(
+        child: Container(
             decoration: BoxDecoration(
-              color: bgFill,
+              color: solidBg,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: border, width: 0.5),
               boxShadow: [
@@ -231,11 +237,11 @@ class _FormatPopoverBody extends StatelessWidget {
             ),
           ),
         ),
-      ),
     );
   }
 
   void _emit(String tag) {
+    debugPrint('[format-popover] _emit tag=$tag → onToggle');
     onToggle(tag);
     ChatHaptics.instance.selectionChanged();
   }
