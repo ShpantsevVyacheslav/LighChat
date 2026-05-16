@@ -78,6 +78,7 @@ import 'chat_image_editor_screen.dart';
 import 'chat_video_editor_screen.dart';
 import 'photo_video_source_sheet.dart';
 import 'chat_poll_create_sheet.dart';
+import 'chat_location_map_view.dart' show ChatLocationMapController;
 import 'chat_location_share_panel.dart';
 import 'share_location_sheet.dart';
 import 'video_circle_capture_page.dart';
@@ -241,6 +242,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   double _locationPanelLockedHeight = 0;
   double? _locationPanelLat;
   double? _locationPanelLng;
+
+  /// Bug #6/#7: контроллер живой MKMapView в location-share panel.
+  /// Используем для программного `setCenter` (forward geocoding по
+  /// введённому в композере адресу).
+  final ChatLocationMapController _locationPanelMapController =
+      ChatLocationMapController();
 
   /// Phase 12.3: id locationRequest-message, на который сейчас
   /// отвечает юзер. Заполняется в `_handleAcceptLocationRequest`,
@@ -3044,6 +3051,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                             child: ChatLocationSharePanel(
                                               lat: _locationPanelLat!,
                                               lng: _locationPanelLng!,
+                                              controller:
+                                                  _locationPanelMapController,
+                                              onPinMoved: (p) {
+                                                if (!mounted) return;
+                                                setState(() {
+                                                  _locationPanelLat = p.lat;
+                                                  _locationPanelLng = p.lng;
+                                                });
+                                              },
                                               onShare: () => unawaited(
                                                 _handleLocationPanelShareTap(),
                                               ),

@@ -240,7 +240,8 @@ private final class LighChatIosPipBridge: NSObject, AVPictureInPictureController
     // тайла) + reverse geocoder для отображения адреса. Используется
     // в `ComposerPendingLocationPreview` и потенциально в message
     // bubble c locationShare.
-    let mapFactory = ChatLocationMapViewFactory()
+    let mapFactory = ChatLocationMapViewFactory(
+      messenger: engineBridge.applicationRegistrar.messenger())
     engineBridge.applicationRegistrar.register(
       mapFactory, withId: ChatLocationMapViewFactory.viewType)
     ChatGeocoderBridge.shared.register(

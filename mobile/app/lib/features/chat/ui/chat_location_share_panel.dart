@@ -15,6 +15,8 @@ class ChatLocationSharePanel extends StatelessWidget {
     required this.lng,
     required this.onShare,
     this.onRequest,
+    this.onPinMoved,
+    this.controller,
     this.shareLabel = 'Поделиться',
     this.requestLabel = 'Запросить',
   });
@@ -23,6 +25,14 @@ class ChatLocationSharePanel extends StatelessWidget {
   final double lng;
   final VoidCallback onShare;
   final VoidCallback? onRequest;
+
+  /// Bug #6: пользователь перетащил аннотацию по карте → caller
+  /// обновляет lat/lng (state в chat_screen).
+  final ValueChanged<ChatLocationPinPosition>? onPinMoved;
+
+  /// Bug #7: caller может прокинуть контроллер для программного
+  /// сдвига карты (forward geocoding по composer text).
+  final ChatLocationMapController? controller;
   final String shareLabel;
   final String requestLabel;
 
@@ -41,6 +51,9 @@ class ChatLocationSharePanel extends StatelessWidget {
             lat: lat,
             lng: lng,
             interactive: true,
+            draggablePin: true,
+            onPinMoved: onPinMoved,
+            controller: controller,
           ),
         ),
         // Floating row of pills overlay внизу.
