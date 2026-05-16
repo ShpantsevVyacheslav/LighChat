@@ -5031,15 +5031,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       return;
     }
 
-    // Phase 10: pending-location уходит первой как отдельное сообщение
-    // (как в iMessage). Текст и вложения, если они есть, — следующими
-    // сообщениями ниже (через обычный flow).
+    // Phase 12.2 (iMessage-paritет): pending-location уходит ОДНИМ
+    // сообщением вместе с текстом, если текст есть и НЕТ attachments
+    // (с attachments combined-send не поддержан, пусть idет text-only
+    // вторым сообщением как раньше). Если location-only — тоже одно
+    // сообщение.
     if (_pendingLocationShare != null && conv != null) {
-      final ok = await _flushPendingLocationShare(uid, repo, conv);
+      final canCombineWithText =
+          plainOut.isNotEmpty && _pendingAttachments.isEmpty;
+      final ok = await _flushPendingLocationShare(
+        uid, repo, conv,
+        inlineText: canCombineWithText ? prepared : null,
+      );
       if (!ok) return;
-      // Если был ТОЛЬКО location без текста/вложений — отправили,
-      // выходим и не идём в основной send-flow.
-      if (plainOut.isEmpty && _pendingAttachments.isEmpty) {
+      // Если location ушёл с текстом ИЛИ его не было / не было
+      // attachments — выходим: отправлять больше нечего.
+      if (canCombineWithText ||
+          (plainOut.isEmpty && _pendingAttachments.isEmpty)) {
         if (mounted) {
           unawaited(clearChatMessageDraft(uid, widget.conversationId));
           setState(() => _replyingTo = null);
@@ -5047,6 +5055,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         }
         return;
       }
+      // Иначе (есть attachments) — идём в основной send-flow для них.
     }
 
     if (editingId != null) {
@@ -5405,14 +5414,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   /// Отправка pending location в чат. Вызывается из `_submitComposer` ДО
-  /// отправки текста/вложений, чтобы карта ушла первой (UX как iMessage).
+  /// отправки текста/вложений. Если `inlineText` непустой —
+  /// отправляется в **одном** сообщении (`payload.text` + `locationShare`)
+  /// для iMessage-paritета (Phase 12.2). Без текста — обычное
+  /// location-only сообщение.
+  ///
   /// Возвращает true если успешно (или нечего отправлять), false если
   /// произошёл fail и текст отправлять НЕ нужно.
   Future<bool> _flushPendingLocationShare(
     String uid,
     ChatRepository repo,
-    Conversation conv,
-  ) async {
+    Conversation conv, {
+    String? inlineText,
+  }) async {
     final share = _pendingLocationShare;
     final durationId = _pendingLocationDurationId;
     if (share == null || durationId == null) return true;
@@ -5425,6 +5439,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         replyTo: _replyingTo,
         activateUserLiveShare: shouldActivateUserLiveShare(durationId),
         userLiveExpiresAt: userLiveExpiresAtForSend(durationId),
+        text: inlineText,
       );
       if (mounted) {
         setState(() {

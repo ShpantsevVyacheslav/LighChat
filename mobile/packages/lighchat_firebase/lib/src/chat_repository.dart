@@ -1147,12 +1147,20 @@ class ChatRepository {
     ReplyContext? replyTo,
     required bool activateUserLiveShare,
     String? userLiveExpiresAt,
+    /// Phase 12.2 (iMessage-paritет): опциональный text который рендерится
+    /// в том же bubble сверху от location preview. Если задан и непустой
+    /// — попадает в payload `text`, и `lastMessageText` для conversation
+    /// меняется на этот текст вместо «📍 Геолокация».
+    String? text,
   }) async {
     final nowIso = DateTime.now().toUtc().toIso8601String();
+    final trimmedText = text?.trim();
+    final hasText = trimmedText != null && trimmedText.isNotEmpty;
     final payload = <String, Object?>{
       'senderId': senderId,
       'createdAt': nowIso,
       'locationShare': _locationShareToFirestore(locationShare),
+      if (hasText) 'text': trimmedText,
     };
     if (replyTo != null) {
       payload['replyTo'] = <String, Object?>{
@@ -1182,7 +1190,11 @@ class ChatRepository {
       }
     }
     await convRef.update(<String, Object?>{
-      'lastMessageText': '📍 Геолокация',
+      // Phase 12.2: если есть text — он становится lastMessage preview
+      // (как iMessage). Иначе — старый «📍 Геолокация» fallback.
+      // Префиксуем text эмодзи 📍, чтобы chat list делать одинаково:
+      // юзер сразу видит что это location-сообщение.
+      'lastMessageText': hasText ? '📍 $trimmedText' : '📍 Геолокация',
       'lastMessageTimestamp': nowIso,
       'lastMessageSenderId': senderId,
       'lastMessageIsThread': false,
