@@ -137,11 +137,12 @@ class _PopoverCard extends StatelessWidget {
               _Row(
                 icon: CupertinoIcons.clock,
                 label: l10n.share_location_action_for_one_hour,
-                // Bug #8: chevron-right намекает на расширенный
-                // выбор. Long-press открывает второй popover с
-                // гранулярными опциями (5м/15м/30м/1ч/2ч/6ч/24ч).
+                // T5: chevron-right теперь интерактивный (tap по
+                // самой стрелке открывает granular sheet). Long-press
+                // больше не используется — UX-handle стал явным.
+                // Tap по основной части row — выбор «1 час».
                 trailing: CupertinoIcons.chevron_right,
-                onLongPress: () async {
+                onTrailingTap: () async {
                   final granular = await _showGranularDurationsSheet(context);
                   if (granular != null && context.mounted) {
                     Navigator.of(context).pop(granular);
@@ -209,7 +210,7 @@ class _Row extends StatelessWidget {
     required this.onTap,
     this.destructive = false,
     this.trailing,
-    this.onLongPress,
+    this.onTrailingTap,
   });
 
   final IconData icon;
@@ -217,7 +218,10 @@ class _Row extends StatelessWidget {
   final VoidCallback onTap;
   final bool destructive;
   final IconData? trailing;
-  final VoidCallback? onLongPress;
+  /// T5: тап непосредственно по trailing-иконке. Если null —
+  /// trailing-иконка декоративная (не реагирует на тап,
+  /// строка целиком ловит onTap).
+  final VoidCallback? onTrailingTap;
 
   @override
   Widget build(BuildContext context) {
@@ -231,7 +235,6 @@ class _Row extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 16),
           child: Row(
@@ -249,7 +252,24 @@ class _Row extends StatelessWidget {
                   ),
                 ),
               ),
-              if (trailing != null)
+              // T5: trailing с onTrailingTap — обёрнут в собственный
+              // InkWell, чтобы тап по нему НЕ триггерил основной
+              // onTap (главная строка = выбор «1 час», стрелка =
+              // расширенные варианты). Без callback — декоративная.
+              if (trailing != null && onTrailingTap != null)
+                InkWell(
+                  onTap: onTrailingTap,
+                  customBorder: const CircleBorder(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(
+                      trailing,
+                      size: 16,
+                      color: tint.withValues(alpha: 0.75),
+                    ),
+                  ),
+                )
+              else if (trailing != null)
                 Icon(trailing, size: 14, color: tint.withValues(alpha: 0.55)),
             ],
           ),

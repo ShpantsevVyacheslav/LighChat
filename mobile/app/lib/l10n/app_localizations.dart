@@ -12964,6 +12964,12 @@ abstract class AppLocalizations {
   /// **'±{meters} м'**
   String location_card_accuracy(Object meters);
 
+  /// No description provided for @location_panel_hint_address.
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите адрес…'**
+  String get location_panel_hint_address;
+
   /// No description provided for @location_request_pending_mine.
   ///
   /// In ru, this message translates to:

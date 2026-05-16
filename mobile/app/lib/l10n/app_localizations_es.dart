@@ -7402,6 +7402,9 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get location_panel_hint_address => 'Introduce la dirección…';
+
+  @override
   String get location_request_pending_mine => 'Esperando ubicación…';
 
   @override
@@ -16106,6 +16109,9 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String location_card_accuracy(Object meters) {
     return '±$meters m';
   }
+
+  @override
+  String get location_panel_hint_address => 'Introduce la dirección…';
 
   @override
   String get location_request_pending_mine => 'Esperando ubicación…';

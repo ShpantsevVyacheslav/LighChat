@@ -3374,6 +3374,7 @@
       "meters": {}
     }
   },
+  "location_panel_hint_address": "Мекенжайды енгізіңіз…",
   "location_request_pending_mine": "Геолокация күтілуде…",
   "location_request_pending_other_with_name": "{name} геолокацияңызды сұрайды",
   "@location_request_pending_other_with_name": {

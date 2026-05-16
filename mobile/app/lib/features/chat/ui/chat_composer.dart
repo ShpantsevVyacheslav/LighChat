@@ -673,7 +673,9 @@ class ChatComposerState extends State<ChatComposer> {
                 key: _nativeFieldKey,
                 controller: widget.controller,
                 focusNode: widget.focusNode,
-                hint: l10n.chat_composer_hint_message,
+                hint: widget.locationPanelOpen
+                    ? l10n.location_panel_hint_address
+                    : l10n.chat_composer_hint_message,
                 textStyle: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
@@ -786,7 +788,9 @@ class ChatComposerState extends State<ChatComposer> {
       decoration: InputDecoration(
         hintText: inStickerSearchMode
             ? (widget.stickersSearchHint ?? l10n.common_search)
-            : l10n.chat_composer_hint_message,
+            : (widget.locationPanelOpen
+                ? l10n.location_panel_hint_address
+                : l10n.chat_composer_hint_message),
         hintStyle: TextStyle(
           color: hintFg,
           fontWeight: FontWeight.w500,
@@ -861,6 +865,11 @@ class ChatComposerState extends State<ChatComposer> {
     );
     final showSendButton =
         !widget.stickersPanelOpen &&
+        // T2: в режиме location panel композер показывает крестик
+        // даже при наборе текста (текст — это поисковый запрос
+        // адреса, отправка идёт через search-кнопку клавиатуры /
+        // «Поделиться» pill, а не send button).
+        !widget.locationPanelOpen &&
         (_hasTypedText ||
             widget.pendingAttachments.isNotEmpty ||
             widget.pendingLocationShare != null);

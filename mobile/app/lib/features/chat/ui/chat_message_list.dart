@@ -23,6 +23,7 @@ import '../data/video_circle_utils.dart';
 import '../data/chat_media_gallery.dart';
 import '../data/chat_media_layout_tokens.dart';
 import '../data/link_preview_url_extractor.dart';
+import '../data/location_scroll_diagnostics.dart';
 import '../data/user_contacts_repository.dart';
 import '../data/user_profile.dart';
 import 'chat_date_capsule.dart';
@@ -348,6 +349,10 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
   }
 
   void _onScrollControllerTick() {
+    final c = widget.scrollController;
+    if (c.hasClients) {
+      LocationScrollDiag.tickScroll(c.position.pixels);
+    }
     _scheduleStickyDayUpdate();
     _notifyAtBottomByController();
   }

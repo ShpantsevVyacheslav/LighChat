@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../data/location_scroll_diagnostics.dart';
+
 /// Компактный обратный отсчёт до `expiresAt` (ISO).
 class LocationLiveCountdown extends StatefulWidget {
   const LocationLiveCountdown({
@@ -48,6 +50,7 @@ class _LocationLiveCountdownState extends State<LocationLiveCountdown> {
           return;
         }
       }
+      LocationScrollDiag.tickCountdown();
       setState(() {});
     });
   }

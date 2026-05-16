@@ -3718,6 +3718,7 @@
       "meters": {}
     }
   },
+  "location_panel_hint_address": "Введите адрес…",
   "location_request_pending_mine": "Ожидаем локацию…",
   "location_request_pending_other_with_name": "{name} запрашивает локацию",
   "@location_request_pending_other_with_name": {

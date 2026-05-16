@@ -7315,6 +7315,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get location_panel_hint_address => 'Enter address…';
+
+  @override
   String get location_request_pending_mine => 'Waiting for location…';
 
   @override

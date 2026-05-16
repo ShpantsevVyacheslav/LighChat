@@ -13,6 +13,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as ll;
 
 import '../data/google_maps_urls.dart';
+import '../data/location_scroll_diagnostics.dart';
 import 'chat_cached_network_image.dart';
 
 /// Tuple-like возвращаемое значение `onPinMoved` callback.
@@ -176,6 +177,9 @@ class _ChatLocationMapViewState extends State<ChatLocationMapView> {
       widget.controller?._bind(_channel!);
     }
     if (oldWidget.trackPointsForUid != widget.trackPointsForUid) {
+      if (_trackSub != null) {
+        LocationScrollDiag.trackUnsubscribe();
+      }
       _trackSub?.cancel();
       _trackSub = null;
       _subscribeToTrackPointsIfNeeded();
@@ -184,6 +188,9 @@ class _ChatLocationMapViewState extends State<ChatLocationMapView> {
 
   @override
   void dispose() {
+    if (_trackSub != null) {
+      LocationScrollDiag.trackUnsubscribe();
+    }
     _trackSub?.cancel();
     super.dispose();
   }
@@ -191,6 +198,7 @@ class _ChatLocationMapViewState extends State<ChatLocationMapView> {
   void _subscribeToTrackPointsIfNeeded() {
     final uid = widget.trackPointsForUid;
     if (uid == null || uid.isEmpty) return;
+    LocationScrollDiag.trackSubscribe();
     _trackSub = FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
@@ -225,6 +233,7 @@ class _ChatLocationMapViewState extends State<ChatLocationMapView> {
 
   @override
   Widget build(BuildContext context) {
+    LocationScrollDiag.tickMapBuild();
     if (Platform.isIOS) {
       // UiKitView рендерится через PlatformView pipeline; при zero/<1
       // ширине или высоте Flutter генерит invalid matrix («TransformLayer

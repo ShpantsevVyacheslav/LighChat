@@ -7340,6 +7340,9 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get location_panel_hint_address => 'Введите адрес…';
+
+  @override
   String get location_request_pending_mine => 'Ожидаем локацию…';
 
   @override

@@ -59,10 +59,12 @@ class ChatLocationSharePanel extends StatelessWidget {
         // Bug C: пилюли в ~1.5 раза меньше и обе прозрачные (glass-blur).
         // Не растягиваем на всю ширину — Wrap по контенту, центрируем
         // снизу.
+        // T4: пилюли подняли выше home-indicator'а (+28 вместо +10),
+        // фон стал прозрачнее (см. _Pill alpha values).
         Positioned(
           left: 14,
           right: 14,
-          bottom: mq.padding.bottom + 10,
+          bottom: mq.padding.bottom + 28,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -103,15 +105,15 @@ class _Pill extends StatelessWidget {
     final disabled = onTap == null;
     const appleBlue = Color(0xFF007AFF);
 
-    // Bug C: обе пилюли теперь glass-translucent (раньше filled был
-    // solid Apple-blue). Размер уменьшен ~в 1.5 раза: padding 6×12
-    // вместо 11px вертикали + полная ширина; font 13.
+    // T4: ещё более прозрачные glass-translucent пилюли — alpha
+    // понижена: outlined 0.18/0.42 вместо 0.28/0.62, filled blue
+    // 0.42 вместо 0.55. Blur (BackdropFilter) compensates.
     final base = dark ? Colors.white : Colors.black;
     final outlinedFill = (dark ? Colors.black : Colors.white).withValues(
-      alpha: dark ? 0.28 : 0.62,
+      alpha: dark ? 0.18 : 0.42,
     );
     final filledFill = filled
-        ? appleBlue.withValues(alpha: disabled ? 0.30 : 0.55)
+        ? appleBlue.withValues(alpha: disabled ? 0.22 : 0.42)
         : outlinedFill;
     final fg = filled
         ? Colors.white.withValues(alpha: disabled ? 0.55 : 0.96)

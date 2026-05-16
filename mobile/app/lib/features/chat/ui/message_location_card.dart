@@ -7,6 +7,7 @@ import 'package:lighchat_models/lighchat_models.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../data/chat_media_layout_tokens.dart';
+import '../data/location_scroll_diagnostics.dart';
 import '../data/google_maps_urls.dart';
 import '../data/live_location_utils.dart';
 import 'chat_cached_network_image.dart';
@@ -47,6 +48,33 @@ class MessageLocationCard extends StatelessWidget {
   /// Используется в combined location+caption bubble, где внешний
   /// контейнер уже клипает по своему радиусу.
   final bool flat;
+
+  /// Scroll-jitter fix (Phase 13+): раньше `userRef.snapshots()`
+  /// вызывался прямо в `build` — каждый scroll-tick ListView
+  /// перестраивает item, MessageLocationCard.build вызывается заново,
+  /// new Stream object каждый раз → StreamBuilder сбрасывал
+  /// connectionState на waiting, отрисовывал loading-placeholder и
+  /// триггерил relayout соседних bubble'ов — это и было видимое
+  /// «дёргание» (повтор паттерна 5998afe1). Теперь Stream-объекты
+  /// хранятся в process-wide LRU-кэше по uid, и `identical()` —
+  /// true между rebuild'ами → StreamBuilder сохраняет
+  /// connectionState=active.
+  static final Map<String, Stream<DocumentSnapshot<Map<String, Object?>>>>
+      _userStreamCache = <String,
+          Stream<DocumentSnapshot<Map<String, Object?>>>>{};
+
+  Stream<DocumentSnapshot<Map<String, Object?>>> _userStream() {
+    final cached = _userStreamCache[senderId];
+    if (cached != null) return cached;
+    final stream = FirebaseFirestore.instance
+        .collection('users')
+        .doc(senderId)
+        .snapshots()
+        .asBroadcastStream();
+    _userStreamCache[senderId] = stream;
+    LocationScrollDiag.cardSubscribe();
+    return stream;
+  }
 
   String _timeHm(DateTime dt) {
     final hh = dt.hour.toString().padLeft(2, '0');
@@ -112,6 +140,7 @@ class MessageLocationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    LocationScrollDiag.tickCardBuild();
     // Bug #18: scroll-jitter в серии «end of share» сообщений. Каждый
     // такой bubble раньше открывал персональный
     // StreamBuilder<users/{senderId}> → много активных подписок на
@@ -131,10 +160,8 @@ class MessageLocationCard extends StatelessWidget {
       }
     }
 
-    final userRef = FirebaseFirestore.instance.collection('users').doc(senderId);
-
     return StreamBuilder<DocumentSnapshot<Map<String, Object?>>>(
-      stream: userRef.snapshots(),
+      stream: _userStream(),
       builder: (context, snap) {
         UserLiveLocationShare? senderLive;
         var profileResolved = false;

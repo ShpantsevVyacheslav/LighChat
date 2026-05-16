@@ -5407,6 +5407,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     _composerFocusNode.unfocus();
     FocusManager.instance.primaryFocus?.unfocus();
     unawaited(SystemChannels.textInput.invokeMethod<void>('TextInput.hide'));
+    // T7: если клавиатура была открыта — даём ей доехать вниз ДО
+    // mount'а MKMapView. Без этой задержки PlatformView рендерится
+    // на верхнем уровне поверх UIKeyboard'а — карта появляется
+    // «под клавиатурой» (visual bug). 320ms — типичный iOS keyboard
+    // dismiss timing.
+    if (preKbInset > 0) {
+      await Future.delayed(const Duration(milliseconds: 320));
+      if (!mounted) return;
+    }
 
     // Bug #2: иногда композер «не поднимается над картой» — это была
     // гонка: панель опенилась только ПОСЛЕ getCurrentPosition, который
@@ -5688,6 +5697,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     );
 
     _closeLocationPanel();
+    // T6: текст в композере был адресом для forward-geocode — после
+    // выбора duration он больше не нужен (карта уже сцентрирована,
+    // отправлять «Кремль» как текст-подпись к локации точно не
+    // хотим). Очищаем сразу.
+    _controller.clear();
     // Превью карты появится над композером, состояние сохранено.
     setState(() {
       _pendingLocationShare = share;

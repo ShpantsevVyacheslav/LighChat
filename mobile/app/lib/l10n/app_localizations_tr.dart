@@ -7345,6 +7345,9 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get location_panel_hint_address => 'Adresi girin…';
+
+  @override
   String get location_request_pending_mine => 'Konum bekleniyor…';
 
   @override

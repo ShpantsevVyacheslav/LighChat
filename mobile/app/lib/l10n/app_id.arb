@@ -3374,6 +3374,7 @@
       "meters": {}
     }
   },
+  "location_panel_hint_address": "Masukkan alamat…",
   "location_request_pending_mine": "Menunggu lokasi…",
   "location_request_pending_other_with_name": "{name} meminta lokasi Anda",
   "@location_request_pending_other_with_name": {

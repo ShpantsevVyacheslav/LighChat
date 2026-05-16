@@ -7384,6 +7384,9 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get location_panel_hint_address => 'Insira o endereço…';
+
+  @override
   String get location_request_pending_mine => 'Aguardando localização…';
 
   @override
@@ -16073,6 +16076,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String location_card_accuracy(Object meters) {
     return '±${meters}m';
   }
+
+  @override
+  String get location_panel_hint_address => 'Insira o endereço…';
 
   @override
   String get location_request_pending_mine => 'Aguardando localização…';

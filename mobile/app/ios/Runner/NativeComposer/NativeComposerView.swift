@@ -772,6 +772,11 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
   ) -> Bool {
     if text == "\n" && textView.returnKeyType == .search {
       channel.invokeMethod("submitRequested", arguments: nil)
+      // T3: search-кнопка должна закрывать клавиатуру сразу, без
+      // ожидания пока Dart дойдёт до textInput.hide через async
+      // round-trip. resignFirstResponder синхронно сбрасывает focus
+      // → клавиатура опускается на этом же кадре.
+      textView.resignFirstResponder()
       return false
     }
     return true

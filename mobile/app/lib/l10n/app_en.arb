@@ -3407,6 +3407,7 @@
       "meters": {}
     }
   },
+  "location_panel_hint_address": "Enter address…",
   "location_request_pending_mine": "Waiting for location…",
   "location_request_pending_other_with_name": "{name} requests your location",
   "@location_request_pending_other_with_name": {
