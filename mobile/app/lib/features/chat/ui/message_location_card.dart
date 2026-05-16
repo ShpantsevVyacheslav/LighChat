@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 import 'dart:ui' show ImageFilter;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -11,7 +10,6 @@ import '../data/location_scroll_diagnostics.dart';
 import '../data/google_maps_urls.dart';
 import '../data/live_location_utils.dart';
 import 'chat_cached_network_image.dart';
-import 'chat_location_map_view.dart';
 import 'location_live_countdown.dart';
 import 'message_bubble_delivery_icons.dart';
 import 'shared_location_map_screen.dart';
@@ -191,44 +189,29 @@ class MessageLocationCard extends StatelessWidget {
         final liveExp = share.liveSession?.expiresAt;
         final staticUrl = share.staticMapUrl;
 
-        // Bug #9/#11/#12: на iOS заменяем статичную OSM-плитку нативной
-        // MKMapView через PlatformView. Интерактив включён — pan/zoom
-        // работают прямо в пузыре. Тап-открытие фул-скрина больше не
-        // доступно прямо по карте (MKMapView съест gesture); вместо
-        // этого — стеклянная expand-кнопка в правом верхнем углу
-        // карты. Aspect ratio подняли с 16:9 до 7:5 (+27% высоты —
-        // Bug #11 «+25%»).
+        // Bug #11: aspect ratio 7:5 (+27% высоты от 16:9).
         const aspect = 7 / 5;
-        // Bug #12: для интерактивной нативной карты тап-открытие
-        // фуллскрина через InkWell не сработает (MKMapView заберёт
-        // gesture). Поэтому отключаем onTap, когда показываем
-        // нативную карту — пользователь нажимает на expand-кнопку.
-        final useNativeMap = Platform.isIOS;
-        final cardOnTap = useNativeMap ? null : () => _openMap(context);
-
+        // Scroll-perf fix (Phase 13+ v2): убрали interactive MKMapView
+        // из inline-bubble. PlatformView в ListView создавался и
+        // уничтожался на каждом recycle item'а (видно в логах:
+        // `CAMetalLayer ignoring invalid setDrawableSize 0×0` +
+        // `Resetting GeoCSS zone allocator`) — каждый scroll-tick
+        // запускал full MKMapView lifecycle, что и было главным
+        // источником дёргания при серии location-сообщений.
+        // Решение: inline = статичная OSM-плитка (cheap, кэшируется
+        // CDN'ом), interactive MKMapView остаётся только в fullscreen
+        // (тап на expand-кнопку или на саму карту → _openMap).
+        // Bug #12 trade-off: пользователь жертвует pan/zoom в bubble
+        // в обмен на плавный скролл; fullscreen открывается одним
+        // тапом.
         final stackBody = Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: cardOnTap,
+            onTap: () => _openMap(context),
             child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    if (useNativeMap)
-                      AspectRatio(
-                        aspectRatio: aspect,
-                        // Bug 13: live-tracking. Если share — длительная
-                        // трансляция (liveSession.expiresAt в будущем
-                        // → stillStreaming==true), подписываемся на
-                        // sub-collection trackPoints отправителя и
-                        // рисуем MKPolyline overlay поверх MKMapView.
-                        child: ChatLocationMapView(
-                          lat: share.lat,
-                          lng: share.lng,
-                          interactive: true,
-                          trackPointsForUid: stillStreaming ? senderId : null,
-                        ),
-                      )
-                    else if (staticUrl != null && staticUrl.isNotEmpty)
+                    if (staticUrl != null && staticUrl.isNotEmpty)
                       AspectRatio(
                         aspectRatio: aspect,
                         child: ChatCachedNetworkImage(
@@ -244,14 +227,15 @@ class MessageLocationCard extends StatelessWidget {
                       )
                     else
                       _FallbackLocationTile(share: share, isMine: isMine),
-                    if (useNativeMap)
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: _MapExpandButton(
-                          onTap: () => _openMap(context),
-                        ),
+                    // expand-иконка в углу — намёк что тап откроет
+                    // интерактивную fullscreen-карту.
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: _MapExpandButton(
+                        onTap: () => _openMap(context),
                       ),
+                    ),
                     if (liveExp != null && liveExp.isNotEmpty)
                       Positioned(
                         left: 8,
