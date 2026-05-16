@@ -5962,27 +5962,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               ? _lastKeyboardHeight
               : MediaQuery.of(context).size.height * 0.42);
     _holdStickersFooterTransition(hold);
-    // unfocus → requestFocus гарантирует false→true переход (см. fix
-    // от прошлой итерации). focus listener в NativeIosComposerField
-    // отправит `focus` в Swift → becomeFirstResponder → клавиатура.
-    _composerFocusNode.unfocus();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // ВАЖНО: пока panel открыта, `NativeIosComposerField` demountnut
+    // (см. `inStickerSearchMode` в chat_composer). Если мы вызовем
+    // `requestFocus` прямо сейчас — focusNode.hasFocus = true, но
+    // native composer state ещё не существует, поэтому когда новый
+    // state mountится через `_closeStickersPanel`, его focus listener
+    // (в initState) НЕ срабатывает: он реагирует только на изменения,
+    // а hasFocus уже = true к моменту addListener.
+    //
+    // Поэтому делаем последовательность:
+    //   1) close panel → mount NativeIosComposerField → listener added;
+    //   2) unfocus → переход в false (НЕ no-op, потому что текущее true);
+    //   3) postFrame requestFocus → переход в true → listener fires →
+    //      invokeMethod('focus') в Swift → becomeFirstResponder.
+    _closeStickersPanel();
+    Future<void>.delayed(const Duration(milliseconds: 30), () {
       if (!mounted) return;
       debugPrint(
-        '[panel-toggle] _switchFromStickersToKeyboard: postFrame '
-        'requestFocus on composer (hasFocus before=${_composerFocusNode.hasFocus})',
+        '[panel-toggle] _switchFromStickersToKeyboard: post-mount '
+        'focus toggle (hasFocus before=${_composerFocusNode.hasFocus})',
       );
-      _composerFocusNode.requestFocus();
-    });
-    // Закрываем панель ПОСЛЕ задержки чтобы клавиатура успела
-    // подняться. Иначе panel снимается мгновенно, footerHeight на
-    // короткое время = 0, композер визуально проседает вниз («баг п.2»).
-    // 80ms — достаточно для iOS чтобы начать keyboard-show animation
-    // (фактическая высота kbInset > 0 уже на ~50ms), дальше
-    // _stickersTransitionFooterFloor держит floor.
-    Future<void>.delayed(const Duration(milliseconds: 80), () {
-      if (!mounted) return;
-      _closeStickersPanel();
+      _composerFocusNode.unfocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _composerFocusNode.requestFocus();
+      });
     });
   }
 
