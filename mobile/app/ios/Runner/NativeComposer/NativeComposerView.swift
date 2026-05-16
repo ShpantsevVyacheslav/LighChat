@@ -653,6 +653,43 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
       ])
   }
 
+  /// Определяет расширение файла для raw-бытов sticker'а. Сначала
+  /// пытаемся UTType.preferredFilenameExtension, затем — magic bytes.
+  /// Поддерживаем gif / webp / heic / png; неизвестное → png (он же
+  /// fallback на receiver-side).
+  private func inferStickerExtension(data: Data, contentType: Any?) -> String {
+    if let utObj = contentType as? NSObject {
+      if let ext = utObj.value(forKey: "preferredFilenameExtension") as? String,
+        !ext.isEmpty
+      {
+        return ext.lowercased()
+      }
+    }
+    guard data.count >= 12 else { return "png" }
+    let bytes = [UInt8](data.prefix(12))
+    // GIF87a / GIF89a
+    if bytes.starts(with: [0x47, 0x49, 0x46, 0x38]) { return "gif" }
+    // PNG
+    if bytes.starts(with: [0x89, 0x50, 0x4E, 0x47]) { return "png" }
+    // WebP — RIFF????WEBP
+    if bytes.starts(with: [0x52, 0x49, 0x46, 0x46]),
+      bytes[8] == 0x57, bytes[9] == 0x45, bytes[10] == 0x42, bytes[11] == 0x50
+    {
+      return "webp"
+    }
+    // HEIC / HEIF — ftyp box at offset 4, brand at offset 8
+    if bytes[4] == 0x66, bytes[5] == 0x74, bytes[6] == 0x79, bytes[7] == 0x70 {
+      let brand = String(
+        bytes: Array(bytes[8..<12]), encoding: .ascii) ?? ""
+      if brand.hasPrefix("heic") || brand.hasPrefix("heix")
+        || brand.hasPrefix("mif1") || brand.hasPrefix("hevc")
+      {
+        return "heic"
+      }
+    }
+    return "png"
+  }
+
   /// Diagnostic: перечисляет все runs в `attributedText` и для каждого
   /// печатает все attribute keys + class имя value (если объект). Помогает
   /// найти Apple-private attribute key через который iOS Sticker keyboard
@@ -723,11 +760,21 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
   /// `image(forBounds:textContainer:characterIndex:)` (тут iOS возвращает
   /// растрированный bitmap для memoji/genmoji), а в крайнем случае —
   /// инициализируем UIImage из `attachment.contents` (raw NSData).
+  /// Каждый найденный inline-attachment представлен либо UIImage'ем
+  /// (legacy NSTextAttachment — нет raw data, нужен encode в PNG),
+  /// либо raw `Data` + extension (NSAdaptiveImageGlyph — это могут быть
+  /// **GIF / WebP / HEIC анимации**, и encode через UIImage сожрёт
+  /// frame'ы. Сохраняем bytes как есть.)
+  private enum StickerPayload {
+    case image(UIImage)
+    case raw(Data, String)
+  }
+
   private func extractAndRemoveInlineImageAttachments() -> [String] {
     let attr = textView.attributedText
     guard let attr = attr, attr.length > 0 else { return [] }
     let full = NSRange(location: 0, length: attr.length)
-    var hits: [(range: NSRange, image: UIImage)] = []
+    var hits: [(range: NSRange, payload: StickerPayload)] = []
     // Classic stickers / memoji legacy: вставляются как NSTextAttachment
     // с image либо dynamic `image(forBounds:textContainer:...)`. Передаём
     // настоящий textContainer — без него iOS возвращает nil для рендеров,
@@ -745,40 +792,58 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
       if img == nil, let data = attach.contents {
         img = UIImage(data: data)
       }
-      if let i = img { hits.append((range, i)) }
+      if let i = img { hits.append((range, .image(i))) }
     }
-    // Bug 2: Genmoji (iOS 18.1+ Apple Intelligence) вставляется НЕ как
-    // attachment, а как обычный «adaptive image glyph» character — через
-    // NSAttributedString.Key.adaptiveImageGlyph + NSAdaptiveImageGlyph,
-    // у которого есть `imageContent: Data` (PNG/HEIC raw).
+    // Phase 8 sticker fix: iOS Sticker / Memoji / Genmoji (iOS 18+)
+    // вставляются как OBJECT-REPLACEMENT-CHARACTER (U+FFFC) с custom
+    // attribute. Реальный key — `CTAdaptiveImageProvider` (выяснено по
+    // дампу attributedText на устройстве). Value — `NSAdaptiveImageGlyph`
+    // Obj-C класс с `imageContent: Data` raw bytes + `contentType` UTType.
+    // Сохраняем raw bytes БЕЗ конвертации — анимированные стикеры (GIF/
+    // WebP/HEIC) теряют frames если прогнать через UIImage→pngData.
     if #available(iOS 18.0, *) {
-      let key = NSAttributedString.Key("NSAdaptiveImageGlyph")
-      attr.enumerateAttribute(key, in: full, options: []) { val, range, _ in
-        // NSAdaptiveImageGlyph — Obj-C class; используем KVC чтобы не
-        // тащить новый import (тип объявлен в UIKit/CoreText).
-        guard let any = val as? NSObject else { return }
-        let data = any.value(forKey: "imageContent") as? Data
-        if let d = data, let img = UIImage(data: d) {
-          hits.append((range, img))
+      let candidateKeys = [
+        "CTAdaptiveImageProvider",
+        "NSAdaptiveImageGlyph",
+      ]
+      for keyName in candidateKeys {
+        let key = NSAttributedString.Key(keyName)
+        attr.enumerateAttribute(key, in: full, options: []) { val, range, _ in
+          guard let any = val as? NSObject else { return }
+          guard let data = any.value(forKey: "imageContent") as? Data else {
+            return
+          }
+          let ext = self.inferStickerExtension(
+            data: data, contentType: any.value(forKey: "contentType"))
+          hits.append((range, .raw(data, ext)))
         }
       }
     }
     if hits.isEmpty { return [] }
 
     var paths: [String] = []
-    for (_, image) in hits {
-      // PNG сохраняет прозрачность memoji/sticker'а — JPEG бы её схлопнул
-      // в чёрный.
-      guard let data = image.pngData() else { continue }
-      let name = "composer_sticker_\(UUID().uuidString).png"
+    for (_, payload) in hits {
+      let bytes: Data
+      let ext: String
+      switch payload {
+      case .image(let img):
+        // PNG сохраняет прозрачность memoji/sticker'а — JPEG бы её
+        // схлопнул в чёрный.
+        guard let png = img.pngData() else { continue }
+        bytes = png
+        ext = "png"
+      case .raw(let raw, let e):
+        bytes = raw
+        ext = e
+      }
+      let name = "composer_sticker_\(UUID().uuidString).\(ext)"
       let url = URL(fileURLWithPath: NSTemporaryDirectory())
         .appendingPathComponent(name)
       do {
-        try data.write(to: url, options: .atomic)
+        try bytes.write(to: url, options: .atomic)
         paths.append(url.path)
       } catch {
-        // tmp недоступен — просто пропускаем стикер. Не мешаем юзеру
-        // дальше печатать.
+        // tmp недоступен — просто пропускаем стикер.
       }
     }
 

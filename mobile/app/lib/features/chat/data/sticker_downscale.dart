@@ -72,6 +72,21 @@ Future<XFile> downscaleStickerForSend(
   try {
     final path = file.path;
     if (path.isEmpty) return file;
+    // Анимированные форматы (GIF / WebP / HEIC от Apple Memoji-стикеров)
+    // НЕЛЬЗЯ прогонять через `img.decodeImage` + `encodePng` — мы получим
+    // только первый кадр, анимация будет уничтожена. iOS Sticker
+    // keyboard отдаёт raw bytes этих форматов через NSAdaptiveImageGlyph.
+    // Для них skip downscale.
+    final lowerPath = path.toLowerCase();
+    if (lowerPath.endsWith('.gif') ||
+        lowerPath.endsWith('.webp') ||
+        lowerPath.endsWith('.heic') ||
+        lowerPath.endsWith('.heif')) {
+      debugPrint(
+        '[sticker-downscale] skip animated/non-PNG ($lowerPath) → using original',
+      );
+      return file;
+    }
     final raw = await File(path).readAsBytes();
     final originalBytes = raw.length;
     final r = await compute(

@@ -3557,8 +3557,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         // не распознаёт это как стикер: рендерится крупным изображением,
         // в context-menu показывается «Создать стикер» вместо «Сохранить
         // в стикеры». Префикс — единственный дискриминатор по проекту.
+        // Сохраняем оригинальное расширение (.gif/.webp/.heic/.png) —
+        // animated стикеры приходят от Apple Sticker keyboard как GIF
+        // или WebP, и downstream рендер нуждается в правильном MIME для
+        // проигрывания анимации. Если ext неизвестен — fallback `.png`.
+        final lowerPath = compact.path.toLowerCase();
+        final ext = const ['.gif', '.webp', '.heic', '.heif', '.png']
+                .firstWhere(
+                  lowerPath.endsWith,
+                  orElse: () => '.png',
+                );
         final stickerName =
-            'sticker_${DateTime.now().toUtc().microsecondsSinceEpoch}.png';
+            'sticker_${DateTime.now().toUtc().microsecondsSinceEpoch}$ext';
         final att = await uploadChatAttachmentFromXFile(
           storage: FirebaseStorage.instance,
           conversationId: widget.conversationId,

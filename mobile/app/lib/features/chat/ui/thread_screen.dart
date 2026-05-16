@@ -675,8 +675,18 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
         // по всему проекту: _isStickerAttachment/_isStickerAttachmentForMenu).
         final compact = await downscaleStickerForSend(s);
         if (!mounted) return;
+        // Сохраняем оригинальное расширение — animated стикеры (GIF/
+        // WebP/HEIC от Apple Sticker keyboard) теряют анимацию если
+        // насильно переименовать в .png. Fallback `.png` если ext
+        // незнакомый.
+        final lowerPath = compact.path.toLowerCase();
+        final ext = const ['.gif', '.webp', '.heic', '.heif', '.png']
+                .firstWhere(
+                  lowerPath.endsWith,
+                  orElse: () => '.png',
+                );
         final stickerName =
-            'sticker_${DateTime.now().toUtc().microsecondsSinceEpoch}.png';
+            'sticker_${DateTime.now().toUtc().microsecondsSinceEpoch}$ext';
         final att = await uploadChatAttachmentFromXFile(
           storage: FirebaseStorage.instance,
           conversationId: widget.conversationId,
