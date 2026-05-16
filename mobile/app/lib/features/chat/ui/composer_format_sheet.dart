@@ -173,58 +173,11 @@ class _FormatPopoverBody extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  // Bottom row: animated effects + Big/Small с **живым
-                  // preview**. Каждая кнопка показывает реальный эффект
-                  // на своём label'е (как в Apple Messages Text Effects).
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    alignment: WrapAlignment.start,
-                    children: [
-                      _EffectBtnPreview(
-                        label: 'Big',
-                        effect: 'big',
-                        fg: fg,
-                        onTap: () => _emit('big'),
-                      ),
-                      _EffectBtnPreview(
-                        label: 'Small',
-                        effect: 'small',
-                        fg: fg,
-                        onTap: () => _emit('small'),
-                      ),
-                      _EffectBtnPreview(
-                        label: 'Shake',
-                        effect: 'shake',
-                        fg: fg,
-                        onTap: () => _emit('shake'),
-                      ),
-                      _EffectBtnPreview(
-                        label: 'Nod',
-                        effect: 'nod',
-                        fg: fg,
-                        onTap: () => _emit('nod'),
-                      ),
-                      _EffectBtnPreview(
-                        label: 'Ripple',
-                        effect: 'ripple',
-                        fg: fg,
-                        onTap: () => _emit('ripple'),
-                      ),
-                      _EffectBtnPreview(
-                        label: 'Bloom',
-                        effect: 'bloom',
-                        fg: fg,
-                        onTap: () => _emit('bloom'),
-                      ),
-                      _EffectBtnPreview(
-                        label: 'Jitter',
-                        effect: 'jitter',
-                        fg: fg,
-                        onTap: () => _emit('jitter'),
-                      ),
-                    ],
-                  ),
+                  // Bottom: animated effects + Big/Small в 2 колонки
+                  // (паритет Apple Messages Text Effects). Каждая
+                  // кнопка показывает живой preview-эффект на своём
+                  // label'е через `AnimatedTextSpan`.
+                  ..._buildEffectRows(fg),
                 ],
               ),
             ),
@@ -237,6 +190,57 @@ class _FormatPopoverBody extends StatelessWidget {
   void _emit(String tag) {
     onToggle(tag);
     ChatHaptics.instance.selectionChanged();
+  }
+
+  /// 7 effects в 2-колоночной сетке как в Apple Messages: 4 полных
+  /// строки, последняя строка (Jitter) — растянута на всю ширину
+  /// (либо в одной колонке если хочется идеальный квадрат — у Apple
+  /// одиночная кнопка обычно растянута, оставляем тот же стиль).
+  List<Widget> _buildEffectRows(Color fg) {
+    const effects = <(String, String)>[
+      ('Big', 'big'),
+      ('Small', 'small'),
+      ('Shake', 'shake'),
+      ('Nod', 'nod'),
+      ('Ripple', 'ripple'),
+      ('Bloom', 'bloom'),
+      ('Jitter', 'jitter'),
+    ];
+    final rows = <Widget>[];
+    for (var i = 0; i < effects.length; i += 2) {
+      final left = effects[i];
+      final right = i + 1 < effects.length ? effects[i + 1] : null;
+      rows.add(
+        Padding(
+          padding: EdgeInsets.only(top: i == 0 ? 0 : 6),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _EffectBtnPreview(
+                  label: left.$1,
+                  effect: left.$2,
+                  fg: fg,
+                  onTap: () => _emit(left.$2),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: right == null
+                    ? const SizedBox.shrink()
+                    : _EffectBtnPreview(
+                        label: right.$1,
+                        effect: right.$2,
+                        fg: fg,
+                        onTap: () => _emit(right.$2),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return rows;
   }
 }
 
