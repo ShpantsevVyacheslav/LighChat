@@ -179,10 +179,14 @@ class ChatComposer extends StatefulWidget {
   onVoiceHoldRecorded;
 
   @override
-  State<ChatComposer> createState() => _ChatComposerState();
+  State<ChatComposer> createState() => ChatComposerState();
 }
 
-class _ChatComposerState extends State<ChatComposer> {
+/// Публичный State чтобы chat_screen мог через GlobalKey прицельно
+/// дёрнуть focus на native composer (см. [focusComposer]) — это
+/// нужно для panel→keyboard transition, где listener-путь не успевает
+/// из-за async-mount PlatformView.
+class ChatComposerState extends State<ChatComposer> {
   /// Как строка поиска на экране списка чатов (`chat_list_screen`: высота 40, radius 14).
   static const double _kComposerControlSize = 40;
 
@@ -584,6 +588,15 @@ class _ChatComposerState extends State<ChatComposer> {
     if (widget.sendBusy) return;
     _closeAttachmentMenu();
     widget.onStickersTap();
+  }
+
+  /// Принудительный focus на native composer'е (минуя focusNode-listener
+  /// путь). Используется chat_screen в `_switchFromStickersToKeyboard`
+  /// чтобы panel→keyboard transition надёжно поднимал клавиатуру даже
+  /// когда новый PlatformView ещё не успел зарегистрировать channel.
+  void focusComposer() {
+    widget.focusNode.requestFocus();
+    _nativeFieldKey.currentState?.focus();
   }
 
   void _openKeyboardFromStickerMode() {

@@ -149,6 +149,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   final _controller = ChatHtmlComposerController();
   final _scrollController = ScrollController();
   final _composerFocusNode = FocusNode();
+  /// Phase 14: ключ к ChatComposerState, чтобы можно было дёрнуть
+  /// `focusComposer()` напрямую и обойти focusNode-listener путь
+  /// (panel→keyboard transition не работает из-за async-mount).
+  final GlobalKey<ChatComposerState> _chatComposerKey =
+      GlobalKey<ChatComposerState>();
 
   /// Per-message override origin for the 30s stale-pending window. Set when
   /// the user invokes «Повторить» on a stuck Firestore-pending message.
@@ -2636,6 +2641,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                             aiAvailable: _aiAvailable,
                                           ),
                                           ChatComposer(
+                                      key: _chatComposerKey,
                                       controller: _controller,
                                       focusNode: _composerFocusNode,
                                       stickersPanelOpen: _stickersPanelOpen,
@@ -6012,33 +6018,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     //   3) postFrame requestFocus → переход в true → listener fires →
     //      invokeMethod('focus') в Swift → becomeFirstResponder.
     _closeStickersPanel();
-    // 80ms — даём PlatformView (NativeIosComposerField) асинхронно
-    // создать UiKitView и зарегистрировать channel в Dart-side.
-    // На прошлой итерации 30ms не хватало: focusNode listener fire'ил
-    // но `_channel = null` к этому моменту, invokeMethod('focus')
-    // улетал в /dev/null. Заодно делаем явный retry через 220мс на
-    // случай если первый toggle не дошёл.
-    Future<void>.delayed(const Duration(milliseconds: 80), () {
+    // Новый путь: прямой вызов native focus через GlobalKey
+    // (ChatComposerState.focusComposer), минуя focusNode-listener.
+    // PlatformView создаётся async; если channel ещё не готов,
+    // NativeIosComposerField запомнит `_pendingFocus = true` и
+    // применит его в `_onPlatformViewCreated`. Это надёжнее чем
+    // delay + retry на focusNode dance.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       debugPrint(
-        '[panel-toggle] _switchFromStickersToKeyboard: post-mount '
-        'focus toggle (hasFocus before=${_composerFocusNode.hasFocus})',
+        '[panel-toggle] _switchFromStickersToKeyboard: direct '
+        'focusComposer() call',
       );
-      _composerFocusNode.unfocus();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _composerFocusNode.requestFocus();
-      });
-    });
-    Future<void>.delayed(const Duration(milliseconds: 220), () {
-      if (!mounted) return;
-      if (!_composerFocusNode.hasFocus) {
-        debugPrint(
-          '[panel-toggle] _switchFromStickersToKeyboard: retry focus '
-          '(still no hasFocus at 220ms)',
-        );
-        _composerFocusNode.requestFocus();
-      }
+      _chatComposerKey.currentState?.focusComposer();
     });
   }
 

@@ -81,6 +81,9 @@ class NativeIosComposerFieldState extends State<NativeIosComposerField> {
   double _lineHeight = 20;
   double _measuredHeight = 0;
   bool _suppressControllerListener = false;
+  /// Если `focus()` был вызван до того как PlatformView создался —
+  /// применяем при первой возможности (см. `_onPlatformViewCreated`).
+  bool _pendingFocus = false;
 
   @override
   void initState() {
@@ -174,6 +177,21 @@ class NativeIosComposerFieldState extends State<NativeIosComposerField> {
     final c = _channel;
     if (c == null) return;
     unawaited(c.invokeMethod<void>('unfocus'));
+  }
+
+  /// Зеркальный к [unfocus]: напрямую дёргает Swift becomeFirstResponder
+  /// через method-channel. Если PlatformView ещё не создан (`_channel == null`),
+  /// ставим `_pendingFocus = true` — `_onPlatformViewCreated` применит focus
+  /// сразу после готовности channel'а. Это критично для panel→keyboard
+  /// сценария, где запрос на focus приходит в первый кадр после mount,
+  /// когда PlatformView ещё не успел зарегистрироваться.
+  void focus() {
+    final c = _channel;
+    if (c == null) {
+      _pendingFocus = true;
+      return;
+    }
+    unawaited(c.invokeMethod<void>('focus'));
   }
 
 
@@ -298,7 +316,13 @@ class NativeIosComposerFieldState extends State<NativeIosComposerField> {
     }
     // Push style (для случая когда didUpdateWidget не сработал).
     unawaited(c.invokeMethod<void>('setStyle', _styleArgs()));
-    if (widget.focusNode.hasFocus) {
+    // Применяем фокус если он был запрошен до создания PlatformView:
+    // через `_pendingFocus` (явный вызов `focus()` от caller'a) или
+    // через `widget.focusNode.hasFocus` (Flutter focus tree уже
+    // зафокусил наш node). Это спасает panel→keyboard transition,
+    // где запрос приходит в первый кадр после mount.
+    if (_pendingFocus || widget.focusNode.hasFocus) {
+      _pendingFocus = false;
       unawaited(c.invokeMethod<void>('focus'));
     }
   }
