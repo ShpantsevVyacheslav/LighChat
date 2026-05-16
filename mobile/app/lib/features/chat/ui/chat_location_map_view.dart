@@ -58,9 +58,13 @@ class ChatLocationMapView extends StatelessWidget {
               'interactive': interactive,
             },
             creationParamsCodec: const StandardMessageCodec(),
-            // Preview-карта НЕ должна перехватывать gestures (тап на
-            // крестик отмены / весь композер ниже). opaque съел бы их.
-            hitTestBehavior: PlatformViewHitTestBehavior.transparent,
+            // Bug #5: интерактивная карта должна жадно перехватывать
+            // pan/zoom. Для preview (inline в композере над клавиатурой)
+            // оставляем transparent — gestures должны падать на нижний
+            // gesture-detector (закрытие popover'а и т.п.).
+            hitTestBehavior: interactive
+                ? PlatformViewHitTestBehavior.opaque
+                : PlatformViewHitTestBehavior.transparent,
           );
         },
       );

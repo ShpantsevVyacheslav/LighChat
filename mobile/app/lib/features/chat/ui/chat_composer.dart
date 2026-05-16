@@ -69,6 +69,8 @@ class ChatComposer extends StatefulWidget {
     this.pendingLocationShare,
     this.pendingLocationDurationId,
     this.onCancelPendingLocationShare,
+    this.locationPanelOpen = false,
+    this.onCloseLocationPanel,
     this.stickerSuggestionBuilder,
     this.e2eeDisabledBanner,
     this.groupMentionCandidates,
@@ -153,6 +155,16 @@ class ChatComposer extends StatefulWidget {
 
   /// Тап на крестик в превью карты — caller сбрасывает pending location.
   final VoidCallback? onCancelPendingLocationShare;
+
+  /// Bug #1: открыта ли location-share панель под композером. Когда
+  /// `true`, скрываем боковые кнопки «+» и микрофон и показываем
+  /// справа стеклянный круглый крестик для закрытия панели.
+  final bool locationPanelOpen;
+
+  /// Bug #1: callback на тап X-кнопки в композере при открытой
+  /// location panel. Caller должен закрыть панель (см.
+  /// `_closeLocationPanel` в chat_screen).
+  final VoidCallback? onCloseLocationPanel;
 
   /// Необязательный строитель строки быстрых стикеров над полем ввода.
   ///
@@ -984,7 +996,8 @@ class ChatComposerState extends State<ChatComposer> {
                 child: Row(
                   key: const ValueKey('composer-input-row'),
                   children: [
-                    if (!widget.stickersPanelHideSideButtons) ...[
+                    if (!widget.stickersPanelHideSideButtons &&
+                        !widget.locationPanelOpen) ...[
                       Container(
                         width: _kComposerControlSize,
                         height: _kComposerControlSize,
@@ -1039,7 +1052,8 @@ class ChatComposerState extends State<ChatComposer> {
                       ),
                     ),
                     if (!widget.stickersPanelHideSideButtons ||
-                        showSendButton) ...[
+                        showSendButton ||
+                        widget.locationPanelOpen) ...[
                       const SizedBox(width: 6),
                       Container(
                       width: _kComposerControlSize,
@@ -1115,6 +1129,26 @@ class ChatComposerState extends State<ChatComposer> {
                                     ),
                                   )
                                 : () {
+                                    // Bug #1: при открытой location panel
+                                    // справа вместо микрофона — стеклянный
+                                    // крестик для закрытия панели. Apple-
+                                    // style: тонкий, glass blur через
+                                    // прозрачный контейнер; цвет hint
+                                    // muted (как иконка mic).
+                                    if (widget.locationPanelOpen) {
+                                      return IconButton(
+                                        tooltip:
+                                            l10n.share_location_cancel,
+                                        onPressed:
+                                            widget.onCloseLocationPanel,
+                                        iconSize: 18,
+                                        padding: EdgeInsets.zero,
+                                        icon: Icon(
+                                          Icons.close_rounded,
+                                          color: fg.withValues(alpha: 0.92),
+                                        ),
+                                      );
+                                    }
                                     final canInlineVoice =
                                         !widget.sendBusy &&
                                         widget.onVoiceHoldRecorded != null;

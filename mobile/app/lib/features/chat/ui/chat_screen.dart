@@ -2904,6 +2904,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                     _pendingLocationDurationId =
                                                         null;
                                                   }),
+                                      // Bug #1: при открытой location panel
+                                      // прячем «+»/mic, показываем X
+                                      // справа для закрытия панели.
+                                      locationPanelOpen:
+                                          _locationPanelOpen,
+                                      onCloseLocationPanel:
+                                          _locationPanelOpen
+                                              ? _closeLocationPanel
+                                              : null,
                                       showFormattingToolbar:
                                           _composerFormattingOpen,
                                       onCloseFormattingToolbar: () => setState(
@@ -5346,6 +5355,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       return;
     }
 
+    // Bug #4: гасим клавиатуру СРАЗУ при выборе «Локация» — до запроса
+    // позиции / разрешения. Иначе пока юзер видит permission-диалог,
+    // клавиатура остаётся внизу и карта потом «прыгает» из-за гонки
+    // между keyboardInset и анимацией панели. Захватываем lockedH из
+    // текущего keyboardInset до hide — он же станет высотой панели.
+    final preKbInset = MediaQuery.viewInsetsOf(context).bottom;
+    final preLockedH = preKbInset > 0
+        ? preKbInset
+        : (_lastKeyboardHeight > 0
+              ? _lastKeyboardHeight
+              : MediaQuery.of(context).size.height * 0.42);
+    _composerFocusNode.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
+    unawaited(SystemChannels.textInput.invokeMethod<void>('TextInput.hide'));
+
     setState(() => _sendBusy = true);
     Position pos;
     try {
@@ -5394,25 +5418,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
     if (!mounted) return;
 
-    // Phase 12.1: открываем нижнюю панель карты (вместо клавиатуры).
-    // Дальнейшее поведение в `_handleLocationPanelShareTap` /
-    // `_closeLocationPanel`.
-    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
-    final lockedH = keyboardInset > 0
-        ? keyboardInset
-        : (_lastKeyboardHeight > 0
-              ? _lastKeyboardHeight
-              : MediaQuery.of(context).size.height * 0.42);
+    // Phase 12.1 / Bug #4: открываем нижнюю панель карты (вместо
+    // клавиатуры). `preLockedH` зафиксирован в начале метода — до
+    // hide keyboard, чтобы видимая высота не схлопнулась пока юзер
+    // отвечал на permission-диалог.
     setState(() {
       _locationPanelOpen = true;
-      _locationPanelLockedHeight = lockedH;
+      _locationPanelLockedHeight = preLockedH;
       _locationPanelLat = pos.latitude;
       _locationPanelLng = pos.longitude;
     });
-    // Скрываем клавиатуру, чтобы panel заняла её место (как sticker).
-    _composerFocusNode.unfocus();
-    FocusManager.instance.primaryFocus?.unfocus();
-    await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
   }
 
   void _closeLocationPanel() {

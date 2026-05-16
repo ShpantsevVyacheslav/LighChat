@@ -28,45 +28,47 @@ class ChatLocationSharePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Stack(
-        children: [
-          // Карта на весь footer.
-          Positioned.fill(
-            child: ChatLocationMapView(
-              lat: lat,
-              lng: lng,
-              interactive: true,
-            ),
+    // Bug #3: SafeArea(top:false) обрезал карту снизу — на iPhone с
+    // home-indicator оставалась чёрная полоса под картой. Карта теперь
+    // на всю высоту footer'а; пилюли позиционируем с учётом
+    // viewPadding.bottom вручную, чтобы они не залезали под индикатор.
+    final mq = MediaQuery.of(context);
+    return Stack(
+      children: [
+        // Карта на весь footer — без SafeArea, до самого низа.
+        Positioned.fill(
+          child: ChatLocationMapView(
+            lat: lat,
+            lng: lng,
+            interactive: true,
           ),
-          // Floating row of pills overlay внизу.
-          Positioned(
-            left: 14,
-            right: 14,
-            bottom: 14,
-            child: Row(
-              children: [
-                Expanded(
-                  child: _Pill(
-                    label: requestLabel,
-                    filled: false,
-                    onTap: onRequest,
-                  ),
+        ),
+        // Floating row of pills overlay внизу.
+        Positioned(
+          left: 14,
+          right: 14,
+          bottom: mq.padding.bottom + 14,
+          child: Row(
+            children: [
+              Expanded(
+                child: _Pill(
+                  label: requestLabel,
+                  filled: false,
+                  onTap: onRequest,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _Pill(
-                    label: shareLabel,
-                    filled: true,
-                    onTap: onShare,
-                  ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _Pill(
+                  label: shareLabel,
+                  filled: true,
+                  onTap: onShare,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
