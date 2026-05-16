@@ -146,8 +146,10 @@ const double _kMutedTextSize = 13;
 /// нижний padding). Совпадает с visual layout в `_PreviewHeaderDelegate`.
 const double _kPreviewMaxHeight = 374;
 /// Зона «выталкивания» — за столько пикселей скролла до раздела «Эмодзи
-/// эффекты» начинается плавное сжатие превью до 0.
-const double _kPreviewPushZone = 120;
+/// эффекты» превью плавно уплывает вверх. Равна полной высоте превью —
+/// тогда движение 1:1 со скроллом, как у обычного (нон-pinned) sliver,
+/// и ощущается естественно.
+const double _kPreviewPushZone = _kPreviewMaxHeight;
 
 class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
   _EditableChatSettings? _state;
@@ -161,13 +163,15 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
   /// Маркер раздела «Эмодзи эффекты» — после него настройки больше
   /// не влияют на превью, поэтому sticky-превью «отлипает».
   final GlobalKey _emojiSectionKey = GlobalKey();
-  /// Текущая высота sticky-превью. Плавно интерполируется от
-  /// `_kPreviewMaxHeight` до 0 в зоне «выталкивания» (последние
-  /// `_kPreviewPushZone` пикселей скролла перед разделом «Эмодзи
-  /// эффекты»). Раздел иконок навигации естественно выталкивает
-  /// превью вверх без визуальных скачков.
-  double _previewHeight = _kPreviewMaxHeight;
-  bool get _previewHidden => _previewHeight <= 0.5;
+  /// Сколько пикселей превью уже «уплыло» наверх. 0 — sticky на месте;
+  /// `_kPreviewMaxHeight` — полностью за viewport. Внутреннее
+  /// содержимое превью сдвигается через `Transform.translate(-offset)`,
+  /// внешняя высота sliver'а уменьшается на ту же величину — так
+  /// получается естественное движение 1:1 со скроллом, как у обычного
+  /// sliver без pinned.
+  double _previewPushOffset = 0;
+  double get _previewHeight => _kPreviewMaxHeight - _previewPushOffset;
+  bool get _previewHidden => _previewPushOffset >= _kPreviewMaxHeight - 0.5;
   // Phase 1-3 native iOS composer (UITextView с системным меню и Writing
   // Tools). Хранится в SharedPreferences а не в server-side chatSettings —
   // это пер-устройство iOS-only фича, остальные платформы её скрывают.
@@ -210,12 +214,13 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
     if (viewport == null) return;
     final revealOffset = viewport.getOffsetToReveal(ro, 0.0).offset;
     final scrollPos = _scrollController.offset;
-    final t = ((scrollPos - (revealOffset - _kPreviewPushZone)) /
-            _kPreviewPushZone)
-        .clamp(0.0, 1.0);
-    final newHeight = (1 - t) * _kPreviewMaxHeight;
-    if ((_previewHeight - newHeight).abs() > 0.5) {
-      setState(() => _previewHeight = newHeight);
+    // Сколько превью должно «уплыть» наверх: от 0 (sticky на месте) до
+    // _kPreviewMaxHeight (полностью за viewport). Линейно по скроллу
+    // в зоне [revealOffset - pushZone, revealOffset].
+    final newOffset =
+        (scrollPos - (revealOffset - _kPreviewPushZone)).clamp(0.0, _kPreviewPushZone);
+    if ((_previewPushOffset - newOffset).abs() > 0.5) {
+      setState(() => _previewPushOffset = newOffset);
     }
   }
 
@@ -1643,16 +1648,17 @@ class _ChatSettingsScreenState extends ConsumerState<ChatSettingsScreen> {
                   controller: _scrollController,
                   slivers: [
                     SliverPersistentHeader(
-                      // Превью плавно «выталкивается» разделом «Эмодзи
-                      // эффекты» — высота линейно интерполируется от
-                      // `_kPreviewMaxHeight` до 0 в зоне `_kPreviewPushZone`
-                      // (см. `_handleScrollForPreviewVisibility`). pinned
-                      // переключается на false только когда превью уже
-                      // схлопнуто, чтобы при дальнейшем скролле не
-                      // занимать места.
+                      // Превью плавно «уплывает» наверх по мере приближения
+                      // раздела «Эмодзи эффекты» — внешняя высота sliver'а
+                      // уменьшается на `_previewPushOffset`, а его child
+                      // одновременно сдвигается на ту же величину через
+                      // `Transform.translate`. В результате движение 1:1
+                      // со скроллом, как у обычного (нон-pinned) sliver,
+                      // но до зоны «выталкивания» превью pinned сверху.
                       pinned: !_previewHidden,
                       delegate: _PreviewHeaderDelegate(
                         height: _previewHeight,
+                        pushOffset: _previewPushOffset,
                         background: dark
                             ? const Color(0xFF04070C)
                             : scheme.surface,
@@ -2318,28 +2324,39 @@ class _PreviewHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.child,
     required this.height,
     required this.background,
+    required this.pushOffset,
   });
 
   final Widget child;
   final double height;
   final Color background;
+  /// Сколько пикселей child уже «уплыл» наверх. Используется в связке
+  /// с `height` так, что внешняя высота уменьшается на `pushOffset`,
+  /// а child сдвигается через `Transform.translate(-pushOffset)` —
+  /// получается естественное движение 1:1 со скроллом.
+  final double pushOffset;
 
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    // Когда высота == 0 (превью «отлипло» — после раздела эмодзи), не
-    // рендерим child вообще, чтобы не было overflow и invisible
-    // занимаемого места painter'ом анимации.
     return Container(
       color: background,
       height: height,
       child: height <= 0
           ? null
-          : ClipRect(child: OverflowBox(
-              alignment: Alignment.topCenter,
-              minHeight: 0,
-              maxHeight: height,
-              child: child,
-            )),
+          : ClipRect(
+              child: OverflowBox(
+                alignment: Alignment.topCenter,
+                minHeight: 0,
+                maxHeight: _kPreviewMaxHeight,
+                child: Transform.translate(
+                  offset: Offset(0, -pushOffset),
+                  child: SizedBox(
+                    height: _kPreviewMaxHeight,
+                    child: child,
+                  ),
+                ),
+              ),
+            ),
     );
   }
 
@@ -2353,6 +2370,7 @@ class _PreviewHeaderDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant _PreviewHeaderDelegate old) =>
       old.height != height ||
       old.background != background ||
+      old.pushOffset != pushOffset ||
       old.child != child;
 }
 
