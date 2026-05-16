@@ -70,17 +70,12 @@ Future<void> showComposerFormatSheet({
 
   entry = OverlayEntry(
     builder: (_) {
+      // Без tap-outside dismiss (защита от случайных нажатий по требованию
+      // юзера). Закрытие только через крестик в шапке popover.
+      // Тапы вне popover проходят сквозь — клавиатура и композер
+      // полностью кликабельны (юзер может продолжать печатать).
       return Stack(
         children: [
-          // Tap-outside dismiss. Прозрачный barrier — клавиатура и
-          // композер видны под popover'ом.
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: dismiss,
-              child: const ColoredBox(color: Color(0x00000000)),
-            ),
-          ),
           Positioned(
             left: 8,
             right: 8,

@@ -5787,37 +5787,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         : (_lastKeyboardHeight > 0
               ? _lastKeyboardHeight
               : MediaQuery.of(context).size.height * 0.42);
-    if (mounted) {
-      setState(() {
-        _composerTextBeforeStickerSearch = _controller.text;
-        _controller.clear();
-        _stickersSearchQuery = '';
-        _stickersPanelFullscreen = false;
-        _stickerPanelLockedHeight = lockedH;
-        _stickersPanelOpen = true;
-      });
-      debugPrint(
-        '[panel-toggle] _openStickersGifPanelImpl: setState→panelOpen=true '
-        'lockedH=$lockedH hadKeyboard=$hadKeyboard',
-      );
-    }
+    // Если клавиатура открыта — СНАЧАЛА скрываем её (анимация iOS
+    // ~250ms), и ТОЛЬКО ПОТОМ открываем panel. Иначе panel рендерится
+    // под уезжающей клавиатурой, и пользователь видит «шторка под
+    // клавой» (баг п.4).
     if (hadKeyboard) {
       debugPrint(
-        '[panel-toggle] _openStickersGifPanelImpl: hiding keyboard '
+        '[panel-toggle] _openStickersGifPanelImpl: hiding keyboard FIRST '
         '(primaryFocus=${FocusManager.instance.primaryFocus?.debugLabel} '
         'composerFocus.hasFocus=${_composerFocusNode.hasFocus})',
       );
-      // Native composer держит firstResponder в Swift — Flutter
-      // primaryFocus тут чаще всего null. Дёргаем композерный focusNode
-      // напрямую: его listener в NativeIosComposerField пошлёт `unfocus`
-      // в Swift → resignFirstResponder → клавиатура корректно опадает,
-      // и Dart-side focus синхронно становится false. Без этого
-      // следующий `_switchFromStickersToKeyboard.requestFocus()` будет
-      // no-op (focus уже true) и клавиатура не поднимется.
       _composerFocusNode.unfocus();
       FocusManager.instance.primaryFocus?.unfocus();
       await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+      // Дать iOS время на keyboard-hide animation (~250ms по дефолту).
+      await Future<void>.delayed(const Duration(milliseconds: 260));
+      if (!mounted) return;
     }
+    setState(() {
+      _composerTextBeforeStickerSearch = _controller.text;
+      _controller.clear();
+      _stickersSearchQuery = '';
+      _stickersPanelFullscreen = false;
+      _stickerPanelLockedHeight = lockedH;
+      _stickersPanelOpen = true;
+    });
+    debugPrint(
+      '[panel-toggle] _openStickersGifPanelImpl: setState→panelOpen=true '
+      'lockedH=$lockedH hadKeyboard=$hadKeyboard',
+    );
   }
 
   void _switchFromStickersToKeyboard() {
@@ -5826,25 +5824,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       'panelOpen=$_stickersPanelOpen focus=${_composerFocusNode.hasFocus} '
       'lockedH=$_stickerPanelLockedHeight lastKb=$_lastKeyboardHeight',
     );
-    // Используем locked-snapshot — захваченную при открытии шторки
-    // высоту, она = реальной kb на тот момент. `_lastKeyboardHeight`
-    // здесь брать НЕЛЬЗЯ: didChangeMetrics во время iOS-анимации
-    // скрытия kb тянет его вниз, и к моменту тапа на иконку
-    // клавиатуры он может оказаться ≈0 (хотя теперь monotonic-grow
-    // в _captureKeyboardHeight это страхует).
+    // Locked snapshot — стабильная высота, захваченная при открытии
+    // шторки. Используем её как floor пока клавиатура поднимается,
+    // чтобы композер не уезжал вниз (баг п.2: «композер падает,
+    // клавиатуры нет»). `_holdStickersFooterTransition` держит floor
+    // ~800ms — больше чем нужно для keyboard-show animation.
     final hold = _stickerPanelLockedHeight > 0
         ? _stickerPanelLockedHeight
         : (_lastKeyboardHeight > 0
               ? _lastKeyboardHeight
               : MediaQuery.of(context).size.height * 0.42);
     _holdStickersFooterTransition(hold);
-    _closeStickersPanel();
-    // Гарантия: focus listener в NativeIosComposerField триггерится только
-    // при ИЗМЕНЕНИИ hasFocus. Если он уже true (возможно при открытии
-    // шторки primaryFocus.unfocus() сработал в стороне, не на нашем node),
-    // requestFocus будет no-op и клавиатура не встанет. Сначала unfocus,
-    // потом в следующем кадре requestFocus → переход false→true → listener
-    // → Swift becomeFirstResponder → клавиатура поднимается.
+    // unfocus → requestFocus гарантирует false→true переход (см. fix
+    // от прошлой итерации). focus listener в NativeIosComposerField
+    // отправит `focus` в Swift → becomeFirstResponder → клавиатура.
     _composerFocusNode.unfocus();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -5853,6 +5846,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         'requestFocus on composer (hasFocus before=${_composerFocusNode.hasFocus})',
       );
       _composerFocusNode.requestFocus();
+    });
+    // Закрываем панель ПОСЛЕ задержки чтобы клавиатура успела
+    // подняться. Иначе panel снимается мгновенно, footerHeight на
+    // короткое время = 0, композер визуально проседает вниз («баг п.2»).
+    // 80ms — достаточно для iOS чтобы начать keyboard-show animation
+    // (фактическая высота kbInset > 0 уже на ~50ms), дальше
+    // _stickersTransitionFooterFloor держит floor.
+    Future<void>.delayed(const Duration(milliseconds: 80), () {
+      if (!mounted) return;
+      _closeStickersPanel();
     });
   }
 

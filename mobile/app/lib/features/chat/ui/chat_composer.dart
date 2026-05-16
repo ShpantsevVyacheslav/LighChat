@@ -354,10 +354,18 @@ class _ChatComposerState extends State<ChatComposer> {
     _recomputeMentionState();
     _recomputeLinkPreview();
     widget.controller.addListener(_onComposerTextChanged);
+    // Phase 13: floating «Aa»-кнопка над композером появляется/исчезает
+    // вместе с клавиатурой (= focus на native UITextView). Listener
+    // триггерит rebuild при focus-changes.
+    widget.focusNode.addListener(_onFocusChangeForFormatBtn);
     unawaited(NativeComposerFlag.instance.isEnabled().then((v) {
       if (!mounted || v == _useNativeComposer) return;
       setState(() => _useNativeComposer = v);
     }));
+  }
+
+  void _onFocusChangeForFormatBtn() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -366,6 +374,10 @@ class _ChatComposerState extends State<ChatComposer> {
     if (!identical(oldWidget.controller, widget.controller)) {
       oldWidget.controller.removeListener(_onComposerTextChanged);
       widget.controller.addListener(_onComposerTextChanged);
+    }
+    if (!identical(oldWidget.focusNode, widget.focusNode)) {
+      oldWidget.focusNode.removeListener(_onFocusChangeForFormatBtn);
+      widget.focusNode.addListener(_onFocusChangeForFormatBtn);
     }
     final next = _computeHasTypedText();
     if (next != _hasTypedText) {
@@ -378,6 +390,7 @@ class _ChatComposerState extends State<ChatComposer> {
   @override
   void dispose() {
     widget.controller.removeListener(_onComposerTextChanged);
+    widget.focusNode.removeListener(_onFocusChangeForFormatBtn);
     _attachmentOverlayEntry?.remove();
     _sendLongPressMenuEntry?.remove();
     super.dispose();
@@ -618,37 +631,9 @@ class _ChatComposerState extends State<ChatComposer> {
               ),
             ),
           ),
-          // «Aa» — Format popover. Откатились от inputAccessoryView
-          // (UIToolbar над клавиатурой не подходил по UX и тап-обработка
-          // была ненадёжной). Возвращаем кнопку в строку композера —
-          // popover открывается поверх композера через `_composerColumnKey`
-          // anchor.
-          IconButton(
-            tooltip: 'Format',
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-            onPressed: widget.sendBusy
-                ? null
-                : () {
-                    debugPrint(
-                      '[format-popover] Aa tap '
-                      '(anchorMounted=${_composerColumnKey.currentContext != null})',
-                    );
-                    unawaited(showComposerFormatSheet(
-                      context: context,
-                      anchorKey: _composerColumnKey,
-                      onToggle: (tag) =>
-                          _nativeFieldKey.currentState?.toggleFormat(tag),
-                    ));
-                  },
-            icon: Icon(
-              Icons.text_format_rounded,
-              size: 22,
-              color: widget.sendBusy
-                  ? hintFg.withValues(alpha: 0.65)
-                  : fg.withValues(alpha: 0.88),
-            ),
-          ),
+          // «Aa» уехала из строки композера в floating-кнопку над
+          // composer'ом (см. `_buildFormatFloatingButton`), которая
+          // появляется/исчезает синхронно с клавиатурой.
           IconButton(
             tooltip: l10n.chat_composer_tooltip_stickers,
             padding: EdgeInsets.zero,
@@ -889,6 +874,36 @@ class _ChatComposerState extends State<ChatComposer> {
                   });
                 },
               ),
+            // Phase 13: floating «Aa» — слева сверху над композером,
+            // видна только пока клавиатура открыта (= focus на native
+            // UITextView). При закрытии клавиатуры кнопка исчезает.
+            if (_useNativeComposer &&
+                widget.focusNode.hasFocus &&
+                !widget.stickersPanelOpen &&
+                !_holdRecordOverlayVisible)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _FloatingFormatButton(
+                    fg: fg,
+                    onTap: widget.sendBusy
+                        ? null
+                        : () {
+                            debugPrint(
+                              '[format-popover] Aa tap '
+                              '(anchorMounted=${_composerColumnKey.currentContext != null})',
+                            );
+                            unawaited(showComposerFormatSheet(
+                              context: context,
+                              anchorKey: _composerColumnKey,
+                              onToggle: (tag) =>
+                                  _nativeFieldKey.currentState?.toggleFormat(tag),
+                            ));
+                          },
+                  ),
+                ),
+              ),
             if (widget.e2eeDisabledBanner != null)
               // Phase 0: если чат зашифрован — полностью заменяем input‑строку
               // баннером. Никаких кнопок микрофона/стикеров, чтобы не провоцировать
@@ -1085,6 +1100,66 @@ class _ChatComposerState extends State<ChatComposer> {
               ),
           ],
         ),
+    );
+  }
+}
+
+/// Phase 13: floating «Aa» chip над композером — стиль iMessage glass
+/// floating button (слева сверху, blur background, accent on icon).
+/// Показывается только когда клавиатура открыта.
+class _FloatingFormatButton extends StatelessWidget {
+  const _FloatingFormatButton({required this.fg, required this.onTap});
+
+  final Color fg;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    final disabled = onTap == null;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Material(
+          color: (dark ? Colors.white : Colors.black)
+              .withValues(alpha: dark ? 0.08 : 0.06),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(
+              color: fg.withValues(alpha: 0.18),
+              width: 0.6,
+            ),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(18),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.text_format_rounded,
+                    size: 18,
+                    color: fg.withValues(alpha: disabled ? 0.4 : 0.92),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Aa',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: fg.withValues(alpha: disabled ? 0.4 : 0.92),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
