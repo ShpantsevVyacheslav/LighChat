@@ -799,6 +799,14 @@ class _ChatComposerState extends State<ChatComposer> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint(
+      '[format-btn] ChatComposer.build: '
+      'useNative=$_useNativeComposer '
+      'hasFocus=${widget.focusNode.hasFocus} '
+      'panelOpen=${widget.stickersPanelOpen} '
+      'holdRecord=$_holdRecordOverlayVisible '
+      'e2eeBanner=${widget.e2eeDisabledBanner != null}',
+    );
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;

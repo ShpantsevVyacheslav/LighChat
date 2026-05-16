@@ -325,8 +325,17 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
       NSLog(
         "[panel-toggle] swift method `focus` called, "
           + "isFirstResponder=\(textView.isFirstResponder)")
-      if !textView.isFirstResponder {
-        _ = textView.becomeFirstResponder()
+      // Async на main: iOS не поднимает клавиатуру если
+      // becomeFirstResponder вызвается во время Flutter rebuild
+      // animation pass'а. Перенос на следующий run-loop tick
+      // даёт UIKit'у завершить layout и тогда keyboard-show
+      // отрабатывает штатно (Bug 5/6).
+      DispatchQueue.main.async { [weak self] in
+        guard let self = self else { return }
+        if !self.textView.isFirstResponder {
+          NSLog("[panel-toggle] swift becomeFirstResponder (async)")
+          _ = self.textView.becomeFirstResponder()
+        }
       }
       result(nil)
     case "unfocus":

@@ -50,7 +50,9 @@ class _PopoverShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
     // Компактная ширина: ~62% экрана, ограниченная min/max.
-    final width = (mq.size.width * 0.62).clamp(260.0, 320.0);
+    // Bug 2: уже была компактная ширина, юзер просил ещё уже —
+    // 52% экрана, 240..280pt.
+    final width = (mq.size.width * 0.52).clamp(240.0, 280.0);
     return SafeArea(
       child: Align(
         alignment: Alignment.bottomCenter,
@@ -67,7 +69,22 @@ class _PopoverShell extends StatelessWidget {
             alignment: Alignment.bottomRight,
             child: SizedBox(
               width: width,
-              child: const _PopoverCard(),
+              // Material нужен чтобы InkWell внутри строк рисовался без
+              // ошибок ассертов; type=transparency не закрашивает
+              // glass-фон. DefaultTextStyle с TextDecoration.none сносит
+              // унаследованное «underline» с MaterialApp (та самая
+              // жёлтая волнистая полоса под title — спорная default-
+              // отрисовка для строк без Scaffold/Material parent'а).
+              child: const Material(
+                type: MaterialType.transparency,
+                child: DefaultTextStyle(
+                  style: TextStyle(
+                    decoration: TextDecoration.none,
+                    color: Colors.white,
+                  ),
+                  child: _PopoverCard(),
+                ),
+              ),
             ),
           ),
         ),
@@ -157,11 +174,17 @@ class _PopoverHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
       child: Text(
         label,
+        // `decoration: TextDecoration.none` явно сбрасывает наследованный
+        // underline (Flutter в showGeneralDialog по дефолту тянет
+        // DefaultTextStyle с подчёркиванием для labels — отсюда жёлтая
+        // волнистая полоса на скрине).
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
           color: fg,
           letterSpacing: -0.1,
+          decoration: TextDecoration.none,
+          decorationColor: Colors.transparent,
         ),
       ),
     );

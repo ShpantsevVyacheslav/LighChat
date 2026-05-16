@@ -227,6 +227,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   /// заполняется и клавиатура поднимается обратно) или свайпом-вниз
   /// барьера. Координаты захватываются один раз при открытии и хранятся
   /// в `_locationPanelLat`/`_locationPanelLng`.
+  /// Bug 4: timestamp последнего успешно прошедшего guard `_submitComposer`,
+  /// в миллисекундах. Используется как debounce для повторных тапов
+  /// Send (защита от дубликатов).
+  int _lastSubmitMs = 0;
+
   bool _locationPanelOpen = false;
   double _locationPanelLockedHeight = 0;
   double? _locationPanelLat;
@@ -4993,7 +4998,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         : null;
     final int? e2eeEpoch = conv?.e2eeKeyEpoch;
 
-    if (_sendBusy) return;
+    if (_sendBusy) {
+      debugPrint('[combined-send] _submitComposer: ignored — _sendBusy=true');
+      return;
+    }
+    // Anti-dup guard (Bug 4): защита от частых тапов Send. `_sendBusy`
+    // не годится потому что не все ветки ниже его выставляют. Простая
+    // timestamp-блокировка: тап в пределах 600мс после предыдущего —
+    // no-op. Этого достаточно чтобы убрать дабл/трипл клики.
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    if (nowMs - _lastSubmitMs < 600) {
+      debugPrint(
+        '[combined-send] _submitComposer: dedup '
+        '(deltaMs=${nowMs - _lastSubmitMs})',
+      );
+      return;
+    }
+    _lastSubmitMs = nowMs;
 
     // Защитный guard: пользователь мог отправить через keyboard, пока кнопка
     // ещё не успела перерисоваться, или экспериментально через accessibility-
@@ -5079,6 +5100,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       if (canCombineWithText ||
           (plainOut.isEmpty && _pendingAttachments.isEmpty)) {
         if (mounted) {
+          // Bug 3 fix: чистим композер сразу после успешного combined
+          // send, чтобы текст не оставался для повторных тапов Send.
+          _controller.clear();
           unawaited(clearChatMessageDraft(uid, widget.conversationId));
           setState(() => _replyingTo = null);
           _scheduleAutoScrollToBottomIfNeeded();
@@ -5988,7 +6012,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     //   3) postFrame requestFocus → переход в true → listener fires →
     //      invokeMethod('focus') в Swift → becomeFirstResponder.
     _closeStickersPanel();
-    Future<void>.delayed(const Duration(milliseconds: 30), () {
+    // 80ms — даём PlatformView (NativeIosComposerField) асинхронно
+    // создать UiKitView и зарегистрировать channel в Dart-side.
+    // На прошлой итерации 30ms не хватало: focusNode listener fire'ил
+    // но `_channel = null` к этому моменту, invokeMethod('focus')
+    // улетал в /dev/null. Заодно делаем явный retry через 220мс на
+    // случай если первый toggle не дошёл.
+    Future<void>.delayed(const Duration(milliseconds: 80), () {
       if (!mounted) return;
       debugPrint(
         '[panel-toggle] _switchFromStickersToKeyboard: post-mount '
@@ -5999,6 +6029,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         if (!mounted) return;
         _composerFocusNode.requestFocus();
       });
+    });
+    Future<void>.delayed(const Duration(milliseconds: 220), () {
+      if (!mounted) return;
+      if (!_composerFocusNode.hasFocus) {
+        debugPrint(
+          '[panel-toggle] _switchFromStickersToKeyboard: retry focus '
+          '(still no hasFocus at 220ms)',
+        );
+        _composerFocusNode.requestFocus();
+      }
     });
   }
 

@@ -1,10 +1,13 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 
 import 'chat_location_map_view.dart';
 
-/// Inline-панель снизу, заменяющая клавиатуру. Карта на бóльшую часть
-/// footer'а, ПОД картой — две горизонтальные pill-кнопки «Запросить»
-/// (outlined) и «Поделиться» (filled blue), как в iMessage Maps-attach.
+/// Карта на всю площадь footer'а, кнопки «Запросить» / «Поделиться»
+/// — поверх карты внизу как pill-капсулы с blur background. Стиль
+/// близкий к iMessage attach-карте: компактные, полупрозрачные,
+/// floating.
 class ChatLocationSharePanel extends StatelessWidget {
   const ChatLocationSharePanel({
     super.key,
@@ -25,57 +28,44 @@ class ChatLocationSharePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final dark = scheme.brightness == Brightness.dark;
-    final bg = dark ? const Color(0xFF0E1015) : Colors.white;
-
-    return ColoredBox(
-      color: bg,
-      child: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            // Карта — растягиваем на всё доступное пространство выше
-            // ряда кнопок.
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: ChatLocationMapView(
-                    lat: lat,
-                    lng: lng,
-                    interactive: true,
+    return SafeArea(
+      top: false,
+      child: Stack(
+        children: [
+          // Карта на весь footer.
+          Positioned.fill(
+            child: ChatLocationMapView(
+              lat: lat,
+              lng: lng,
+              interactive: true,
+            ),
+          ),
+          // Floating row of pills overlay внизу.
+          Positioned(
+            left: 14,
+            right: 14,
+            bottom: 14,
+            child: Row(
+              children: [
+                Expanded(
+                  child: _Pill(
+                    label: requestLabel,
+                    filled: false,
+                    onTap: onRequest,
                   ),
                 ),
-              ),
-            ),
-            // Ряд кнопок ПОД картой. Request — outlined, Share — filled
-            // blue. Без иконок, лейблы по центру.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _Pill(
-                      label: requestLabel,
-                      filled: false,
-                      onTap: onRequest,
-                    ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _Pill(
+                    label: shareLabel,
+                    filled: true,
+                    onTap: onShare,
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _Pill(
-                      label: shareLabel,
-                      filled: true,
-                      onTap: onShare,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -99,33 +89,63 @@ class _Pill extends StatelessWidget {
     final disabled = onTap == null;
     const appleBlue = Color(0xFF007AFF);
 
-    final Color bg;
-    final Color fg;
+    // Filled: solid Apple-blue, без blur (как iMessage primary).
+    // Outlined: blur-translucent поверх карты, тонкая граница.
     if (filled) {
-      bg = disabled ? appleBlue.withValues(alpha: 0.35) : appleBlue;
-      fg = Colors.white;
-    } else {
-      bg = (dark ? Colors.white : Colors.black)
-          .withValues(alpha: dark ? 0.12 : 0.06);
-      final base = dark ? Colors.white : Colors.black;
-      fg = base.withValues(alpha: disabled ? 0.35 : 0.92);
+      return Material(
+        color: disabled ? appleBlue.withValues(alpha: 0.5) : appleBlue,
+        shape: const StadiumBorder(),
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const StadiumBorder(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 11),
+            child: Center(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  letterSpacing: -0.1,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
     }
-    return Material(
-      color: bg,
-      shape: const StadiumBorder(),
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const StadiumBorder(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 13),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: fg,
-                letterSpacing: -0.1,
+    final base = dark ? Colors.white : Colors.black;
+    final fillBg = (dark ? Colors.black : Colors.white).withValues(
+      alpha: dark ? 0.32 : 0.78,
+    );
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(99),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+        child: Material(
+          color: fillBg,
+          shape: StadiumBorder(
+            side: BorderSide(
+              color: base.withValues(alpha: dark ? 0.18 : 0.10),
+              width: 0.5,
+            ),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            customBorder: const StadiumBorder(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 11),
+              child: Center(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: base.withValues(alpha: disabled ? 0.35 : 0.92),
+                    letterSpacing: -0.1,
+                  ),
+                ),
               ),
             ),
           ),
