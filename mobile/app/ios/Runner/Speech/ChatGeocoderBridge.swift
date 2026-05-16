@@ -68,6 +68,38 @@ final class ChatGeocoderBridge: NSObject {
           location, completionHandler: completion)
       }
 
+    case "forwardGeocode":
+      // Bug #7: forward geocoding — текст из композера («Кремль» /
+      // «Москва, Тверская 13») → координаты. Если совпадений нет
+      // или ошибка — отдаём nil, Dart не двигает карту.
+      let args = (call.arguments as? [String: Any]) ?? [:]
+      guard let query = (args["query"] as? String)?.trimmingCharacters(
+        in: .whitespacesAndNewlines), !query.isEmpty
+      else {
+        result(nil)
+        return
+      }
+      let localeCode = args["locale"] as? String
+      let locale = localeCode.flatMap { Locale(identifier: $0) }
+      let completion: ([CLPlacemark]?, Error?) -> Void = { placemarks, error in
+        if let error = error {
+          NSLog("[geocoder] forwardGeocode error: \(error.localizedDescription)")
+          result(nil)
+          return
+        }
+        guard let coord = placemarks?.first?.location?.coordinate else {
+          result(nil)
+          return
+        }
+        result(["lat": coord.latitude, "lng": coord.longitude])
+      }
+      if #available(iOS 11.0, *), let l = locale {
+        geocoder.geocodeAddressString(
+          query, in: nil, preferredLocale: l, completionHandler: completion)
+      } else {
+        geocoder.geocodeAddressString(query, completionHandler: completion)
+      }
+
     default:
       result(FlutterMethodNotImplemented)
     }

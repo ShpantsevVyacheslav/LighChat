@@ -70,4 +70,41 @@ class ChatLocationGeocoder {
   String _cacheKey(double lat, double lng) {
     return '${lat.toStringAsFixed(5)},${lng.toStringAsFixed(5)}';
   }
+
+  final Map<String, ({double lat, double lng})?> _forwardCache =
+      <String, ({double lat, double lng})?>{};
+
+  /// Bug #7: forward geocoding — текст («Кремль» / «Тверская 13»)
+  /// → координаты ({lat, lng}). Возвращает null если ничего не
+  /// найдено или платформа не поддерживается. Результат кэшируется
+  /// in-memory.
+  Future<({double lat, double lng})?> forwardGeocode(String query) async {
+    if (!Platform.isIOS) return null;
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return null;
+    final key = trimmed.toLowerCase();
+    if (_forwardCache.containsKey(key)) return _forwardCache[key];
+    final locale = PlatformDispatcher.instance.locale.toLanguageTag();
+    try {
+      final raw = await _channel.invokeMethod<Object?>('forwardGeocode', {
+        'query': trimmed,
+        'locale': locale,
+      });
+      if (raw is Map) {
+        final lat = (raw['lat'] as num?)?.toDouble();
+        final lng = (raw['lng'] as num?)?.toDouble();
+        if (lat != null && lng != null) {
+          final v = (lat: lat, lng: lng);
+          _forwardCache[key] = v;
+          return v;
+        }
+      }
+      _forwardCache[key] = null;
+      return null;
+    } on PlatformException {
+      return null;
+    } on MissingPluginException {
+      return null;
+    }
+  }
 }

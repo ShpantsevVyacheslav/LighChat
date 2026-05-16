@@ -35,6 +35,7 @@ import '../data/composer_attachment_limits.dart';
 import '../data/e2ee_attachment_send_helper.dart';
 import '../data/composer_html_editing.dart';
 import '../data/chat_attachment_upload.dart';
+import '../data/chat_location_geocoder.dart';
 import '../data/chat_location_share_factory.dart';
 import '../data/partner_presence_line.dart';
 import '../data/chat_message_search.dart';
@@ -248,6 +249,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   /// введённому в композере адресу).
   final ChatLocationMapController _locationPanelMapController =
       ChatLocationMapController();
+
+  /// Bug #7: debounce-таймер для forward geocode из composer text.
+  Timer? _forwardGeocodeDebounce;
+
+  /// Bug #7: последний геокодированный запрос (lowercased) — чтобы
+  /// не дёргать geocoder повторно на одинаковый текст.
+  String? _lastForwardGeocodedQuery;
 
   /// Phase 12.3: id locationRequest-message, на который сейчас
   /// отвечает юзер. Заполняется в `_handleAcceptLocationRequest`,
@@ -491,6 +499,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     WidgetsBinding.instance.addObserver(this);
     _scrollController.addListener(_onPinnedBarScrollSync);
     _controller.addListener(_scheduleChatDraftSave);
+    _controller.addListener(_maybeForwardGeocodeForLocationPanel);
     _captureKeyboardHeight();
     // Прогреваем `_lastKeyboardHeight` из персистентного кэша, чтобы при
     // первом открытии панели стикеров (до того как клавиатура успеет
@@ -5392,6 +5401,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     FocusManager.instance.primaryFocus?.unfocus();
     unawaited(SystemChannels.textInput.invokeMethod<void>('TextInput.hide'));
 
+    // Bug #2: иногда композер «не поднимается над картой» — это была
+    // гонка: панель опенилась только ПОСЛЕ getCurrentPosition, который
+    // на первом запуске может занять секунды (или висеть в permission-
+    // диалоге). Открываем панель сразу с last-known позицией; реальная
+    // позиция уточняется позже и подменит lat/lng.
+    final lastKnown = await Geolocator.getLastKnownPosition()
+        .catchError((_) => null);
+    if (!mounted) return;
+    if (lastKnown != null) {
+      setState(() {
+        _locationPanelOpen = true;
+        _locationPanelLockedHeight = preLockedH;
+        _locationPanelLat = lastKnown.latitude;
+        _locationPanelLng = lastKnown.longitude;
+      });
+    }
+
     setState(() => _sendBusy = true);
     Position pos;
     try {
@@ -5460,6 +5486,52 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       _locationPanelLat = null;
       _locationPanelLng = null;
     });
+    _forwardGeocodeDebounce?.cancel();
+    _forwardGeocodeDebounce = null;
+    _lastForwardGeocodedQuery = null;
+  }
+
+  /// Bug #7: при открытой location-panel дебаунсим ввод композера и
+  /// после ~600мс тишины пробуем forward-geocode'нуть текст. Если
+  /// геокодер вернул координаты — сдвигаем карту через контроллер
+  /// и обновляем `_locationPanelLat/Lng`. Если ничего не найдено —
+  /// тихо игнорируем (UI не дёргается).
+  void _maybeForwardGeocodeForLocationPanel() {
+    if (!_locationPanelOpen) return;
+    final query = _controller.text.trim();
+    if (query.isEmpty || query.length < 3) {
+      _forwardGeocodeDebounce?.cancel();
+      return;
+    }
+    final normalized = query.toLowerCase();
+    if (normalized == _lastForwardGeocodedQuery) return;
+    _forwardGeocodeDebounce?.cancel();
+    _forwardGeocodeDebounce = Timer(const Duration(milliseconds: 600), () {
+      unawaited(_runForwardGeocodeForLocationPanel(query));
+    });
+  }
+
+  Future<void> _runForwardGeocodeForLocationPanel(String query) async {
+    final normalized = query.toLowerCase();
+    if (!_locationPanelOpen) return;
+    final result = await ChatLocationGeocoder.instance.forwardGeocode(query);
+    if (!mounted || !_locationPanelOpen) return;
+    _lastForwardGeocodedQuery = normalized;
+    if (result == null) {
+      debugPrint('[location-share] forwardGeocode "$query" → no match');
+      return;
+    }
+    debugPrint(
+      '[location-share] forwardGeocode "$query" → ${result.lat},${result.lng}',
+    );
+    setState(() {
+      _locationPanelLat = result.lat;
+      _locationPanelLng = result.lng;
+    });
+    unawaited(_locationPanelMapController.setCenter(
+      lat: result.lat,
+      lng: result.lng,
+    ));
   }
 
   /// Phase 12.3: тап «Запросить» в location panel. Отправляем
