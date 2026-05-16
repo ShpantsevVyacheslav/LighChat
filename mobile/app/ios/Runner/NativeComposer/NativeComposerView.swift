@@ -782,11 +782,15 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
         let key = NSAttributedString.Key(keyName)
         attr.enumerateAttribute(key, in: full, options: []) { val, range, _ in
           guard let any = val as? NSObject else { return }
+          // KVC: `imageContent` есть у NSAdaptiveImageGlyph (public API
+          // iOS 18+). А `contentType` НЕТ — раньше мы ошибочно дёргали
+          // его через KVC и получали NSUnknownKeyException → краш.
+          // Расширение определяем только через magic-byte sniff в
+          // `inferStickerExtension`.
           guard let data = any.value(forKey: "imageContent") as? Data else {
             return
           }
-          let ext = self.inferStickerExtension(
-            data: data, contentType: any.value(forKey: "contentType"))
+          let ext = self.inferStickerExtension(data: data, contentType: nil)
           hits.append((range, .raw(data, ext)))
         }
       }
