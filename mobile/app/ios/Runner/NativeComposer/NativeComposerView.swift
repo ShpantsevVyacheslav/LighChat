@@ -342,8 +342,17 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
       NSLog(
         "[panel-toggle] swift method `unfocus` called, "
           + "isFirstResponder=\(textView.isFirstResponder)")
-      if textView.isFirstResponder {
-        _ = textView.resignFirstResponder()
+      // Async на main, как и `focus` — `resignFirstResponder` во время
+      // Flutter rebuild-tick'а иногда тихо игнорируется (UIKit считает
+      // что responder-цепочка ещё не стабильна), и клавиатура остаётся
+      // висеть. Перенос на следующий run-loop tick гарантирует, что
+      // UITextView действительно отпустит first-responder.
+      DispatchQueue.main.async { [weak self] in
+        guard let self = self else { return }
+        if self.textView.isFirstResponder {
+          NSLog("[panel-toggle] swift resignFirstResponder (async)")
+          _ = self.textView.resignFirstResponder()
+        }
       }
       result(nil)
     case "setHint":

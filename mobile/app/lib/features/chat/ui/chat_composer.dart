@@ -393,23 +393,10 @@ class ChatComposerState extends State<ChatComposer> {
     _recomputeMentionState();
     _recomputeLinkPreview();
     widget.controller.addListener(_onComposerTextChanged);
-    // Phase 13: floating «Aa»-кнопка над композером появляется/исчезает
-    // вместе с клавиатурой (= focus на native UITextView). Listener
-    // триггерит rebuild при focus-changes.
-    widget.focusNode.addListener(_onFocusChangeForFormatBtn);
     unawaited(NativeComposerFlag.instance.isEnabled().then((v) {
       if (!mounted || v == _useNativeComposer) return;
       setState(() => _useNativeComposer = v);
     }));
-  }
-
-  void _onFocusChangeForFormatBtn() {
-    if (mounted) setState(() {});
-    debugPrint(
-      '[format-btn] focus changed: hasFocus=${widget.focusNode.hasFocus} '
-      'useNative=$_useNativeComposer panelOpen=${widget.stickersPanelOpen} '
-      'holdRecord=$_holdRecordOverlayVisible',
-    );
   }
 
   @override
@@ -418,10 +405,6 @@ class ChatComposerState extends State<ChatComposer> {
     if (!identical(oldWidget.controller, widget.controller)) {
       oldWidget.controller.removeListener(_onComposerTextChanged);
       widget.controller.addListener(_onComposerTextChanged);
-    }
-    if (!identical(oldWidget.focusNode, widget.focusNode)) {
-      oldWidget.focusNode.removeListener(_onFocusChangeForFormatBtn);
-      widget.focusNode.addListener(_onFocusChangeForFormatBtn);
     }
     final next = _computeHasTypedText();
     if (next != _hasTypedText) {
@@ -434,7 +417,6 @@ class ChatComposerState extends State<ChatComposer> {
   @override
   void dispose() {
     widget.controller.removeListener(_onComposerTextChanged);
-    widget.focusNode.removeListener(_onFocusChangeForFormatBtn);
     _attachmentOverlayEntry?.remove();
     _sendLongPressMenuEntry?.remove();
     super.dispose();
@@ -609,6 +591,17 @@ class ChatComposerState extends State<ChatComposer> {
   void focusComposer() {
     widget.focusNode.requestFocus();
     _nativeFieldKey.currentState?.focus();
+  }
+
+  /// Зеркальный к [focusComposer]: и Flutter focusNode.unfocus(), и
+  /// прямой MethodChannel `unfocus` в Swift. Нужен потому что одного
+  /// `focusNode.unfocus()` мало — Flutter primaryFocus может не указывать
+  /// на наш FocusNode (UITextView держит first-responder снаружи Flutter
+  /// focus tree), и listener-путь не отрабатывает. Прямой канал
+  /// гарантирует `resignFirstResponder` на Swift-стороне.
+  void unfocusComposer() {
+    widget.focusNode.unfocus();
+    _nativeFieldKey.currentState?.unfocus();
   }
 
   void _openKeyboardFromStickerMode() {
@@ -824,14 +817,6 @@ class ChatComposerState extends State<ChatComposer> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint(
-      '[format-btn] ChatComposer.build: '
-      'useNative=$_useNativeComposer '
-      'hasFocus=${widget.focusNode.hasFocus} '
-      'panelOpen=${widget.stickersPanelOpen} '
-      'holdRecord=$_holdRecordOverlayVisible '
-      'e2eeBanner=${widget.e2eeDisabledBanner != null}',
-    );
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final dark = scheme.brightness == Brightness.dark;
@@ -935,50 +920,6 @@ class ChatComposerState extends State<ChatComposer> {
                   });
                 },
               ),
-            // Phase 13: floating «Aa» — слева сверху над композером,
-            // видна только пока клавиатура открыта (= focus на native
-            // UITextView). При закрытии клавиатуры кнопка исчезает.
-            Builder(builder: (_) {
-              final show = _useNativeComposer &&
-                  widget.focusNode.hasFocus &&
-                  !widget.stickersPanelOpen &&
-                  !_holdRecordOverlayVisible;
-              debugPrint(
-                '[format-btn] build: show=$show '
-                '(useNative=$_useNativeComposer '
-                'hasFocus=${widget.focusNode.hasFocus} '
-                'panelOpen=${widget.stickersPanelOpen} '
-                'holdRecord=$_holdRecordOverlayVisible)',
-              );
-              return const SizedBox.shrink();
-            }),
-            if (_useNativeComposer &&
-                widget.focusNode.hasFocus &&
-                !widget.stickersPanelOpen &&
-                !_holdRecordOverlayVisible)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: _FloatingFormatButton(
-                    fg: fg,
-                    onTap: widget.sendBusy
-                        ? null
-                        : () {
-                            debugPrint(
-                              '[format-popover] Aa tap '
-                              '(anchorMounted=${_composerColumnKey.currentContext != null})',
-                            );
-                            unawaited(showComposerFormatSheet(
-                              context: context,
-                              anchorKey: _composerColumnKey,
-                              onToggle: (tag) =>
-                                  _nativeFieldKey.currentState?.toggleFormat(tag),
-                            ));
-                          },
-                  ),
-                ),
-              ),
             if (widget.e2eeDisabledBanner != null)
               // Phase 0: если чат зашифрован — полностью заменяем input‑строку
               // баннером. Никаких кнопок микрофона/стикеров, чтобы не провоцировать
@@ -1051,6 +992,63 @@ class ChatComposerState extends State<ChatComposer> {
                         child: _buildComposerTextField(),
                       ),
                     ),
+                    // Phase 14: inline «Aa» bubble — слева от send. Условие
+                    // показа основано на `_hasTypedText`, а не focusNode —
+                    // hasFocus у Flutter focusNode не всегда успевал
+                    // синхронизироваться с native UITextView first-responder
+                    // (см. предыдущие фиксы Bug 5/6). _hasTypedText
+                    // вычисляется из controller.text, который реальный
+                    // источник истины (нативный TextChanged пробрасывает
+                    // текст в controller). Размер 40×40 совпадает с send,
+                    // визуально пара кнопок справа.
+                    if (_useNativeComposer &&
+                        _hasTypedText &&
+                        !widget.stickersPanelOpen &&
+                        !_holdRecordOverlayVisible) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        width: _kComposerControlSize,
+                        height: _kComposerControlSize,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.black.withValues(
+                            alpha:
+                                chatWallpaperPrefersLightForeground(wallpaper)
+                                ? (dark ? 0.18 : 0.16)
+                                : (dark ? 0.06 : 0.08),
+                          ),
+                          border: Border.all(color: fg.withValues(alpha: 0.18)),
+                        ),
+                        child: IconButton(
+                          tooltip: l10n.composer_formatting_title,
+                          onPressed: widget.sendBusy
+                              ? null
+                              : () {
+                                  debugPrint(
+                                    '[format-popover] inline Aa tap '
+                                    '(anchorMounted=${_composerColumnKey.currentContext != null})',
+                                  );
+                                  unawaited(
+                                    showComposerFormatSheet(
+                                      context: context,
+                                      anchorKey: _composerColumnKey,
+                                      onToggle: (tag) => _nativeFieldKey
+                                          .currentState
+                                          ?.toggleFormat(tag),
+                                    ),
+                                  );
+                                },
+                          iconSize: 18,
+                          padding: EdgeInsets.zero,
+                          icon: Icon(
+                            Icons.text_format_rounded,
+                            color: widget.sendBusy
+                                ? muted.withValues(alpha: 0.75)
+                                : fg.withValues(alpha: 0.92),
+                          ),
+                        ),
+                      ),
+                    ],
                     if (!widget.stickersPanelHideSideButtons ||
                         showSendButton ||
                         widget.locationPanelOpen) ...[
@@ -1201,63 +1199,4 @@ class ChatComposerState extends State<ChatComposer> {
   }
 }
 
-/// Phase 13: floating «Aa» chip над композером — стиль iMessage glass
-/// floating button (слева сверху, blur background, accent on icon).
-/// Показывается только когда клавиатура открыта.
-class _FloatingFormatButton extends StatelessWidget {
-  const _FloatingFormatButton({required this.fg, required this.onTap});
-
-  final Color fg;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final dark = scheme.brightness == Brightness.dark;
-    final disabled = onTap == null;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: Material(
-          color: (dark ? Colors.white : Colors.black)
-              .withValues(alpha: dark ? 0.08 : 0.06),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-            side: BorderSide(
-              color: fg.withValues(alpha: 0.18),
-              width: 0.6,
-            ),
-          ),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(18),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.text_format_rounded,
-                    size: 18,
-                    color: fg.withValues(alpha: disabled ? 0.4 : 0.92),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Aa',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: fg.withValues(alpha: disabled ? 0.4 : 0.92),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 

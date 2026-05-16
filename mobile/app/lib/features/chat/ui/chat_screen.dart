@@ -1966,27 +1966,32 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                     child: GestureDetector(
                                       behavior: HitTestBehavior.translucent,
                                       onTap: () {
+                                        debugPrint(
+                                          '[panel-toggle] tap-outside: '
+                                          'panelOpen=$_stickersPanelOpen '
+                                          'focus=${_composerFocusNode.hasFocus} '
+                                          'kbInset=${MediaQuery.viewInsetsOf(context).bottom}',
+                                        );
                                         if (_stickersPanelOpen) {
                                           _closeStickersPanel();
                                         }
-                                        // Native composer (Phase 1+) держит
-                                        // firstResponder в Swift-UITextView.
-                                        // `primaryFocus.unfocus()` сбрасывает
-                                        // Flutter-focus, но если по какой-то
-                                        // причине Flutter primaryFocus указывает
-                                        // не на наш ChatComposer FocusNode
-                                        // (например когда нативная вкладка
-                                        // стикеров iOS активна) — клавиатура
-                                        // не закроется. Поэтому явно дёргаем
-                                        // оба focusNode'а, которые композер
-                                        // использует. Каждый из них через
-                                        // listener в NativeIosComposerField
-                                        // пошлёт `unfocus` в Swift, и
-                                        // UITextView вызовет
-                                        // `resignFirstResponder`.
-                                        _composerFocusNode.unfocus();
+                                        // Прямой путь через GlobalKey:
+                                        // ChatComposerState.unfocusComposer()
+                                        // сам делает focusNode.unfocus() +
+                                        // прямой MethodChannel `unfocus` в
+                                        // Swift. Это надёжнее listener-only
+                                        // пути — Flutter primaryFocus может
+                                        // не указывать на наш FocusNode
+                                        // (UITextView держит first-responder
+                                        // вне Flutter focus tree).
+                                        _chatComposerKey.currentState
+                                            ?.unfocusComposer();
                                         FocusManager.instance.primaryFocus
                                             ?.unfocus();
+                                        SystemChannels.textInput
+                                            .invokeMethod<void>(
+                                              'TextInput.hide',
+                                            );
                                       },
                                       child: showSpinner
                                           ? const Center(
@@ -3030,112 +3035,107 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                           _stickersTransitionFooterFloor,
                                           safeBottom,
                                         ].reduce((a, b) => a > b ? a : b);
-                                        if (!_stickersPanelOpen &&
-                                            !_locationPanelOpen) {
-                                          // БЕЗ AnimatedSize: при переходе
-                                          // panel→keyboard виджет-тип
-                                          // менялся (SizedBox в panelOpen-
-                                          // ветке → AnimatedSize здесь),
-                                          // у нового AnimatedSize
-                                          // currentSize = 0 и он анимировал
-                                          // 0 → 345 за 180 ms, из-за чего
-                                          // composer на мгновение
-                                          // проседал вниз. Locked snapshot
-                                          // (см. _stickerPanelLockedHeight)
-                                          // уже даёт стабильный footer на
-                                          // штатных переходах — анимация
-                                          // больше не нужна.
-                                          if (footerHeight <= 0) {
-                                            return const SizedBox.shrink();
-                                          }
-                                          return SizedBox(
-                                            height: footerHeight,
-                                          );
-                                        }
+                                        Widget? footerChild;
                                         if (_locationPanelOpen &&
                                             _locationPanelLat != null &&
                                             _locationPanelLng != null) {
-                                          return SizedBox(
-                                            height: footerHeight,
-                                            child: ChatLocationSharePanel(
-                                              lat: _locationPanelLat!,
-                                              lng: _locationPanelLng!,
-                                              controller:
-                                                  _locationPanelMapController,
-                                              onPinMoved: (p) {
-                                                if (!mounted) return;
-                                                setState(() {
-                                                  _locationPanelLat = p.lat;
-                                                  _locationPanelLng = p.lng;
-                                                });
-                                              },
-                                              onShare: () => unawaited(
-                                                _handleLocationPanelShareTap(),
-                                              ),
-                                              onRequest: () => unawaited(
-                                                _handleLocationPanelRequestTap(),
-                                              ),
-                                            ),
+                                          footerChild =
+                                              ChatLocationSharePanel(
+                                                lat: _locationPanelLat!,
+                                                lng: _locationPanelLng!,
+                                                controller:
+                                                    _locationPanelMapController,
+                                                onPinMoved: (p) {
+                                                  if (!mounted) return;
+                                                  setState(() {
+                                                    _locationPanelLat = p.lat;
+                                                    _locationPanelLng = p.lng;
+                                                  });
+                                                },
+                                                onShare: () => unawaited(
+                                                  _handleLocationPanelShareTap(),
+                                                ),
+                                                onRequest: () => unawaited(
+                                                  _handleLocationPanelRequestTap(),
+                                                ),
+                                              );
+                                        } else if (_stickersPanelOpen) {
+                                          final stickerRepo = ref.read(
+                                            userStickerPacksRepositoryProvider,
                                           );
-                                        }
-                                        final stickerRepo = ref.read(
-                                          userStickerPacksRepositoryProvider,
-                                        );
-                                        final chatRepo = ref.read(
-                                          chatRepositoryProvider,
-                                        );
-                                        if (stickerRepo == null ||
-                                            chatRepo == null) {
-                                          return SizedBox(
-                                            height: footerHeight,
+                                          final chatRepo = ref.read(
+                                            chatRepositoryProvider,
                                           );
+                                          if (stickerRepo != null &&
+                                              chatRepo != null) {
+                                            footerChild =
+                                                ComposerStickerGifPanel(
+                                                  userId: user.uid,
+                                                  repo: stickerRepo,
+                                                  directUploadConversationId:
+                                                      widget.conversationId,
+                                                  sharedSearchQuery:
+                                                      _stickersSearchQuery,
+                                                  onSearchHintChanged: (hint) {
+                                                    if (!mounted) return;
+                                                    setState(
+                                                      () =>
+                                                          _stickersSearchHint =
+                                                              hint,
+                                                    );
+                                                  },
+                                                  onFullscreenModeChanged: (v) {
+                                                    if (!mounted ||
+                                                        _stickersPanelFullscreen ==
+                                                            v) {
+                                                      return;
+                                                    }
+                                                    setState(() {
+                                                      _stickersPanelFullscreen =
+                                                          v;
+                                                    });
+                                                  },
+                                                  onPickAttachment: (att) {
+                                                    unawaited(
+                                                      _sendStickerOrGifAttachment(
+                                                        user.uid,
+                                                        chatRepo,
+                                                        att,
+                                                      ),
+                                                    );
+                                                  },
+                                                  onEmojiTapped:
+                                                      _handleEmojiPickFromStickersPanel,
+                                                  onClose: () {
+                                                    _closeStickersPanel();
+                                                  },
+                                                );
+                                          }
                                         }
-                                        final panel = ComposerStickerGifPanel(
-                                          userId: user.uid,
-                                          repo: stickerRepo,
-                                          directUploadConversationId:
-                                              widget.conversationId,
-                                          sharedSearchQuery:
-                                              _stickersSearchQuery,
-                                          onSearchHintChanged: (hint) {
-                                            if (!mounted) return;
-                                            setState(
-                                              () => _stickersSearchHint = hint,
-                                            );
-                                          },
-                                          onFullscreenModeChanged: (v) {
-                                            if (!mounted ||
-                                                _stickersPanelFullscreen == v) {
-                                              return;
-                                            }
-                                            setState(() {
-                                              _stickersPanelFullscreen = v;
-                                            });
-                                          },
-                                          onPickAttachment: (att) {
-                                            unawaited(
-                                              _sendStickerOrGifAttachment(
-                                                user.uid,
-                                                chatRepo,
-                                                att,
-                                              ),
-                                            );
-                                          },
-                                          onEmojiTapped:
-                                              _handleEmojiPickFromStickersPanel,
-                                          onClose: () {
-                                            _closeStickersPanel();
-                                          },
-                                        );
-                                        // footerHeight == max(panelH, kbInset)
-                                        // — пока клавиатура ещё опускается,
-                                        // panelH её перекрывает, шторка
-                                        // рендерится на полной высоте, низ
-                                        // прячется за клавиатурой (она
-                                        // системно поверх Flutter-view).
-                                        return SizedBox(
-                                          height: footerHeight,
-                                          child: panel,
+                                        // AnimatedContainer (а не AnimatedSize)
+                                        // — explicit height не зависит от
+                                        // intrinsic size ребёнка, поэтому
+                                        // нет «0→N» анимации на первом
+                                        // кадре, которой страдал прежний
+                                        // AnimatedSize. Это сглаживает
+                                        // прыжок при cliff-drop'е footer-
+                                        // floor'а (Bug 2 в Phase 14): когда
+                                        // locked-высота шторки больше
+                                        // реальной клавиатуры, после release
+                                        // floor композер плавно опускается
+                                        // на дельту вместо instant-jump.
+                                        // Для kb-driven кадров (rise/fall)
+                                        // лаг порядка половины duration —
+                                        // визуально терпимо.
+                                        return AnimatedContainer(
+                                          duration: const Duration(
+                                            milliseconds: 140,
+                                          ),
+                                          curve: Curves.easeOutCubic,
+                                          height: footerHeight <= 0
+                                              ? 0
+                                              : footerHeight,
+                                          child: footerChild,
                                         );
                                       },
                                     ),
@@ -6097,7 +6097,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         '(primaryFocus=${FocusManager.instance.primaryFocus?.debugLabel} '
         'composerFocus.hasFocus=${_composerFocusNode.hasFocus})',
       );
-      _composerFocusNode.unfocus();
+      // Прямой путь к Swift `resignFirstResponder` через GlobalKey —
+      // без него UITextView мог удерживать first-responder и обе панели
+      // (клавиатура + sticker-шторка) висели одновременно.
+      _chatComposerKey.currentState?.unfocusComposer();
       FocusManager.instance.primaryFocus?.unfocus();
       await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
       // Дать iOS время на keyboard-hide animation (~250ms по дефолту).
