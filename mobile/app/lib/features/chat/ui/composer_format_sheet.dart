@@ -28,7 +28,14 @@ Future<void> showComposerFormatSheet({
   final anchorBox =
       anchorKey.currentContext?.findRenderObject() as RenderBox?;
   final overlayBox = overlay.context.findRenderObject() as RenderBox?;
-  if (anchorBox == null || overlayBox == null || !anchorBox.hasSize) return;
+  if (anchorBox == null ||
+      overlayBox == null ||
+      !anchorBox.hasSize ||
+      !overlayBox.hasSize ||
+      overlayBox.size.width <= 0 ||
+      overlayBox.size.height <= 0) {
+    return;
+  }
 
   final anchorTop = anchorBox.localToGlobal(
     Offset.zero,
@@ -37,8 +44,13 @@ Future<void> showComposerFormatSheet({
   final overlaySize = overlayBox.size;
   // Bottom-offset overlay'а: расстояние от низа экрана до верха
   // композера. Сам popover ляжет immediately above composer'а с 8px
-  // gap'ом (как iOS callout).
-  final bottomFromOverlay = overlaySize.height - anchorTop.dy + 8;
+  // gap'ом (как iOS callout). Гарантируем неотрицательное значение —
+  // иначе TransformLayer получит invalid matrix и Flutter валит
+  // [ERROR:flutter/flow/layers/transform_layer.cc] в консоль.
+  final bottomRaw = overlaySize.height - anchorTop.dy + 8;
+  final bottomFromOverlay = bottomRaw.isFinite && bottomRaw >= 0
+      ? bottomRaw
+      : 0.0;
 
   late OverlayEntry entry;
   void dismiss() {

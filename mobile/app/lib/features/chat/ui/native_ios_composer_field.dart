@@ -46,7 +46,6 @@ class NativeIosComposerField extends StatefulWidget {
     this.onSubmitted,
     this.onPasteRequested,
     this.onAttachmentInserted,
-    this.onFormatRequested,
   });
 
   final TextEditingController controller;
@@ -70,12 +69,6 @@ class NativeIosComposerField extends StatefulWidget {
   /// и сообщает абсолютные пути. Caller должен добавить их в
   /// `pendingAttachments` как обычные image-вложения.
   final Future<void> Function(List<String> paths)? onAttachmentInserted;
-
-  /// Phase 9: пользователь тапнул «Aa» в `inputAccessoryView` нативной
-  /// клавиатуры (правый верхний угол над keyboard). Caller должен
-  /// показать Format popover (`showComposerFormatSheet`) — placeholder
-  /// для bridge'а Swift → Dart UI.
-  final VoidCallback? onFormatRequested;
 
   @override
   State<NativeIosComposerField> createState() => NativeIosComposerFieldState();
@@ -272,12 +265,6 @@ class NativeIosComposerFieldState extends State<NativeIosComposerField> {
         if (cb != null) {
           unawaited(cb());
         }
-        break;
-      case 'formatRequested':
-        // Phase 9: «Aa» в inputAccessoryView клавиатуры. Перенаправляем
-        // в caller, который обычно показывает `showComposerFormatSheet`
-        // (overlay-popover поверх композера).
-        widget.onFormatRequested?.call();
         break;
       case 'attachmentInserted':
         // Phase 8: системная emoji-клавиатура вставила inline-стикер

@@ -615,19 +615,34 @@ class _ChatComposerState extends State<ChatComposer> {
                 maxLines: 6,
                 onPasteRequested: paste,
                 onAttachmentInserted: widget.onNativeStickerInserted,
-                // Phase 9: «Aa» уехала из композера в `inputAccessoryView`
-                // нативной клавиатуры (правый верхний угол над keyboard,
-                // как в Apple Messages). Этот колбэк проксирует тап в
-                // наш Format popover поверх композера.
-                onFormatRequested: widget.sendBusy
-                    ? null
-                    : () => unawaited(showComposerFormatSheet(
-                          context: context,
-                          anchorKey: _composerColumnKey,
-                          onToggle: (tag) =>
-                              _nativeFieldKey.currentState?.toggleFormat(tag),
-                        )),
               ),
+            ),
+          ),
+          // «Aa» — Format popover. Откатились от inputAccessoryView
+          // (UIToolbar над клавиатурой не подходил по UX и тап-обработка
+          // была ненадёжной). Возвращаем кнопку в строку композера —
+          // popover открывается поверх композера через `_composerColumnKey`
+          // anchor.
+          IconButton(
+            tooltip: 'Format',
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            onPressed: widget.sendBusy
+                ? null
+                : () {
+                    unawaited(showComposerFormatSheet(
+                      context: context,
+                      anchorKey: _composerColumnKey,
+                      onToggle: (tag) =>
+                          _nativeFieldKey.currentState?.toggleFormat(tag),
+                    ));
+                  },
+            icon: Icon(
+              Icons.text_format_rounded,
+              size: 22,
+              color: widget.sendBusy
+                  ? hintFg.withValues(alpha: 0.65)
+                  : fg.withValues(alpha: 0.88),
             ),
           ),
           IconButton(

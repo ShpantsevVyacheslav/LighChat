@@ -204,34 +204,6 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
     channel.setMethodCallHandler { [weak self] call, result in
       self?.handle(call: call, result: result)
     }
-
-    setupFormatAccessory()
-  }
-
-  /// Создаёт `inputAccessoryView` с одной «Aa»-кнопкой в правом верхнем
-  /// углу. UIToolbar даёт нативный Apple-look (semitransparent, blur,
-  /// auto-tint под клавиатуру). Кнопка SF symbol `textformat`.
-  private func setupFormatAccessory() {
-    let bar = UIToolbar()
-    bar.translatesAutoresizingMaskIntoConstraints = false
-    bar.autoresizingMask = [.flexibleWidth]
-    bar.sizeToFit()
-
-    let space = UIBarButtonItem(
-      barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-    let formatItem = UIBarButtonItem(
-      image: UIImage(systemName: "textformat"),
-      style: .plain,
-      target: self,
-      action: #selector(formatAccessoryTapped))
-    formatItem.accessibilityLabel = "Format"
-    bar.items = [space, formatItem]
-
-    textView.inputAccessoryView = bar
-  }
-
-  @objc private func formatAccessoryTapped() {
-    channel.invokeMethod("formatRequested", arguments: nil)
   }
 
   func view() -> UIView { container }
