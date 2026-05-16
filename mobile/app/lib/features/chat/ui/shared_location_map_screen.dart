@@ -8,17 +8,26 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../data/google_maps_urls.dart';
+import 'chat_location_map_view.dart';
 import 'location_live_countdown.dart';
 
 /// `webview_flutter` нет нативной реализации на Windows / Linux — там
 /// `WebViewController()` крашит UI ("Unimplemented platform interface").
 /// Для этих платформ показываем placeholder + кнопку «Открыть в браузере».
+/// На iOS используем нативный MKMapView (см. ниже), WebView не нужен.
 bool get _supportsInlineWebView {
   if (kIsWeb) return false; // web использует свой плагин, но мы туда не идём
-  return defaultTargetPlatform == TargetPlatform.iOS ||
-      defaultTargetPlatform == TargetPlatform.android ||
+  if (defaultTargetPlatform == TargetPlatform.iOS) return false;
+  return defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.macOS;
 }
+
+/// Bug D: на iOS используем нативный Apple MKMapView (через
+/// PlatformView), а не WebView+OSM Leaflet. Это даёт настоящие Apple
+/// Maps с правильным dark-mode parity и без сетевого latency на
+/// загрузку HTML/JS+тайлов.
+bool get _useNativeAppleMap =>
+    !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
 /// Полноэкранная карта: WebView (OSM + Leaflet) + назад + открыть во внешнем браузере.
 ///
@@ -61,6 +70,12 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
   @override
   void initState() {
     super.initState();
+    if (_useNativeAppleMap) {
+      // Bug D: на iOS используем нативную MKMapView — никаких
+      // loader'ов, она поднимается мгновенно.
+      _loading = false;
+      return;
+    }
     if (!_supportsInlineWebView) {
       // Windows / Linux: WebView плагин не реализован. Не создаём
       // controller (это бы крашнуло "Unimplemented platform interface").
@@ -124,7 +139,15 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          if (web != null)
+          if (_useNativeAppleMap)
+            // Bug D: нативный Apple MKMapView на iOS — interactive
+            // (pan/zoom) + dark mode parity с системой.
+            ChatLocationMapView(
+              lat: widget.lat,
+              lng: widget.lng,
+              interactive: true,
+            )
+          else if (web != null)
             WebViewWidget(controller: web)
           else
             _DesktopLocationFallback(

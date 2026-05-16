@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../data/live_location_utils.dart';
+import '../data/my_live_location_share_provider.dart';
 import 'chat_avatar.dart';
 import 'chat_cached_network_image.dart';
 
-class ChatListItem extends StatefulWidget {
+class ChatListItem extends ConsumerStatefulWidget {
   const ChatListItem({
     super.key,
     required this.conversation,
@@ -44,10 +47,10 @@ class ChatListItem extends StatefulWidget {
   final String? unreadReactionEmoji;
 
   @override
-  State<ChatListItem> createState() => _ChatListItemState();
+  ConsumerState<ChatListItem> createState() => _ChatListItemState();
 }
 
-class _ChatListItemState extends State<ChatListItem> {
+class _ChatListItemState extends ConsumerState<ChatListItem> {
   static const double _actionWidth = 84;
   double _swipeX = 0;
 
@@ -66,6 +69,19 @@ class _ChatListItemState extends State<ChatListItem> {
     if (!widget.enableSwipeActions) return;
     final shouldOpen = _swipeX > (_maxSwipe * 0.35);
     setState(() => _swipeX = shouldOpen ? _maxSwipe : 0);
+  }
+
+  /// Bug I: текущий юзер активно шарит live-локацию в ЭТОМ чате.
+  /// `myLiveLocationShareProvider` — один общий stream на всё
+  /// приложение, поэтому ChatListItem может его watch'ить без
+  /// дублирования подписок.
+  bool _isLiveSharingInThisChat() {
+    final async = ref.watch(myLiveLocationShareProvider);
+    final live = async.asData?.value;
+    if (live == null || !isLiveShareVisible(live)) return false;
+    final convId = live.conversationId;
+    if (convId == null || convId.isEmpty) return false;
+    return convId == widget.conversation.id;
   }
 
   @override
@@ -185,6 +201,16 @@ class _ChatListItemState extends State<ChatListItem> {
                                       ),
                                     ),
                                   ),
+                                  // Bug I: индикатор активного шаринга
+                                  // именно ЭТОГО чата (зелёный pin).
+                                  if (_isLiveSharingInThisChat()) ...[
+                                    const SizedBox(width: 6),
+                                    const Icon(
+                                      Icons.location_on_rounded,
+                                      size: 14,
+                                      color: Color(0xFF34D399),
+                                    ),
+                                  ],
                                   if (widget.isPinned) ...[
                                     const SizedBox(width: 6),
                                     Icon(

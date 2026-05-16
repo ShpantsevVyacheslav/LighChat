@@ -7,8 +7,18 @@ import '../../../l10n/app_localizations.dart';
 import '../data/live_location_utils.dart';
 
 /// Полоса «идёт трансляция» + остановка (паритет `LiveLocationStopBanner.tsx`).
+///
+/// Bug H: пользовательский UX — banner показывается ТОЛЬКО внутри
+/// чата, в котором стартовал live-share. Снаружи (другие чаты, chat
+/// list) — индикатор не нужен. Параметр [conversationId] передаётся
+/// caller'ом; если в `users/{uid}.liveLocationShare.conversationId`
+/// записан другой id — рендерим пустой виджет. Для backward-compat
+/// со старыми записями без `conversationId` — показываем banner
+/// (consider them legacy-active в текущем открытом чате).
 class LiveLocationStopBanner extends StatelessWidget {
-  const LiveLocationStopBanner({super.key});
+  const LiveLocationStopBanner({super.key, this.conversationId});
+
+  final String? conversationId;
 
   Future<void> _stop(String uid) async {
     try {
@@ -29,7 +39,18 @@ class LiveLocationStopBanner extends StatelessWidget {
         if (!snap.hasData || snap.data == null) return const SizedBox.shrink();
         final data = snap.data!.data();
         final live = UserLiveLocationShare.fromJson(data?['liveLocationShare']);
-        if (!isLiveShareVisible(live)) return const SizedBox.shrink();
+        if (live == null || !isLiveShareVisible(live)) {
+          return const SizedBox.shrink();
+        }
+        // Bug H: банер виден только в чате, где идёт share. Старые
+        // записи без conversationId считаем «matches any current»
+        // (backward-compat для уже выпущенных клиентов).
+        final liveConv = live.conversationId;
+        if (conversationId != null &&
+            liveConv != null &&
+            liveConv != conversationId) {
+          return const SizedBox.shrink();
+        }
 
         return Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),

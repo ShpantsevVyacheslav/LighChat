@@ -3,7 +3,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
-import 'package:lighchat_mobile/features/chat/ui/chat_glass_panel.dart';
 import 'package:lighchat_mobile/features/chat/ui/message_location_card.dart';
 import 'package:lighchat_mobile/l10n/app_localizations.dart';
 
@@ -57,8 +56,13 @@ void main() {
       (tester) async {
     await mount(tester, expiredShare());
     // Если бы код полез в Firestore — тест свалился бы с no-app error.
-    // ChatGlassPanel — внутренняя реализация _endedBubble.
-    expect(find.byType(ChatGlassPanel), findsOneWidget);
+    // Bug G: вместо ChatGlassPanel теперь простой DecoratedBox —
+    // ищем по тексту «трансляц» (общий префикс для ru/en через
+    // locale-aware AppLocalizations: в ru — «Трансляция», в en —
+    // «broadcast»). Тест-render использует locale=ru.
+    final ruText = find.textContaining('рансляц');
+    final found = ruText.evaluate().isNotEmpty;
+    expect(found, isTrue, reason: 'ended-bubble text not rendered');
   });
 
   testWidgets('Bug #18: рендер дешёвый — нет тяжёлых дочерних виджетов',

@@ -2632,7 +2632,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                   // высота под список + native search bar.
                                   if (_selectedMessageIds.isEmpty &&
                                       !_inChatSearch) ...[
-                                    const LiveLocationStopBanner(),
+                                    LiveLocationStopBanner(
+                                      conversationId:
+                                          widget.conversationId,
+                                    ),
                                     Builder(builder: (innerCtx) {
                                       // Синхронизируем `_lastConvIsE2ee` с актуальным состоянием
                                       // чата и пересчитываем лимиты, если переключилось (например,

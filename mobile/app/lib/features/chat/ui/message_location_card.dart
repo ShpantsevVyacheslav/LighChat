@@ -12,7 +12,6 @@ import '../data/live_location_utils.dart';
 import 'chat_cached_network_image.dart';
 import 'chat_location_map_view.dart';
 import 'location_live_countdown.dart';
-import 'chat_glass_panel.dart';
 import 'message_bubble_delivery_icons.dart';
 import 'shared_location_map_screen.dart';
 
@@ -57,20 +56,32 @@ class MessageLocationCard extends StatelessWidget {
 
   Widget _endedBubble(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    // Bug G: убрали ChatGlassPanel (BackdropFilter) — в серии end-bubble
+    // он дёргал scroll. Заменили на простой DecoratedBox с тёмной
+    // полупрозрачной заливкой — визуально похоже, но рендерится
+    // дёшево (нет per-frame blur'ов на всё, что под ним).
     return ConstrainedBox(
       constraints: const BoxConstraints(
         maxWidth: ChatMediaLayoutTokens.locationPreviewMaxWidth,
       ),
-      child: ChatGlassPanel(
-        child: Text(
-          isMine
-              ? l10n.location_card_broadcast_ended_mine
-              : l10n.location_card_broadcast_ended_other,
-          style: TextStyle(
-            fontSize: 13,
-            height: 1.35,
-            fontWeight: FontWeight.w500,
-            color: Colors.white.withValues(alpha: 0.94),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.36),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(
+            isMine
+                ? l10n.location_card_broadcast_ended_mine
+                : l10n.location_card_broadcast_ended_other,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.35,
+              fontWeight: FontWeight.w500,
+              color: Colors.white.withValues(alpha: 0.94),
+            ),
           ),
         ),
       ),

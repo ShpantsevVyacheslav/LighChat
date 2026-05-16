@@ -1,5 +1,8 @@
 import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart' show Factory;
+import 'package:flutter/gestures.dart'
+    show EagerGestureRecognizer, OneSequenceGestureRecognizer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show MethodChannel, StandardMessageCodec;
@@ -139,6 +142,18 @@ class _ChatLocationMapViewState extends State<ChatLocationMapView> {
             hitTestBehavior: widget.interactive
                 ? PlatformViewHitTestBehavior.opaque
                 : PlatformViewHitTestBehavior.transparent,
+            // Bug F: для interactive-карты внутри ListView чата
+            // подключаем EagerGestureRecognizer — Flutter gesture
+            // arena сразу отдаёт pan-gesture MKMapView. Без него
+            // ListView выигрывает арену и MKMapView не получает
+            // pan/zoom, выглядя статичной.
+            gestureRecognizers: widget.interactive
+                ? <Factory<OneSequenceGestureRecognizer>>{
+                    Factory<OneSequenceGestureRecognizer>(
+                      () => EagerGestureRecognizer(),
+                    ),
+                  }
+                : const <Factory<OneSequenceGestureRecognizer>>{},
           );
         },
       );
