@@ -170,6 +170,13 @@ class MessageLocationCard extends StatelessWidget {
                     if (useNativeMap)
                       AspectRatio(
                         aspectRatio: aspect,
+                        // TODO(Phase 13): когда подключим live-tracking
+                        // sub-collection (users/{uid}/liveLocationShare/
+                        // current/trackPoints), пробросить сюда поток
+                        // точек и нарисовать MKPolyline через ещё
+                        // не существующий `trackPolyline` параметр
+                        // ChatLocationMapView. См. docs/arcitecture/
+                        // 04-runtime-flows.md, пункт 7.5.
                         child: ChatLocationMapView(
                           lat: share.lat,
                           lng: share.lng,

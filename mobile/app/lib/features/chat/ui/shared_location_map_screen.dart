@@ -21,6 +21,13 @@ bool get _supportsInlineWebView {
 }
 
 /// Полноэкранная карта: WebView (OSM + Leaflet) + назад + открыть во внешнем браузере.
+///
+/// TODO(Phase 14): на iOS заменить WebView+OSM на нативную MKMapView
+/// с MKPolyline overlay из live-tracking sub-collection (см.
+/// docs/arcitecture/04-runtime-flows.md пункт 7.5). PlatformView
+/// ChatLocationMapView уже умеет показывать pin и принимать
+/// setCenter — расширить до приёма `polyline: List<{lat,lng}>` и
+/// перерисовки на каждом push'е track-point.
 class SharedLocationMapScreen extends StatefulWidget {
   const SharedLocationMapScreen({
     super.key,

@@ -1143,6 +1143,16 @@ class ChatRepository {
   }
 
   /// Паритет `ChatWindow.handleSendLocationShare`.
+  ///
+  /// TODO(Phase 13/14): для длительных трансляций (`activateUserLiveShare`
+  /// && durationId != 'once') добавить writeLiveLocationTrackPoint(
+  /// uid, position) метод, который пишет в sub-collection
+  /// `users/{uid}/liveLocationShare/current/trackPoints/{ts}`.
+  /// Caller (mobile-фон) подписывается на Geolocator.getPositionStream
+  /// (distanceFilter=15, accuracy=high), частит 1 fix/30с, и зовёт
+  /// этот метод пока `liveLocationShare.active && expiresAt > now`.
+  /// Cleanup при `liveLocationShare.delete()` — каскад из CF
+  /// onuserlivelocationsharedeleted (ещё не реализован).
   Future<void> sendLocationShareMessage({
     required String conversationId,
     required String senderId,
