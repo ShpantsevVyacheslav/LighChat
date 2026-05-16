@@ -21,6 +21,7 @@ class MessageLocationRequestBubble extends StatefulWidget {
     required this.onAccept,
     required this.onDecline,
     this.requesterName,
+    this.onRemove,
   });
 
   final ChatLocationRequest request;
@@ -34,6 +35,14 @@ class MessageLocationRequestBubble extends StatefulWidget {
 
   /// Тап «Decline» (только для !isMine + pending).
   final VoidCallback onDecline;
+
+  /// Bug #17: для своего ещё незавершённого запроса (isMine + pending)
+  /// показываем маленький X в правом верхнем углу — это «удалить
+  /// у себя», а не «отменить запрос» (отмена запроса как отдельная
+  /// операция не предусмотрена: собеседник может всё равно ответить).
+  /// Если null — иконка не рисуется (например, для received-bubble
+  /// удаление доступно через стандартный long-press menu).
+  final VoidCallback? onRemove;
 
   @override
   State<MessageLocationRequestBubble> createState() =>
@@ -104,6 +113,9 @@ class _MessageLocationRequestBubbleState
         ? fg.withValues(alpha: 0.45)
         : accent;
 
+    final showRemove = widget.request.isPending &&
+        widget.isMine &&
+        widget.onRemove != null;
     return ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 220, maxWidth: 280),
       child: Padding(
@@ -129,6 +141,22 @@ class _MessageLocationRequestBubbleState
                     ),
                   ),
                 ),
+                if (showRemove)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: InkWell(
+                      onTap: widget.onRemove,
+                      customBorder: const CircleBorder(),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: fg.withValues(alpha: 0.55),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
             // Кнопки Accept/Decline — только для pending request

@@ -2172,6 +2172,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                                     m,
                                                                   ),
                                                                 ),
+                                                            onRemoveLocationRequest:
+                                                                (m) => unawaited(
+                                                                  _handleRemoveLocationRequest(
+                                                                    m,
+                                                                  ),
+                                                                ),
                                                             onOutboxRetry: (mid) {
                                                               handleOutboxRetry(
                                                                 ref,
@@ -5494,6 +5500,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     // ниже в timeline). Доработать в следующем заходе.
     _pendingAcceptRequestMessageId = requestMessage.id;
     await _sendLocationShare();
+  }
+
+  /// Bug #17: «удалить у себя» pending location-request bubble. Это
+  /// НЕ отмена запроса — собеседник всё ещё может ответить, просто
+  /// сообщение помечается как isDeleted и пропадает у меня и у него
+  /// из списка (softDeleteMessage уже учитывает unread-decrement).
+  /// Без confirm-диалога: тап X в bubble — явное действие.
+  Future<void> _handleRemoveLocationRequest(
+    ChatMessage requestMessage,
+  ) async {
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    try {
+      await repo.softDeleteMessage(
+        conversationId: widget.conversationId,
+        messageId: requestMessage.id,
+      );
+    } catch (e) {
+      if (mounted) {
+        _toast(AppLocalizations.of(context)!.chat_delete_action_failed(e));
+      }
+    }
   }
 
   /// Phase 12.3: получатель тапнул «Отклонить» — просто помечаем

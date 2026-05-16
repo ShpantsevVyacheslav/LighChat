@@ -92,6 +92,7 @@ class ChatMessageList extends ConsumerStatefulWidget {
     this.onSwipeBack,
     this.onAcceptLocationRequest,
     this.onDeclineLocationRequest,
+    this.onRemoveLocationRequest,
     this.e2eeDecryptedTextByMessageId,
     this.e2eeDecryptionFailedMessageIds,
     this.onOutboxRetry,
@@ -193,6 +194,12 @@ class ChatMessageList extends ConsumerStatefulWidget {
   /// `respondToLocationRequest(accepted: true, …)`.
   final void Function(ChatMessage requestMessage)? onAcceptLocationRequest;
   final void Function(ChatMessage requestMessage)? onDeclineLocationRequest;
+
+  /// Bug #17: «удалить у себя» для своего pending-запроса локации
+  /// (тап X в правом верхнем углу bubble). Если null — иконка X
+  /// не рендерится. Это НЕ отмена запроса — собеседник по-прежнему
+  /// может ответить, просто bubble удаляется (softDelete).
+  final void Function(ChatMessage requestMessage)? onRemoveLocationRequest;
 
   /// Предвычисленные plaintext'ы для E2EE-сообщений (Phase 4).
   ///
@@ -825,6 +832,7 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
                 conversationVoiceTracks: conversationVoiceTracks,
                 onAcceptLocationRequest: widget.onAcceptLocationRequest,
                 onDeclineLocationRequest: widget.onDeclineLocationRequest,
+                onRemoveLocationRequest: widget.onRemoveLocationRequest,
               ),
             );
             final rowKey = widget.messageItemKeys[m.id];
@@ -1294,6 +1302,7 @@ class _ChatMessageBubble extends StatelessWidget {
     this.conversationVoiceTracks,
     this.onAcceptLocationRequest,
     this.onDeclineLocationRequest,
+    this.onRemoveLocationRequest,
   });
 
   final ChatMessage message;
@@ -1345,6 +1354,9 @@ class _ChatMessageBubble extends StatelessWidget {
   /// Phase 12.3: see ChatMessageList.onAcceptLocationRequest.
   final void Function(ChatMessage requestMessage)? onAcceptLocationRequest;
   final void Function(ChatMessage requestMessage)? onDeclineLocationRequest;
+
+  /// Bug #17: see ChatMessageList.onRemoveLocationRequest.
+  final void Function(ChatMessage requestMessage)? onRemoveLocationRequest;
 
   @override
   Widget build(BuildContext context) {
@@ -2158,6 +2170,11 @@ class _ChatMessageBubble extends StatelessWidget {
             requesterName: profileMap?[message.senderId]?.name,
             onAccept: () => onAcceptLocationRequest?.call(message),
             onDecline: () => onDeclineLocationRequest?.call(message),
+            onRemove: (isMine &&
+                    message.locationRequest!.isPending &&
+                    onRemoveLocationRequest != null)
+                ? () => onRemoveLocationRequest!(message)
+                : null,
           ),
           SizedBox(height: ChatMediaLayoutTokens.mediaToCaptionGap),
         ],
