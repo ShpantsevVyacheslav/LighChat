@@ -630,6 +630,10 @@ class _ChatComposerState extends State<ChatComposer> {
             onPressed: widget.sendBusy
                 ? null
                 : () {
+                    debugPrint(
+                      '[format-popover] Aa tap '
+                      '(anchorMounted=${_composerColumnKey.currentContext != null})',
+                    );
                     unawaited(showComposerFormatSheet(
                       context: context,
                       anchorKey: _composerColumnKey,

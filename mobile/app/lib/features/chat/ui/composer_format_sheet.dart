@@ -28,12 +28,18 @@ Future<void> showComposerFormatSheet({
   final anchorBox =
       anchorKey.currentContext?.findRenderObject() as RenderBox?;
   final overlayBox = overlay.context.findRenderObject() as RenderBox?;
+  debugPrint(
+    '[format-popover] open: anchorBox=${anchorBox != null} '
+    'hasSize=${anchorBox?.hasSize} overlayBox=${overlayBox != null} '
+    'overlaySize=${overlayBox?.hasSize == true ? overlayBox!.size : "?"}',
+  );
   if (anchorBox == null ||
       overlayBox == null ||
       !anchorBox.hasSize ||
       !overlayBox.hasSize ||
       overlayBox.size.width <= 0 ||
       overlayBox.size.height <= 0) {
+    debugPrint('[format-popover] open: bail — invalid anchor/overlay');
     return;
   }
 
@@ -51,6 +57,9 @@ Future<void> showComposerFormatSheet({
   final bottomFromOverlay = bottomRaw.isFinite && bottomRaw >= 0
       ? bottomRaw
       : 0.0;
+  debugPrint(
+    '[format-popover] anchorTop=$anchorTop bottomFromOverlay=$bottomFromOverlay',
+  );
 
   late OverlayEntry entry;
   void dismiss() {
@@ -67,7 +76,7 @@ Future<void> showComposerFormatSheet({
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: dismiss,
-              child: const SizedBox.expand(),
+              child: const ColoredBox(color: Color(0x00000000)),
             ),
           ),
           Positioned(
@@ -84,6 +93,7 @@ Future<void> showComposerFormatSheet({
     },
   );
   overlay.insert(entry);
+  debugPrint('[format-popover] overlay inserted');
 }
 
 class _FormatPopoverBody extends StatelessWidget {

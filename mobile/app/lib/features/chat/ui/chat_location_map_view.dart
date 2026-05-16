@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show StandardMessageCodec;
+import 'package:flutter/rendering.dart' show PlatformViewHitTestBehavior;
 
 import '../data/google_maps_urls.dart';
 import 'chat_cached_network_image.dart';
@@ -37,14 +38,31 @@ class ChatLocationMapView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (Platform.isIOS) {
-      return UiKitView(
-        viewType: _viewType,
-        creationParams: <String, Object?>{
-          'lat': lat,
-          'lng': lng,
-          'interactive': interactive,
+      // UiKitView рендерится через PlatformView pipeline; при zero/<1
+      // ширине или высоте Flutter генерит invalid matrix («TransformLayer
+      // is constructed with an invalid matrix» — спам в логах). Guard
+      // через LayoutBuilder: если constraints не realized, показываем
+      // нейтральный плейсхолдер вместо PlatformView.
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final w = constraints.maxWidth;
+          final h = constraints.maxHeight;
+          if (!w.isFinite || !h.isFinite || w < 1 || h < 1) {
+            return const _OsmFallback();
+          }
+          return UiKitView(
+            viewType: _viewType,
+            creationParams: <String, Object?>{
+              'lat': lat,
+              'lng': lng,
+              'interactive': interactive,
+            },
+            creationParamsCodec: const StandardMessageCodec(),
+            // Preview-карта НЕ должна перехватывать gestures (тап на
+            // крестик отмены / весь композер ниже). opaque съел бы их.
+            hitTestBehavior: PlatformViewHitTestBehavior.transparent,
+          );
         },
-        creationParamsCodec: const StandardMessageCodec(),
       );
     }
     // Android / desktop — статичный OSM тайл как раньше. Apple Maps
