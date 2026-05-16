@@ -1,5 +1,5 @@
 import 'dart:async' show unawaited;
-import 'dart:ui' show ImageFilter;
+import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
@@ -636,6 +636,9 @@ List<InlineSpan> _elementToSpans(
   return _nodesToSpans(el.nodes, base, st, opts);
 }
 
+/// Telegram-style spoiler с анимированной «dust»-маской поверх текста.
+/// Под маской — реальный текст с opacity 0 (чтобы layout совпадал
+/// один-в-один). При тапе маска плавно угасает и текст проявляется.
 class _SpoilerInline extends StatefulWidget {
   const _SpoilerInline({required this.text, required this.style});
 
@@ -646,56 +649,132 @@ class _SpoilerInline extends StatefulWidget {
   State<_SpoilerInline> createState() => _SpoilerInlineState();
 }
 
-class _SpoilerInlineState extends State<_SpoilerInline> {
+class _SpoilerInlineState extends State<_SpoilerInline>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
   bool _revealed = false;
+  // 0.0 = частицы видны полностью; 1.0 = полностью прозрачны (текст виден).
+  double _revealProgress = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // ~3 секунды на цикл — плавное «копошение» точек, не дёргано.
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _reveal() async {
+    // Плавный fade-out маски за 350мс, потом останавливаем controller
+    // (нет смысла греть GPU на скрытой маске).
+    const steps = 14;
+    for (var i = 1; i <= steps; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 25));
+      if (!mounted) return;
+      setState(() => _revealProgress = i / steps);
+    }
+    if (!mounted) return;
+    setState(() => _revealed = true);
+    _ctrl.stop();
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (_revealed) {
-      return Text(widget.text, style: widget.style);
-    }
+    final baseColor = widget.style.color ?? Colors.white;
     return GestureDetector(
-      onTap: () => setState(() => _revealed = true),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: ColoredBox(
-          color: Colors.transparent,
-          child: Stack(
-            clipBehavior: Clip.hardEdge,
-            alignment: Alignment.centerLeft,
-            children: [
-              ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 14, sigmaY: 16),
-                child: Text(
-                  widget.text,
-                  style: widget.style.copyWith(
-                    color:
-                        widget.style.color?.withValues(alpha: 0.92) ??
-                        Colors.white.withValues(alpha: 0.9),
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withValues(alpha: 0.52),
-                          const Color(0xFFBFDBFE).withValues(alpha: 0.45),
-                          Colors.white.withValues(alpha: 0.48),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+      onTap: _revealed ? null : _reveal,
+      behavior: HitTestBehavior.opaque,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Сам текст — рендерится всегда, чтобы parent Wrap/Column
+          // корректно сосчитал bounds. До reveal — opacity ~ progress.
+          Opacity(
+            opacity: _revealProgress,
+            child: Text(widget.text, style: widget.style),
           ),
-        ),
+          if (!_revealed)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _ctrl,
+                  builder: (context, _) {
+                    return CustomPaint(
+                      painter: _SpoilerDustPainter(
+                        progress: _ctrl.value,
+                        opacity: 1.0 - _revealProgress,
+                        tint: baseColor,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+        ],
       ),
     );
+  }
+}
+
+/// Рисует ~70 «пылинок» поверх текста, каждая со своей фазой и
+/// псевдослучайным движением. Seed детерминированный (на основе
+/// индекса), чтобы между кадрами точки не «прыгали».
+class _SpoilerDustPainter extends CustomPainter {
+  const _SpoilerDustPainter({
+    required this.progress,
+    required this.opacity,
+    required this.tint,
+  });
+
+  final double progress;
+  final double opacity;
+  final Color tint;
+
+  static const _particles = 70;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (opacity <= 0 || size.width <= 0 || size.height <= 0) return;
+    // Полупрозрачная подложка — чтобы цвет точек контрастировал с
+    // bubble. Использует tint, который равен цвету текста (онкал
+    // адаптивен под bubble color: для isMine — onPrimary white).
+    final bgPaint = Paint()
+      ..color = tint.withValues(alpha: 0.18 * opacity);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(6)),
+      bgPaint,
+    );
+
+    final dotPaint = Paint()..style = PaintingStyle.fill;
+    for (var i = 0; i < _particles; i++) {
+      // Псевдослучайный детерминированный seed на основе индекса.
+      final s = i * 9301 + 49297;
+      final baseX = ((s & 0xFFFF) / 0xFFFF) * size.width;
+      final baseY = (((s >> 16) & 0xFFFF) / 0xFFFF) * size.height;
+      // Phase shifts чтобы точки не двигались синхронно.
+      final phase = (progress + (i % 10) * 0.1) * math.pi * 2;
+      final dx = math.sin(phase + i) * 1.5;
+      final dy = math.cos(phase * 0.7 + i * 1.3) * 1.5;
+      final r = 0.9 + (i % 3) * 0.3; // 0.9 / 1.2 / 1.5
+      final alpha = (0.45 + 0.55 * math.sin(phase * 0.5 + i).abs()) *
+          opacity;
+      dotPaint.color = tint.withValues(alpha: alpha);
+      canvas.drawCircle(Offset(baseX + dx, baseY + dy), r, dotPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SpoilerDustPainter old) {
+    return old.progress != progress ||
+        old.opacity != opacity ||
+        old.tint != tint;
   }
 }

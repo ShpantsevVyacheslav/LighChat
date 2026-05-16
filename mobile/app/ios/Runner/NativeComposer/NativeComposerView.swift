@@ -376,6 +376,24 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
       toggleEffect(tag: tag)
       return
     }
+    // Phase 13: spoiler / quote / link — отдельные кастомные attribute
+    // ключи. Передаются через тот же `toggleFormat` channel-метод; для
+    // link Dart-сторона дополнительно прокидывает href в payload.
+    if tag == "spoiler" {
+      toggleSpoiler()
+      return
+    }
+    if tag == "quote" {
+      toggleQuote()
+      return
+    }
+    if tag == "link" || tag.hasPrefix("link:") {
+      let href = tag.hasPrefix("link:")
+        ? String(tag.dropFirst("link:".count))
+        : ""
+      toggleLink(href: href)
+      return
+    }
     let selRange = textView.selectedRange
     let baseFont = self.baseFont
     let baseColor = self.baseColor
@@ -548,6 +566,123 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
     }
   }
 
+  // MARK: - Phase 13: spoiler / quote / link
+
+  /// Переключает spoiler attribute (`<span class="spoiler-text">`) на
+  /// selection или typingAttributes. Visually в композере: серый фон
+  /// + dim текст. Анимированная dust-mask живёт только на receiver-side
+  /// (`_SpoilerInline`).
+  private func toggleSpoiler() {
+    let probeAttrs = _probeAttrs()
+    let nextActive = (probeAttrs[MentionAttributedString.spoilerKey]
+      as? Bool) != true
+    func patch(_ attrs: inout [NSAttributedString.Key: Any]) {
+      if nextActive {
+        attrs[MentionAttributedString.spoilerKey] = true
+        attrs[.backgroundColor] = baseColor.withAlphaComponent(0.18)
+        attrs[.foregroundColor] = baseColor.withAlphaComponent(0.32)
+      } else {
+        attrs.removeValue(forKey: MentionAttributedString.spoilerKey)
+        attrs.removeValue(forKey: .backgroundColor)
+        attrs[.foregroundColor] = baseColor
+      }
+    }
+    _applyCustomToggle(patch: patch)
+  }
+
+  /// Переключает quote attribute (`<blockquote>`). Composer style:
+  /// italic + accent foreground. Полноценный quote-bar — receiver-side.
+  private func toggleQuote() {
+    let probeAttrs = _probeAttrs()
+    let nextActive = (probeAttrs[MentionAttributedString.quoteKey]
+      as? Bool) != true
+    func patch(_ attrs: inout [NSAttributedString.Key: Any]) {
+      if nextActive {
+        attrs[MentionAttributedString.quoteKey] = true
+        var symbolic = (attrs[.font] as? UIFont)?.fontDescriptor
+          .symbolicTraits ?? []
+        symbolic.insert(.traitItalic)
+        if let d = baseFont.fontDescriptor.withSymbolicTraits(symbolic) {
+          attrs[.font] = UIFont(descriptor: d, size: baseFont.pointSize)
+        }
+        attrs[.foregroundColor] = accentColor.withAlphaComponent(0.86)
+      } else {
+        attrs.removeValue(forKey: MentionAttributedString.quoteKey)
+        attrs[.font] = baseFont
+        attrs[.foregroundColor] = baseColor
+      }
+    }
+    _applyCustomToggle(patch: patch)
+  }
+
+  /// Wrap selection в `<a href="...">…</a>`. Если href пустой —
+  /// убираем link attribute.
+  private func toggleLink(href: String) {
+    let trimmed = href.trimmingCharacters(in: .whitespacesAndNewlines)
+    func patch(_ attrs: inout [NSAttributedString.Key: Any]) {
+      if trimmed.isEmpty {
+        attrs.removeValue(forKey: MentionAttributedString.linkHrefKey)
+        attrs.removeValue(forKey: .underlineStyle)
+        attrs.removeValue(forKey: .underlineColor)
+        attrs[.foregroundColor] = baseColor
+      } else {
+        attrs[MentionAttributedString.linkHrefKey] = trimmed
+        attrs[.foregroundColor] = accentColor
+        attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue
+        attrs[.underlineColor] = accentColor
+      }
+    }
+    _applyCustomToggle(patch: patch)
+  }
+
+  /// Общий паттерн для toggle-атрибутов: снимок selection/typing,
+  /// применить patch к каждому run (или typingAttributes), уведомить
+  /// Dart через textChanged. Использует то же anti-echo-flag
+  /// `isApplyingRemoteText`.
+  private func _applyCustomToggle(
+    patch: (inout [NSAttributedString.Key: Any]) -> Void
+  ) {
+    let selRange = textView.selectedRange
+    if selRange.length > 0 {
+      let mut = NSMutableAttributedString(attributedString: textView.attributedText)
+      mut.enumerateAttributes(in: selRange, options: []) { attrs, range, _ in
+        var copy = attrs
+        patch(&copy)
+        mut.setAttributes(copy, range: range)
+      }
+      isApplyingRemoteText = true
+      textView.attributedText = mut
+      textView.selectedRange = selRange
+      isApplyingRemoteText = false
+      let plain = currentPlainText()
+      let sel = plainSelection(plain)
+      channel.invokeMethod(
+        "textChanged",
+        arguments: [
+          "text": plain,
+          "selectionStart": sel.start,
+          "selectionEnd": sel.end,
+        ])
+    } else {
+      var ta = textView.typingAttributes
+      patch(&ta)
+      textView.typingAttributes = ta
+    }
+  }
+
+  /// Возвращает атрибуты курсора (или начала selection) — нужно для
+  /// определения, надо ли activate or deactivate.
+  private func _probeAttrs() -> [NSAttributedString.Key: Any] {
+    let selRange = textView.selectedRange
+    let probeLoc = selRange.length > 0
+      ? selRange.location
+      : max(0, selRange.location - 1)
+    if probeLoc < textView.attributedText.length && probeLoc >= 0 {
+      return textView.attributedText.attributes(at: probeLoc, effectiveRange: nil)
+    }
+    return textView.typingAttributes
+  }
+
   private func _isTagActive(
     tag: String, attrs: [NSAttributedString.Key: Any]
   ) -> Bool {
@@ -707,6 +842,11 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
     mut.enumerateAttributes(in: full, options: []) { attrs, range, _ in
       if attrs[MentionAttributedString.tokenKey] != nil { return }
       if attrs[MentionAttributedString.effectKey] != nil { return }
+      // Phase 13: spoiler/quote/link тоже имеют кастомный foreground —
+      // не трогаем их.
+      if attrs[MentionAttributedString.spoilerKey] != nil { return }
+      if attrs[MentionAttributedString.quoteKey] != nil { return }
+      if attrs[MentionAttributedString.linkHrefKey] != nil { return }
       if let c = attrs[.foregroundColor] as? UIColor, c != baseColor {
         mut.removeAttribute(.foregroundColor, range: range)
         mut.addAttribute(.foregroundColor, value: baseColor, range: range)

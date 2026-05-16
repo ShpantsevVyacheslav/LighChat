@@ -33,6 +33,19 @@ enum MentionAttributedString {
   static let knownEffects: Set<String> = [
     "shake", "nod", "ripple", "bloom", "jitter", "big", "small",
   ]
+  /// Phase 13: Spoiler `<span class="spoiler-text">…</span>` — текст
+  /// скрыт под анимированной маской до тапа (receiver-side в
+  /// `_SpoilerInline`). В композере показываем как dim grey фон + text
+  /// с reduced opacity, чтобы юзер видел границы блока.
+  static let spoilerKey = NSAttributedString.Key("lighchat.spoiler")
+  /// Phase 13: Quote `<blockquote>…</blockquote>`. В композере —
+  /// italic + leading bar (через NSParagraphStyle.firstLineHeadIndent
+  /// сделать сложно для подвыделения, поэтому используем visual
+  /// indicator через accent foreground + italic).
+  static let quoteKey = NSAttributedString.Key("lighchat.quote")
+  /// Phase 13: Link `<a href="X">…</a>`. Храним URL чтобы при
+  /// serialize восстановить тег. Visually — underline + accent.
+  static let linkHrefKey = NSAttributedString.Key("lighchat.linkHref")
 
   // MARK: - Render: rich-text → NSAttributedString
 
@@ -43,6 +56,9 @@ enum MentionAttributedString {
     let result = NSMutableAttributedString()
     var traits = _Traits()
     var activeEffect: String?
+    var spoilerDepth = 0
+    var quoteDepth = 0
+    var linkHrefStack: [String] = []
     while let tok = lexer.next() {
       switch tok {
       case .text(let s):
@@ -53,6 +69,32 @@ enum MentionAttributedString {
           _applyEffectVisualStyle(
             &attrs, effect: effect, baseFont: baseFont,
             baseColor: baseColor, accentColor: accentColor)
+        }
+        if spoilerDepth > 0 {
+          attrs[spoilerKey] = true
+          // Composer style: серый фон + дим-текст, чтобы юзер видел
+          // границы spoiler-блока. Реальный animated-noise — только
+          // на receiver-side (`_SpoilerInline`).
+          attrs[.backgroundColor] = baseColor.withAlphaComponent(0.18)
+          attrs[.foregroundColor] = baseColor.withAlphaComponent(0.32)
+        }
+        if quoteDepth > 0 {
+          attrs[quoteKey] = true
+          // Composer style: italic + accent leading. Полноценный
+          // accent-border рендерится receiver-side через `<blockquote>`.
+          var symbolic = (attrs[.font] as? UIFont)?.fontDescriptor
+            .symbolicTraits ?? []
+          symbolic.insert(.traitItalic)
+          if let d = baseFont.fontDescriptor.withSymbolicTraits(symbolic) {
+            attrs[.font] = UIFont(descriptor: d, size: baseFont.pointSize)
+          }
+          attrs[.foregroundColor] = accentColor.withAlphaComponent(0.86)
+        }
+        if let href = linkHrefStack.last {
+          attrs[linkHrefKey] = href
+          attrs[.foregroundColor] = accentColor
+          attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue
+          attrs[.underlineColor] = accentColor
         }
         result.append(NSAttributedString(string: s, attributes: attrs))
       case .mention(let full, let label):
@@ -72,6 +114,18 @@ enum MentionAttributedString {
         activeEffect = effect
       case .closeEffect:
         activeEffect = nil
+      case .openSpoiler:
+        spoilerDepth += 1
+      case .closeSpoiler:
+        if spoilerDepth > 0 { spoilerDepth -= 1 }
+      case .openQuote:
+        quoteDepth += 1
+      case .closeQuote:
+        if quoteDepth > 0 { quoteDepth -= 1 }
+      case .openLink(let href):
+        linkHrefStack.append(href)
+      case .closeLink:
+        if !linkHrefStack.isEmpty { linkHrefStack.removeLast() }
       }
     }
     return result
@@ -150,20 +204,59 @@ enum MentionAttributedString {
     var out = ""
     var prev = _Traits()
     var prevEffect: String?
+    var prevSpoiler = false
+    var prevQuote = false
+    var prevLinkHref: String?
     let full = NSRange(location: 0, length: attributed.length)
 
-    func emitOpenClose(transition newTraits: _Traits, newEffect: String?) {
-      // Эффект-span ВНЕШНЕЕ обрамление: bold/italic внутри. Поэтому
-      // при смене эффекта закрываем сначала traits, потом сам эффект.
+    // Иерархия вложенности при сериализации (от внешнего к внутреннему):
+    //   blockquote → spoiler-span → effect-span → link → font traits.
+    // Когда любой outer-блок меняется, мы закрываем всё что внутри
+    // него до самого края, обновляем тег, затем открываем внутренние
+    // обратно. Это даёт валидный non-overlapping HTML на выходе.
+    func emitOpenClose(
+      newTraits: _Traits,
+      newEffect: String?,
+      newSpoiler: Bool,
+      newQuote: Bool,
+      newLinkHref: String?
+    ) {
+      let quoteChange = newQuote != prevQuote
+      let spoilerChange = newSpoiler != prevSpoiler
       let effectChange = newEffect != prevEffect
-      if effectChange {
-        // Закрываем все активные traits (под эффектом нечего держать).
+      let linkChange = newLinkHref != prevLinkHref
+
+      // Закрываем все внутренние блоки сверху-вниз если меняется
+      // что-то outer.
+      if quoteChange || spoilerChange || effectChange || linkChange {
         emitTraitsClose(_Traits())
-        if prevEffect != nil { out += "</span>" }
-        if let e = newEffect { out += "<span data-anim=\"\(e)\">" }
-        prevEffect = newEffect
         prev = _Traits()
+        if prevLinkHref != nil { out += "</a>"; prevLinkHref = nil }
+        if prevEffect != nil { out += "</span>"; prevEffect = nil }
+        if spoilerChange && prevSpoiler {
+          out += "</span>"
+          prevSpoiler = false
+        }
+        if quoteChange && prevQuote {
+          out += "</blockquote>"
+          prevQuote = false
+        }
       }
+      // Открываем outer-блоки.
+      if quoteChange && newQuote { out += "<blockquote>"; prevQuote = true }
+      if spoilerChange && newSpoiler {
+        out += "<span class=\"spoiler-text\">"
+        prevSpoiler = true
+      }
+      if effectChange, let e = newEffect {
+        out += "<span data-anim=\"\(e)\">"
+        prevEffect = e
+      }
+      if linkChange, let href = newLinkHref {
+        out += "<a href=\"\(_escapeHtmlAttribute(href))\">"
+        prevLinkHref = href
+      }
+      // Font traits — самый внутренний слой.
       emitTraitsClose(newTraits)
       emitTraitsOpen(newTraits)
       prev = newTraits
@@ -187,20 +280,45 @@ enum MentionAttributedString {
     attributed.enumerateAttributes(in: full, options: []) { attrs, range, _ in
       let runStr = attributed.attributedSubstring(from: range).string
       if let token = attrs[tokenKey] as? String {
-        // Mention: закрываем traits И effect span (mention не должен быть
-        // внутри `<span data-anim>` или `<strong>` — send-pipeline это не
-        // ожидает).
-        emitOpenClose(transition: _Traits(), newEffect: nil)
+        // Mention: закрываем всё (traits + outer-блоки), эмитим токен,
+        // дальше восстановим как обычно.
+        emitOpenClose(
+          newTraits: _Traits(), newEffect: nil,
+          newSpoiler: false, newQuote: false, newLinkHref: nil)
         out += token
         return
       }
       let traits = _Traits.fromAttributes(attrs)
       let effect = attrs[effectKey] as? String
-      emitOpenClose(transition: traits, newEffect: effect)
+      let spoiler = (attrs[spoilerKey] as? Bool) ?? false
+      let quote = (attrs[quoteKey] as? Bool) ?? false
+      let linkHref = attrs[linkHrefKey] as? String
+      emitOpenClose(
+        newTraits: traits, newEffect: effect,
+        newSpoiler: spoiler, newQuote: quote, newLinkHref: linkHref)
       out += _escapeHtml(runStr)
     }
-    // Финальное закрытие.
-    emitOpenClose(transition: _Traits(), newEffect: nil)
+    // Финальное закрытие — всё что было открыто.
+    emitOpenClose(
+      newTraits: _Traits(), newEffect: nil,
+      newSpoiler: false, newQuote: false, newLinkHref: nil)
+    return out
+  }
+
+  /// HTML-attribute-safe escape для href значений (одинарные/двойные
+  /// кавычки + `<>&`). Используется при serialize `<a href="X">`.
+  private static func _escapeHtmlAttribute(_ s: String) -> String {
+    var out = ""
+    for c in s {
+      switch c {
+      case "&": out += "&amp;"
+      case "<": out += "&lt;"
+      case ">": out += "&gt;"
+      case "\"": out += "&quot;"
+      case "'": out += "&#39;"
+      default: out.append(c)
+      }
+    }
     return out
   }
 
@@ -217,7 +335,9 @@ enum MentionAttributedString {
         visible += (s as NSString).length
       case .mention(_, let label):
         visible += ("@\(label)" as NSString).length
-      case .openTag, .closeTag, .openEffect, .closeEffect:
+      case .openTag, .closeTag, .openEffect, .closeEffect,
+           .openSpoiler, .closeSpoiler, .openQuote, .closeQuote,
+           .openLink, .closeLink:
         break // теги не занимают visible space
       }
     }
@@ -272,7 +392,9 @@ enum MentionAttributedString {
           return inside * 2 <= visLen ? plainStartNS : plainEndNS
         }
         visible += visLen
-      case .openTag, .closeTag, .openEffect, .closeEffect:
+      case .openTag, .closeTag, .openEffect, .closeEffect,
+           .openSpoiler, .closeSpoiler, .openQuote, .closeQuote,
+           .openLink, .closeLink:
         // Теги/effect-span'ы visible не двигают. Если target == visible
         // прямо на стыке — отдаём конец последнего пройденного non-tag
         // фрагмента, что и есть `plainEndNS` (тег только что прошёл).
@@ -350,17 +472,22 @@ private enum _Tok {
   case closeTag(String)
   case openEffect(String) // span data-anim="X" open
   case closeEffect // </span> after a known data-anim open
+  case openSpoiler // span class="spoiler-text" open
+  case closeSpoiler // </span> after spoiler open
+  case openQuote // <blockquote>
+  case closeQuote // </blockquote>
+  case openLink(String) // <a href="X">
+  case closeLink // </a>
 }
 
 private final class _Lexer {
   init(input: String) { self.input = input; self.i = input.startIndex }
   let input: String
   var i: String.Index
-  /// Stack глубины открытых `<span>` с известным `data-anim` — нужен
-  /// чтобы парный `</span>` правильно интерпретировать как
-  /// `.closeEffect` (если открывали с эффектом) или как закрытие
-  /// обычного span'а (игнорируем).
-  var spanEffectStack: [Bool] = []
+  /// Stack типа открытого span'а: 0 = обычный (skip on close), 1 =
+  /// effect (.closeEffect), 2 = spoiler (.closeSpoiler).
+  /// При встрече `</span>` достаём top и эмитим нужный close-token.
+  var spanTypeStack: [Int] = []
 
   func next() -> _Tok? {
     guard i < input.endIndex else { return nil }
@@ -414,29 +541,114 @@ private final class _Lexer {
     if known.contains(name) {
       return isClose ? .closeTag(name) : .openTag(name)
     }
+    // Phase 13: blockquote — paragraph-level quote.
+    if name == "blockquote" {
+      return isClose ? .closeQuote : .openQuote
+    }
+    // Phase 13: `<a href="X">…</a>` — link.
+    if name == "a" {
+      if isClose { return .closeLink }
+      if let href = _parseHrefAttribute(body) {
+        return .openLink(href)
+      }
+      return nil  // битый `<a>` без href — пропустить
+    }
     // `<span data-anim="X">…</span>` → animated effect run.
+    // `<span class="spoiler-text">…</span>` → Telegram-style spoiler.
     if name == "span" {
       if isClose {
-        // Закрываем span. Если последний открытый был effect — emit closeEffect,
-        // иначе игнорируем (обычный span).
-        if let last = spanEffectStack.popLast(), last == true {
-          return .closeEffect
+        if let last = spanTypeStack.popLast() {
+          if last == 1 { return .closeEffect }
+          if last == 2 { return .closeSpoiler }
         }
         return nil // skip silently
       }
-      // Open span — парсим атрибуты, ищем data-anim="X".
+      // Open span — парсим атрибуты.
       if let effect = _parseDataAnim(body),
         MentionAttributedString.knownEffects.contains(effect)
       {
-        spanEffectStack.append(true)
+        spanTypeStack.append(1)
         return .openEffect(effect)
       }
-      spanEffectStack.append(false)
+      if _hasSpoilerClass(body) {
+        spanTypeStack.append(2)
+        return .openSpoiler
+      }
+      spanTypeStack.append(0)
       return nil // skip silently
     }
     // Неизвестный тег (например `<span data-chat-mention=...>`) — на native
     // путях такого быть не должно, но если влетел — рендерим как текст.
     return .text(isClose ? "</\(name)>" : "<\(raw)>")
+  }
+
+  /// Извлекает href из строки `a href="X"` (или без кавычек).
+  private func _parseHrefAttribute(_ body: String) -> String? {
+    let lower = body.lowercased()
+    guard let range = lower.range(of: "href=") else { return nil }
+    // Используем original-case body для значения, чтобы URL-case сохранился.
+    let restStart = body.index(body.startIndex, offsetBy: range.upperBound.utf16Offset(in: lower))
+    var rest = body[restStart...]
+    var quote: Character?
+    if let first = rest.first, first == "\"" || first == "'" {
+      quote = first
+      rest = rest.dropFirst()
+    }
+    var value = ""
+    for c in rest {
+      if let q = quote {
+        if c == q { break }
+      } else if c == " " || c == ">" {
+        break
+      }
+      value.append(c)
+    }
+    return value.isEmpty ? nil : _decodeHtmlEntities(value)
+  }
+
+  /// Проверяет, содержит ли class-атрибут body значение `spoiler-text`.
+  private func _hasSpoilerClass(_ body: String) -> Bool {
+    let lower = body.lowercased()
+    guard let range = lower.range(of: "class=") else { return false }
+    var rest = lower[range.upperBound...]
+    var quote: Character?
+    if let first = rest.first, first == "\"" || first == "'" {
+      quote = first
+      rest = rest.dropFirst()
+    }
+    var value = ""
+    for c in rest {
+      if let q = quote {
+        if c == q { break }
+      } else if c == " " || c == ">" {
+        break
+      }
+      value.append(c)
+    }
+    return value.split(separator: " ").contains("spoiler-text")
+  }
+
+  /// Минимальный HTML-entity decoder для href значений.
+  private func _decodeHtmlEntities(_ s: String) -> String {
+    var out = ""
+    var i = s.startIndex
+    while i < s.endIndex {
+      let c = s[i]
+      if c == "&", let semi = s[i...].firstIndex(of: ";") {
+        let entity = String(s[s.index(after: i)..<semi]).lowercased()
+        switch entity {
+        case "amp": out.append("&"); i = s.index(after: semi); continue
+        case "lt": out.append("<"); i = s.index(after: semi); continue
+        case "gt": out.append(">"); i = s.index(after: semi); continue
+        case "quot": out.append("\""); i = s.index(after: semi); continue
+        case "#39": out.append("'"); i = s.index(after: semi); continue
+        default: break
+        }
+      }
+      out.append(c)
+      i = s.index(after: i)
+    }
+    return out
   }
 
   /// Возвращает значение `data-anim` атрибута из строки `span data-anim="X" …`.

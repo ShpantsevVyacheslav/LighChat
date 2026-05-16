@@ -1,5 +1,7 @@
+import 'dart:async' show unawaited;
 import 'dart:ui' show ImageFilter;
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import 'animated_text_span.dart';
@@ -195,6 +197,35 @@ class _FormatPopoverBody extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
+                  // Phase 13: block-level форматы — Quote / Spoiler /
+                  // Link. Lin'ка прокидывается в onToggle как
+                  // `link:<url>` (или просто `link` для очистки).
+                  Row(
+                    children: [
+                      _BtnLabeled(
+                        label: 'Quote',
+                        icon: Icons.format_quote_rounded,
+                        fg: fg,
+                        onTap: () => _emit('quote'),
+                      ),
+                      const SizedBox(width: 6),
+                      _BtnLabeled(
+                        label: 'Spoiler',
+                        icon: Icons.visibility_off_outlined,
+                        fg: fg,
+                        onTap: () => _emit('spoiler'),
+                      ),
+                      const SizedBox(width: 6),
+                      _BtnLabeled(
+                        label: 'Link',
+                        icon: Icons.link_rounded,
+                        fg: fg,
+                        onTap: () =>
+                            unawaited(_handleLinkTap(context, onToggle)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   // Bottom: animated effects + Big/Small в 2 колонки
                   // (паритет Apple Messages Text Effects). Каждая
                   // кнопка показывает живой preview-эффект на своём
@@ -212,6 +243,63 @@ class _FormatPopoverBody extends StatelessWidget {
   void _emit(String tag) {
     onToggle(tag);
     ChatHaptics.instance.selectionChanged();
+  }
+
+  /// Тап на «Link» — Cupertino-диалог с TextField для URL. Если юзер
+  /// ввёл валидный URL и нажал «Применить» → onToggle('link:URL').
+  /// Если оставил пустым (или нажал «Удалить») → onToggle('link') с
+  /// пустым href, что в Swift означает «снять link attribute».
+  Future<void> _handleLinkTap(
+    BuildContext context,
+    void Function(String tag) onToggle,
+  ) async {
+    ChatHaptics.instance.selectionChanged();
+    final controller = TextEditingController();
+    final result = await showCupertinoDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return CupertinoAlertDialog(
+          title: const Text('Ссылка'),
+          content: Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: CupertinoTextField(
+              controller: controller,
+              autofocus: true,
+              placeholder: 'https://',
+              keyboardType: TextInputType.url,
+              autocorrect: false,
+              textCapitalization: TextCapitalization.none,
+            ),
+          ),
+          actions: [
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              onPressed: () => Navigator.of(ctx).pop('__remove__'),
+              child: const Text('Удалить'),
+            ),
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(ctx).pop(null),
+              child: const Text('Отмена'),
+            ),
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+              child: const Text('Применить'),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    if (result == null) return; // отмена
+    if (result == '__remove__' || result.isEmpty) {
+      onToggle('link'); // пустой href → Swift снимет атрибут
+      return;
+    }
+    // Дополним «http://» если юзер не указал scheme.
+    final hasScheme = RegExp(r'^[a-zA-Z][a-zA-Z0-9+\-.]*://').hasMatch(result);
+    final href = hasScheme ? result : 'https://$result';
+    onToggle('link:$href');
   }
 
   /// 7 effects в 2-колоночной сетке как в Apple Messages: 4 полных
@@ -335,6 +423,58 @@ class _BtnSmall extends StatelessWidget {
                     : (strike ? TextDecoration.lineThrough : null),
                 color: fg,
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Кнопка с иконкой и подписью (Quote / Spoiler / Link block-row).
+class _BtnLabeled extends StatelessWidget {
+  const _BtnLabeled({
+    required this.label,
+    required this.icon,
+    required this.fg,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color fg;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: fg.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 16, color: fg.withValues(alpha: 0.9)),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: fg,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
