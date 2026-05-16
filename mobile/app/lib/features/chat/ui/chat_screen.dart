@@ -78,6 +78,7 @@ import 'chat_image_editor_screen.dart';
 import 'chat_video_editor_screen.dart';
 import 'photo_video_source_sheet.dart';
 import 'chat_poll_create_sheet.dart';
+import 'chat_location_share_panel.dart';
 import 'share_location_sheet.dart';
 import 'video_circle_capture_page.dart';
 import 'voice_message_record_sheet.dart';
@@ -218,6 +219,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   /// тапа на крестик в превью. Если null — превью карты не рисуется.
   ChatLocationShare? _pendingLocationShare;
   String? _pendingLocationDurationId;
+
+  /// Phase 12.1: inline-панель снизу (заменяет клавиатуру) с
+  /// полноэкранной MKMapView + кнопками «Поделиться» / «Запросить».
+  /// Открывается из attachment-menu пункта «Поделиться геолокацией»;
+  /// закрывается после выбора длительности (тогда `_pendingLocationShare`
+  /// заполняется и клавиатура поднимается обратно) или свайпом-вниз
+  /// барьера. Координаты захватываются один раз при открытии и хранятся
+  /// в `_locationPanelLat`/`_locationPanelLng`.
+  bool _locationPanelOpen = false;
+  double _locationPanelLockedHeight = 0;
+  double? _locationPanelLat;
+  double? _locationPanelLng;
 
   /// Снимок предсэндовых лимитов вложений (см. `composer_attachment_limits.dart`).
   /// Пересчитывается при каждом изменении `_pendingAttachments` и при смене
@@ -2920,12 +2933,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                             : (_lastKeyboardHeight > 0
                                                   ? _lastKeyboardHeight
                                                   : defaultH);
+                                        final locationPanelH =
+                                            _locationPanelLockedHeight > 0
+                                            ? _locationPanelLockedHeight
+                                            : (_lastKeyboardHeight > 0
+                                                  ? _lastKeyboardHeight
+                                                  : defaultH);
                                         final panelHeight =
                                             _stickersPanelOpen
                                             ? (_stickersPanelFullscreen
                                                   ? fullScreenH
                                                   : lockedPanelH)
-                                            : 0.0;
+                                            : (_locationPanelOpen
+                                                ? locationPanelH
+                                                : 0.0);
                                         // ВАЖНО: Scaffold здесь с
                                         // `resizeToAvoidBottomInset: false`
                                         // (см. l. 1553) — body заполняет
@@ -2949,7 +2970,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                           _stickersTransitionFooterFloor,
                                           safeBottom,
                                         ].reduce((a, b) => a > b ? a : b);
-                                        if (!_stickersPanelOpen) {
+                                        if (!_stickersPanelOpen &&
+                                            !_locationPanelOpen) {
                                           // БЕЗ AnimatedSize: при переходе
                                           // panel→keyboard виджет-тип
                                           // менялся (SizedBox в panelOpen-
@@ -2968,6 +2990,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                           }
                                           return SizedBox(
                                             height: footerHeight,
+                                          );
+                                        }
+                                        if (_locationPanelOpen &&
+                                            _locationPanelLat != null &&
+                                            _locationPanelLng != null) {
+                                          return SizedBox(
+                                            height: footerHeight,
+                                            child: ChatLocationSharePanel(
+                                              lat: _locationPanelLat!,
+                                              lng: _locationPanelLng!,
+                                              onShare: () => unawaited(
+                                                _handleLocationPanelShareTap(),
+                                              ),
+                                              // Phase 12.3 будет: запрос
+                                              // локации у собеседника.
+                                              onRequest: null,
+                                            ),
                                           );
                                         }
                                         final stickerRepo = ref.read(
@@ -5204,21 +5243,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     }
   }
 
-  /// Phase 10 (iMessage-paritет): тап «Поделиться геолокацией» в attach
-  /// menu — НЕ отправляет сообщение сразу. Вместо этого:
-  ///   1. Запрашиваем GPS;
-  ///   2. Кладём `_pendingLocationShare` в state — над композером
-  ///      сразу же появляется inline-превью карты;
-  ///   3. Поверх показываем Cupertino-action-sheet с длительностью
-  ///      (один раз / 1 час / до конца дня / бессрочно). Юзер выбирает →
-  ///      duration сохраняется в `_pendingLocationDurationId`, sheet
-  ///      закрывается, превью карты остаётся;
-  ///   4. Юзер опционально печатает текст;
-  ///   5. Тап Send → `_submitComposer` отправляет location-сообщение
-  ///      (и текст отдельным сообщением, если ввёл).
-  ///
-  /// Если юзер закрыл duration-sheet свайпом без выбора — `_pendingLocationShare`
-  /// очищается, превью убирается (как просил юзер).
+  /// Phase 12.1 (iMessage-paritет): тап «Поделиться геолокацией» в
+  /// attachment-menu открывает **полноэкранную нижнюю панель** карты
+  /// (вместо клавиатуры), а не сразу action-sheet. На панели юзер
+  /// видит карту с текущей локацией и выбирает действие:
+  ///   - «Поделиться» → action sheet длительности → save pending,
+  ///     close panel, open keyboard (юзер может написать текст);
+  ///   - «Запросить» → request flow (Phase 12.3, пока stub).
   Future<void> _sendLocationShare() async {
     debugPrint('[location-share] _sendLocationShare: enter');
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -5294,42 +5325,82 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
     if (!mounted) return;
 
-    // Шаг 2: pending-location в state → inline-превью карты появляется
-    // в композере (placeholder без длительности — её выберем ниже).
+    // Phase 12.1: открываем нижнюю панель карты (вместо клавиатуры).
+    // Дальнейшее поведение в `_handleLocationPanelShareTap` /
+    // `_closeLocationPanel`.
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final lockedH = keyboardInset > 0
+        ? keyboardInset
+        : (_lastKeyboardHeight > 0
+              ? _lastKeyboardHeight
+              : MediaQuery.of(context).size.height * 0.42);
     setState(() {
-      _pendingLocationShare = buildChatLocationShareFromPosition(
-        pos,
-        durationId: 'once',
-      );
-      _pendingLocationDurationId = null;
+      _locationPanelOpen = true;
+      _locationPanelLockedHeight = lockedH;
+      _locationPanelLat = pos.latitude;
+      _locationPanelLng = pos.longitude;
     });
+    // Скрываем клавиатуру, чтобы panel заняла её место (как sticker).
+    _composerFocusNode.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+  }
 
-    // Шаг 3: action sheet длительности поверх превью.
-    debugPrint('[location-share] showing duration sheet over inline preview');
+  void _closeLocationPanel() {
+    if (!mounted || !_locationPanelOpen) return;
+    setState(() {
+      _locationPanelOpen = false;
+      _locationPanelLockedHeight = 0;
+      _locationPanelLat = null;
+      _locationPanelLng = null;
+    });
+  }
+
+  /// Тап «Поделиться» на location-panel: показывает Cupertino-action
+  /// sheet длительности, при выборе закрывает panel и заносит
+  /// pending-location в state (inline-превью над композером появится
+  /// автоматически), фокусирует композер чтобы поднялась клавиатура.
+  Future<void> _handleLocationPanelShareTap() async {
+    final lat = _locationPanelLat;
+    final lng = _locationPanelLng;
+    if (lat == null || lng == null) return;
+
     final durationId = await showShareLocationSettingsSheet(context);
-    debugPrint(
-      '[location-share] duration sheet returned durationId=$durationId',
-    );
     if (!mounted) return;
     if (durationId == null) {
-      // Юзер закрыл свайпом → отменяем шаринг (см. договорённости).
-      setState(() {
-        _pendingLocationShare = null;
-        _pendingLocationDurationId = null;
-      });
+      // Юзер свайпнул action sheet — оставляем панель открытой.
       return;
     }
 
-    // Шаг 4: фиксируем длительность; превью теперь показывает бейдж
-    // («1 ч» / «∞» / «до конца дня» / «один раз»). Юзер пишет
-    // опциональный текст и жмёт Send — `_submitComposer` пошлёт
-    // location-сообщение перед обычным.
+    // Запомним координаты до того как закроем panel (panel state
+    // обнулит _locationPanelLat/_locationPanelLng).
+    final share = buildChatLocationShareFromPosition(
+      Position(
+        latitude: lat,
+        longitude: lng,
+        timestamp: DateTime.now(),
+        accuracy: 0,
+        altitude: 0,
+        altitudeAccuracy: 0,
+        heading: 0,
+        headingAccuracy: 0,
+        speed: 0,
+        speedAccuracy: 0,
+      ),
+      durationId: durationId,
+    );
+
+    _closeLocationPanel();
+    // Превью карты появится над композером, состояние сохранено.
     setState(() {
-      _pendingLocationShare = buildChatLocationShareFromPosition(
-        pos,
-        durationId: durationId,
-      );
+      _pendingLocationShare = share;
       _pendingLocationDurationId = durationId;
+    });
+    // Открываем клавиатуру — юзер пишет опциональный текст и
+    // нажимает Send (`_submitComposer` отправит location + текст).
+    _composerFocusNode.unfocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _composerFocusNode.requestFocus();
     });
   }
 
