@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
+import '../../../l10n/app_localizations.dart';
+
 /// Bubble для location request message (Phase 12.3, iMessage-paritет).
 ///
 /// Состояния (управляется `request.status`):
@@ -85,26 +87,35 @@ class _MessageLocationRequestBubbleState
     super.dispose();
   }
 
-  String _label() {
-    final name = widget.requesterName?.trim();
+  String _label(AppLocalizations l10n) {
+    final rawName = widget.requesterName?.trim();
+    final name = (rawName != null && rawName.isNotEmpty)
+        ? rawName
+        : l10n.location_request_unknown_contact;
     if (widget.request.isAccepted) {
       return widget.isMine
-          ? 'Локация получена'
-          : '${name ?? "Собеседник"} поделился локацией';
+          ? l10n.location_request_accepted_mine
+          : l10n.location_request_accepted_other_with_name(name);
     }
     if (widget.request.isDeclined) {
+      // Для receiver-side fallback используем «Вы» если имя
+      // отсутствует — текст звучит как «Вы отклонили запрос».
+      final whoName = (rawName != null && rawName.isNotEmpty)
+          ? rawName
+          : l10n.location_request_you;
       return widget.isMine
-          ? 'Запрос отклонён'
-          : '${name ?? "Вы"} отклонили запрос';
+          ? l10n.location_request_declined_mine
+          : l10n.location_request_declined_other_with_name(whoName);
     }
     // pending
     return widget.isMine
-        ? 'Ожидаем локацию…'
-        : '${name ?? "Собеседник"} запрашивает локацию';
+        ? l10n.location_request_pending_mine
+        : l10n.location_request_pending_other_with_name(name);
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
     final accent = scheme.primary;
     final fg = widget.isMine ? scheme.onPrimary : scheme.onSurface;
@@ -133,7 +144,7 @@ class _MessageLocationRequestBubbleState
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    _label(),
+                    _label(l10n),
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -168,7 +179,7 @@ class _MessageLocationRequestBubbleState
                   children: [
                     Expanded(
                       child: _ActionButton(
-                        label: 'Отклонить',
+                        label: l10n.location_request_action_decline,
                         filled: false,
                         fg: fg,
                         onTap: widget.onDecline,
@@ -177,7 +188,7 @@ class _MessageLocationRequestBubbleState
                     const SizedBox(width: 8),
                     Expanded(
                       child: _ActionButton(
-                        label: 'Поделиться',
+                        label: l10n.location_request_action_accept,
                         filled: true,
                         fg: fg,
                         onTap: widget.onAccept,

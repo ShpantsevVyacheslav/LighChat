@@ -50,9 +50,32 @@ class ChatListItem extends ConsumerStatefulWidget {
   ConsumerState<ChatListItem> createState() => _ChatListItemState();
 }
 
-class _ChatListItemState extends ConsumerState<ChatListItem> {
+class _ChatListItemState extends ConsumerState<ChatListItem>
+    with SingleTickerProviderStateMixin {
   static const double _actionWidth = 84;
   double _swipeX = 0;
+
+  /// Контроллер пульсации для индикатора активного live-share.
+  /// Лениво создаётся при первом true-значении, dispose в [dispose].
+  AnimationController? _livePulse;
+
+  void _ensureLivePulse(bool active) {
+    if (active && _livePulse == null) {
+      _livePulse = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 1400),
+      )..repeat();
+    } else if (!active && _livePulse != null) {
+      _livePulse!.dispose();
+      _livePulse = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _livePulse?.dispose();
+    super.dispose();
+  }
 
   double get _maxSwipe {
     final count = widget.allowDelete ? 3 : 2;
@@ -78,10 +101,19 @@ class _ChatListItemState extends ConsumerState<ChatListItem> {
   bool _isLiveSharingInThisChat() {
     final async = ref.watch(myLiveLocationShareProvider);
     final live = async.asData?.value;
-    if (live == null || !isLiveShareVisible(live)) return false;
-    final convId = live.conversationId;
-    if (convId == null || convId.isEmpty) return false;
-    return convId == widget.conversation.id;
+    bool active = false;
+    if (live != null && isLiveShareVisible(live)) {
+      final convId = live.conversationId;
+      active = convId != null &&
+          convId.isNotEmpty &&
+          convId == widget.conversation.id;
+    }
+    // Lazy-create / dispose pulse-контроллер. ensure безопасен в
+    // build (он только trigger'ит state-mutation у ОДНОГО контроллера,
+    // которое не приведёт к новому build, т.к. сам контроллер ничего
+    // не watch'ит).
+    _ensureLivePulse(active);
+    return active;
   }
 
   @override
@@ -202,14 +234,13 @@ class _ChatListItemState extends ConsumerState<ChatListItem> {
                                     ),
                                   ),
                                   // Bug I: индикатор активного шаринга
-                                  // именно ЭТОГО чата (зелёный pin).
+                                  // именно ЭТОГО чата (пульсирующий
+                                  // зелёный pin — даёт визуальное
+                                  // отличие «активно идёт» от
+                                  // статичной декоративной иконки).
                                   if (_isLiveSharingInThisChat()) ...[
                                     const SizedBox(width: 6),
-                                    const Icon(
-                                      Icons.location_on_rounded,
-                                      size: 14,
-                                      color: Color(0xFF34D399),
-                                    ),
+                                    _LivePulsingPin(controller: _livePulse),
                                   ],
                                   if (widget.isPinned) ...[
                                     const SizedBox(width: 6),
@@ -430,6 +461,44 @@ class _OnlineBadge extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Анимированный зелёный pin для строки чата, в котором сейчас идёт
+/// live-location-share. Без контроллера — рендерит статичную
+/// иконку (graceful fallback пока контроллер ленится создаться в
+/// первом кадре).
+class _LivePulsingPin extends StatelessWidget {
+  const _LivePulsingPin({required this.controller});
+
+  final AnimationController? controller;
+
+  @override
+  Widget build(BuildContext context) {
+    const baseColor = Color(0xFF34D399);
+    const icon = Icon(
+      Icons.location_on_rounded,
+      size: 14,
+      color: baseColor,
+    );
+    final ctrl = controller;
+    if (ctrl == null) return icon;
+    return AnimatedBuilder(
+      animation: ctrl,
+      builder: (_, child) {
+        // Сглаженная синусоида 0..1..0 за один цикл; уменьшаем
+        // диапазон чтобы иконка не «дышала» слишком сильно.
+        final t = ctrl.value;
+        final wave = t < 0.5 ? t * 2 : (1 - t) * 2;
+        final scale = 1.0 + 0.20 * wave;
+        final opacity = 0.55 + 0.45 * wave;
+        return Opacity(
+          opacity: opacity,
+          child: Transform.scale(scale: scale, child: child),
+        );
+      },
+      child: icon,
     );
   }
 }

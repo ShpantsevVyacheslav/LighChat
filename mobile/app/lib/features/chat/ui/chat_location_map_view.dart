@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
     show MethodChannel, StandardMessageCodec;
 import 'package:flutter/rendering.dart' show PlatformViewHitTestBehavior;
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' as ll;
 
 import '../data/google_maps_urls.dart';
 import 'chat_cached_network_image.dart';
@@ -21,9 +23,17 @@ typedef ChatLocationPinPosition = ({double lat, double lng});
 /// введённого в композере адреса — Bug #7).
 class ChatLocationMapController {
   MethodChannel? _channel;
+  Future<void> Function()? _fitToTrackOverride;
 
   void _bind(MethodChannel channel) {
     _channel = channel;
+  }
+
+  /// Android FlutterMap-state регистрирует свой fitToTrack-impl
+  /// здесь, чтобы recenter-кнопка работала и без MethodChannel'а
+  /// (iOS использует только channel-путь).
+  void _bindFitToTrackOverride(Future<void> Function()? impl) {
+    _fitToTrackOverride = impl;
   }
 
   Future<void> setCenter({required double lat, required double lng}) async {
@@ -49,6 +59,11 @@ class ChatLocationMapController {
   /// Phase 13+: показать на экране весь трек (если есть) + пин.
   /// Если трека нет — вернёт пина с дефолтным compact-зумом 350м.
   Future<void> fitToTrack() async {
+    final override = _fitToTrackOverride;
+    if (override != null) {
+      await override();
+      return;
+    }
     await _channel?.invokeMethod<void>('fitToTrack');
   }
 }
@@ -112,6 +127,12 @@ class _ChatLocationMapViewState extends State<ChatLocationMapView> {
   StreamSubscription<QuerySnapshot<Map<String, Object?>>>? _trackSub;
   final ChatLocationMapController _internalController =
       ChatLocationMapController();
+  // Android/desktop: локальное состояние track-полилайна для
+  // FlutterMap. На iOS overlay делает native MKMapView через
+  // controller — этот список просто не используется в build'е.
+  List<ChatLocationPinPosition> _trackPoints =
+      const <ChatLocationPinPosition>[];
+  final MapController _flutterMapController = MapController();
 
   ChatLocationMapController get _effectiveController =>
       widget.controller ?? _internalController;
@@ -192,7 +213,14 @@ class _ChatLocationMapViewState extends State<ChatLocationMapView> {
       points.add((lat: lat, lng: lng));
     }
     debugPrint('[map-view] polyline update: ${points.length} points');
+    // iOS: рисует native MKMapView через MethodChannel.
     unawaited(_effectiveController.setPolyline(points));
+    // Android/desktop: FlutterMap пере-рендерит PolylineLayer через
+    // setState. На iOS можно тоже хранить — не помешает (build на
+    // iOS использует UiKitView, FlutterMap не строится).
+    if (!Platform.isIOS && mounted) {
+      setState(() => _trackPoints = points);
+    }
   }
 
   @override
@@ -243,14 +271,188 @@ class _ChatLocationMapViewState extends State<ChatLocationMapView> {
         },
       );
     }
-    // Android / desktop — статичный OSM тайл как раньше. Apple Maps
-    // нет, MapKit JS можно подключить позже.
+    // Android / desktop: интерактивная FlutterMap с OSM тайлами,
+    // pin-маркер по центру + polyline overlay если есть трек.
+    // Bug 13: на Android получатель теперь видит pan/zoom +
+    // нарисованный пройденный путь — паритет с iOS MKMapView.
+    if (widget.interactive ||
+        widget.draggablePin ||
+        widget.trackPointsForUid != null) {
+      return _AndroidFlutterMap(
+        lat: widget.lat,
+        lng: widget.lng,
+        interactive: widget.interactive,
+        draggablePin: widget.draggablePin,
+        trackPoints: _trackPoints,
+        controller: _flutterMapController,
+        externalController: _effectiveController,
+        onPinDragEnd: widget.onPinMoved,
+      );
+    }
+    // Inline-preview в композере / других местах где нужна только
+    // картинка (без gestures) — статичный OSM тайл, дёшево.
     return ChatCachedNetworkImage(
       url: buildChatLocationStaticPreviewUrl(widget.lat, widget.lng),
       httpHeaders: ChatLocationMapView._osmHeaders,
       fit: BoxFit.cover,
       alignment: Alignment.center,
       errorOverride: const _OsmFallback(),
+    );
+  }
+}
+
+/// Bug 13: интерактивная карта на Android / desktop через
+/// `flutter_map` (OSM тайлы, не требует API ключа). Полный паритет
+/// с iOS MKMapView: pin по центру, опциональный polyline трека,
+/// центрирование на (lat,lng).
+class _AndroidFlutterMap extends StatefulWidget {
+  const _AndroidFlutterMap({
+    required this.lat,
+    required this.lng,
+    required this.interactive,
+    required this.draggablePin,
+    required this.trackPoints,
+    required this.controller,
+    required this.externalController,
+    this.onPinDragEnd,
+  });
+
+  final double lat;
+  final double lng;
+  final bool interactive;
+  final bool draggablePin;
+  final List<ChatLocationPinPosition> trackPoints;
+  final MapController controller;
+  final ChatLocationMapController externalController;
+  final ValueChanged<ChatLocationPinPosition>? onPinDragEnd;
+
+  @override
+  State<_AndroidFlutterMap> createState() => _AndroidFlutterMapState();
+}
+
+class _AndroidFlutterMapState extends State<_AndroidFlutterMap> {
+  late ll.LatLng _pin;
+  bool _didFitTrack = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pin = ll.LatLng(widget.lat, widget.lng);
+    widget.externalController._bindFitToTrackOverride(_fitToTrackAsync);
+  }
+
+  @override
+  void dispose() {
+    widget.externalController._bindFitToTrackOverride(null);
+    super.dispose();
+  }
+
+  Future<void> _fitToTrackAsync() async {
+    if (!mounted) return;
+    _fitToTrack();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AndroidFlutterMap old) {
+    super.didUpdateWidget(old);
+    if (old.lat != widget.lat || old.lng != widget.lng) {
+      _pin = ll.LatLng(widget.lat, widget.lng);
+    }
+    // Авто-fit на первом непустом snapshot (паритет iOS native
+    // applyPolyline). Дальше user сам управляет zoom'ом.
+    if (!_didFitTrack &&
+        widget.trackPoints.length >= 2 &&
+        widget.interactive) {
+      _didFitTrack = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _fitToTrack();
+      });
+    }
+  }
+
+  void _fitToTrack() {
+    final pts = widget.trackPoints;
+    if (pts.length < 2) return;
+    final coords = <ll.LatLng>[
+      _pin,
+      for (final p in pts) ll.LatLng(p.lat, p.lng),
+    ];
+    final bounds = LatLngBounds.fromPoints(coords);
+    widget.controller.fitCamera(
+      CameraFit.bounds(
+        bounds: bounds,
+        padding: const EdgeInsets.all(40),
+        maxZoom: 17,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pts = widget.trackPoints;
+    return FlutterMap(
+      mapController: widget.controller,
+      options: MapOptions(
+        initialCenter: _pin,
+        initialZoom: 16,
+        minZoom: 3,
+        maxZoom: 19,
+        interactionOptions: InteractionOptions(
+          flags: widget.interactive
+              ? InteractiveFlag.pinchZoom |
+                  InteractiveFlag.drag |
+                  InteractiveFlag.doubleTapZoom |
+                  InteractiveFlag.flingAnimation
+              : InteractiveFlag.none,
+        ),
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'online.lighchat.app',
+          // OSM Foundation tiles требуют явный User-Agent.
+          tileProvider: NetworkTileProvider(
+            headers: const {
+              'User-Agent':
+                  'LighChatMobile/1.0 (flutter_map; contact: app)',
+            },
+          ),
+        ),
+        if (pts.length >= 2)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: [for (final p in pts) ll.LatLng(p.lat, p.lng)],
+                color: const Color(0xFF1E88E5).withValues(alpha: 0.92),
+                strokeWidth: 4,
+                borderStrokeWidth: 0,
+              ),
+            ],
+          ),
+        MarkerLayer(
+          markers: [
+            Marker(
+              point: _pin,
+              width: 36,
+              height: 36,
+              alignment: Alignment.topCenter,
+              child: GestureDetector(
+                onPanEnd: widget.draggablePin && widget.onPinDragEnd != null
+                    ? (_) => widget.onPinDragEnd!(
+                          (lat: _pin.latitude, lng: _pin.longitude),
+                        )
+                    : null,
+                child: const Icon(
+                  Icons.location_on_rounded,
+                  color: Color(0xFFD32F2F),
+                  size: 36,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

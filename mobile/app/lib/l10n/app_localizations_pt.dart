@@ -7384,6 +7384,42 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get location_request_pending_mine => 'Aguardando localização…';
+
+  @override
+  String location_request_pending_other_with_name(Object name) {
+    return '$name pediu sua localização';
+  }
+
+  @override
+  String get location_request_accepted_mine => 'Localização recebida';
+
+  @override
+  String location_request_accepted_other_with_name(Object name) {
+    return '$name compartilhou a localização';
+  }
+
+  @override
+  String get location_request_declined_mine => 'Pedido recusado';
+
+  @override
+  String location_request_declined_other_with_name(Object name) {
+    return '$name recusou o pedido';
+  }
+
+  @override
+  String get location_request_action_decline => 'Recusar';
+
+  @override
+  String get location_request_action_accept => 'Compartilhar';
+
+  @override
+  String get location_request_unknown_contact => 'Contato';
+
+  @override
+  String get location_request_you => 'Você';
+
+  @override
   String get link_webview_copy_tooltip => 'Copiar link';
 
   @override
@@ -16037,6 +16073,42 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String location_card_accuracy(Object meters) {
     return '±${meters}m';
   }
+
+  @override
+  String get location_request_pending_mine => 'Aguardando localização…';
+
+  @override
+  String location_request_pending_other_with_name(Object name) {
+    return '$name pediu sua localização';
+  }
+
+  @override
+  String get location_request_accepted_mine => 'Localização recebida';
+
+  @override
+  String location_request_accepted_other_with_name(Object name) {
+    return '$name compartilhou a localização';
+  }
+
+  @override
+  String get location_request_declined_mine => 'Pedido recusado';
+
+  @override
+  String location_request_declined_other_with_name(Object name) {
+    return '$name recusou o pedido';
+  }
+
+  @override
+  String get location_request_action_decline => 'Recusar';
+
+  @override
+  String get location_request_action_accept => 'Compartilhar';
+
+  @override
+  String get location_request_unknown_contact => 'Contato';
+
+  @override
+  String get location_request_you => 'Você';
 
   @override
   String get link_webview_copy_tooltip => 'Copiar link';

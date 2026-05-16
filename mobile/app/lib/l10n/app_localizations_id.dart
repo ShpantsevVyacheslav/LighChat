@@ -7343,6 +7343,42 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
+  String get location_request_pending_mine => 'Menunggu lokasi…';
+
+  @override
+  String location_request_pending_other_with_name(Object name) {
+    return '$name meminta lokasi Anda';
+  }
+
+  @override
+  String get location_request_accepted_mine => 'Lokasi diterima';
+
+  @override
+  String location_request_accepted_other_with_name(Object name) {
+    return '$name membagikan lokasi';
+  }
+
+  @override
+  String get location_request_declined_mine => 'Permintaan ditolak';
+
+  @override
+  String location_request_declined_other_with_name(Object name) {
+    return '$name menolak permintaan';
+  }
+
+  @override
+  String get location_request_action_decline => 'Tolak';
+
+  @override
+  String get location_request_action_accept => 'Bagikan';
+
+  @override
+  String get location_request_unknown_contact => 'Kontak';
+
+  @override
+  String get location_request_you => 'Anda';
+
+  @override
   String get link_webview_copy_tooltip => 'Salin Tautan';
 
   @override

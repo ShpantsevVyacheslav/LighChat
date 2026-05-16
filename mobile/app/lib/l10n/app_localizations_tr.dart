@@ -7345,6 +7345,42 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get location_request_pending_mine => 'Konum bekleniyor…';
+
+  @override
+  String location_request_pending_other_with_name(Object name) {
+    return '$name konumunuzu istiyor';
+  }
+
+  @override
+  String get location_request_accepted_mine => 'Konum alındı';
+
+  @override
+  String location_request_accepted_other_with_name(Object name) {
+    return '$name konumunu paylaştı';
+  }
+
+  @override
+  String get location_request_declined_mine => 'İstek reddedildi';
+
+  @override
+  String location_request_declined_other_with_name(Object name) {
+    return '$name isteği reddetti';
+  }
+
+  @override
+  String get location_request_action_decline => 'Reddet';
+
+  @override
+  String get location_request_action_accept => 'Paylaş';
+
+  @override
+  String get location_request_unknown_contact => 'Kişi';
+
+  @override
+  String get location_request_you => 'Siz';
+
+  @override
   String get link_webview_copy_tooltip => 'Bağlantıyı kopyala';
 
   @override

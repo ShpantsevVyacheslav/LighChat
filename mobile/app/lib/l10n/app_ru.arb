@@ -3718,6 +3718,25 @@
       "meters": {}
     }
   },
+  "location_request_pending_mine": "Ожидаем локацию…",
+  "location_request_pending_other_with_name": "{name} запрашивает локацию",
+  "@location_request_pending_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_accepted_mine": "Локация получена",
+  "location_request_accepted_other_with_name": "{name} поделился локацией",
+  "@location_request_accepted_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_declined_mine": "Запрос отклонён",
+  "location_request_declined_other_with_name": "{name} отклонили запрос",
+  "@location_request_declined_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_action_decline": "Отклонить",
+  "location_request_action_accept": "Поделиться",
+  "location_request_unknown_contact": "Собеседник",
+  "location_request_you": "Вы",
   "link_webview_copy_tooltip": "Скопировать ссылку",
   "link_webview_copied_snackbar": "Ссылка скопирована",
   "link_webview_open_browser_tooltip": "Открыть в браузере",

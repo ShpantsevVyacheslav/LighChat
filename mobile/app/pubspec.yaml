@@ -93,6 +93,12 @@ dependencies:
   url_launcher: ^6.3.1
   file_picker: ^11.0.2
   geolocator: ^13.0.2
+  # Bug 13+: интерактивная карта на Android (OSM-тайлы Leaflet-стиля)
+  # + polyline overlay. На iOS используется native MKMapView через
+  # PlatformView. flutter_map работает без API ключа (free OSM
+  # tiles); latlong2 даёт LatLng тип для polyline coords.
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
   # Геокодинг адреса в lat/lon через нативные iOS CLGeocoder / Android
   # Geocoder. Нужен для deeplink-ов такси (Яндекс Go / Uber требуют
   # координаты, не текст адреса).

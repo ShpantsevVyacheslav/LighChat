@@ -7380,6 +7380,42 @@ class AppLocalizationsUz extends AppLocalizations {
   }
 
   @override
+  String get location_request_pending_mine => 'Joylashuv kutilmoqda…';
+
+  @override
+  String location_request_pending_other_with_name(Object name) {
+    return '$name sizning joylashuvingizni so‘ramoqda';
+  }
+
+  @override
+  String get location_request_accepted_mine => 'Joylashuv qabul qilindi';
+
+  @override
+  String location_request_accepted_other_with_name(Object name) {
+    return '$name joylashuvini ulashdi';
+  }
+
+  @override
+  String get location_request_declined_mine => 'So‘rov rad etildi';
+
+  @override
+  String location_request_declined_other_with_name(Object name) {
+    return '$name so‘rovni rad etdi';
+  }
+
+  @override
+  String get location_request_action_decline => 'Rad etish';
+
+  @override
+  String get location_request_action_accept => 'Ulashish';
+
+  @override
+  String get location_request_unknown_contact => 'Kontakt';
+
+  @override
+  String get location_request_you => 'Siz';
+
+  @override
   String get link_webview_copy_tooltip => 'Havolani nusxalash';
 
   @override

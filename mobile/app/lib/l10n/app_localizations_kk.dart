@@ -7348,6 +7348,42 @@ class AppLocalizationsKk extends AppLocalizations {
   }
 
   @override
+  String get location_request_pending_mine => 'Геолокация күтілуде…';
+
+  @override
+  String location_request_pending_other_with_name(Object name) {
+    return '$name геолокацияңызды сұрайды';
+  }
+
+  @override
+  String get location_request_accepted_mine => 'Геолокация алынды';
+
+  @override
+  String location_request_accepted_other_with_name(Object name) {
+    return '$name геолокациямен бөлісті';
+  }
+
+  @override
+  String get location_request_declined_mine => 'Сұраныс қабылданбады';
+
+  @override
+  String location_request_declined_other_with_name(Object name) {
+    return '$name сұранысты қабылдамады';
+  }
+
+  @override
+  String get location_request_action_decline => 'Қабылдамау';
+
+  @override
+  String get location_request_action_accept => 'Бөлісу';
+
+  @override
+  String get location_request_unknown_contact => 'Контакт';
+
+  @override
+  String get location_request_you => 'Сіз';
+
+  @override
   String get link_webview_copy_tooltip => 'Сілтемені көшіру';
 
   @override

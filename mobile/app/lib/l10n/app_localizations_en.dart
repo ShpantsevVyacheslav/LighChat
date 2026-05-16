@@ -7315,6 +7315,42 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get location_request_pending_mine => 'Waiting for location…';
+
+  @override
+  String location_request_pending_other_with_name(Object name) {
+    return '$name requests your location';
+  }
+
+  @override
+  String get location_request_accepted_mine => 'Location received';
+
+  @override
+  String location_request_accepted_other_with_name(Object name) {
+    return '$name shared their location';
+  }
+
+  @override
+  String get location_request_declined_mine => 'Request declined';
+
+  @override
+  String location_request_declined_other_with_name(Object name) {
+    return '$name declined the request';
+  }
+
+  @override
+  String get location_request_action_decline => 'Decline';
+
+  @override
+  String get location_request_action_accept => 'Share';
+
+  @override
+  String get location_request_unknown_contact => 'Contact';
+
+  @override
+  String get location_request_you => 'You';
+
+  @override
   String get link_webview_copy_tooltip => 'Copy link';
 
   @override

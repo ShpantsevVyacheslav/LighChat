@@ -3374,6 +3374,25 @@
       "meters": {}
     }
   },
+  "location_request_pending_mine": "Esperando ubicación…",
+  "location_request_pending_other_with_name": "{name} solicita tu ubicación",
+  "@location_request_pending_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_accepted_mine": "Ubicación recibida",
+  "location_request_accepted_other_with_name": "{name} compartió su ubicación",
+  "@location_request_accepted_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_declined_mine": "Solicitud rechazada",
+  "location_request_declined_other_with_name": "{name} rechazó la solicitud",
+  "@location_request_declined_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_action_decline": "Rechazar",
+  "location_request_action_accept": "Compartir",
+  "location_request_unknown_contact": "Contacto",
+  "location_request_you": "Tú",
   "link_webview_copy_tooltip": "Copiar enlace",
   "link_webview_copied_snackbar": "Enlace copiado",
   "link_webview_open_browser_tooltip": "Abrir en navegador",

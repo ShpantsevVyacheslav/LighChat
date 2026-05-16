@@ -13,21 +13,16 @@ import 'location_live_countdown.dart';
 
 /// `webview_flutter` нет нативной реализации на Windows / Linux — там
 /// `WebViewController()` крашит UI ("Unimplemented platform interface").
-/// Для этих платформ показываем placeholder + кнопку «Открыть в браузере».
-/// На iOS используем нативный MKMapView (см. ниже), WebView не нужен.
-bool get _supportsInlineWebView {
-  if (kIsWeb) return false; // web использует свой плагин, но мы туда не идём
-  if (defaultTargetPlatform == TargetPlatform.iOS) return false;
-  return defaultTargetPlatform == TargetPlatform.android ||
+/// Для этих платформ показываем placeholder + кнопку «Открыть в
+/// браузере». На iOS используем нативный MKMapView, на Android и
+/// macOS — FlutterMap (OSM, интерактив + polyline трека).
+bool get _useInlineMap {
+  if (kIsWeb) return false;
+  return defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.macOS;
 }
 
-/// Bug D: на iOS используем нативный Apple MKMapView (через
-/// PlatformView), а не WebView+OSM Leaflet. Это даёт настоящие Apple
-/// Maps с правильным dark-mode parity и без сетевого latency на
-/// загрузку HTML/JS+тайлов.
-bool get _useNativeAppleMap =>
-    !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
 /// Полноэкранная карта.
 ///
@@ -82,15 +77,10 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
   @override
   void initState() {
     super.initState();
-    if (_useNativeAppleMap) {
-      // Bug D: на iOS используем нативную MKMapView — никаких
-      // loader'ов, она поднимается мгновенно.
-      _loading = false;
-      return;
-    }
-    if (!_supportsInlineWebView) {
-      // Windows / Linux: WebView плагин не реализован. Не создаём
-      // controller (это бы крашнуло "Unimplemented platform interface").
+    // Bug 13+: на iOS и Android карта inline (нативная MKMapView /
+    // FlutterMap соответственно) — рендерится мгновенно. WebView+
+    // Leaflet оставляем только для macOS-fallback'а и desktop.
+    if (_useInlineMap) {
       _loading = false;
       return;
     }
@@ -151,11 +141,11 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          if (_useNativeAppleMap)
-            // Bug D: нативный Apple MKMapView на iOS — interactive
-            // (pan/zoom) + dark mode parity с системой.
-            // Bug 13: если переданы координаты отправителя и live-
-            // session активна — отрисовываем MKPolyline трека.
+          if (_useInlineMap)
+            // Bug D + Bug 13: на iOS — нативный Apple MKMapView, на
+            // Android — FlutterMap (OSM + polyline). Обе ветки сами
+            // рисуют polyline трека по `trackPointsForUid` и поднимают
+            // pin по центру.
             ChatLocationMapView(
               lat: widget.lat,
               lng: widget.lng,
@@ -206,11 +196,11 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
               left: 12,
               child: LocationLiveCountdown(expiresAtIso: exp),
             ),
-          // Phase 13+: recenter-кнопка (только iOS, где native
-          // MKMapView). Показывает весь трек + пин fit-to-rect.
-          // Полезна когда user сам зумнул и потерял текущую
-          // позицию из view.
-          if (_useNativeAppleMap)
+          // Phase 13+: recenter-кнопка для inline-карт (iOS native
+          // MKMapView и Android FlutterMap). Показывает весь трек +
+          // пин fit-to-rect. Полезна когда user сам зумнул и потерял
+          // текущую позицию из view.
+          if (_useInlineMap)
             Positioned(
               right: 12,
               bottom: 24 + MediaQuery.paddingOf(context).bottom,

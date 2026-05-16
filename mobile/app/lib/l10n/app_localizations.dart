@@ -12964,6 +12964,66 @@ abstract class AppLocalizations {
   /// **'±{meters} м'**
   String location_card_accuracy(Object meters);
 
+  /// No description provided for @location_request_pending_mine.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ожидаем локацию…'**
+  String get location_request_pending_mine;
+
+  /// No description provided for @location_request_pending_other_with_name.
+  ///
+  /// In ru, this message translates to:
+  /// **'{name} запрашивает локацию'**
+  String location_request_pending_other_with_name(Object name);
+
+  /// No description provided for @location_request_accepted_mine.
+  ///
+  /// In ru, this message translates to:
+  /// **'Локация получена'**
+  String get location_request_accepted_mine;
+
+  /// No description provided for @location_request_accepted_other_with_name.
+  ///
+  /// In ru, this message translates to:
+  /// **'{name} поделился локацией'**
+  String location_request_accepted_other_with_name(Object name);
+
+  /// No description provided for @location_request_declined_mine.
+  ///
+  /// In ru, this message translates to:
+  /// **'Запрос отклонён'**
+  String get location_request_declined_mine;
+
+  /// No description provided for @location_request_declined_other_with_name.
+  ///
+  /// In ru, this message translates to:
+  /// **'{name} отклонили запрос'**
+  String location_request_declined_other_with_name(Object name);
+
+  /// No description provided for @location_request_action_decline.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отклонить'**
+  String get location_request_action_decline;
+
+  /// No description provided for @location_request_action_accept.
+  ///
+  /// In ru, this message translates to:
+  /// **'Поделиться'**
+  String get location_request_action_accept;
+
+  /// No description provided for @location_request_unknown_contact.
+  ///
+  /// In ru, this message translates to:
+  /// **'Собеседник'**
+  String get location_request_unknown_contact;
+
+  /// No description provided for @location_request_you.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы'**
+  String get location_request_you;
+
   /// No description provided for @link_webview_copy_tooltip.
   ///
   /// In ru, this message translates to:

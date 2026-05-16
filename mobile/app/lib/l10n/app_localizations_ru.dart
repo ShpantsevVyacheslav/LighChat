@@ -7340,6 +7340,42 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get location_request_pending_mine => 'Ожидаем локацию…';
+
+  @override
+  String location_request_pending_other_with_name(Object name) {
+    return '$name запрашивает локацию';
+  }
+
+  @override
+  String get location_request_accepted_mine => 'Локация получена';
+
+  @override
+  String location_request_accepted_other_with_name(Object name) {
+    return '$name поделился локацией';
+  }
+
+  @override
+  String get location_request_declined_mine => 'Запрос отклонён';
+
+  @override
+  String location_request_declined_other_with_name(Object name) {
+    return '$name отклонили запрос';
+  }
+
+  @override
+  String get location_request_action_decline => 'Отклонить';
+
+  @override
+  String get location_request_action_accept => 'Поделиться';
+
+  @override
+  String get location_request_unknown_contact => 'Собеседник';
+
+  @override
+  String get location_request_you => 'Вы';
+
+  @override
   String get link_webview_copy_tooltip => 'Скопировать ссылку';
 
   @override

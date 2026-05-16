@@ -3374,6 +3374,25 @@
       "meters": {}
     }
   },
+  "location_request_pending_mine": "Konum bekleniyor…",
+  "location_request_pending_other_with_name": "{name} konumunuzu istiyor",
+  "@location_request_pending_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_accepted_mine": "Konum alındı",
+  "location_request_accepted_other_with_name": "{name} konumunu paylaştı",
+  "@location_request_accepted_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_declined_mine": "İstek reddedildi",
+  "location_request_declined_other_with_name": "{name} isteği reddetti",
+  "@location_request_declined_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_action_decline": "Reddet",
+  "location_request_action_accept": "Paylaş",
+  "location_request_unknown_contact": "Kişi",
+  "location_request_you": "Siz",
   "link_webview_copy_tooltip": "Bağlantıyı kopyala",
   "link_webview_copied_snackbar": "Bağlantı kopyalandı",
   "link_webview_open_browser_tooltip": "Tarayıcıda aç",

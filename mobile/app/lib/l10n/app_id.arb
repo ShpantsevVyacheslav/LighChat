@@ -3374,6 +3374,25 @@
       "meters": {}
     }
   },
+  "location_request_pending_mine": "Menunggu lokasi…",
+  "location_request_pending_other_with_name": "{name} meminta lokasi Anda",
+  "@location_request_pending_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_accepted_mine": "Lokasi diterima",
+  "location_request_accepted_other_with_name": "{name} membagikan lokasi",
+  "@location_request_accepted_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_declined_mine": "Permintaan ditolak",
+  "location_request_declined_other_with_name": "{name} menolak permintaan",
+  "@location_request_declined_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_action_decline": "Tolak",
+  "location_request_action_accept": "Bagikan",
+  "location_request_unknown_contact": "Kontak",
+  "location_request_you": "Anda",
   "link_webview_copy_tooltip": "Salin Tautan",
   "link_webview_copied_snackbar": "Tautan Disalin",
   "link_webview_open_browser_tooltip": "Buka in browser",

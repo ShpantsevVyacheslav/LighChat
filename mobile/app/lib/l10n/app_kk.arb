@@ -3374,6 +3374,25 @@
       "meters": {}
     }
   },
+  "location_request_pending_mine": "Геолокация күтілуде…",
+  "location_request_pending_other_with_name": "{name} геолокацияңызды сұрайды",
+  "@location_request_pending_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_accepted_mine": "Геолокация алынды",
+  "location_request_accepted_other_with_name": "{name} геолокациямен бөлісті",
+  "@location_request_accepted_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_declined_mine": "Сұраныс қабылданбады",
+  "location_request_declined_other_with_name": "{name} сұранысты қабылдамады",
+  "@location_request_declined_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_action_decline": "Қабылдамау",
+  "location_request_action_accept": "Бөлісу",
+  "location_request_unknown_contact": "Контакт",
+  "location_request_you": "Сіз",
   "link_webview_copy_tooltip": "Сілтемені көшіру",
   "link_webview_copied_snackbar": "Сілтеме скопирована",
   "link_webview_open_browser_tooltip": "Ашу в браузере",

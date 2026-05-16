@@ -3374,6 +3374,25 @@
       "meters": {}
     }
   },
+  "location_request_pending_mine": "Joylashuv kutilmoqda…",
+  "location_request_pending_other_with_name": "{name} sizning joylashuvingizni so‘ramoqda",
+  "@location_request_pending_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_accepted_mine": "Joylashuv qabul qilindi",
+  "location_request_accepted_other_with_name": "{name} joylashuvini ulashdi",
+  "@location_request_accepted_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_declined_mine": "So‘rov rad etildi",
+  "location_request_declined_other_with_name": "{name} so‘rovni rad etdi",
+  "@location_request_declined_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_action_decline": "Rad etish",
+  "location_request_action_accept": "Ulashish",
+  "location_request_unknown_contact": "Kontakt",
+  "location_request_you": "Siz",
   "link_webview_copy_tooltip": "Havolani nusxalash",
   "link_webview_copied_snackbar": "Havola nusxalandi",
   "link_webview_open_browser_tooltip": "Brauzerda ochish",
