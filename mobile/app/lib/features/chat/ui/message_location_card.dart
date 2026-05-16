@@ -44,6 +44,28 @@ class MessageLocationCard extends StatelessWidget {
     return '$hh:$mm';
   }
 
+  Widget _endedBubble(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        maxWidth: ChatMediaLayoutTokens.locationPreviewMaxWidth,
+      ),
+      child: ChatGlassPanel(
+        child: Text(
+          isMine
+              ? l10n.location_card_broadcast_ended_mine
+              : l10n.location_card_broadcast_ended_other,
+          style: TextStyle(
+            fontSize: 13,
+            height: 1.35,
+            fontWeight: FontWeight.w500,
+            color: Colors.white.withValues(alpha: 0.94),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _openMap(BuildContext context) {
     final external = share.mapsUrl.trim().isNotEmpty
         ? share.mapsUrl
@@ -63,6 +85,25 @@ class MessageLocationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Bug #18: scroll-jitter в серии «end of share» сообщений. Каждый
+    // такой bubble раньше открывал персональный
+    // StreamBuilder<users/{senderId}> → много активных подписок на
+    // Firestore при скролле → дёргается layout. Для УЖЕ истёкших
+    // live-сессий статус собеседника не нужен — сразу рендерим
+    // «ended» pill без StreamBuilder. Паттерн повторяет fix
+    // 5998afe1 (stable Future identity) — здесь стабилизируем тем,
+    // что подписки нет вовсе.
+    final liveSession = share.liveSession;
+    if (liveSession != null) {
+      final expIso = liveSession.expiresAt;
+      if (expIso != null && expIso.isNotEmpty) {
+        final exp = DateTime.tryParse(expIso);
+        if (exp != null && !exp.isAfter(DateTime.now())) {
+          return _endedBubble(context);
+        }
+      }
+    }
+
     final userRef = FirebaseFirestore.instance.collection('users').doc(senderId);
 
     return StreamBuilder<DocumentSnapshot<Map<String, Object?>>>(
@@ -89,24 +130,8 @@ class MessageLocationCard extends StatelessWidget {
               profileResolved,
             );
 
-        final l10n = AppLocalizations.of(context)!;
         if (share.liveSession != null && !stillStreaming) {
-          return ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: ChatMediaLayoutTokens.locationPreviewMaxWidth),
-            child: ChatGlassPanel(
-              child: Text(
-                isMine
-                    ? l10n.location_card_broadcast_ended_mine
-                    : l10n.location_card_broadcast_ended_other,
-                style: TextStyle(
-                  fontSize: 13,
-                  height: 1.35,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white.withValues(alpha: 0.94),
-                ),
-              ),
-            ),
-          );
+          return _endedBubble(context);
         }
 
         final liveExp = share.liveSession?.expiresAt;
