@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../data/live_location_duration_options.dart';
 
 /// Компактный glass-popover для выбора длительности шаринга
 /// геолокации. Узкий (~62% ширины экрана), парит над картой, с
@@ -136,6 +137,16 @@ class _PopoverCard extends StatelessWidget {
               _Row(
                 icon: CupertinoIcons.clock,
                 label: l10n.share_location_action_for_one_hour,
+                // Bug #8: chevron-right намекает на расширенный
+                // выбор. Long-press открывает второй popover с
+                // гранулярными опциями (5м/15м/30м/1ч/2ч/6ч/24ч).
+                trailing: CupertinoIcons.chevron_right,
+                onLongPress: () async {
+                  final granular = await _showGranularDurationsSheet(context);
+                  if (granular != null && context.mounted) {
+                    Navigator.of(context).pop(granular);
+                  }
+                },
                 onTap: () => Navigator.of(context).pop('h1'),
               ),
               Container(height: 0.5, color: divider),
@@ -197,12 +208,16 @@ class _Row extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.destructive = false,
+    this.trailing,
+    this.onLongPress,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
   final bool destructive;
+  final IconData? trailing;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -216,6 +231,7 @@ class _Row extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 16),
           child: Row(
@@ -232,6 +248,135 @@ class _Row extends StatelessWidget {
                     letterSpacing: -0.1,
                   ),
                 ),
+              ),
+              if (trailing != null)
+                Icon(trailing, size: 14, color: tint.withValues(alpha: 0.55)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bug #8: расширенный выбор гранулярных длительностей. Открывается
+/// long-press по строке «For One Hour» в основном popover'е.
+/// Возвращает duration id (`m5`/`m15`/`m30`/`h1`/`h2`/`h6`/`d1`)
+/// или null при отмене.
+Future<String?> _showGranularDurationsSheet(BuildContext context) async {
+  final l10n = AppLocalizations.of(context)!;
+  debugPrint('[location-share] granular durations: opening');
+  final result = await showGeneralDialog<String>(
+    context: context,
+    barrierDismissible: true,
+    barrierLabel: l10n.share_location_cancel,
+    barrierColor: Colors.black.withValues(alpha: 0.30),
+    transitionDuration: const Duration(milliseconds: 220),
+    pageBuilder: (ctx, _, _) => const SizedBox.shrink(),
+    transitionBuilder: (ctx, anim, _, child) {
+      final scale = Tween<double>(begin: 0.94, end: 1).animate(
+        CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+      );
+      final opacity = Tween<double>(begin: 0, end: 1).animate(
+        CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+      );
+      return FadeTransition(
+        opacity: opacity,
+        child: ScaleTransition(
+          scale: scale,
+          child: _GranularPopoverShell(l10n: l10n),
+        ),
+      );
+    },
+  );
+  debugPrint('[location-share] granular durations: closed result=$result');
+  return result;
+}
+
+class _GranularPopoverShell extends StatelessWidget {
+  const _GranularPopoverShell({required this.l10n});
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    final width = (mq.size.width * 0.55).clamp(260.0, 300.0);
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            0, 0, 12, mq.padding.bottom + 12,
+          ),
+          child: Align(
+            alignment: Alignment.bottomRight,
+            child: SizedBox(
+              width: width,
+              child: const Material(
+                type: MaterialType.transparency,
+                child: DefaultTextStyle(
+                  style: TextStyle(
+                    decoration: TextDecoration.none,
+                    color: Colors.white,
+                  ),
+                  child: _GranularPopoverCard(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GranularPopoverCard extends StatelessWidget {
+  const _GranularPopoverCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    final cardColor = Colors.white.withValues(alpha: dark ? 0.18 : 0.92);
+    final divider = (dark ? Colors.white : Colors.black).withValues(
+      alpha: dark ? 0.16 : 0.10,
+    );
+    // Гранулярный набор. Подмножество liveLocationDurationOptions
+    // без `once` / `until_end_of_day` / `forever` — основные опции
+    // уже представлены в главном popover'е.
+    final granular = const ['m5', 'm15', 'm30', 'h1', 'h2', 'h6', 'd1'];
+    final allOpts = {
+      for (final o in liveLocationDurationOptions(l10n)) o.id: o,
+    };
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+        child: Container(
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _PopoverHeader(label: l10n.share_location_title),
+              Container(height: 0.5, color: divider),
+              for (var i = 0; i < granular.length; i++) ...[
+                if (i > 0) Container(height: 0.5, color: divider),
+                _Row(
+                  icon: CupertinoIcons.clock,
+                  label: allOpts[granular[i]]?.label ?? granular[i],
+                  onTap: () => Navigator.of(context).pop(granular[i]),
+                ),
+              ],
+              Container(height: 0.5, color: divider),
+              _Row(
+                icon: CupertinoIcons.xmark,
+                label: l10n.share_location_cancel,
+                destructive: true,
+                onTap: () => Navigator.of(context).pop(),
               ),
             ],
           ),
