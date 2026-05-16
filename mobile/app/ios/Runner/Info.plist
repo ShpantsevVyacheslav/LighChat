@@ -75,6 +75,13 @@
 	<string>Для разблокировки секретных чатов и подтверждения действий в хранилище</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Чтобы отправлять и обновлять геолокацию в чате</string>
+	<!-- Bug 13 (Phase 13): live-location-share продолжает писать
+	     trackPoints когда app свёрнут. Apple требует именно
+	     AlwaysAndWhenInUseUsageDescription (не только Always)
+	     для эскалации с whileInUse на always — без этого ключа
+	     системный диалог запроса .authorizedAlways не покажется. -->
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Чтобы продолжать делиться геолокацией в чате, когда приложение свёрнуто. Запись прекращается автоматически по таймеру длительности или по тапу «Остановить».</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Для записи голосовых сообщений, видео со звуком, а также для голосовых и видеозвонков в чате</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
@@ -122,6 +129,11 @@
 		     Их здесь нет — добавим, когда будет paid account. -->
 		<string>audio</string>
 		<string>voip</string>
+		<!-- Bug 13: продолжаем писать live-location trackPoints в фоне.
+		     Активно только когда users/{uid}.liveLocationShare активен;
+		     iOS сам остановит CLLocationManager после suspension если
+		     никто не подписан. -->
+		<string>location</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

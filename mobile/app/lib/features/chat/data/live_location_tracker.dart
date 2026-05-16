@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -91,10 +92,14 @@ class LiveLocationTracker {
         debugPrint('[live-tracker] cleanup pre-start failed: $e');
       },
     ));
-    final settings = const LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 15,
-    );
+    // Background-tracking escalation. На iOS — попробуем подняться
+    // до .authorizedAlways (Info.plist
+    // `NSLocationAlwaysAndWhenInUseUsageDescription` + UIBackgroundModes
+    // location). Если юзер откажет — продолжаем foreground-only:
+    // когда app свернётся, stream приостановится, при возврате
+    // в foreground snapshot listener запустит его снова.
+    unawaited(_maybeEscalateToAlwaysPermission());
+    final settings = _platformLocationSettings();
     _posSub = Geolocator.getPositionStream(locationSettings: settings).listen(
       (pos) {
         debugPrint(
@@ -120,6 +125,68 @@ class LiveLocationTracker {
       debugPrint('[live-tracker] stopping Geolocator stream');
       await _posSub!.cancel();
       _posSub = null;
+    }
+  }
+
+  /// Platform-specific `LocationSettings`: на iOS включаем
+  /// `allowBackgroundLocationUpdates` + `showBackgroundLocationIndicator`
+  /// чтобы CoreLocation продолжал стримить fix'ы когда app в фоне;
+  /// на Android — foreground service notification (без него Android
+  /// 8+ убивает background stream через ~минуту).
+  LocationSettings _platformLocationSettings() {
+    if (Platform.isIOS) {
+      return AppleSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 15,
+        // Активирует CoreLocation `allowsBackgroundLocationUpdates`.
+        // Требует UIBackgroundModes=location в Info.plist (есть).
+        allowBackgroundLocationUpdates: true,
+        // Синий статус-бар индикатор: «приложение продолжает следить
+        // за вашей геопозицией». Apple-mandated UX.
+        showBackgroundLocationIndicator: true,
+        // Без этого CoreLocation останавливает stream после ~1 мин в
+        // background для экономии батареи.
+        pauseLocationUpdatesAutomatically: false,
+        activityType: ActivityType.other,
+      );
+    }
+    if (Platform.isAndroid) {
+      return AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 15,
+        // Foreground service нужен Android 8+ чтобы не убивать stream.
+        // Notification минимальная — UI достаточно: пользователь видит
+        // что app пишет геолокацию.
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationTitle: 'Идёт трансляция геолокации',
+          notificationText:
+              'Приложение делится вашим местоположением. Откройте чат, '
+              'чтобы остановить.',
+          enableWakeLock: true,
+        ),
+      );
+    }
+    // Web / desktop — generic.
+    return const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 15,
+    );
+  }
+
+  /// Bug 13: на iOS пробуем поднять permission до `.authorizedAlways`.
+  /// На устройстве с `.authorizedWhenInUse` Geolocator всё равно
+  /// будет стримить, но iOS поставит stream на паузу через ~10 минут
+  /// после suspension. Запрос always — best-effort: если юзер уже
+  /// отказал, повторного диалога Apple не покажет.
+  Future<void> _maybeEscalateToAlwaysPermission() async {
+    if (!Platform.isIOS) return;
+    try {
+      final current = await Geolocator.checkPermission();
+      if (current == LocationPermission.whileInUse) {
+        await Geolocator.requestPermission();
+      }
+    } catch (e) {
+      debugPrint('[live-tracker] permission escalation failed: $e');
     }
   }
 }

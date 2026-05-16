@@ -66,6 +66,11 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
   WebViewController? _web;
   var _loading = true;
   Timer? _loadingTimeout;
+  // Phase 13+: контроллер native MKMapView для recenter-кнопки. Не
+  // используется на не-iOS платформах, но безопасен (методы — no-op
+  // когда канал ещё не привязан).
+  final ChatLocationMapController _mapController =
+      ChatLocationMapController();
 
   void _hideLoader() {
     _loadingTimeout?.cancel();
@@ -156,6 +161,7 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
               lng: widget.lng,
               interactive: true,
               trackPointsForUid: widget.senderUidForTracking,
+              controller: _mapController,
             )
           else if (web != null)
             WebViewWidget(controller: web)
@@ -199,6 +205,28 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
               top: top + 56,
               left: 12,
               child: LocationLiveCountdown(expiresAtIso: exp),
+            ),
+          // Phase 13+: recenter-кнопка (только iOS, где native
+          // MKMapView). Показывает весь трек + пин fit-to-rect.
+          // Полезна когда user сам зумнул и потерял текущую
+          // позицию из view.
+          if (_useNativeAppleMap)
+            Positioned(
+              right: 12,
+              bottom: 24 + MediaQuery.paddingOf(context).bottom,
+              child: FloatingActionButton.small(
+                heroTag: 'shared_loc_recenter',
+                backgroundColor: Colors.black54,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                onPressed: () =>
+                    unawaited(_mapController.fitToTrack()),
+                tooltip: 'Показать весь трек',
+                child: const Icon(
+                  Icons.center_focus_strong_rounded,
+                  size: 22,
+                ),
+              ),
             ),
         ],
       ),

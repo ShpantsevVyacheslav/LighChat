@@ -45,6 +45,12 @@ class ChatLocationMapController {
       'points': coords,
     });
   }
+
+  /// Phase 13+: показать на экране весь трек (если есть) + пин.
+  /// Если трека нет — вернёт пина с дефолтным compact-зумом 350м.
+  Future<void> fitToTrack() async {
+    await _channel?.invokeMethod<void>('fitToTrack');
+  }
 }
 
 /// Native MKMapView preview карта для location share (Phase 11).

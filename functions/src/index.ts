@@ -59,6 +59,9 @@ export { logAnalyticsEvent } from './triggers/http/logAnalyticsEvent';
 export { onconversationcreated } from './triggers/firestore/onConversationCreated';
 export { onuserwritesyncregistrationindex } from './triggers/firestore/onUserWriteSyncRegistrationIndex';
 export { onuserwriteblocksideeffects } from './triggers/firestore/onUserWriteBlockSideEffects';
+// Bug 13: fallback cleanup для liveLocationTrackPoints — удаляет
+// sub-collection если клиент не успел сделать batched-delete сам.
+export { onUserLiveLocationShareCleared as onuserlivelocationsharecleared } from './triggers/firestore/onUserLiveLocationShareCleared';
 export { onconversationdeleted } from './triggers/firestore/onConversationDeleted';
 export { onconversationupdated } from './triggers/firestore/onConversationUpdated';
 export { onmessagecreated } from './triggers/firestore/onMessageCreated';

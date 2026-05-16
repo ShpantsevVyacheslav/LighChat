@@ -52,6 +52,7 @@ final class ChatLocationMapView: NSObject, FlutterPlatformView, MKMapViewDelegat
   private let mapView: MKMapView
   private var pinAnnotation: MKPointAnnotation?
   private var trackPolyline: MKPolyline?
+  private var didFitInitialTrack = false
   private let channel: FlutterMethodChannel?
   private let interactive: Bool
   private let draggablePin: Bool
@@ -115,6 +116,13 @@ final class ChatLocationMapView: NSObject, FlutterPlatformView, MKMapViewDelegat
           result(FlutterError(
             code: "bad_args", message: "lat/lng required", details: nil))
         }
+      case "fitToTrack":
+        // Phase 13+: показать весь трек на экране (включая текущий
+        // пин) — useful для fullscreen после первого pan. Если
+        // overlay'я нет — рекомпонуем регион по пину 350×350м, как
+        // дефолт.
+        self.fitToTrack()
+        result(nil)
       case "setPolyline":
         // Bug 13: получатель прислал актуальный track. Заменяем
         // существующий overlay новым (или удаляем если points пуст).
@@ -166,6 +174,32 @@ final class ChatLocationMapView: NSObject, FlutterPlatformView, MKMapViewDelegat
     pinAnnotation = pin
   }
 
+  /// Phase 13+: animate setRegion на boundingMapRect трека + пина.
+  /// Если трека нет — zoomToCurrentPin (compact preview region).
+  private func fitToTrack() {
+    if let line = trackPolyline, line.pointCount > 0 {
+      var rect = line.boundingMapRect
+      // Если пин выходит за bounds polyline'а (например, пользователь
+      // только начал двигаться и pin = первая точка), расширяем
+      // прямоугольник, чтобы пин тоже попал.
+      if let pin = pinAnnotation {
+        let pinPoint = MKMapPoint(pin.coordinate)
+        let pinRect = MKMapRect(x: pinPoint.x, y: pinPoint.y, width: 0, height: 0)
+        rect = rect.union(pinRect)
+      }
+      let padding = UIEdgeInsets(top: 80, left: 60, bottom: 80, right: 60)
+      mapView.setVisibleMapRect(rect, edgePadding: padding, animated: true)
+      return
+    }
+    if let pin = pinAnnotation {
+      let region = MKCoordinateRegion(
+        center: pin.coordinate,
+        latitudinalMeters: 350,
+        longitudinalMeters: 350)
+      mapView.setRegion(region, animated: true)
+    }
+  }
+
   /// Bug 13: применяет новый набор координат как MKPolyline overlay.
   /// Удаляет предыдущий overlay (нет diff'инга — replace cheap для
   /// сотен точек, и Flutter всегда шлёт полный snapshot).
@@ -178,6 +212,13 @@ final class ChatLocationMapView: NSObject, FlutterPlatformView, MKMapViewDelegat
     let line = MKPolyline(coordinates: coords, count: coords.count)
     mapView.addOverlay(line, level: .aboveRoads)
     trackPolyline = line
+    // Первый раз когда появились реальные точки — auto-fit чтобы
+    // пользователь видел весь пройденный путь. Следующие updates
+    // не двигают view (юзер мог зумнуть/панить).
+    if !didFitInitialTrack && interactive {
+      didFitInitialTrack = true
+      fitToTrack()
+    }
   }
 
   // MARK: MKMapViewDelegate
