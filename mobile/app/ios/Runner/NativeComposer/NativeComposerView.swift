@@ -928,7 +928,16 @@ final class NativeComposerView: NSObject, FlutterPlatformView, UITextViewDelegat
   // MARK: - Content height (для autoresize, минимум 1 строка → maxLines×lineH)
 
   private func notifyContentHeightIfChanged() {
-    let target = max(textView.contentSize.height, lineHeight())
+    // `textViewDidChange` срабатывает ДО того как UIKit успевает
+    // переразложить layout — `contentSize` тут возвращает старое
+    // значение, и при добавлении новой строки composer не растёт.
+    // `sizeThatFits` форсирует синхронный layout-pass и возвращает
+    // актуальную высоту. Ширину берём текущую, высоту — unbounded.
+    let width =
+      textView.frame.width > 0 ? textView.frame.width : container.bounds.width
+    let fits = textView.sizeThatFits(
+      CGSize(width: width, height: .greatestFiniteMagnitude))
+    let target = max(fits.height, lineHeight())
     if abs(target - lastReportedHeight) < 0.5 { return }
     lastReportedHeight = target
     channel.invokeMethod(
