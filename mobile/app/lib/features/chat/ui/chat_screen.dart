@@ -5644,8 +5644,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     if (hadKeyboard) {
       debugPrint(
         '[panel-toggle] _openStickersGifPanelImpl: hiding keyboard '
-        '(primaryFocus=${FocusManager.instance.primaryFocus?.debugLabel})',
+        '(primaryFocus=${FocusManager.instance.primaryFocus?.debugLabel} '
+        'composerFocus.hasFocus=${_composerFocusNode.hasFocus})',
       );
+      // Native composer держит firstResponder в Swift — Flutter
+      // primaryFocus тут чаще всего null. Дёргаем композерный focusNode
+      // напрямую: его listener в NativeIosComposerField пошлёт `unfocus`
+      // в Swift → resignFirstResponder → клавиатура корректно опадает,
+      // и Dart-side focus синхронно становится false. Без этого
+      // следующий `_switchFromStickersToKeyboard.requestFocus()` будет
+      // no-op (focus уже true) и клавиатура не поднимется.
+      _composerFocusNode.unfocus();
       FocusManager.instance.primaryFocus?.unfocus();
       await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
     }
@@ -5670,11 +5679,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               : MediaQuery.of(context).size.height * 0.42);
     _holdStickersFooterTransition(hold);
     _closeStickersPanel();
+    // Гарантия: focus listener в NativeIosComposerField триггерится только
+    // при ИЗМЕНЕНИИ hasFocus. Если он уже true (возможно при открытии
+    // шторки primaryFocus.unfocus() сработал в стороне, не на нашем node),
+    // requestFocus будет no-op и клавиатура не встанет. Сначала unfocus,
+    // потом в следующем кадре requestFocus → переход false→true → listener
+    // → Swift becomeFirstResponder → клавиатура поднимается.
+    _composerFocusNode.unfocus();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       debugPrint(
         '[panel-toggle] _switchFromStickersToKeyboard: postFrame '
-        'requestFocus on composer',
+        'requestFocus on composer (hasFocus before=${_composerFocusNode.hasFocus})',
       );
       _composerFocusNode.requestFocus();
     });

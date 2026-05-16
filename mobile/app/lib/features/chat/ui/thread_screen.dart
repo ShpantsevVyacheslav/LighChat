@@ -840,6 +840,10 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
       });
     }
     if (hadKeyboard) {
+      // См. chat_screen: native composer держит firstResponder в Swift,
+      // primaryFocus может быть null. Дёргаем композерный focusNode сами,
+      // иначе следующий switch→keyboard не поднимет клавиатуру.
+      _composerFocus.unfocus();
       FocusManager.instance.primaryFocus?.unfocus();
       await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
     }
@@ -855,6 +859,10 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
               : MediaQuery.of(context).size.height * 0.42);
     _holdStickersFooterTransition(hold);
     _closeStickersPanel();
+    // unfocus → next-frame requestFocus гарантирует переход false→true и
+    // триггерит focusNode listener в NativeIosComposerField (иначе
+    // requestFocus при уже-true focus = no-op, клавиатура не встаёт).
+    _composerFocus.unfocus();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _composerFocus.requestFocus();
     });
