@@ -91,7 +91,6 @@ import '../data/pending_image_album_send.dart';
 import 'outgoing_pending_media_album.dart';
 import 'live_location_stop_banner.dart';
 import 'dm_game_lobby_banner.dart';
-import 'location_send_preview_sheet.dart';
 import 'message_context_menu.dart';
 import 'message_html_text.dart';
 import 'report_sheet.dart';
@@ -211,6 +210,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   final Set<String> _selectedMessageIds = <String>{};
   bool _actionBusy = false;
   final List<XFile> _pendingAttachments = <XFile>[];
+
+  /// Phase 10 (iMessage-paritет): inline-превью карты, висящей над
+  /// композером после тапа на «Поделиться геолокацией». Заполняется
+  /// в `_sendLocationShare` после захвата позиции и выбора длительности
+  /// (см. `_pendingLocationDurationId`). Очищается после Send или
+  /// тапа на крестик в превью. Если null — превью карты не рисуется.
+  ChatLocationShare? _pendingLocationShare;
+  String? _pendingLocationDurationId;
 
   /// Снимок предсэндовых лимитов вложений (см. `composer_attachment_limits.dart`).
   /// Пересчитывается при каждом изменении `_pendingAttachments` и при смене
@@ -2842,6 +2849,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                           _pasteContentFromClipboard,
                                       onNativeStickerInserted:
                                           _handleNativeStickerInsert,
+                                      pendingLocationShare:
+                                          _pendingLocationShare,
+                                      pendingLocationDurationId:
+                                          _pendingLocationDurationId,
+                                      onCancelPendingLocationShare:
+                                          _pendingLocationShare == null
+                                              ? null
+                                              : () => setState(() {
+                                                    _pendingLocationShare =
+                                                        null;
+                                                    _pendingLocationDurationId =
+                                                        null;
+                                                  }),
                                       showFormattingToolbar:
                                           _composerFormattingOpen,
                                       onCloseFormattingToolbar: () => setState(
@@ -4966,8 +4986,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         _toast(AppLocalizations.of(context)!.chat_edit_text_empty);
         return;
       }
-    } else if (plainOut.isEmpty && _pendingAttachments.isEmpty) {
+    } else if (plainOut.isEmpty &&
+        _pendingAttachments.isEmpty &&
+        _pendingLocationShare == null) {
       return;
+    }
+
+    // Phase 10: pending-location уходит первой как отдельное сообщение
+    // (как в iMessage). Текст и вложения, если они есть, — следующими
+    // сообщениями ниже (через обычный flow).
+    if (_pendingLocationShare != null && conv != null) {
+      final ok = await _flushPendingLocationShare(uid, repo, conv);
+      if (!ok) return;
+      // Если был ТОЛЬКО location без текста/вложений — отправили,
+      // выходим и не идём в основной send-flow.
+      if (plainOut.isEmpty && _pendingAttachments.isEmpty) {
+        if (mounted) {
+          unawaited(clearChatMessageDraft(uid, widget.conversationId));
+          setState(() => _replyingTo = null);
+          _scheduleAutoScrollToBottomIfNeeded();
+        }
+        return;
+      }
     }
 
     if (editingId != null) {
@@ -5164,16 +5204,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     }
   }
 
+  /// Phase 10 (iMessage-paritет): тап «Поделиться геолокацией» в attach
+  /// menu — НЕ отправляет сообщение сразу. Вместо этого:
+  ///   1. Запрашиваем GPS;
+  ///   2. Кладём `_pendingLocationShare` в state — над композером
+  ///      сразу же появляется inline-превью карты;
+  ///   3. Поверх показываем Cupertino-action-sheet с длительностью
+  ///      (один раз / 1 час / до конца дня / бессрочно). Юзер выбирает →
+  ///      duration сохраняется в `_pendingLocationDurationId`, sheet
+  ///      закрывается, превью карты остаётся;
+  ///   4. Юзер опционально печатает текст;
+  ///   5. Тап Send → `_submitComposer` отправляет location-сообщение
+  ///      (и текст отдельным сообщением, если ввёл).
+  ///
+  /// Если юзер закрыл duration-sheet свайпом без выбора — `_pendingLocationShare`
+  /// очищается, превью убирается (как просил юзер).
   Future<void> _sendLocationShare() async {
     debugPrint('[location-share] _sendLocationShare: enter');
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
-      debugPrint('[location-share] _sendLocationShare: uid==null, abort');
-      return;
-    }
+    if (uid == null) return;
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) {
-      debugPrint('[location-share] _sendLocationShare: repo==null, abort');
       _toast(AppLocalizations.of(context)!.chat_repository_unavailable);
       return;
     }
@@ -5190,21 +5241,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       _toast(AppLocalizations.of(context)!.chat_still_loading);
       return;
     }
-    final participantIds = conv.data.participantIds;
-    if (participantIds.isEmpty) {
+    if (conv.data.participantIds.isEmpty) {
       _toast(AppLocalizations.of(context)!.chat_no_participants);
       return;
     }
 
-    debugPrint('[location-share] _sendLocationShare: about to show settings sheet');
-    final durationId = await showShareLocationSettingsSheet(context);
-    debugPrint('[location-share] _sendLocationShare: settings sheet returned durationId=$durationId mounted=$mounted');
-    if (!mounted || durationId == null) {
-      debugPrint('[location-share] _sendLocationShare: aborting (no duration / unmounted)');
-      return;
-    }
-
     setState(() => _sendBusy = true);
+    Position pos;
     try {
       final bool serviceEnabled;
       try {
@@ -5234,60 +5277,96 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         }
         return;
       }
-
       debugPrint('[location-share] getting current position…');
-      final pos = await Geolocator.getCurrentPosition();
-      debugPrint('[location-share] got pos lat=${pos.latitude} lng=${pos.longitude} acc=${pos.accuracy}');
-      if (!mounted) return;
-      setState(() => _sendBusy = false);
-
-      debugPrint('[location-share] opening preview sheet');
-      final confirmed = await showLocationSendPreviewSheet(
-        context,
-        lat: pos.latitude,
-        lng: pos.longitude,
-        accuracyM: pos.accuracy,
+      pos = await Geolocator.getCurrentPosition();
+      debugPrint(
+        '[location-share] got pos lat=${pos.latitude} lng=${pos.longitude} '
+        'acc=${pos.accuracy}',
       );
-      debugPrint('[location-share] preview sheet returned confirmed=$confirmed');
-      if (!mounted || !confirmed) return;
+    } catch (e) {
+      if (mounted) {
+        _toast(AppLocalizations.of(context)!.chat_location_send_failed(e));
+      }
+      return;
+    } finally {
+      if (mounted) setState(() => _sendBusy = false);
+    }
 
-      setState(() => _sendBusy = true);
+    if (!mounted) return;
 
-      final share = buildChatLocationShareFromPosition(
+    // Шаг 2: pending-location в state → inline-превью карты появляется
+    // в композере (placeholder без длительности — её выберем ниже).
+    setState(() {
+      _pendingLocationShare = buildChatLocationShareFromPosition(
+        pos,
+        durationId: 'once',
+      );
+      _pendingLocationDurationId = null;
+    });
+
+    // Шаг 3: action sheet длительности поверх превью.
+    debugPrint('[location-share] showing duration sheet over inline preview');
+    final durationId = await showShareLocationSettingsSheet(context);
+    debugPrint(
+      '[location-share] duration sheet returned durationId=$durationId',
+    );
+    if (!mounted) return;
+    if (durationId == null) {
+      // Юзер закрыл свайпом → отменяем шаринг (см. договорённости).
+      setState(() {
+        _pendingLocationShare = null;
+        _pendingLocationDurationId = null;
+      });
+      return;
+    }
+
+    // Шаг 4: фиксируем длительность; превью теперь показывает бейдж
+    // («1 ч» / «∞» / «до конца дня» / «один раз»). Юзер пишет
+    // опциональный текст и жмёт Send — `_submitComposer` пошлёт
+    // location-сообщение перед обычным.
+    setState(() {
+      _pendingLocationShare = buildChatLocationShareFromPosition(
         pos,
         durationId: durationId,
       );
-      final activate = shouldActivateUserLiveShare(durationId);
-      final userLiveExp = userLiveExpiresAtForSend(durationId);
-      final replySnap = _replyingTo;
+      _pendingLocationDurationId = durationId;
+    });
+  }
 
+  /// Отправка pending location в чат. Вызывается из `_submitComposer` ДО
+  /// отправки текста/вложений, чтобы карта ушла первой (UX как iMessage).
+  /// Возвращает true если успешно (или нечего отправлять), false если
+  /// произошёл fail и текст отправлять НЕ нужно.
+  Future<bool> _flushPendingLocationShare(
+    String uid,
+    ChatRepository repo,
+    Conversation conv,
+  ) async {
+    final share = _pendingLocationShare;
+    final durationId = _pendingLocationDurationId;
+    if (share == null || durationId == null) return true;
+    try {
       await repo.sendLocationShareMessage(
         conversationId: widget.conversationId,
         senderId: uid,
-        participantIds: participantIds,
+        participantIds: conv.participantIds,
         locationShare: share,
-        replyTo: replySnap,
-        activateUserLiveShare: activate,
-        userLiveExpiresAt: userLiveExp,
+        replyTo: _replyingTo,
+        activateUserLiveShare: shouldActivateUserLiveShare(durationId),
+        userLiveExpiresAt: userLiveExpiresAtForSend(durationId),
       );
-
       if (mounted) {
-        unawaited(clearChatMessageDraft(uid, widget.conversationId));
-        setState(() => _replyingTo = null);
-        _scheduleAutoScrollToBottomIfNeeded();
+        setState(() {
+          _pendingLocationShare = null;
+          _pendingLocationDurationId = null;
+        });
       }
+      return true;
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.chat_location_send_failed(e),
-            ),
-          ),
-        );
+        _toast(AppLocalizations.of(context)!.chat_location_send_failed(e));
       }
-    } finally {
-      if (mounted) setState(() => _sendBusy = false);
+      return false;
     }
   }
 

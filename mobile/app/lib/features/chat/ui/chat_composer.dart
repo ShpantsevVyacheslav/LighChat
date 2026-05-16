@@ -17,6 +17,7 @@ import 'composer_format_sheet.dart';
 import 'composer_formatting_toolbar.dart';
 import 'composer_link_preview.dart';
 import 'composer_pending_attachments_strip.dart';
+import 'composer_pending_location_preview.dart';
 import 'composer_reply_banner.dart';
 import 'native_ios_composer_field.dart';
 import 'message_html_text.dart';
@@ -65,6 +66,9 @@ class ChatComposer extends StatefulWidget {
     this.onRewriteWithAi,
     this.onClipboardToolbarPaste,
     this.onNativeStickerInserted,
+    this.pendingLocationShare,
+    this.pendingLocationDurationId,
+    this.onCancelPendingLocationShare,
     this.stickerSuggestionBuilder,
     this.e2eeDisabledBanner,
     this.groupMentionCandidates,
@@ -135,6 +139,20 @@ class ChatComposer extends StatefulWidget {
   /// Caller должен добавить файлы в `pendingAttachments` как обычные
   /// изображения (XFile). Если callback null — стикеры будут проигнорированы.
   final Future<void> Function(List<String> paths)? onNativeStickerInserted;
+
+  /// Phase 10 (iMessage-paritет): pending location share, который висит
+  /// inline над композером после тапа «Поделиться геолокацией». Если
+  /// null — превью карты не рисуется. После Send или тапа на крестик
+  /// caller обнуляет state.
+  final ChatLocationShare? pendingLocationShare;
+
+  /// id выбранной длительности (`once` / `h1` / `until_end_of_day` /
+  /// `forever`). Может быть null, если duration ещё не выбрана —
+  /// в этом случае на превью показывается «выбрать длительность».
+  final String? pendingLocationDurationId;
+
+  /// Тап на крестик в превью карты — caller сбрасывает pending location.
+  final VoidCallback? onCancelPendingLocationShare;
 
   /// Необязательный строитель строки быстрых стикеров над полем ввода.
   ///
@@ -763,7 +781,9 @@ class _ChatComposerState extends State<ChatComposer> {
     );
     final showSendButton =
         !widget.stickersPanelOpen &&
-        (_hasTypedText || widget.pendingAttachments.isNotEmpty);
+        (_hasTypedText ||
+            widget.pendingAttachments.isNotEmpty ||
+            widget.pendingLocationShare != null);
     // Bottom safe-area теперь полностью обслуживается footer'ом снаружи
     // (chat_screen/thread_screen footerHeight включает `viewPadding.bottom`
     // в `reduce(max)`). Внутри композера SafeArea bottom больше не
@@ -795,6 +815,18 @@ class _ChatComposerState extends State<ChatComposer> {
               onEditAt: (i) => unawaited(widget.onEditPending(i)),
               limitsState: widget.limitsState,
             ),
+            // Phase 10 (iMessage-paritет): inline-превью карты pending
+            // location share. Показывается между attachment-strip'ом и
+            // composer Row'ом, как в Apple Messages.
+            if (widget.pendingLocationShare != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: ComposerPendingLocationPreview(
+                  share: widget.pendingLocationShare!,
+                  durationId: widget.pendingLocationDurationId,
+                  onCancel: widget.onCancelPendingLocationShare,
+                ),
+              ),
             // Phase 4 native composer: B/I/U/S доступны через системное
             // long-press меню iOS (allowsEditingTextAttributes=true) +
             // Writing Tools (iOS 26+) — Flutter formatting toolbar
