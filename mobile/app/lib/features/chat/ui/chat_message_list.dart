@@ -2053,6 +2053,40 @@ class _ChatMessageBubble extends StatelessWidget {
           textMetaOutside(),
         ],
       );
+    } else if (hasLocation &&
+        hasText &&
+        !hasMedia &&
+        !hasPoll) {
+      // Phase 12.2 (iMessage-paritет): location + caption ОДНИМ
+      // пузырём. Map preview встраиваем внутрь textBubble через
+      // `insertBeforeText` — bg рамки и текст под ним получают общий
+      // bubble background.
+      body = Column(
+        crossAxisAlignment: bubbleStackCrossAlign,
+        children: [
+          textBubble(
+            compact: false,
+            insertBeforeText: [
+              MessageLocationCard(
+                share: message.locationShare!,
+                senderId: message.senderId,
+                isMine: isMine,
+                createdAt: message.createdAt,
+                // В составном пузыре время сообщения уходит в
+                // textMetaOutside() — на самой карте дублировать не
+                // нужно (иначе видна повторная подпись 04:43 ✓).
+                showTimestamps: false,
+                deliveryStatus: message.deliveryStatus,
+                readAt: message.readAt,
+              ),
+              const SizedBox(
+                height: ChatMediaLayoutTokens.mediaToCaptionGap,
+              ),
+            ],
+          ),
+          textMetaOutside(),
+        ],
+      );
     } else if (hasMedia && hasText) {
       body = Column(
         crossAxisAlignment: bubbleStackCrossAlign,
@@ -2099,7 +2133,10 @@ class _ChatMessageBubble extends StatelessWidget {
       crossAxisAlignment: mergeColumnCrossAlign,
       children: [
         ...forwardReplyLeading(),
-        if (hasLocation) ...[
+        // Phase 12.2: для combined location+text (hasLocation && hasText)
+        // map уже встроена в textBubble выше — здесь её рисовать НЕ
+        // надо, иначе будет дубликат над общим пузырём.
+        if (hasLocation && !hasText) ...[
           MessageLocationCard(
             share: message.locationShare!,
             senderId: message.senderId,

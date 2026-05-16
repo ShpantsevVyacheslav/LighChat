@@ -905,6 +905,20 @@ class _ChatComposerState extends State<ChatComposer> {
             // Phase 13: floating «Aa» — слева сверху над композером,
             // видна только пока клавиатура открыта (= focus на native
             // UITextView). При закрытии клавиатуры кнопка исчезает.
+            Builder(builder: (_) {
+              final show = _useNativeComposer &&
+                  widget.focusNode.hasFocus &&
+                  !widget.stickersPanelOpen &&
+                  !_holdRecordOverlayVisible;
+              debugPrint(
+                '[format-btn] build: show=$show '
+                '(useNative=$_useNativeComposer '
+                'hasFocus=${widget.focusNode.hasFocus} '
+                'panelOpen=${widget.stickersPanelOpen} '
+                'holdRecord=$_holdRecordOverlayVisible)',
+              );
+              return const SizedBox.shrink();
+            }),
             if (_useNativeComposer &&
                 widget.focusNode.hasFocus &&
                 !widget.stickersPanelOpen &&
