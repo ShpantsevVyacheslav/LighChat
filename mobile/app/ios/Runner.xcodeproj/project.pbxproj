@@ -38,6 +38,8 @@
 		B1B1B1B114000000000020E0 /* CommunicationIntentsBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B115000000000021E0 /* CommunicationIntentsBridge.swift */; };
 		B1B1B1B116000000000022E0 /* SubjectLiftBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B117000000000023E0 /* SubjectLiftBridge.swift */; };
 		B1B1B1B118000000000024E0 /* SpotlightBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B119000000000025E0 /* SpotlightBridge.swift */; };
+		B1B1B1B11A000000000026E0 /* ChatLocationMapViewFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B11B000000000027E0 /* ChatLocationMapViewFactory.swift */; };
+		B1B1B1B11C000000000028E0 /* ChatGeocoderBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B11D000000000029E0 /* ChatGeocoderBridge.swift */; };
 		BB4BBE8F5DE096F8DE7DA559 /* NativeComposerFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A44BE7F626041CFDA0776C4 /* NativeComposerFactory.swift */; };
 /* End PBXBuildFile section */
 
@@ -126,6 +128,8 @@
 		B1B1B1B115000000000021E0 /* CommunicationIntentsBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunicationIntentsBridge.swift; sourceTree = "<group>"; };
 		B1B1B1B117000000000023E0 /* SubjectLiftBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjectLiftBridge.swift; sourceTree = "<group>"; };
 		B1B1B1B119000000000025E0 /* SpotlightBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotlightBridge.swift; sourceTree = "<group>"; };
+		B1B1B1B11B000000000027E0 /* ChatLocationMapViewFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatLocationMapViewFactory.swift; sourceTree = "<group>"; };
+		B1B1B1B11D000000000029E0 /* ChatGeocoderBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatGeocoderBridge.swift; sourceTree = "<group>"; };
 		B2F8A9012ECF9000100A1D01 /* RunnerDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RunnerDebug.entitlements; sourceTree = "<group>"; };
 		B2F8A9012ECF9000100A1D02 /* RunnerRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RunnerRelease.entitlements; sourceTree = "<group>"; };
 		BCE89198E9E815BAC52B21AF /* ShareViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
@@ -325,6 +329,8 @@
 				B1B1B1B115000000000021E0 /* CommunicationIntentsBridge.swift */,
 				B1B1B1B117000000000023E0 /* SubjectLiftBridge.swift */,
 				B1B1B1B119000000000025E0 /* SpotlightBridge.swift */,
+				B1B1B1B11B000000000027E0 /* ChatLocationMapViewFactory.swift */,
+				B1B1B1B11D000000000029E0 /* ChatGeocoderBridge.swift */,
 			);
 			path = Speech;
 			sourceTree = "<group>";
@@ -669,6 +675,8 @@
 				B1B1B1B114000000000020E0 /* CommunicationIntentsBridge.swift in Sources */,
 				B1B1B1B116000000000022E0 /* SubjectLiftBridge.swift in Sources */,
 				B1B1B1B118000000000024E0 /* SpotlightBridge.swift in Sources */,
+				B1B1B1B11A000000000026E0 /* ChatLocationMapViewFactory.swift in Sources */,
+				B1B1B1B11C000000000028E0 /* ChatGeocoderBridge.swift in Sources */,
 				BB4BBE8F5DE096F8DE7DA559 /* NativeComposerFactory.swift in Sources */,
 				65D9871E22FCCAA03727AE9A /* NativeComposerView.swift in Sources */,
 				9D4D744071C256EE68C754D7 /* MentionAttributedString.swift in Sources */,

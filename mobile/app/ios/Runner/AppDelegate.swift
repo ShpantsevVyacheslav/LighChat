@@ -235,6 +235,16 @@ private final class LighChatIosPipBridge: NSObject, AVPictureInPictureController
       messenger: engineBridge.applicationRegistrar.messenger())
     engineBridge.applicationRegistrar.register(
       composerFactory, withId: NativeComposerFactory.viewType)
+
+    // Phase 11: native location preview через MKMapView (вместо OSM
+    // тайла) + reverse geocoder для отображения адреса. Используется
+    // в `ComposerPendingLocationPreview` и потенциально в message
+    // bubble c locationShare.
+    let mapFactory = ChatLocationMapViewFactory()
+    engineBridge.applicationRegistrar.register(
+      mapFactory, withId: ChatLocationMapViewFactory.viewType)
+    ChatGeocoderBridge.shared.register(
+      messenger: engineBridge.applicationRegistrar.messenger())
   }
 
   override func application(
