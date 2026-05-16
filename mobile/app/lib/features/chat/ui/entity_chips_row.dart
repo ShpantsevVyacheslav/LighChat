@@ -520,7 +520,17 @@ class _EntityChip extends StatelessWidget {
   final bool forceDarkPanel;
 
   /// Long-press handler — только для date-чипов. На остальных `null`.
-  final VoidCallback? onLongPressDate;
+  /// Async чтобы вызывающий мог дождаться закрытия CalendarPickerSheet
+  /// и не сбросить `_actionInFlight` гард досрочно.
+  final Future<void> Function()? onLongPressDate;
+
+  /// Глобальный guard от множественных тапов: если юзер быстро жмёт по
+  /// чипу адреса/даты несколько раз подряд (или по разным чипам подряд),
+  /// без него каждый тап открывал свой инстанс NavigatorPicker /
+  /// CalendarPicker / launchEntity — стек шторок наложенных друг на
+  /// друга. Флаг ставится при первом тапе и сбрасывается **только** когда
+  /// открытое действие завершилось (sheet закрылся, launch вернулся).
+  static bool _actionInFlight = false;
 
   @override
   Widget build(BuildContext context) {
@@ -534,26 +544,32 @@ class _EntityChip extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () async {
-          await ChatHaptics.instance.tick();
-          // Адрес → picker навигатора (Apple Maps / Google Maps / Яндекс
-          // Карты/Навигатор / 2ГИС / Waze + такси).
-          if (data.entity.type == EntityType.address) {
-            if (!context.mounted) return;
-            await NavigatorPickerSheet.show(
-              context: context,
-              address: data.annotation.text,
-            );
-            return;
+          if (_actionInFlight) return;
+          _actionInFlight = true;
+          try {
+            await ChatHaptics.instance.tick();
+            // Адрес → picker навигатора (Apple Maps / Google Maps /
+            // Яндекс Карты/Навигатор / 2ГИС / Waze + такси).
+            if (data.entity.type == EntityType.address) {
+              if (!context.mounted) return;
+              await NavigatorPickerSheet.show(
+                context: context,
+                address: data.annotation.text,
+              );
+              return;
+            }
+            // Дата → picker календарей (Apple / Google / Яндекс /
+            // Outlook). Изначально это было на long-press, но юзеры
+            // ожидают что основное действие — тап.
+            if (data.entity.type == EntityType.dateTime &&
+                onLongPressDate != null) {
+              await onLongPressDate!();
+              return;
+            }
+            await LocalEntityExtractor.instance.launchEntity(data.annotation);
+          } finally {
+            _actionInFlight = false;
           }
-          // Дата → picker календарей (Apple / Google / Яндекс / Outlook).
-          // Изначально это было на long-press, но юзеры ожидают что
-          // основное действие — тап.
-          if (data.entity.type == EntityType.dateTime &&
-              onLongPressDate != null) {
-            onLongPressDate!();
-            return;
-          }
-          await LocalEntityExtractor.instance.launchEntity(data.annotation);
         },
         borderRadius: BorderRadius.circular(10),
         child: Container(
