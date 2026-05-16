@@ -229,8 +229,12 @@ class _ChatComposerState extends State<ChatComposer> {
   }
 
   bool _recomputeLinkPreview() {
-    final plain = messageHtmlToPlainText(widget.controller.text);
-    final extracted = extractFirstHttpUrl(plain);
+    final raw = widget.controller.text;
+    // Сначала ищем явные `<a href="...">` (link, добавленный через
+    // Format popover) — приоритет, потому что это «пользовательский»
+    // выбор URL. Если нет — fallback на URL в plain тексте.
+    String? extracted = _firstHrefInHtml(raw);
+    extracted ??= extractFirstHttpUrl(messageHtmlToPlainText(raw));
     final next =
         (extracted == null || _dismissedLinkPreviewUrls.contains(extracted))
         ? null
@@ -238,6 +242,25 @@ class _ChatComposerState extends State<ChatComposer> {
     if (next == _linkPreviewUrl) return false;
     _linkPreviewUrl = next;
     return true;
+  }
+
+  /// Первая href-ссылка из `<a href="...">…</a>` тега в HTML. Берём
+  /// только http/https значения (защита от javascript: / data:).
+  static final RegExp _hrefRe = RegExp(
+    r'<a\s+[^>]*href\s*=\s*(["' "'" r'])([^"' "'" r']+)\1',
+    caseSensitive: false,
+  );
+  String? _firstHrefInHtml(String html) {
+    if (!html.contains('<a')) return null;
+    final m = _hrefRe.firstMatch(html);
+    if (m == null) return null;
+    final href = m.group(2)?.trim();
+    if (href == null || href.isEmpty) return null;
+    final lower = href.toLowerCase();
+    if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
+      return null;
+    }
+    return href;
   }
 
   bool _recomputeMentionState() {
