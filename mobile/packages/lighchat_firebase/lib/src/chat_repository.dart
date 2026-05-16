@@ -774,6 +774,10 @@ class ChatRepository {
               'accuracyM': locationShare.accuracyM,
             'updatedAt': nowIso,
             'startedAt': nowIso,
+            // Bug #15: записываем id чата, в котором началась
+            // трансляция — chat list использует это поле, чтобы
+            // подсветить именно этот ряд индикатором «идёт live».
+            'conversationId': conversationId,
           },
         },
       );
@@ -1213,6 +1217,10 @@ class ChatRepository {
               'accuracyM': locationShare.accuracyM,
             'updatedAt': nowIso,
             'startedAt': nowIso,
+            // Bug #15: записываем id чата, в котором началась
+            // трансляция — chat list использует это поле, чтобы
+            // подсветить именно этот ряд индикатором «идёт live».
+            'conversationId': conversationId,
           },
         },
       );

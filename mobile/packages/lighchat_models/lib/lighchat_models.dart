@@ -529,6 +529,7 @@ class UserLiveLocationShare {
     required this.updatedAt,
     required this.startedAt,
     this.accuracyM,
+    this.conversationId,
   });
 
   final bool active;
@@ -538,6 +539,13 @@ class UserLiveLocationShare {
   final String updatedAt;
   final String startedAt;
   final double? accuracyM;
+
+  /// Bug #15: id чата, в котором юзер начал live-трансляцию. Нужен,
+  /// чтобы chat list мог показывать индикатор «здесь идёт трансляция»
+  /// именно в этом ряду. Поле опциональное — старые записи (до
+  /// миграции) и веб (где конверсация передавалась иначе) могут его
+  /// не иметь; в этом случае глобальный banner всё равно работает.
+  final String? conversationId;
 
   static UserLiveLocationShare? fromJson(Object? raw) {
     if (raw is! Map) return null;
@@ -551,6 +559,7 @@ class UserLiveLocationShare {
     if (startedAt is! String || startedAt.isEmpty) return null;
     final exp = m['expiresAt'];
     final expiresAt = exp is String && exp.isNotEmpty ? exp : null;
+    final convId = m['conversationId'];
     return UserLiveLocationShare(
       active: m['active'] == true,
       expiresAt: expiresAt,
@@ -559,6 +568,7 @@ class UserLiveLocationShare {
       updatedAt: updatedAt,
       startedAt: startedAt,
       accuracyM: _jsonDouble(m['accuracyM']),
+      conversationId: convId is String && convId.isNotEmpty ? convId : null,
     );
   }
 }

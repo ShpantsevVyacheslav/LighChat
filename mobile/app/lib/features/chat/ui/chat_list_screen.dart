@@ -24,6 +24,7 @@ import '../../meetings/data/active_meeting_provider.dart';
 
 import 'chat_avatar.dart';
 import 'chat_folder_bar.dart';
+import 'live_location_stop_banner.dart';
 import 'chat_folders_rail.dart' show activeFoldersRailIdProvider;
 import 'chat_list_item.dart';
 import 'chat_bottom_nav.dart';
@@ -55,7 +56,20 @@ class ChatListScreen extends StatelessWidget {
             top: 0,
             left: 0,
             right: 0,
-            child: SafeArea(bottom: false, child: _MeetingResumePill()),
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Bug #15: глобальный banner «идёт трансляция вашей
+                  // локации» с кнопкой Stop. Показывается поверх chat
+                  // list — чтобы оставаться видимым везде, не только
+                  // внутри конкретного чата.
+                  LiveLocationStopBanner(),
+                  _MeetingResumePill(),
+                ],
+              ),
+            ),
           ),
         ],
       ),

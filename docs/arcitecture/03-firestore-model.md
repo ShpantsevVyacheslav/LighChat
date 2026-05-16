@@ -79,6 +79,7 @@
 
 - `users.id` == Firebase Auth uid.
 - `users/{uid}/devices/{deviceId}` хранит состояние конкретного клиента (web/mobile): при входе клиент помечает `isActive=true`, при выходе/скрытии — `isActive=false`.
+- `users/{uid}.liveLocationShare` — singleton поле для активной трансляции геолокации (паритет с web). Поля: `active` (bool), `expiresAt?` (ISO; null когда «бесконечно»), `lat`, `lng`, `accuracyM?`, `startedAt` (ISO), `updatedAt` (ISO), `conversationId?` (id чата, в котором стартовала трансляция; используется UI mobile-client'а для подсветки конкретного ряда в списке чатов индикатором live-share). Поле удаляется через `FieldValue.delete()` при ручном Stop из `LiveLocationStopBanner` или клиентским таймером по `expiresAt`. **Live-tracking points (Phase 13/14, не реализовано):** sub-collection `users/{uid}/liveLocationShare/current/trackPoints/{ts}` с `{lat, lng, accuracyM, ts}` — пишется отправителем; получатель подписан и рисует MKPolyline в чате и full-screen карте. Только для длительной (`durationId != 'once'`) трансляции.
 - `conversations.participantIds` определяет состав чата; `conversations/*/members/*` - серверный индекс для правил.
 - Для личных 1:1 чатов `conversationId` детерминирован по паре uid (`dm_{lenA}:{uidA}_{lenB}:{uidB}`, uid в лексикографическом порядке), чтобы не появлялись дубликаты диалогов между одной парой пользователей.
 - Личный чат «Избранное» хранится как `conversations` с `isGroup=false` и ровно одним `participantIds` (uid владельца).
