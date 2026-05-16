@@ -4,7 +4,6 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback, SystemChannels;
 import 'package:image_picker/image_picker.dart';
-import 'package:lighchat_mobile/core/app_logger.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import '../data/composer_attachment_limits.dart';
@@ -529,7 +528,7 @@ class _ChatComposerState extends State<ChatComposer> {
   }
 
   void _openKeyboardFromStickerMode() {
-    appLogger.d(
+    debugPrint(
       '[panel-toggle] composer keyboard-icon tap (sticker→keyboard) '
       'focus=${widget.focusNode.hasFocus} '
       'cb=${widget.onKeyboardTap != null}',

@@ -5594,7 +5594,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   Future<void> _openStickersGifPanelImpl() async {
-    appLogger.d(
+    debugPrint(
       '[panel-toggle] _openStickersGifPanelImpl: enter '
       'panelOpen=$_stickersPanelOpen focus=${_composerFocusNode.hasFocus} '
       'kbInset=${MediaQuery.viewInsetsOf(context).bottom}',
@@ -5636,13 +5636,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         _stickerPanelLockedHeight = lockedH;
         _stickersPanelOpen = true;
       });
-      appLogger.d(
+      debugPrint(
         '[panel-toggle] _openStickersGifPanelImpl: setState→panelOpen=true '
         'lockedH=$lockedH hadKeyboard=$hadKeyboard',
       );
     }
     if (hadKeyboard) {
-      appLogger.d(
+      debugPrint(
         '[panel-toggle] _openStickersGifPanelImpl: hiding keyboard '
         '(primaryFocus=${FocusManager.instance.primaryFocus?.debugLabel})',
       );
@@ -5652,7 +5652,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   void _switchFromStickersToKeyboard() {
-    appLogger.d(
+    debugPrint(
       '[panel-toggle] _switchFromStickersToKeyboard: enter '
       'panelOpen=$_stickersPanelOpen focus=${_composerFocusNode.hasFocus} '
       'lockedH=$_stickerPanelLockedHeight lastKb=$_lastKeyboardHeight',
@@ -5672,7 +5672,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     _closeStickersPanel();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      appLogger.d(
+      debugPrint(
         '[panel-toggle] _switchFromStickersToKeyboard: postFrame '
         'requestFocus on composer',
       );
@@ -5682,7 +5682,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   void _closeStickersPanel() {
     if (!mounted) return;
-    appLogger.d(
+    debugPrint(
       '[panel-toggle] _closeStickersPanel: was panelOpen=$_stickersPanelOpen '
       'focus=${_composerFocusNode.hasFocus} '
       'kbInset=${MediaQuery.viewInsetsOf(context).bottom}',
