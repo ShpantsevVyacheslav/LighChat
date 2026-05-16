@@ -2069,33 +2069,28 @@ class _ChatMessageBubble extends StatelessWidget {
         hasText &&
         !hasMedia &&
         !hasPoll) {
-      // Phase 12.2 (iMessage-paritет): location + caption ОДНИМ
-      // пузырём. Map preview встраиваем внутрь textBubble через
-      // `insertBeforeText` — bg рамки и текст под ним получают общий
-      // bubble background.
+      // Bug #10: было — карта inline внутрь textBubble через
+      // `insertBeforeText`, что давало толстую обволакивающую рамку
+      // вокруг карты. Теперь — paritет с фото+подписью: карта
+      // отдельным верхним блоком (свой ClipRRect), подпись —
+      // compact-bubble снизу. Параллель с веткой `hasMedia && hasText`
+      // выше.
       body = Column(
         crossAxisAlignment: bubbleStackCrossAlign,
         children: [
-          textBubble(
-            compact: false,
-            insertBeforeText: [
-              MessageLocationCard(
-                share: message.locationShare!,
-                senderId: message.senderId,
-                isMine: isMine,
-                createdAt: message.createdAt,
-                // В составном пузыре время сообщения уходит в
-                // textMetaOutside() — на самой карте дублировать не
-                // нужно (иначе видна повторная подпись 04:43 ✓).
-                showTimestamps: false,
-                deliveryStatus: message.deliveryStatus,
-                readAt: message.readAt,
-              ),
-              const SizedBox(
-                height: ChatMediaLayoutTokens.mediaToCaptionGap,
-              ),
-            ],
+          MessageLocationCard(
+            share: message.locationShare!,
+            senderId: message.senderId,
+            isMine: isMine,
+            createdAt: message.createdAt,
+            // В составном расположении время сообщения уходит в
+            // textMetaOutside() — на самой карте дублировать не нужно.
+            showTimestamps: false,
+            deliveryStatus: message.deliveryStatus,
+            readAt: message.readAt,
           ),
+          const SizedBox(height: ChatMediaLayoutTokens.mediaToCaptionGap),
+          textBubble(compact: true),
           textMetaOutside(),
         ],
       );

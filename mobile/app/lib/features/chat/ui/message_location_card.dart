@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+import 'dart:ui' show ImageFilter;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
@@ -7,6 +10,7 @@ import '../data/chat_media_layout_tokens.dart';
 import '../data/google_maps_urls.dart';
 import '../data/live_location_utils.dart';
 import 'chat_cached_network_image.dart';
+import 'chat_location_map_view.dart';
 import 'location_live_countdown.dart';
 import 'chat_glass_panel.dart';
 import 'message_bubble_delivery_icons.dart';
@@ -137,6 +141,21 @@ class MessageLocationCard extends StatelessWidget {
         final liveExp = share.liveSession?.expiresAt;
         final staticUrl = share.staticMapUrl;
 
+        // Bug #9/#11/#12: на iOS заменяем статичную OSM-плитку нативной
+        // MKMapView через PlatformView. Интерактив включён — pan/zoom
+        // работают прямо в пузыре. Тап-открытие фул-скрина больше не
+        // доступно прямо по карте (MKMapView съест gesture); вместо
+        // этого — стеклянная expand-кнопка в правом верхнем углу
+        // карты. Aspect ratio подняли с 16:9 до 7:5 (+27% высоты —
+        // Bug #11 «+25%»).
+        const aspect = 7 / 5;
+        // Bug #12: для интерактивной нативной карты тап-открытие
+        // фуллскрина через InkWell не сработает (MKMapView заберёт
+        // gesture). Поэтому отключаем onTap, когда показываем
+        // нативную карту — пользователь нажимает на expand-кнопку.
+        final useNativeMap = Platform.isIOS;
+        final cardOnTap = useNativeMap ? null : () => _openMap(context);
+
         return ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: ChatMediaLayoutTokens.locationPreviewMaxWidth),
           child: ClipRRect(
@@ -144,13 +163,22 @@ class MessageLocationCard extends StatelessWidget {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => _openMap(context),
+                onTap: cardOnTap,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    if (staticUrl != null && staticUrl.isNotEmpty)
+                    if (useNativeMap)
                       AspectRatio(
-                        aspectRatio: 16 / 9,
+                        aspectRatio: aspect,
+                        child: ChatLocationMapView(
+                          lat: share.lat,
+                          lng: share.lng,
+                          interactive: true,
+                        ),
+                      )
+                    else if (staticUrl != null && staticUrl.isNotEmpty)
+                      AspectRatio(
+                        aspectRatio: aspect,
                         child: ChatCachedNetworkImage(
                           url: staticUrl,
                           httpHeaders: _kLocationPreviewHttpHeaders,
@@ -164,6 +192,14 @@ class MessageLocationCard extends StatelessWidget {
                       )
                     else
                       _FallbackLocationTile(share: share, isMine: isMine),
+                    if (useNativeMap)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: _MapExpandButton(
+                          onTap: () => _openMap(context),
+                        ),
+                      ),
                     if (liveExp != null && liveExp.isNotEmpty)
                       Positioned(
                         left: 8,
@@ -213,6 +249,42 @@ class MessageLocationCard extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Bug #12: стеклянный кружок «expand» в углу карты. Открывает
+/// fullscreen, потому что таппать саму карту нельзя (она интерактивна
+/// и съедает gestures).
+class _MapExpandButton extends StatelessWidget {
+  const _MapExpandButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Material(
+          color: Colors.black.withValues(alpha: 0.38),
+          shape: const CircleBorder(
+            side: BorderSide(color: Colors.white24, width: 0.5),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            customBorder: const CircleBorder(),
+            child: const Padding(
+              padding: EdgeInsets.all(7),
+              child: Icon(
+                Icons.open_in_full_rounded,
+                size: 14,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
