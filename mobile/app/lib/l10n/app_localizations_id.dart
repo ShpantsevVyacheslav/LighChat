@@ -7346,6 +7346,16 @@ class AppLocalizationsId extends AppLocalizations {
   String get location_panel_hint_address => 'Masukkan alamat…';
 
   @override
+  String shared_location_distance_meters(Object meters) {
+    return '$meters m dari Anda';
+  }
+
+  @override
+  String shared_location_distance_km(Object km) {
+    return '$km km dari Anda';
+  }
+
+  @override
   String get location_request_pending_mine => 'Menunggu lokasi…';
 
   @override

@@ -7318,6 +7318,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get location_panel_hint_address => 'Enter address…';
 
   @override
+  String shared_location_distance_meters(Object meters) {
+    return '$meters m from you';
+  }
+
+  @override
+  String shared_location_distance_km(Object km) {
+    return '$km km from you';
+  }
+
+  @override
   String get location_request_pending_mine => 'Waiting for location…';
 
   @override

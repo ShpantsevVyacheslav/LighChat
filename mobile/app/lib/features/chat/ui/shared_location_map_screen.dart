@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -67,6 +68,13 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
   final ChatLocationMapController _mapController =
       ChatLocationMapController();
 
+  /// Distance pill: расстояние «от меня до точки локации». Считается
+  /// только когда `senderUidForTracking != null` (т.е. это просмотр
+  /// чужой live-локации, не своей). `null` пока не получили fix или
+  /// permission denied — pill не рисуется.
+  double? _distanceMeters;
+  StreamSubscription<Position>? _myPosSub;
+
   void _hideLoader() {
     _loadingTimeout?.cancel();
     _loadingTimeout = null;
@@ -77,6 +85,7 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
   @override
   void initState() {
     super.initState();
+    unawaited(_initMyPosition());
     // Bug 13+: на iOS и Android карта inline (нативная MKMapView /
     // FlutterMap соответственно) — рендерится мгновенно. WebView+
     // Leaflet оставляем только для macOS-fallback'а и desktop.
@@ -121,7 +130,68 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
   @override
   void dispose() {
     _loadingTimeout?.cancel();
+    _myPosSub?.cancel();
     super.dispose();
+  }
+
+  /// Distance pill — только когда смотрим ЧУЖУЮ live-локацию
+  /// (`senderUidForTracking != null`). Своя локация = расстояние 0,
+  /// pill бесполезна.
+  bool get _showDistance =>
+      (widget.senderUidForTracking ?? '').isNotEmpty;
+
+  Future<void> _initMyPosition() async {
+    if (!_showDistance) return;
+    if (kIsWeb) return;
+    try {
+      // 1) Быстрый fallback из last-known fix'а (мгновенно). Даже если
+      // он слегка устарел, pill даст осмысленное число пока
+      // подтянется live-fix.
+      final last = await Geolocator.getLastKnownPosition()
+          .catchError((_) => null);
+      if (last != null && mounted) {
+        setState(() => _distanceMeters = _calcDistance(last));
+      }
+      // 2) Permission + position stream (точный live-fix). distanceFilter=20
+      // — обновление при движении >=20м, экономим батарею.
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        return;
+      }
+      _myPosSub = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 20,
+        ),
+      ).listen((pos) {
+        if (!mounted) return;
+        setState(() => _distanceMeters = _calcDistance(pos));
+      });
+    } catch (_) {
+      // graceful: pill просто не появится.
+    }
+  }
+
+  double _calcDistance(Position me) {
+    return Geolocator.distanceBetween(
+      me.latitude,
+      me.longitude,
+      widget.lat,
+      widget.lng,
+    );
+  }
+
+  String _formatDistance(double meters, AppLocalizations l10n) {
+    if (meters < 1000) {
+      return l10n.shared_location_distance_meters(meters.round());
+    }
+    final km = meters / 1000;
+    final txt = km >= 100 ? km.toStringAsFixed(0) : km.toStringAsFixed(1);
+    return l10n.shared_location_distance_km(txt);
   }
 
   Future<void> _openExternal() async {
@@ -195,6 +265,23 @@ class _SharedLocationMapScreenState extends State<SharedLocationMapScreen> {
               top: top + 56,
               left: 12,
               child: LocationLiveCountdown(expiresAtIso: exp),
+            ),
+          // Distance pill — поверх карты, по центру сверху. Только
+          // для просмотра ЧУЖОЙ live-локации (`senderUidForTracking`
+          // != null) и если permission получили fix.
+          if (_showDistance && _distanceMeters != null)
+            Positioned(
+              top: top + 56,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: _DistancePill(
+                  text: _formatDistance(
+                    _distanceMeters!,
+                    AppLocalizations.of(context)!,
+                  ),
+                ),
+              ),
             ),
           // Phase 13+: recenter-кнопка для inline-карт (iOS native
           // MKMapView и Android FlutterMap). Показывает весь трек +
@@ -273,6 +360,48 @@ class _DesktopLocationFallback extends StatelessWidget {
               onPressed: () => onOpenExternal(),
               icon: const Icon(Icons.open_in_new_rounded),
               label: const Text('Открыть в браузере'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Pill «N м/км от вас» поверх fullscreen-карты. Glass-blur,
+/// тёмный фон + walking-figure icon. Readable на любом стиле карты.
+class _DistancePill extends StatelessWidget {
+  const _DistancePill({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: Colors.black.withValues(alpha: 0.55),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.directions_walk_rounded,
+              size: 14,
+              color: Colors.white.withValues(alpha: 0.92),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              text,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Colors.white.withValues(alpha: 0.95),
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
             ),
           ],
         ),

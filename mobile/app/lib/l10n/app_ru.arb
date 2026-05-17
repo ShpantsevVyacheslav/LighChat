@@ -3719,6 +3719,14 @@
     }
   },
   "location_panel_hint_address": "Введите адрес…",
+  "shared_location_distance_meters": "{meters} м от вас",
+  "@shared_location_distance_meters": {
+    "placeholders": { "meters": {} }
+  },
+  "shared_location_distance_km": "{km} км от вас",
+  "@shared_location_distance_km": {
+    "placeholders": { "km": {} }
+  },
   "location_request_pending_mine": "Ожидаем локацию…",
   "location_request_pending_other_with_name": "{name} запрашивает локацию",
   "@location_request_pending_other_with_name": {

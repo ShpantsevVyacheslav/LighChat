@@ -3375,6 +3375,14 @@
     }
   },
   "location_panel_hint_address": "Manzilni kiriting…",
+  "shared_location_distance_meters": "sizdan {meters} m",
+  "@shared_location_distance_meters": {
+    "placeholders": { "meters": {} }
+  },
+  "shared_location_distance_km": "sizdan {km} km",
+  "@shared_location_distance_km": {
+    "placeholders": { "km": {} }
+  },
   "location_request_pending_mine": "Joylashuv kutilmoqda…",
   "location_request_pending_other_with_name": "{name} sizning joylashuvingizni so‘ramoqda",
   "@location_request_pending_other_with_name": {

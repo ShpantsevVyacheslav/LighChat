@@ -7343,6 +7343,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get location_panel_hint_address => 'Введите адрес…';
 
   @override
+  String shared_location_distance_meters(Object meters) {
+    return '$meters м от вас';
+  }
+
+  @override
+  String shared_location_distance_km(Object km) {
+    return '$km км от вас';
+  }
+
+  @override
   String get location_request_pending_mine => 'Ожидаем локацию…';
 
   @override

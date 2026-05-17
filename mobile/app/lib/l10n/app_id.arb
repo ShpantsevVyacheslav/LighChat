@@ -3375,6 +3375,14 @@
     }
   },
   "location_panel_hint_address": "Masukkan alamat…",
+  "shared_location_distance_meters": "{meters} m dari Anda",
+  "@shared_location_distance_meters": {
+    "placeholders": { "meters": {} }
+  },
+  "shared_location_distance_km": "{km} km dari Anda",
+  "@shared_location_distance_km": {
+    "placeholders": { "km": {} }
+  },
   "location_request_pending_mine": "Menunggu lokasi…",
   "location_request_pending_other_with_name": "{name} meminta lokasi Anda",
   "@location_request_pending_other_with_name": {

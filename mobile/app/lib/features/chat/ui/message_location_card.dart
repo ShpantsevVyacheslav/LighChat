@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 import 'dart:typed_data';
 import 'dart:ui' show ImageFilter;
@@ -214,17 +215,19 @@ class MessageLocationCard extends StatelessWidget {
             child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    // Bug 13+ v3: на iOS — Apple Maps snapshot через
-                    // MKMapSnapshotter (PNG в кэше, дёшево на скролле).
-                    // Live-share: на каждый update share.lat/lng
-                    // ключ Future меняется → автоматически новый
-                    // snapshot. На Android — OSM static URL (как раньше).
+                    // Bug 13+ v4: на iOS — Apple Maps snapshot через
+                    // MKMapSnapshotter (PNG в кэше, дёшево на скролле)
+                    // + polyline overlay из live-trackPoints когда
+                    // share активен. Pin переезжает на последнюю
+                    // точку трека.
                     if (Platform.isIOS)
                       AspectRatio(
                         aspectRatio: aspect,
                         child: _AppleMapSnapshot(
                           lat: share.lat,
                           lng: share.lng,
+                          trackPointsForUid:
+                              stillStreaming ? senderId : null,
                           fallback: _FallbackLocationTile(
                             share: share,
                             isMine: isMine,
@@ -321,23 +324,81 @@ class MessageLocationCard extends StatelessWidget {
   }
 }
 
-/// Bug 13+ v3: Apple MKMapSnapshotter — статичный snapshot
-/// (PNG bytes) в bubble. Запрашивается лениво при первом
-/// LayoutBuilder с известным размером; результат кэшируется в
-/// `ChatMapSnapshot._cache` по (lat,lng,size,dark) → следующий
-/// rebuild возвращает уже готовый Future из map'а и
-/// `Image.memory` сразу рендерит. Live-share update (новые
-/// lat/lng) → новый ключ → новый snapshot.
-class _AppleMapSnapshot extends StatelessWidget {
+/// Bug 13+ v4: Apple MKMapSnapshotter — статичный snapshot (PNG)
+/// в bubble + polyline overlay трека если активна live-сессия.
+/// Stateful: подписывается на sub-collection trackPoints отправителя
+/// и пересоздаёт snapshot при изменении набора точек.
+class _AppleMapSnapshot extends StatefulWidget {
   const _AppleMapSnapshot({
     required this.lat,
     required this.lng,
     required this.fallback,
+    this.trackPointsForUid,
   });
 
   final double lat;
   final double lng;
   final Widget fallback;
+  /// Если задан и live-сессия активна — подписываемся на
+  /// `users/{uid}/liveLocationTrackPoints` и передаём точки в
+  /// snapshotter для отрисовки polyline + pin'а на последней
+  /// позиции.
+  final String? trackPointsForUid;
+
+  @override
+  State<_AppleMapSnapshot> createState() => _AppleMapSnapshotState();
+}
+
+class _AppleMapSnapshotState extends State<_AppleMapSnapshot> {
+  StreamSubscription<QuerySnapshot<Map<String, Object?>>>? _trackSub;
+  List<({double lat, double lng})> _polyline = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _subscribe();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AppleMapSnapshot old) {
+    super.didUpdateWidget(old);
+    if (old.trackPointsForUid != widget.trackPointsForUid) {
+      _trackSub?.cancel();
+      _trackSub = null;
+      _polyline = const [];
+      _subscribe();
+    }
+  }
+
+  @override
+  void dispose() {
+    _trackSub?.cancel();
+    super.dispose();
+  }
+
+  void _subscribe() {
+    final uid = widget.trackPointsForUid;
+    if (uid == null || uid.isEmpty) return;
+    _trackSub = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('liveLocationTrackPoints')
+        .orderBy('ts')
+        .limitToLast(720)
+        .snapshots()
+        .listen((snap) {
+      final points = <({double lat, double lng})>[];
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        final plat = (data['lat'] as num?)?.toDouble();
+        final plng = (data['lng'] as num?)?.toDouble();
+        if (plat == null || plng == null) continue;
+        points.add((lat: plat, lng: plng));
+      }
+      if (!mounted) return;
+      setState(() => _polyline = points);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -346,30 +407,32 @@ class _AppleMapSnapshot extends StatelessWidget {
       builder: (context, constraints) {
         if (!constraints.maxWidth.isFinite ||
             !constraints.maxHeight.isFinite) {
-          return fallback;
+          return widget.fallback;
         }
         final scale = MediaQuery.devicePixelRatioOf(context);
         final future = ChatMapSnapshot.get(
-          lat: lat,
-          lng: lng,
+          lat: widget.lat,
+          lng: widget.lng,
           width: constraints.maxWidth,
           height: constraints.maxHeight,
           scale: scale,
           dark: dark,
+          polyline: _polyline,
         );
         return FutureBuilder<Uint8List?>(
           future: future,
           builder: (context, snap) {
             final data = snap.data;
             if (data == null || data.isEmpty) {
-              return fallback;
+              return widget.fallback;
             }
             return Image.memory(
               data,
               fit: BoxFit.cover,
               gaplessPlayback: true,
-              // gaplessPlayback: предыдущий image остаётся видим пока
-              // новый загружается — без мерцания при live-share update.
+              // gaplessPlayback: предыдущий image остаётся видим
+              // пока новый загружается — без мерцания при live
+              // update.
             );
           },
         );

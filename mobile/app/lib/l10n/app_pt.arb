@@ -3375,6 +3375,14 @@
     }
   },
   "location_panel_hint_address": "Insira o endereço…",
+  "shared_location_distance_meters": "{meters} m de você",
+  "@shared_location_distance_meters": {
+    "placeholders": { "meters": {} }
+  },
+  "shared_location_distance_km": "{km} km de você",
+  "@shared_location_distance_km": {
+    "placeholders": { "km": {} }
+  },
   "location_request_pending_mine": "Aguardando localização…",
   "location_request_pending_other_with_name": "{name} pediu sua localização",
   "@location_request_pending_other_with_name": {

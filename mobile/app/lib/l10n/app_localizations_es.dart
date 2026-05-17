@@ -7405,6 +7405,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get location_panel_hint_address => 'Introduce la dirección…';
 
   @override
+  String shared_location_distance_meters(Object meters) {
+    return '$meters m de ti';
+  }
+
+  @override
+  String shared_location_distance_km(Object km) {
+    return '$km km de ti';
+  }
+
+  @override
   String get location_request_pending_mine => 'Esperando ubicación…';
 
   @override
@@ -16127,6 +16137,16 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
 
   @override
   String get location_panel_hint_address => 'Introduce la dirección…';
+
+  @override
+  String shared_location_distance_meters(Object meters) {
+    return '$meters m de ti';
+  }
+
+  @override
+  String shared_location_distance_km(Object km) {
+    return '$km km de ti';
+  }
 
   @override
   String get location_request_pending_mine => 'Esperando ubicación…';

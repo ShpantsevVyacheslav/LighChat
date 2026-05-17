@@ -3084,6 +3084,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                     _locationPanelLng = p.lng;
                                                   });
                                                 },
+                                                onRecenterToCurrent: () =>
+                                                    unawaited(
+                                                  _handleLocationPanelRecenter(),
+                                                ),
                                                 onShare: () => unawaited(
                                                   _handleLocationPanelShareTap(),
                                                 ),
@@ -5537,6 +5541,34 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       _locationPanelLat = pos.latitude;
       _locationPanelLng = pos.longitude;
     });
+  }
+
+  /// Тап «recenter to me» FAB в share-panel: запрашиваем актуальную
+  /// гео-позицию и возвращаем пин на неё. Если getCurrent fails
+  /// (timeout / permission) — fallback на last-known.
+  Future<void> _handleLocationPanelRecenter() async {
+    Position? pos;
+    try {
+      pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.best,
+          timeLimit: Duration(seconds: 4),
+        ),
+      );
+    } catch (_) {
+      pos = await Geolocator.getLastKnownPosition().catchError(
+        (_) => null,
+      );
+    }
+    if (!mounted || pos == null) return;
+    setState(() {
+      _locationPanelLat = pos!.latitude;
+      _locationPanelLng = pos.longitude;
+    });
+    unawaited(_locationPanelMapController.setCenter(
+      lat: pos.latitude,
+      lng: pos.longitude,
+    ));
   }
 
   void _closeLocationPanel() {

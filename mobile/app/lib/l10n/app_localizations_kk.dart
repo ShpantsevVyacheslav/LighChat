@@ -7351,6 +7351,16 @@ class AppLocalizationsKk extends AppLocalizations {
   String get location_panel_hint_address => 'Мекенжайды енгізіңіз…';
 
   @override
+  String shared_location_distance_meters(Object meters) {
+    return 'сізден $meters м';
+  }
+
+  @override
+  String shared_location_distance_km(Object km) {
+    return 'сізден $km км';
+  }
+
+  @override
   String get location_request_pending_mine => 'Геолокация күтілуде…';
 
   @override

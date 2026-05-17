@@ -12970,6 +12970,18 @@ abstract class AppLocalizations {
   /// **'Введите адрес…'**
   String get location_panel_hint_address;
 
+  /// No description provided for @shared_location_distance_meters.
+  ///
+  /// In ru, this message translates to:
+  /// **'{meters} м от вас'**
+  String shared_location_distance_meters(Object meters);
+
+  /// No description provided for @shared_location_distance_km.
+  ///
+  /// In ru, this message translates to:
+  /// **'{km} км от вас'**
+  String shared_location_distance_km(Object km);
+
   /// No description provided for @location_request_pending_mine.
   ///
   /// In ru, this message translates to:

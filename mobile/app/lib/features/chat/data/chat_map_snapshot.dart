@@ -23,19 +23,36 @@ class ChatMapSnapshot {
       <String, Future<Uint8List?>>{};
   static final List<String> _cacheOrder = <String>[];
 
+  /// Hash polyline-точек для cache-ключа. Берём кол-во точек +
+  /// last-fingerprint (последняя точка с округлением 5 знаков) —
+  /// при добавлении новой точки в трек ключ меняется → новый snapshot.
+  /// Полный hash 720 точек переоценочно дорого; this approximation
+  /// безопасна для трека (новые точки всегда appendятся в конец).
+  static String _polylineFingerprint(
+    List<({double lat, double lng})> polyline,
+  ) {
+    if (polyline.isEmpty) return 'none';
+    final n = polyline.length;
+    final last = polyline.last;
+    return '$n@${last.lat.toStringAsFixed(5)},${last.lng.toStringAsFixed(5)}';
+  }
+
   static String _key({
     required double lat,
     required double lng,
     required double width,
     required double height,
     required bool dark,
+    required List<({double lat, double lng})> polyline,
   }) {
     return '${lat.toStringAsFixed(5)},${lng.toStringAsFixed(5)},'
-        '${width.toInt()}x${height.toInt()},${dark ? "d" : "l"}';
+        '${width.toInt()}x${height.toInt()},${dark ? "d" : "l"},'
+        '${_polylineFingerprint(polyline)}';
   }
 
   /// Возвращает PNG bytes или null. Идентичность Future стабильна
-  /// для одинаковых аргументов.
+  /// для одинаковых аргументов. Если `polyline` непустой — рисуем
+  /// трек поверх snapshot, и pin переезжает на последнюю точку.
   static Future<Uint8List?> get({
     required double lat,
     required double lng,
@@ -43,6 +60,7 @@ class ChatMapSnapshot {
     required double height,
     required double scale,
     required bool dark,
+    List<({double lat, double lng})> polyline = const [],
   }) {
     if (!Platform.isIOS) return Future<Uint8List?>.value(null);
     final key = _key(
@@ -51,10 +69,11 @@ class ChatMapSnapshot {
       width: width,
       height: height,
       dark: dark,
+      polyline: polyline,
     );
     final cached = _cache[key];
     if (cached != null) return cached;
-    final future = _fetch(lat, lng, width, height, scale, dark);
+    final future = _fetch(lat, lng, width, height, scale, dark, polyline);
     _cache[key] = future;
     _cacheOrder.add(key);
     if (_cacheOrder.length > _maxCache) {
@@ -71,6 +90,7 @@ class ChatMapSnapshot {
     double height,
     double scale,
     bool dark,
+    List<({double lat, double lng})> polyline,
   ) async {
     try {
       final raw = await _channel.invokeMethod<Uint8List>('snapshot', {
@@ -80,6 +100,10 @@ class ChatMapSnapshot {
         'height': height,
         'scale': scale,
         'dark': dark,
+        if (polyline.isNotEmpty)
+          'polyline': polyline
+              .map((p) => <String, Object?>{'lat': p.lat, 'lng': p.lng})
+              .toList(growable: false),
       });
       return raw;
     } on PlatformException catch (e) {

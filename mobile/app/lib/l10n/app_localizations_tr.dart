@@ -7348,6 +7348,16 @@ class AppLocalizationsTr extends AppLocalizations {
   String get location_panel_hint_address => 'Adresi girin…';
 
   @override
+  String shared_location_distance_meters(Object meters) {
+    return 'sizden $meters m';
+  }
+
+  @override
+  String shared_location_distance_km(Object km) {
+    return 'sizden $km km';
+  }
+
+  @override
   String get location_request_pending_mine => 'Konum bekleniyor…';
 
   @override

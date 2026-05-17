@@ -3375,6 +3375,14 @@
     }
   },
   "location_panel_hint_address": "Мекенжайды енгізіңіз…",
+  "shared_location_distance_meters": "сізден {meters} м",
+  "@shared_location_distance_meters": {
+    "placeholders": { "meters": {} }
+  },
+  "shared_location_distance_km": "сізден {km} км",
+  "@shared_location_distance_km": {
+    "placeholders": { "km": {} }
+  },
   "location_request_pending_mine": "Геолокация күтілуде…",
   "location_request_pending_other_with_name": "{name} геолокацияңызды сұрайды",
   "@location_request_pending_other_with_name": {

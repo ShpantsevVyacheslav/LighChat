@@ -7387,6 +7387,16 @@ class AppLocalizationsPt extends AppLocalizations {
   String get location_panel_hint_address => 'Insira o endereço…';
 
   @override
+  String shared_location_distance_meters(Object meters) {
+    return '$meters m de você';
+  }
+
+  @override
+  String shared_location_distance_km(Object km) {
+    return '$km km de você';
+  }
+
+  @override
   String get location_request_pending_mine => 'Aguardando localização…';
 
   @override
@@ -16094,6 +16104,16 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get location_panel_hint_address => 'Insira o endereço…';
+
+  @override
+  String shared_location_distance_meters(Object meters) {
+    return '$meters m de você';
+  }
+
+  @override
+  String shared_location_distance_km(Object km) {
+    return '$km km de você';
+  }
 
   @override
   String get location_request_pending_mine => 'Aguardando localização…';

@@ -3408,6 +3408,14 @@
     }
   },
   "location_panel_hint_address": "Enter address…",
+  "shared_location_distance_meters": "{meters} m from you",
+  "@shared_location_distance_meters": {
+    "placeholders": { "meters": {} }
+  },
+  "shared_location_distance_km": "{km} km from you",
+  "@shared_location_distance_km": {
+    "placeholders": { "km": {} }
+  },
   "location_request_pending_mine": "Waiting for location…",
   "location_request_pending_other_with_name": "{name} requests your location",
   "@location_request_pending_other_with_name": {

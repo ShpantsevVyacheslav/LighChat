@@ -16,6 +16,7 @@ class ChatLocationSharePanel extends StatelessWidget {
     required this.onShare,
     this.onRequest,
     this.onPinMoved,
+    this.onRecenterToCurrent,
     this.controller,
     this.shareLabel = 'Поделиться',
     this.requestLabel = 'Запросить',
@@ -29,6 +30,11 @@ class ChatLocationSharePanel extends StatelessWidget {
   /// Bug #6: пользователь перетащил аннотацию по карте → caller
   /// обновляет lat/lng (state в chat_screen).
   final ValueChanged<ChatLocationPinPosition>? onPinMoved;
+
+  /// Тап «recenter to me» (compass-icon FAB) — caller (chat_screen)
+  /// запрашивает current position у Geolocator, обновляет
+  /// `_locationPanelLat/Lng` и шлёт setCenter native карте.
+  final VoidCallback? onRecenterToCurrent;
 
   /// Bug #7: caller может прокинуть контроллер для программного
   /// сдвига карты (forward geocoding по composer text).
@@ -59,6 +65,18 @@ class ChatLocationSharePanel extends StatelessWidget {
         // Bug C: пилюли в ~1.5 раза меньше и обе прозрачные (glass-blur).
         // Не растягиваем на всю ширину — Wrap по контенту, центрируем
         // снизу.
+        // Recenter-to-current-location FAB (compass icon) над
+        // пилюлями справа. Стеклянный круглый button, glass-blur
+        // как у outlined-pill.
+        if (onRecenterToCurrent != null)
+          Positioned(
+            right: 14,
+            bottom: mq.padding.bottom + 60,
+            child: _GlassCircleButton(
+              icon: Icons.my_location_rounded,
+              onTap: onRecenterToCurrent!,
+            ),
+          ),
         // T4 v2: опустили пилюли обратно (с +28 на +12); IntrinsicHeight
         // + CrossAxisAlignment.stretch гарантируют одинаковую высоту
         // обеих пилюль, чтобы «Запросить» не была визуально ниже
@@ -158,6 +176,52 @@ class _Pill extends StatelessWidget {
                     letterSpacing: -0.1,
                   ),
                 ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Стеклянный круглый glass-blur button. Используется для recenter-FAB
+/// в share-panel.
+class _GlassCircleButton extends StatelessWidget {
+  const _GlassCircleButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    final base = dark ? Colors.white : Colors.black;
+    final bg = (dark ? Colors.black : Colors.white).withValues(
+      alpha: dark ? 0.28 : 0.55,
+    );
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+        child: Material(
+          color: bg,
+          shape: CircleBorder(
+            side: BorderSide(
+              color: base.withValues(alpha: dark ? 0.18 : 0.10),
+              width: 0.5,
+            ),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            customBorder: const CircleBorder(),
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: Icon(
+                icon,
+                size: 20,
+                color: base.withValues(alpha: dark ? 0.92 : 0.85),
               ),
             ),
           ),

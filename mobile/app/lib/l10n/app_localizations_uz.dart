@@ -7383,6 +7383,16 @@ class AppLocalizationsUz extends AppLocalizations {
   String get location_panel_hint_address => 'Manzilni kiriting…';
 
   @override
+  String shared_location_distance_meters(Object meters) {
+    return 'sizdan $meters m';
+  }
+
+  @override
+  String shared_location_distance_km(Object km) {
+    return 'sizdan $km km';
+  }
+
+  @override
   String get location_request_pending_mine => 'Joylashuv kutilmoqda…';
 
   @override
