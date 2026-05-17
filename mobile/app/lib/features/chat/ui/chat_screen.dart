@@ -6199,7 +6199,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     // НЕ применяет Swift-side изменения, поэтому без rebuild
     // resign-firstResponder останется async и kb будет «висеть».
     debugPrint(
-      '[panel-toggle] _openStickersGifPanelImpl: BUILD=Phase14.6 enter '
+      '[panel-toggle] _openStickersGifPanelImpl: BUILD=Phase14.7 enter '
       'panelOpen=$_stickersPanelOpen focus=${_composerFocusNode.hasFocus} '
       'kbInset=${MediaQuery.viewInsetsOf(context).bottom} '
       'floorBefore=$_stickersTransitionFooterFloor',

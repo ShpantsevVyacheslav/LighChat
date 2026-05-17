@@ -13,7 +13,6 @@ import '../data/native_composer_flag.dart';
 import '../../../l10n/app_localizations.dart';
 import 'composer_attachment_menu.dart';
 import 'composer_editing_banner.dart';
-import 'composer_format_sheet.dart';
 import 'composer_formatting_toolbar.dart';
 import 'composer_link_preview.dart';
 import 'composer_pending_attachments_strip.dart';
@@ -227,6 +226,16 @@ class ChatComposerState extends State<ChatComposer> {
   int? _mentionAtStartOffset;
   List<GroupMentionCandidate> _mentionFiltered = const [];
   bool _holdRecordOverlayVisible = false;
+  /// Phase 14.7 fix: popover для форматирования теперь inline-widget
+  /// внутри Stack самого ChatComposer, а не Navigator route / OverlayEntry.
+  /// На iOS hybrid composition нативный UITextView (PlatformView)
+  /// рендерится в отдельном CALayer'е, который перекрывает любой
+  /// Flutter overlay/route (включая `PageRouteBuilder(opaque:false)`).
+  /// Когда popover — child того же Stack что и сам композер, Flutter
+  /// гарантирует z-order через child ordering (popover = последний
+  /// child = поверх). Это единственный 100% надёжный способ overlay
+  /// поверх PlatformView без demount'а самого PlatformView.
+  bool _showFormatPopover = false;
   String? _linkPreviewUrl;
   final Set<String> _dismissedLinkPreviewUrls = <String>{};
 
@@ -896,7 +905,15 @@ class ChatComposerState extends State<ChatComposer> {
     // kb-анимации hasFooterBelow становился false, SafeArea bottom
     // включался и подкидывал композер вверх на ~34pt после того, как
     // он съезжал вниз вместе с клавиатурой.
-    return Padding(
+    // Phase 14.7: Stack оборачивает Padding(Column композера) +
+    // inline Format popover. Popover — последний child Stack'а,
+    // гарантированно поверх композера (включая native UITextView
+    // PlatformView). Это единственный надёжный путь overlay поверх
+    // hybrid-composition PlatformView без demount'а: Flutter Overlay
+    // / Navigator route на iOS могут не победить CALayer нативного
+    // UITextView'я, а вот Stack child ordering — гарантия.
+    return _buildWithFormatPopover(
+      Padding(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
       child: Column(
           key: _composerColumnKey,
@@ -1099,17 +1116,13 @@ class ChatComposerState extends State<ChatComposer> {
                               : () {
                                   debugPrint(
                                     '[format-popover] inline Aa tap '
-                                    '(anchorMounted=${_composerColumnKey.currentContext != null})',
+                                    '→ toggle inline popover '
+                                    '(current=$_showFormatPopover)',
                                   );
-                                  unawaited(
-                                    showComposerFormatSheet(
-                                      context: context,
-                                      anchorKey: _composerColumnKey,
-                                      onToggle: (tag) => _nativeFieldKey
-                                          .currentState
-                                          ?.toggleFormat(tag),
-                                    ),
-                                  );
+                                  setState(() {
+                                    _showFormatPopover =
+                                        !_showFormatPopover;
+                                  });
                                 },
                           iconSize: 18,
                           padding: EdgeInsets.zero,
@@ -1268,6 +1281,226 @@ class ChatComposerState extends State<ChatComposer> {
               ),
           ],
         ),
+    ),
+    );
+  }
+
+  /// Phase 14.7: оборачивает composer'а в Stack с inline Format popover.
+  /// Popover — последний child, гарантированно поверх PlatformView.
+  /// Использует Positioned(bottom) — popover лежит над composer-row
+  /// с фиксированным gap'ом ~56pt (высота input-row + zazor).
+  Widget _buildWithFormatPopover(Widget composerBody) {
+    final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
+    final fg = dark ? const Color(0xFFE6E7EA) : const Color(0xFF1A1C22);
+    final border = (dark ? Colors.white : Colors.black)
+        .withValues(alpha: dark ? 0.10 : 0.08);
+    final solidBg = dark
+        ? const Color(0xFF1B1E26).withValues(alpha: 0.96)
+        : Colors.white.withValues(alpha: 0.98);
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        composerBody,
+        if (_showFormatPopover)
+          // Tap-outside barrier (полупрозрачный) — закрывает popover.
+          // Positioned.fill ловит тапы по всей области Stack'а,
+          // GestureDetector с translucent ничего не рисует но обрабатывает.
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                debugPrint('[format-popover] inline barrier tap → close');
+                setState(() => _showFormatPopover = false);
+              },
+              child: const ColoredBox(color: Color(0x00000000)),
+            ),
+          ),
+        if (_showFormatPopover)
+          // Сам popover — над composer input-row. bottom=56 ≈ высота
+          // input-row (40) + padding (8 сверху Stack'а + 8 запас).
+          // clipBehavior: Clip.none у Stack позволяет popover'у
+          // расти ВВЕРХ за пределы Stack constraints (т.к. composer
+          // компактный).
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 56,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 380),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {}, // блок tap-through на popover
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: solidBg,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: border, width: 0.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black
+                                  .withValues(alpha: dark ? 0.4 : 0.15),
+                              blurRadius: 24,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: _InlineFormatBody(
+                          fg: fg,
+                          onToggle: (tag) {
+                            debugPrint(
+                              '[format-popover] inline _emit tag=$tag',
+                            );
+                            _nativeFieldKey.currentState?.toggleFormat(tag);
+                          },
+                          onClose: () {
+                            debugPrint(
+                              '[format-popover] inline close tap',
+                            );
+                            setState(() => _showFormatPopover = false);
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Phase 14.7: inline Format-popover body. Похож на `_FormatPopoverBody`
+/// из composer_format_sheet.dart, но не использует Material elevation /
+/// BackdropFilter (которые ломали рендер поверх PlatformView).
+class _InlineFormatBody extends StatelessWidget {
+  const _InlineFormatBody({
+    required this.fg,
+    required this.onToggle,
+    required this.onClose,
+  });
+
+  final Color fg;
+  final void Function(String tag) onToggle;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const SizedBox(width: 6),
+              Text(
+                'Format',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: fg.withValues(alpha: 0.78),
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const Spacer(),
+              InkResponse(
+                onTap: onClose,
+                radius: 16,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: fg.withValues(alpha: 0.55),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(children: [
+            _InlineBtn(label: 'B', fg: fg, bold: true,
+                onTap: () => onToggle('bold')),
+            const SizedBox(width: 6),
+            _InlineBtn(label: 'I', fg: fg, italic: true,
+                onTap: () => onToggle('italic')),
+            const SizedBox(width: 6),
+            _InlineBtn(label: 'U', fg: fg, underline: true,
+                onTap: () => onToggle('underline')),
+            const SizedBox(width: 6),
+            _InlineBtn(label: 'S', fg: fg, strike: true,
+                onTap: () => onToggle('strikethrough')),
+            const SizedBox(width: 6),
+            _InlineBtn(label: '</>', fg: fg, mono: true,
+                onTap: () => onToggle('code')),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
+class _InlineBtn extends StatelessWidget {
+  const _InlineBtn({
+    required this.label,
+    required this.fg,
+    required this.onTap,
+    this.bold = false,
+    this.italic = false,
+    this.underline = false,
+    this.strike = false,
+    this.mono = false,
+  });
+  final String label;
+  final Color fg;
+  final VoidCallback onTap;
+  final bool bold;
+  final bool italic;
+  final bool underline;
+  final bool strike;
+  final bool mono;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: fg.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: mono ? 12 : 16,
+                fontFamily: mono ? 'Menlo' : null,
+                fontWeight: bold ? FontWeight.w900 : FontWeight.w600,
+                fontStyle: italic ? FontStyle.italic : FontStyle.normal,
+                decoration: underline
+                    ? TextDecoration.underline
+                    : (strike ? TextDecoration.lineThrough : null),
+                color: fg,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
