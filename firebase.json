@@ -15,6 +15,9 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "extensions": {
+    "firestore-bigquery-export": "firebase/firestore-bigquery-export@0.3.2"
+  },
   "hosting": {
     "source": ".",
     "ignore": [
