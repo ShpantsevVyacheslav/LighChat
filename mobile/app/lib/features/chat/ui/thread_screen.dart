@@ -1765,6 +1765,7 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
             isGroup: conversation?.isGroup ?? false,
             otherUserId: dmOtherId,
             otherUserName: dmOtherProfile?.name,
+            decryptedText: e2eeDecryptedText,
           );
         });
         _composerFocus.requestFocus();
@@ -2741,6 +2742,9 @@ class _ThreadScreenState extends ConsumerState<ThreadScreen>
                                                               dmOtherId,
                                                           otherUserName:
                                                               p?.name,
+                                                          decryptedText:
+                                                              e2eeDecryptedMap[m
+                                                                  .id],
                                                         );
                                                   });
                                                   _composerFocus.requestFocus();

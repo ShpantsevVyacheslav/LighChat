@@ -2169,6 +2169,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                                   otherUserName:
                                                                       profile
                                                                           ?.name,
+                                                                  decryptedText:
+                                                                      e2eeDecryptedMap[m
+                                                                          .id],
                                                                 );
                                                               });
                                                               _scheduleChatDraftSave();
@@ -2432,6 +2435,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                                         profileMap,
                                                                     conv: conv
                                                                         ?.data,
+                                                                    e2eeDecryptedTextByMessageId:
+                                                                        e2eeDecryptedMap,
                                                                   );
                                                                 },
                                                             onOpenFileAttachment:
@@ -3987,6 +3992,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     required UserProfile? profile,
     required Map<String, UserProfile>? profileMap,
     required Conversation? conv,
+    Map<String, String>? e2eeDecryptedTextByMessageId,
   }) {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
@@ -4066,6 +4072,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 isGroup: isGroup,
                 otherUserId: dmOtherId,
                 otherUserName: profile?.name,
+                decryptedText: e2eeDecryptedTextByMessageId?[m.id],
               );
             });
             if (leaveEdit) _controller.clear();
@@ -4608,9 +4615,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       return;
     }
     final isMine = m.senderId == user.uid;
-    final canEdit =
-        isMine && !m.isDeleted && (m.text?.trim().isNotEmpty ?? false);
-    final canDelete = isMine && !m.isDeleted;
     // Для E2EE сообщения текст в `m.text` пустой — берём расшифрованный.
     final menuTextSource = (e2eeDecryptedText ?? m.text ?? '').trim();
     final hasMenuText =
@@ -4618,6 +4622,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         (menuTextSource.contains('<')
             ? messageHtmlToPlainText(menuTextSource).trim().isNotEmpty
             : true);
+    final canEdit = isMine && !m.isDeleted && hasMenuText;
+    final canDelete = isMine && !m.isDeleted;
 
     final secretRestrictions = convWrap?.data.secretChat?.restrictions;
     final allowCopy = !(secretRestrictions?.noCopy == true);
@@ -4678,6 +4684,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             isGroup: isGroup,
             otherUserId: otherId,
             otherUserName: profile?.name,
+            decryptedText: e2eeDecryptedText,
           );
         });
         if (leaveEdit) _controller.clear();
