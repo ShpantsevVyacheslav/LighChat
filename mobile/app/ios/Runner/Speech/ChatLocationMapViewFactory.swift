@@ -56,6 +56,11 @@ final class ChatLocationMapView: NSObject, FlutterPlatformView, MKMapViewDelegat
   private let channel: FlutterMethodChannel?
   private let interactive: Bool
   private let draggablePin: Bool
+  /// Center-pin mode: native MKAnnotation скрыт, Flutter рисует
+  /// фиксированный пин по центру overlay. Native эмитит
+  /// `regionChanged(lat, lng)` при каждом regionDidChange — Dart
+  /// обновляет lat/lng + state.
+  private var centerPinMode: Bool = false
 
   init(
     frame: CGRect,
@@ -75,8 +80,16 @@ final class ChatLocationMapView: NSObject, FlutterPlatformView, MKMapViewDelegat
 
     interactive = (args["interactive"] as? Bool) ?? false
     draggablePin = (args["draggablePin"] as? Bool) ?? false
+    centerPinMode = (args["centerPinMode"] as? Bool) ?? false
     mapView.isScrollEnabled = interactive
     mapView.isZoomEnabled = interactive
+    // Center-pin mode (Uber/Bolt-style): пин рисуется Flutter'ом
+    // фиксированно по центру overlay, юзер двигает карту жестами.
+    // В этом режиме всегда показываем синюю «точку» текущей
+    // геолокации пользователя — отдельным маркером (если в viewport
+    // и есть permission).
+    let showsUser = (args["showsUserLocation"] as? Bool) ?? false
+    mapView.showsUserLocation = showsUser || centerPinMode
 
     if let m = messenger {
       channel = FlutterMethodChannel(
@@ -123,6 +136,15 @@ final class ChatLocationMapView: NSObject, FlutterPlatformView, MKMapViewDelegat
         // дефолт.
         self.fitToTrack()
         result(nil)
+      case "setCenterPinMode":
+        // Flutter переключил pin-in-center mode. Native прячет
+        // свой MKAnnotation; Dart рисует фиксированный пин по
+        // центру overlay'я.
+        let args = (call.arguments as? [String: Any]) ?? [:]
+        let on = (args["on"] as? Bool) ?? false
+        self.centerPinMode = on
+        self.applyCenterPinMode()
+        result(nil)
       case "setPolyline":
         // Bug 13: получатель прислал актуальный track. Заменяем
         // существующий overlay новым (или удаляем если points пуст).
@@ -164,14 +186,44 @@ final class ChatLocationMapView: NSObject, FlutterPlatformView, MKMapViewDelegat
       longitudinalMeters: 350)
     mapView.setRegion(region, animated: true)
 
-    // Пин-marker. Apple Maps render'ит его в системном стиле.
+    // Пин-marker. В center-pin mode native annotation скрыт —
+    // Dart рисует фиксированный pin overlay'ем.
     if let existing = pinAnnotation {
       mapView.removeAnnotation(existing)
+      pinAnnotation = nil
     }
-    let pin = MKPointAnnotation()
-    pin.coordinate = coord
-    mapView.addAnnotation(pin)
-    pinAnnotation = pin
+    if !centerPinMode {
+      let pin = MKPointAnnotation()
+      pin.coordinate = coord
+      mapView.addAnnotation(pin)
+      pinAnnotation = pin
+    }
+  }
+
+  /// Toggle native annotation visibility под текущий centerPinMode.
+  /// Также включаем `showsUserLocation`, чтобы в center-pin режиме
+  /// всегда отображалась системная «синяя точка» текущей геопозиции
+  /// пользователя (если включён permission).
+  private func applyCenterPinMode() {
+    if centerPinMode {
+      if let existing = pinAnnotation {
+        mapView.removeAnnotation(existing)
+        pinAnnotation = nil
+      }
+      mapView.showsUserLocation = true
+      // Сразу эмитим текущий центр — чтобы Dart-side засинхронил
+      // lat/lng при первом включении pin-mode (без ожидания pan'а).
+      let c = mapView.region.center
+      channel?.invokeMethod("regionChanged", arguments: [
+        "lat": c.latitude,
+        "lng": c.longitude,
+      ])
+    } else if pinAnnotation == nil {
+      let pin = MKPointAnnotation()
+      pin.coordinate = mapView.region.center
+      mapView.addAnnotation(pin)
+      pinAnnotation = pin
+    }
   }
 
   /// Phase 13+: animate setRegion на boundingMapRect трека + пина.
@@ -222,6 +274,19 @@ final class ChatLocationMapView: NSObject, FlutterPlatformView, MKMapViewDelegat
   }
 
   // MARK: MKMapViewDelegate
+
+  /// Center-pin mode: при каждом изменении видимого региона эмитим
+  /// `regionChanged(lat,lng)` — текущий центр карты, под которым
+  /// Flutter рисует фиксированный пин. Dart-side обновляет
+  /// выбранную координату.
+  func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+    guard centerPinMode else { return }
+    let c = mapView.region.center
+    channel?.invokeMethod("regionChanged", arguments: [
+      "lat": c.latitude,
+      "lng": c.longitude,
+    ])
+  }
 
   /// Bug 13: renderer для MKPolyline — синяя линия 4pt со скруглёнными
   /// концами. Цвет совпадает с Apple-blue (системный action accent).

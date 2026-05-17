@@ -80,12 +80,29 @@ class _ChatLocationSharePanelState extends State<ChatLocationSharePanel> {
             lat: widget.lat,
             lng: widget.lng,
             interactive: true,
-            // Pin draggable ТОЛЬКО в pin-mode — паритет с iMessage.
-            draggablePin: _pinMode,
+            // Uber/Bolt-style: в pin-mode native MKAnnotation скрыт,
+            // пин рисуется Flutter'ом фиксированно по центру overlay'я
+            // (см. ниже _CenterPinMarker), точка выбирается жестами
+            // pan по карте. Native эмитит `regionChanged` →
+            // onMapCenterChanged → caller обновляет lat/lng.
+            // showsUserLocation включаем чтобы синяя «точка-я» юзера
+            // была видна на карте, если в зоне viewport'а.
+            centerPinMode: _pinMode,
+            showsUserLocation: _pinMode,
+            // Старый draggable-режим больше не используем — он не
+            // работал в production (см. user-feedback).
+            draggablePin: false,
             onPinMoved: widget.onPinMoved,
+            onMapCenterChanged: _pinMode ? widget.onPinMoved : null,
             controller: widget.controller,
           ),
         ),
+        // Фиксированный пин по центру карты (только в pin-mode).
+        // IgnorePointer, чтобы pan-жесты доходили до MKMapView под ним.
+        if (_pinMode)
+          const Positioned.fill(
+            child: IgnorePointer(child: _CenterPinMarker()),
+          ),
         // Top-left toggle button. По умолчанию `add_location_alt` —
         // намёк «активировать выбор точки». В pin-mode — крестик X.
         Positioned(
@@ -201,9 +218,10 @@ class _Pill extends StatelessWidget {
             onTap: onTap,
             customBorder: const StadiumBorder(),
             child: Padding(
+              // Pills bigger (May 2026): padding 14/7 → 22/12, font 13 → 16.
               padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 7,
+                horizontal: 22,
+                vertical: 12,
               ),
               // T4 v2: Center внутри stretched-Row — текст по центру
               // pill'а независимо от того, что соседняя пилюля растянула
@@ -213,7 +231,7 @@ class _Pill extends StatelessWidget {
                 child: Text(
                   label,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: fg,
                     letterSpacing: -0.1,
@@ -224,6 +242,65 @@ class _Pill extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Фиксированный «Send Pin» маркер в центре карты — Uber/Bolt-style.
+/// Native MKMapView рисует MKPolyline / userLocation, но не сам пин:
+/// его рендерит Flutter overlay'ем сверху, так что юзер всегда видит
+/// активную точку выбора по центру (она не двигается — двигается
+/// карта под ней). IgnorePointer выше пропускает pan-жесты в карту.
+///
+/// Визуальный sweet-spot: tip иконки `Icons.location_on_rounded`
+/// смещён вниз от геометрического центра (alignment.bottomCenter), а
+/// сама иконка позиционируется так, чтобы её tip совпадал с
+/// математическим центром overlay'я — туда же, куда native берёт
+/// `mapView.region.center`. Под пином — маленький теневой
+/// «projection-dot» (как в Apple Maps).
+class _CenterPinMarker extends StatelessWidget {
+  const _CenterPinMarker();
+
+  @override
+  Widget build(BuildContext context) {
+    const pinSize = 44.0;
+    const dotSize = 8.0;
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        // Проекция-точка на геометрическом центре карты (там же,
+        // куда смотрит native center).
+        Container(
+          width: dotSize,
+          height: dotSize,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.35),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.85),
+              width: 1.5,
+            ),
+          ),
+        ),
+        // Сам пин: tip иконки прижимаем к центру overlay'я через
+        // отрицательный offset (Icon.location_on имеет tip в нижней
+        // ~3/4 высоты, поэтому смещаем вверх на pinSize/2).
+        Transform.translate(
+          offset: const Offset(0, -pinSize / 2 + 2),
+          child: Icon(
+            Icons.location_on_rounded,
+            size: pinSize,
+            color: const Color(0xFFD32F2F),
+            shadows: [
+              Shadow(
+                color: Colors.black.withValues(alpha: 0.45),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

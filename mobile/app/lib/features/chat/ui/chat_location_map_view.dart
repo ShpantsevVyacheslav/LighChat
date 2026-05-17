@@ -44,6 +44,16 @@ class ChatLocationMapController {
     });
   }
 
+  /// iMessage / Uber-style center-pin: Flutter рисует фиксированный
+  /// пин по центру overlay'я, native MKAnnotation скрывается, и
+  /// native начинает эмитить `regionChanged(lat,lng)` при каждом
+  /// панорамировании карты — выбранная координата = центр.
+  Future<void> setCenterPinMode(bool on) async {
+    await _channel?.invokeMethod<void>('setCenterPinMode', <String, Object?>{
+      'on': on,
+    });
+  }
+
   /// Bug 13: пересоздаёт MKPolyline overlay из переданного списка
   /// точек (lat,lng). Пустой список — удаляет overlay. Native side
   /// сам решает `fitOverlay` для региона (центрируем по последней
@@ -92,7 +102,10 @@ class ChatLocationMapView extends StatefulWidget {
     required this.lng,
     this.interactive = false,
     this.draggablePin = false,
+    this.centerPinMode = false,
+    this.showsUserLocation = false,
     this.onPinMoved,
+    this.onMapCenterChanged,
     this.controller,
     this.trackPointsForUid,
   });
@@ -101,7 +114,25 @@ class ChatLocationMapView extends StatefulWidget {
   final double lng;
   final bool interactive;
   final bool draggablePin;
+
+  /// Uber/Bolt/iMessage Send-Pin режим: native MKMapView НЕ рисует
+  /// MKAnnotation; пин рисуется Flutter'ом фиксированно по центру
+  /// overlay'я. При pan'е карты native эмитит `regionChanged` →
+  /// [onMapCenterChanged] получает новую координату центра.
+  final bool centerPinMode;
+
+  /// Показывать ли системную «синюю точку» текущей геопозиции
+  /// пользователя (Apple `MKMapView.showsUserLocation`). В
+  /// center-pin режиме включается автоматически.
+  final bool showsUserLocation;
+
   final ValueChanged<ChatLocationPinPosition>? onPinMoved;
+
+  /// Center-pin mode: native эмитит lat/lng центра при каждом
+  /// regionDidChange. Caller обновляет своё состояние «текущая
+  /// выбранная точка».
+  final ValueChanged<ChatLocationPinPosition>? onMapCenterChanged;
+
   final ChatLocationMapController? controller;
 
   /// Bug 13: если задан — подписываемся на sub-collection
@@ -154,6 +185,16 @@ class _ChatLocationMapViewState extends State<ChatLocationMapView> {
         if (lat == null || lng == null) return null;
         debugPrint('[map-view] pinMoved lat=$lat lng=$lng');
         widget.onPinMoved?.call((lat: lat, lng: lng));
+      } else if (call.method == 'regionChanged') {
+        // Center-pin mode: native шлёт центр на каждый pan/zoom-end.
+        // Caller (share-panel) обновляет «текущую выбранную»
+        // координату, чтобы при tap «Send Pin» отправить её.
+        final args = call.arguments as Map<Object?, Object?>?;
+        if (args == null) return null;
+        final lat = (args['lat'] as num?)?.toDouble();
+        final lng = (args['lng'] as num?)?.toDouble();
+        if (lat == null || lng == null) return null;
+        widget.onMapCenterChanged?.call((lat: lat, lng: lng));
       }
       return null;
     });
@@ -183,6 +224,11 @@ class _ChatLocationMapViewState extends State<ChatLocationMapView> {
       _trackSub?.cancel();
       _trackSub = null;
       _subscribeToTrackPointsIfNeeded();
+    }
+    // Center-pin mode toggled — пушим в native (он скрывает/показывает
+    // MKAnnotation и включает showsUserLocation).
+    if (oldWidget.centerPinMode != widget.centerPinMode) {
+      unawaited(_effectiveController.setCenterPinMode(widget.centerPinMode));
     }
   }
 
@@ -254,6 +300,9 @@ class _ChatLocationMapViewState extends State<ChatLocationMapView> {
               'lng': widget.lng,
               'interactive': widget.interactive,
               'draggablePin': widget.draggablePin,
+              'centerPinMode': widget.centerPinMode,
+              'showsUserLocation':
+                  widget.showsUserLocation || widget.centerPinMode,
             },
             creationParamsCodec: const StandardMessageCodec(),
             onPlatformViewCreated: _onPlatformViewCreated,
