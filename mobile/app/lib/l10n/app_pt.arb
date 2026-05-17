@@ -3385,6 +3385,13 @@
   "@location_request_accepted_other_with_name": {
     "placeholders": { "name": {} }
   },
+  "location_request_cancelled_mine": "Pedido cancelado",
+  "location_request_cancelled_other_with_name": "{name} cancelou o pedido",
+  "@location_request_cancelled_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_e2ee_unsupported": "A solicitação de localização não está disponível em chats criptografados",
+  "location_request_action_cancel": "Cancelar",
   "location_request_declined_mine": "Pedido recusado",
   "location_request_declined_other_with_name": "{name} recusou o pedido",
   "@location_request_declined_other_with_name": {

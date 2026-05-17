@@ -7364,6 +7364,21 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get location_request_cancelled_mine => 'İstek iptal edildi';
+
+  @override
+  String location_request_cancelled_other_with_name(Object name) {
+    return '$name isteği iptal etti';
+  }
+
+  @override
+  String get location_request_e2ee_unsupported =>
+      'Konum isteği şifreli sohbetlerde kullanılamaz';
+
+  @override
+  String get location_request_action_cancel => 'İptal';
+
+  @override
   String get location_request_declined_mine => 'İstek reddedildi';
 
   @override

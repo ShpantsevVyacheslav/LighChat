@@ -2216,6 +2216,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                                     m,
                                                                   ),
                                                                 ),
+                                                            onCancelLocationRequest:
+                                                                (m) => unawaited(
+                                                                  _handleCancelLocationRequest(
+                                                                    m,
+                                                                  ),
+                                                                ),
                                                             onOutboxRetry: (mid) {
                                                               handleOutboxRetry(
                                                                 ref,
@@ -5425,17 +5431,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         : (_lastKeyboardHeight > 0
               ? _lastKeyboardHeight
               : MediaQuery.of(context).size.height * 0.42);
+    // T7 v2: native UITextView не всегда обновляет
+    // `MediaQuery.viewInsetsOf(context).bottom` сразу после
+    // `_composerFocusNode.unfocus()` (фокус живёт в native UITextView,
+    // не во Flutter focus tree). Поэтому шлём явный native-unfocus
+    // через NativeIosComposerField; параллельно вызываем Flutter
+    // unfocus как до этого.
+    final composerWasFocused = _composerFocusNode.hasFocus;
     _composerFocusNode.unfocus();
     FocusManager.instance.primaryFocus?.unfocus();
+    _chatComposerKey.currentState?.unfocusComposer();
     unawaited(SystemChannels.textInput.invokeMethod<void>('TextInput.hide'));
-    // T7: если клавиатура была открыта — даём ей доехать вниз ДО
-    // mount'а MKMapView. Без этой задержки PlatformView рендерится
-    // на верхнем уровне поверх UIKeyboard'а — карта появляется
-    // «под клавиатурой» (visual bug). 320ms — типичный iOS keyboard
-    // dismiss timing.
-    if (preKbInset > 0) {
-      await Future.delayed(const Duration(milliseconds: 320));
-      if (!mounted) return;
+    // T7 v2: вместо фиксированной задержки 320ms — polling-loop ждём
+    // пока viewInsets.bottom не упадёт до 0 ИЛИ не пройдёт 600ms.
+    // Условие активирующее ожидание: composer/keyboard БЫЛ виден
+    // (через `_lastKeyboardHeight` или текущий viewInsets, или native
+    // focus). Это устраняет случай «MKMapView mount'ится поверх
+    // клавиатуры» когда iOS native textfield был focused, но Flutter
+    // viewInsets ещё показывал 0.
+    final hadAnyKeyboard = preKbInset > 0 ||
+        _lastKeyboardHeight > 0 ||
+        composerWasFocused;
+    if (hadAnyKeyboard) {
+      final deadline = DateTime.now().add(const Duration(milliseconds: 600));
+      while (DateTime.now().isBefore(deadline)) {
+        await Future.delayed(const Duration(milliseconds: 32));
+        if (!mounted) return;
+        final inset = MediaQuery.viewInsetsOf(context).bottom;
+        if (inset <= 1) break;
+      }
     }
 
     // Bug #2: иногда композер «не поднимается над картой» — это была
@@ -5588,9 +5612,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   /// Phase 12.3: тап «Запросить» в location panel. Отправляем
   /// специальное сообщение `locationRequest`; получатель видит bubble
   /// с Accept/Decline, отправитель — pulsing pin.
+  ///
+  /// В E2EE-чате блокируем: `locationRequest` payload Firestore-side
+  /// не encrypted (нет E2EE-обёртки для request-сообщений), что
+  /// привело бы к leak'у в шифрованный чат. Показываем toast и
+  /// оставляем panel открытой — пользователь может всё же
+  /// «Поделиться» (своя локация = это его явный выбор поделиться,
+  /// в отличие от «Запросить» которое создаёт unencrypted-документ).
   Future<void> _handleLocationPanelRequestTap() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
+    final convAsyncCheck = ref.read(
+      conversationsProvider((
+        key: conversationIdsCacheKey([widget.conversationId]),
+      )),
+    );
+    final convListCheck = convAsyncCheck.asData?.value;
+    final convCheck = convListCheck != null && convListCheck.isNotEmpty
+        ? convListCheck.first.data
+        : null;
+    if (convCheck != null && isConversationE2eeActive(convCheck)) {
+      _toast(
+        AppLocalizations.of(context)!.location_request_e2ee_unsupported,
+      );
+      return;
+    }
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) {
       _toast(AppLocalizations.of(context)!.chat_repository_unavailable);
@@ -5655,6 +5701,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       await repo.softDeleteMessage(
         conversationId: widget.conversationId,
         messageId: requestMessage.id,
+      );
+    } catch (e) {
+      if (mounted) {
+        _toast(AppLocalizations.of(context)!.chat_delete_action_failed(e));
+      }
+    }
+  }
+
+  /// Cancel-кнопка в own pending request → status='cancelled',
+  /// собеседник видит «Запрос отменён».
+  Future<void> _handleCancelLocationRequest(
+    ChatMessage requestMessage,
+  ) async {
+    final repo = ref.read(chatRepositoryProvider);
+    if (repo == null) return;
+    try {
+      await repo.cancelLocationRequestMessage(
+        conversationId: widget.conversationId,
+        requestMessageId: requestMessage.id,
       );
     } catch (e) {
       if (mounted) {

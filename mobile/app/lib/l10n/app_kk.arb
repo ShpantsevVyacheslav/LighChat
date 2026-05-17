@@ -3385,6 +3385,13 @@
   "@location_request_accepted_other_with_name": {
     "placeholders": { "name": {} }
   },
+  "location_request_cancelled_mine": "Сұраныс бас тартылды",
+  "location_request_cancelled_other_with_name": "{name} сұранысты бас тартты",
+  "@location_request_cancelled_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_e2ee_unsupported": "Шифрленген чаттарда геолокация сұрауы қолжетімсіз",
+  "location_request_action_cancel": "Бас тарту",
   "location_request_declined_mine": "Сұраныс қабылданбады",
   "location_request_declined_other_with_name": "{name} сұранысты қабылдамады",
   "@location_request_declined_other_with_name": {

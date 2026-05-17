@@ -3385,6 +3385,13 @@
   "@location_request_accepted_other_with_name": {
     "placeholders": { "name": {} }
   },
+  "location_request_cancelled_mine": "Permintaan dibatalkan",
+  "location_request_cancelled_other_with_name": "{name} membatalkan permintaan",
+  "@location_request_cancelled_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_e2ee_unsupported": "Permintaan lokasi tidak tersedia di obrolan terenkripsi",
+  "location_request_action_cancel": "Batalkan",
   "location_request_declined_mine": "Permintaan ditolak",
   "location_request_declined_other_with_name": "{name} menolak permintaan",
   "@location_request_declined_other_with_name": {

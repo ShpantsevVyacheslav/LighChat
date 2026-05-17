@@ -7421,6 +7421,21 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get location_request_cancelled_mine => 'Solicitud cancelada';
+
+  @override
+  String location_request_cancelled_other_with_name(Object name) {
+    return '$name canceló la solicitud';
+  }
+
+  @override
+  String get location_request_e2ee_unsupported =>
+      'La solicitud de ubicación no está disponible en chats cifrados';
+
+  @override
+  String get location_request_action_cancel => 'Cancelar';
+
+  @override
   String get location_request_declined_mine => 'Solicitud rechazada';
 
   @override
@@ -16128,6 +16143,21 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String location_request_accepted_other_with_name(Object name) {
     return '$name compartió su ubicación';
   }
+
+  @override
+  String get location_request_cancelled_mine => 'Solicitud cancelada';
+
+  @override
+  String location_request_cancelled_other_with_name(Object name) {
+    return '$name canceló la solicitud';
+  }
+
+  @override
+  String get location_request_e2ee_unsupported =>
+      'La solicitud de ubicación no está disponible en chats cifrados';
+
+  @override
+  String get location_request_action_cancel => 'Cancelar';
 
   @override
   String get location_request_declined_mine => 'Solicitud rechazada';

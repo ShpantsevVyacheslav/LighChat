@@ -12994,6 +12994,30 @@ abstract class AppLocalizations {
   /// **'{name} поделился локацией'**
   String location_request_accepted_other_with_name(Object name);
 
+  /// No description provided for @location_request_cancelled_mine.
+  ///
+  /// In ru, this message translates to:
+  /// **'Запрос отменён'**
+  String get location_request_cancelled_mine;
+
+  /// No description provided for @location_request_cancelled_other_with_name.
+  ///
+  /// In ru, this message translates to:
+  /// **'{name} отменили запрос'**
+  String location_request_cancelled_other_with_name(Object name);
+
+  /// No description provided for @location_request_e2ee_unsupported.
+  ///
+  /// In ru, this message translates to:
+  /// **'Запрос геолокации недоступен в зашифрованных чатах'**
+  String get location_request_e2ee_unsupported;
+
+  /// No description provided for @location_request_action_cancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отменить'**
+  String get location_request_action_cancel;
+
   /// No description provided for @location_request_declined_mine.
   ///
   /// In ru, this message translates to:

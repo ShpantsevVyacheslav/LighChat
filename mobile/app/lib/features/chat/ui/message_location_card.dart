@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'dart:typed_data';
 import 'dart:ui' show ImageFilter;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -5,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:lighchat_models/lighchat_models.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../data/chat_map_snapshot.dart';
 import '../data/chat_media_layout_tokens.dart';
 import '../data/location_scroll_diagnostics.dart';
 import '../data/google_maps_urls.dart';
@@ -211,7 +214,24 @@ class MessageLocationCard extends StatelessWidget {
             child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    if (staticUrl != null && staticUrl.isNotEmpty)
+                    // Bug 13+ v3: на iOS — Apple Maps snapshot через
+                    // MKMapSnapshotter (PNG в кэше, дёшево на скролле).
+                    // Live-share: на каждый update share.lat/lng
+                    // ключ Future меняется → автоматически новый
+                    // snapshot. На Android — OSM static URL (как раньше).
+                    if (Platform.isIOS)
+                      AspectRatio(
+                        aspectRatio: aspect,
+                        child: _AppleMapSnapshot(
+                          lat: share.lat,
+                          lng: share.lng,
+                          fallback: _FallbackLocationTile(
+                            share: share,
+                            isMine: isMine,
+                          ),
+                        ),
+                      )
+                    else if (staticUrl != null && staticUrl.isNotEmpty)
                       AspectRatio(
                         aspectRatio: aspect,
                         child: ChatCachedNetworkImage(
@@ -295,6 +315,63 @@ class MessageLocationCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             child: stackBody,
           ),
+        );
+      },
+    );
+  }
+}
+
+/// Bug 13+ v3: Apple MKMapSnapshotter — статичный snapshot
+/// (PNG bytes) в bubble. Запрашивается лениво при первом
+/// LayoutBuilder с известным размером; результат кэшируется в
+/// `ChatMapSnapshot._cache` по (lat,lng,size,dark) → следующий
+/// rebuild возвращает уже готовый Future из map'а и
+/// `Image.memory` сразу рендерит. Live-share update (новые
+/// lat/lng) → новый ключ → новый snapshot.
+class _AppleMapSnapshot extends StatelessWidget {
+  const _AppleMapSnapshot({
+    required this.lat,
+    required this.lng,
+    required this.fallback,
+  });
+
+  final double lat;
+  final double lng;
+  final Widget fallback;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (!constraints.maxWidth.isFinite ||
+            !constraints.maxHeight.isFinite) {
+          return fallback;
+        }
+        final scale = MediaQuery.devicePixelRatioOf(context);
+        final future = ChatMapSnapshot.get(
+          lat: lat,
+          lng: lng,
+          width: constraints.maxWidth,
+          height: constraints.maxHeight,
+          scale: scale,
+          dark: dark,
+        );
+        return FutureBuilder<Uint8List?>(
+          future: future,
+          builder: (context, snap) {
+            final data = snap.data;
+            if (data == null || data.isEmpty) {
+              return fallback;
+            }
+            return Image.memory(
+              data,
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+              // gaplessPlayback: предыдущий image остаётся видим пока
+              // новый загружается — без мерцания при live-share update.
+            );
+          },
         );
       },
     );

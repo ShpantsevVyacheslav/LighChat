@@ -7362,6 +7362,21 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
+  String get location_request_cancelled_mine => 'Permintaan dibatalkan';
+
+  @override
+  String location_request_cancelled_other_with_name(Object name) {
+    return '$name membatalkan permintaan';
+  }
+
+  @override
+  String get location_request_e2ee_unsupported =>
+      'Permintaan lokasi tidak tersedia di obrolan terenkripsi';
+
+  @override
+  String get location_request_action_cancel => 'Batalkan';
+
+  @override
   String get location_request_declined_mine => 'Permintaan ditolak';
 
   @override

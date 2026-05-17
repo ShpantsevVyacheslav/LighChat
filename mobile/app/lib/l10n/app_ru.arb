@@ -3729,6 +3729,13 @@
   "@location_request_accepted_other_with_name": {
     "placeholders": { "name": {} }
   },
+  "location_request_cancelled_mine": "Запрос отменён",
+  "location_request_cancelled_other_with_name": "{name} отменили запрос",
+  "@location_request_cancelled_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_e2ee_unsupported": "Запрос геолокации недоступен в зашифрованных чатах",
+  "location_request_action_cancel": "Отменить",
   "location_request_declined_mine": "Запрос отклонён",
   "location_request_declined_other_with_name": "{name} отклонили запрос",
   "@location_request_declined_other_with_name": {

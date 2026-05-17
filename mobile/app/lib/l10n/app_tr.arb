@@ -3385,6 +3385,13 @@
   "@location_request_accepted_other_with_name": {
     "placeholders": { "name": {} }
   },
+  "location_request_cancelled_mine": "İstek iptal edildi",
+  "location_request_cancelled_other_with_name": "{name} isteği iptal etti",
+  "@location_request_cancelled_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_e2ee_unsupported": "Konum isteği şifreli sohbetlerde kullanılamaz",
+  "location_request_action_cancel": "İptal",
   "location_request_declined_mine": "İstek reddedildi",
   "location_request_declined_other_with_name": "{name} isteği reddetti",
   "@location_request_declined_other_with_name": {

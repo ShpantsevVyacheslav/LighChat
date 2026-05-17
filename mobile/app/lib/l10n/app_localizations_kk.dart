@@ -7367,6 +7367,21 @@ class AppLocalizationsKk extends AppLocalizations {
   }
 
   @override
+  String get location_request_cancelled_mine => 'Сұраныс бас тартылды';
+
+  @override
+  String location_request_cancelled_other_with_name(Object name) {
+    return '$name сұранысты бас тартты';
+  }
+
+  @override
+  String get location_request_e2ee_unsupported =>
+      'Шифрленген чаттарда геолокация сұрауы қолжетімсіз';
+
+  @override
+  String get location_request_action_cancel => 'Бас тарту';
+
+  @override
   String get location_request_declined_mine => 'Сұраныс қабылданбады';
 
   @override

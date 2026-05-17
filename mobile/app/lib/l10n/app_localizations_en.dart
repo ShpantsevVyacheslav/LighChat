@@ -7334,6 +7334,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get location_request_cancelled_mine => 'Request cancelled';
+
+  @override
+  String location_request_cancelled_other_with_name(Object name) {
+    return '$name cancelled the request';
+  }
+
+  @override
+  String get location_request_e2ee_unsupported =>
+      'Location request is unavailable in encrypted chats';
+
+  @override
+  String get location_request_action_cancel => 'Cancel';
+
+  @override
   String get location_request_declined_mine => 'Request declined';
 
   @override

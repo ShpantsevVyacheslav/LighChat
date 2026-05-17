@@ -24,6 +24,7 @@ class MessageLocationRequestBubble extends StatefulWidget {
     required this.onDecline,
     this.requesterName,
     this.onRemove,
+    this.onCancelRequest,
   });
 
   final ChatLocationRequest request;
@@ -45,6 +46,12 @@ class MessageLocationRequestBubble extends StatefulWidget {
   /// Если null — иконка не рисуется (например, для received-bubble
   /// удаление доступно через стандартный long-press menu).
   final VoidCallback? onRemove;
+
+  /// Pending+isMine: тап на кнопку «Отменить» — caller помечает
+  /// `locationRequest.status='cancelled'`. В отличие от `onRemove`
+  /// сообщение остаётся в чате (обе стороны видят «Запрос отменён»).
+  /// Если null — кнопка не показывается.
+  final VoidCallback? onCancelRequest;
 
   @override
   State<MessageLocationRequestBubble> createState() =>
@@ -97,6 +104,11 @@ class _MessageLocationRequestBubbleState
           ? l10n.location_request_accepted_mine
           : l10n.location_request_accepted_other_with_name(name);
     }
+    if (widget.request.isCancelled) {
+      return widget.isMine
+          ? l10n.location_request_cancelled_mine
+          : l10n.location_request_cancelled_other_with_name(name);
+    }
     if (widget.request.isDeclined) {
       // Для receiver-side fallback используем «Вы» если имя
       // отсутствует — текст звучит как «Вы отклонили запрос».
@@ -117,8 +129,12 @@ class _MessageLocationRequestBubbleState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
+    final dark = scheme.brightness == Brightness.dark;
     final accent = scheme.primary;
-    final fg = widget.isMine ? scheme.onPrimary : scheme.onSurface;
+    // Адаптивный foreground: всегда читаемый на тёмном glass-фоне
+    // (он одинаковый что в isMine, что в !isMine — bubble сам по
+    // себе UI-blocker, не часть outgoing-buble'я).
+    final fg = Colors.white.withValues(alpha: 0.94);
 
     final iconColor = widget.request.isDeclined
         ? fg.withValues(alpha: 0.45)
@@ -129,8 +145,20 @@ class _MessageLocationRequestBubbleState
         widget.onRemove != null;
     return ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 220, maxWidth: 280),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      child: DecoratedBox(
+        // Адаптивный glass-фон: тёмный полупрозрачный с тонкой
+        // границей. Хорошо читается на любых wallpaper'ах, не
+        // сливается с outgoing-bubble синим.
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: dark ? 0.42 : 0.55),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.16),
+            width: 0.5,
+          ),
+        ),
+        child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
@@ -197,8 +225,24 @@ class _MessageLocationRequestBubbleState
                   ],
                 ),
               ),
+            // Cancel-кнопка — только для своего pending запроса.
+            // Отдельный flow от onRemove (тот удаляет bubble у себя,
+            // Cancel — обоюдно меняет status на cancelled).
+            if (widget.request.isPending &&
+                widget.isMine &&
+                widget.onCancelRequest != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: _ActionButton(
+                  label: l10n.location_request_action_cancel,
+                  filled: false,
+                  fg: fg,
+                  onTap: widget.onCancelRequest!,
+                ),
+              ),
           ],
         ),
+      ),
       ),
     );
   }

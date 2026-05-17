@@ -246,6 +246,10 @@ private final class LighChatIosPipBridge: NSObject, AVPictureInPictureController
       mapFactory, withId: ChatLocationMapViewFactory.viewType)
     ChatGeocoderBridge.shared.register(
       messenger: engineBridge.applicationRegistrar.messenger())
+    // Bug 13+ v3: MKMapSnapshotter bridge — статичный Apple Maps
+    // snapshot для inline-bubble (без PlatformView).
+    ChatMapSnapshotBridge.shared.register(
+      messenger: engineBridge.applicationRegistrar.messenger())
   }
 
   override func application(

@@ -7359,6 +7359,21 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get location_request_cancelled_mine => 'Запрос отменён';
+
+  @override
+  String location_request_cancelled_other_with_name(Object name) {
+    return '$name отменили запрос';
+  }
+
+  @override
+  String get location_request_e2ee_unsupported =>
+      'Запрос геолокации недоступен в зашифрованных чатах';
+
+  @override
+  String get location_request_action_cancel => 'Отменить';
+
+  @override
   String get location_request_declined_mine => 'Запрос отклонён';
 
   @override

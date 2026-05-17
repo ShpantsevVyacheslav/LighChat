@@ -94,6 +94,7 @@ class ChatMessageList extends ConsumerStatefulWidget {
     this.onAcceptLocationRequest,
     this.onDeclineLocationRequest,
     this.onRemoveLocationRequest,
+    this.onCancelLocationRequest,
     this.e2eeDecryptedTextByMessageId,
     this.e2eeDecryptionFailedMessageIds,
     this.onOutboxRetry,
@@ -201,6 +202,10 @@ class ChatMessageList extends ConsumerStatefulWidget {
   /// не рендерится. Это НЕ отмена запроса — собеседник по-прежнему
   /// может ответить, просто bubble удаляется (softDelete).
   final void Function(ChatMessage requestMessage)? onRemoveLocationRequest;
+
+  /// Отдельная кнопка «Отменить»: помечает request status=cancelled
+  /// (видно обеим сторонам как «Запрос отменён»). Bubble остаётся.
+  final void Function(ChatMessage requestMessage)? onCancelLocationRequest;
 
   /// Предвычисленные plaintext'ы для E2EE-сообщений (Phase 4).
   ///
@@ -838,6 +843,7 @@ class _ChatMessageListState extends ConsumerState<ChatMessageList> {
                 onAcceptLocationRequest: widget.onAcceptLocationRequest,
                 onDeclineLocationRequest: widget.onDeclineLocationRequest,
                 onRemoveLocationRequest: widget.onRemoveLocationRequest,
+                onCancelLocationRequest: widget.onCancelLocationRequest,
               ),
             );
             final rowKey = widget.messageItemKeys[m.id];
@@ -1308,6 +1314,7 @@ class _ChatMessageBubble extends StatelessWidget {
     this.onAcceptLocationRequest,
     this.onDeclineLocationRequest,
     this.onRemoveLocationRequest,
+    this.onCancelLocationRequest,
   });
 
   final ChatMessage message;
@@ -1362,6 +1369,8 @@ class _ChatMessageBubble extends StatelessWidget {
 
   /// Bug #17: see ChatMessageList.onRemoveLocationRequest.
   final void Function(ChatMessage requestMessage)? onRemoveLocationRequest;
+  /// see ChatMessageList.onCancelLocationRequest.
+  final void Function(ChatMessage requestMessage)? onCancelLocationRequest;
 
   @override
   Widget build(BuildContext context) {
@@ -2198,6 +2207,11 @@ class _ChatMessageBubble extends StatelessWidget {
                     message.locationRequest!.isPending &&
                     onRemoveLocationRequest != null)
                 ? () => onRemoveLocationRequest!(message)
+                : null,
+            onCancelRequest: (isMine &&
+                    message.locationRequest!.isPending &&
+                    onCancelLocationRequest != null)
+                ? () => onCancelLocationRequest!(message)
                 : null,
           ),
           SizedBox(height: ChatMediaLayoutTokens.mediaToCaptionGap),

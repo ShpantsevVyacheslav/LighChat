@@ -7399,6 +7399,21 @@ class AppLocalizationsUz extends AppLocalizations {
   }
 
   @override
+  String get location_request_cancelled_mine => 'So‘rov bekor qilindi';
+
+  @override
+  String location_request_cancelled_other_with_name(Object name) {
+    return '$name so‘rovni bekor qildi';
+  }
+
+  @override
+  String get location_request_e2ee_unsupported =>
+      'Joylashuv so‘rovi shifrlangan suhbatlarda mavjud emas';
+
+  @override
+  String get location_request_action_cancel => 'Bekor qilish';
+
+  @override
   String get location_request_declined_mine => 'So‘rov rad etildi';
 
   @override

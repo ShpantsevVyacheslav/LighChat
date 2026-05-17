@@ -948,6 +948,11 @@ class ChatLocationRequest {
   bool get isPending => status == 'pending';
   bool get isAccepted => status == 'accepted';
   bool get isDeclined => status == 'declined';
+  /// Sender (own pending request) тапнул «Отменить» — это
+  /// уведомляет receiver'а и закрывает Accept/Decline-кнопки у
+  /// него. Семантически отличается от softDelete (который убирает
+  /// сам bubble): cancelled-bubble остаётся видимым обеим сторонам.
+  bool get isCancelled => status == 'cancelled';
 
   static ChatLocationRequest? fromJson(Object? raw) {
     if (raw is! Map) return null;

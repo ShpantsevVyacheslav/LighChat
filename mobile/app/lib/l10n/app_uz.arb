@@ -3385,6 +3385,13 @@
   "@location_request_accepted_other_with_name": {
     "placeholders": { "name": {} }
   },
+  "location_request_cancelled_mine": "So‘rov bekor qilindi",
+  "location_request_cancelled_other_with_name": "{name} so‘rovni bekor qildi",
+  "@location_request_cancelled_other_with_name": {
+    "placeholders": { "name": {} }
+  },
+  "location_request_e2ee_unsupported": "Joylashuv so‘rovi shifrlangan suhbatlarda mavjud emas",
+  "location_request_action_cancel": "Bekor qilish",
   "location_request_declined_mine": "So‘rov rad etildi",
   "location_request_declined_other_with_name": "{name} so‘rovni rad etdi",
   "@location_request_declined_other_with_name": {

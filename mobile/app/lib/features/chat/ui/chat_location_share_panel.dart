@@ -59,27 +59,33 @@ class ChatLocationSharePanel extends StatelessWidget {
         // Bug C: пилюли в ~1.5 раза меньше и обе прозрачные (glass-blur).
         // Не растягиваем на всю ширину — Wrap по контенту, центрируем
         // снизу.
-        // T4: пилюли подняли выше home-indicator'а (+28 вместо +10),
-        // фон стал прозрачнее (см. _Pill alpha values).
+        // T4 v2: опустили пилюли обратно (с +28 на +12); IntrinsicHeight
+        // + CrossAxisAlignment.stretch гарантируют одинаковую высоту
+        // обеих пилюль, чтобы «Запросить» не была визуально ниже
+        // «Поделиться» (раньше из-за разной длины текста padding
+        // округлялся по-разному).
         Positioned(
           left: 14,
           right: 14,
-          bottom: mq.padding.bottom + 28,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _Pill(
-                label: requestLabel,
-                filled: false,
-                onTap: onRequest,
-              ),
-              const SizedBox(width: 8),
-              _Pill(
-                label: shareLabel,
-                filled: true,
-                onTap: onShare,
-              ),
-            ],
+          bottom: mq.padding.bottom + 12,
+          child: IntrinsicHeight(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _Pill(
+                  label: requestLabel,
+                  filled: false,
+                  onTap: onRequest,
+                ),
+                const SizedBox(width: 8),
+                _Pill(
+                  label: shareLabel,
+                  filled: true,
+                  onTap: onShare,
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -138,13 +144,19 @@ class _Pill extends StatelessWidget {
                 horizontal: 14,
                 vertical: 7,
               ),
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: fg,
-                  letterSpacing: -0.1,
+              // T4 v2: Center внутри stretched-Row — текст по центру
+              // pill'а независимо от того, что соседняя пилюля растянула
+              // высоту через IntrinsicHeight.
+              child: Center(
+                widthFactor: 1,
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: fg,
+                    letterSpacing: -0.1,
+                  ),
                 ),
               ),
             ),

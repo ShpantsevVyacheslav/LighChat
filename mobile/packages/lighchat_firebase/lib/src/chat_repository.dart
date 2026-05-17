@@ -1396,6 +1396,27 @@ class ChatRepository {
     }
   }
 
+  /// Sender (own pending request) тапнул «Отменить запрос». В
+  /// отличие от `softDeleteMessage` сообщение остаётся видимым обеим
+  /// сторонам, но в статусе `cancelled` — receiver видит «Запрос
+  /// отменён» вместо кнопок Accept/Decline.
+  Future<void> cancelLocationRequestMessage({
+    required String conversationId,
+    required String requestMessageId,
+  }) async {
+    final nowIso = DateTime.now().toUtc().toIso8601String();
+    await _firestore
+        .collection('conversations')
+        .doc(conversationId)
+        .collection('messages')
+        .doc(requestMessageId)
+        .update(<String, Object?>{
+      'locationRequest.status': 'cancelled',
+      'locationRequest.respondedAt': nowIso,
+    });
+    _logger.i('Location request $requestMessageId cancelled');
+  }
+
   /// Web-parity: find existing 1:1 chat between users or create it.
   /// NOTE: this mirrors `src/lib/direct-chat.ts` (index scan + getDoc).
   Future<String> createOrOpenDirectChat({
