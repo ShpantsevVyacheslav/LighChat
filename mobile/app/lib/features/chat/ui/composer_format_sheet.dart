@@ -24,88 +24,73 @@ Future<void> showComposerFormatSheet({
   required GlobalKey anchorKey,
   required void Function(String tag) onToggle,
 }) async {
-  // ВАЖНО (Phase 14.4, fix): используем ROOT navigator overlay вместо
-  // ближайшего. Локальный overlay в hybrid-composition может оказаться
-  // ПОД sticker-шторкой / клавиатурой по z-order'у, и popover виден
-  // только как лог `overlay inserted`, но не на экране. Root overlay
-  // — самый верхний по z-order, поверх всех routes и панелей.
-  final rootOverlay = Navigator.of(context, rootNavigator: true).overlay;
-  if (rootOverlay == null) {
-    debugPrint('[format-popover] open: bail — root overlay is null');
-    return;
-  }
+  // ВАЖНО (Phase 14.5, fix): используем `showGeneralDialog` вместо
+  // OverlayEntry. На iOS hybrid composition нативный UITextView
+  // (PlatformView) рендерится в отдельном CALayer'е, который МОЖЕТ
+  // оказываться поверх Flutter OverlayEntry — popover технически
+  // создаётся, но визуально перекрывается native composer'ом.
+  // Dialog показывается через Navigator route (отдельный full-screen
+  // RouteEntry в render tree) — гарантированно поверх PlatformView.
   final anchorBox =
       anchorKey.currentContext?.findRenderObject() as RenderBox?;
-  final overlayBox = rootOverlay.context.findRenderObject() as RenderBox?;
   debugPrint(
     '[format-popover] open: anchorBox=${anchorBox != null} '
-    'hasSize=${anchorBox?.hasSize} overlayBox=${overlayBox != null} '
-    'overlaySize=${overlayBox?.hasSize == true ? overlayBox!.size : "?"}',
+    'hasSize=${anchorBox?.hasSize}',
   );
-  if (anchorBox == null ||
-      overlayBox == null ||
-      !anchorBox.hasSize ||
-      !overlayBox.hasSize ||
-      overlayBox.size.width <= 0 ||
-      overlayBox.size.height <= 0) {
-    debugPrint('[format-popover] open: bail — invalid anchor/overlay');
+  if (anchorBox == null || !anchorBox.hasSize) {
+    debugPrint('[format-popover] open: bail — invalid anchor');
     return;
   }
-
-  final anchorTop = anchorBox.localToGlobal(
-    Offset.zero,
-    ancestor: overlayBox,
-  );
-  final overlaySize = overlayBox.size;
-  // Bottom-offset overlay'а: расстояние от низа экрана до верха
-  // композера. Гарантируем что popover не уйдёт под низ экрана.
-  final bottomRaw = overlaySize.height - anchorTop.dy + 8;
-  // Min 60px от низа — даже если composer почти у нижней границы,
-  // popover должен быть виден над home-indicator/safe-area.
-  final bottomFromOverlay = bottomRaw.isFinite
-      ? bottomRaw.clamp(60.0, overlaySize.height - 100)
+  final mq = MediaQuery.of(context);
+  final screenH = mq.size.height;
+  // Считаем bottom-offset в screen coords чтобы popover лёг точно
+  // над композером с 8px gap'ом.
+  final anchorGlobalTop = anchorBox.localToGlobal(Offset.zero);
+  final bottomRaw = screenH - anchorGlobalTop.dy + 8;
+  final bottomFromScreenBottom = bottomRaw.isFinite
+      ? bottomRaw.clamp(60.0, screenH - 100)
       : 60.0;
   debugPrint(
-    '[format-popover] anchorTop=$anchorTop bottomFromOverlay=$bottomFromOverlay '
-    'overlay=$overlaySize',
+    '[format-popover] anchorGlobalTop=$anchorGlobalTop '
+    'bottomFromScreenBottom=$bottomFromScreenBottom screenH=$screenH',
   );
 
-  late OverlayEntry entry;
-  void dismiss() {
-    if (entry.mounted) entry.remove();
-  }
-
-  entry = OverlayEntry(
-    builder: (_) {
-      // Tap outside popover закрывает его (защита от «висящего»
-      // popover'а если юзер передумал и тапнул в другом месте).
+  await showGeneralDialog<void>(
+    context: context,
+    useRootNavigator: true,
+    barrierDismissible: true,
+    barrierLabel: 'format-popover-barrier',
+    // Прозрачный barrier — popover не темнит композер.
+    barrierColor: Colors.transparent,
+    transitionDuration: const Duration(milliseconds: 180),
+    pageBuilder: (dialogContext, anim, _) {
       return Stack(
         children: [
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: dismiss,
-            ),
-          ),
           Positioned(
             left: 8,
             right: 8,
-            bottom: bottomFromOverlay,
+            bottom: bottomFromScreenBottom,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () {}, // блок tap-through на сам popover
+              onTap: () {}, // блок tap-through, чтобы тапы по popover'у
+              // не закрывали его через barrierDismissible
               child: _FormatPopoverBody(
                 onToggle: onToggle,
-                onClose: dismiss,
+                onClose: () => Navigator.of(dialogContext).pop(),
               ),
             ),
           ),
         ],
       );
     },
+    transitionBuilder: (_, anim, _, child) {
+      return FadeTransition(
+        opacity: anim,
+        child: child,
+      );
+    },
   );
-  rootOverlay.insert(entry);
-  debugPrint('[format-popover] overlay inserted to ROOT overlay');
+  debugPrint('[format-popover] dialog dismissed');
 }
 
 class _FormatPopoverBody extends StatelessWidget {

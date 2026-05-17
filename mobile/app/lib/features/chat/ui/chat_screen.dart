@@ -6182,7 +6182,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     // НЕ применяет Swift-side изменения, поэтому без rebuild
     // resign-firstResponder останется async и kb будет «висеть».
     debugPrint(
-      '[panel-toggle] _openStickersGifPanelImpl: BUILD=Phase14.4 enter '
+      '[panel-toggle] _openStickersGifPanelImpl: BUILD=Phase14.5 enter '
       'panelOpen=$_stickersPanelOpen focus=${_composerFocusNode.hasFocus} '
       'kbInset=${MediaQuery.viewInsetsOf(context).bottom} '
       'floorBefore=$_stickersTransitionFooterFloor',
@@ -6206,15 +6206,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     _captureKeyboardHeight();
     final hadKeyboard = keyboardInset > 0;
     // Фиксируем высоту шторки СЕЙЧАС: реальный kbInset > всё остальное,
-    // иначе lastKb, иначе дефолт 42% экрана. Эта величина живёт всё
+    // иначе lastKb, иначе дефолт ~36% экрана. Эта величина живёт всё
     // время пока панель открыта и не пересматривается при дальнейших
-    // обновлениях `_lastKeyboardHeight` (которые иначе схлопывают
-    // панель вместе с убегающей клавиатурой).
-    final lockedH = keyboardInset > 0
+    // обновлениях `_lastKeyboardHeight`.
+    //
+    // ВАЖНО (Phase 14.5, fix): clamp [260, 360] чтобы избежать
+    // несоответствия cached/default vs реальной клавиатуры. Без clamp
+    // первое открытие из чистого state давало lockedH=399 (default
+    // 0.42×932) или ещё больше из закэшированного landscape-значения;
+    // реальная iPhone-kb 280-345, и после первого перехода на kb
+    // композер «падает» на разницу 50-100px. Clamp удерживает шторку
+    // в диапазоне реалистичных kb-высот для iPhone (260-360pt) —
+    // допустим небольшой mismatch ±10-20px при первом запуске, без
+    // визуального скачка.
+    final rawLockedH = keyboardInset > 0
         ? keyboardInset
         : (_lastKeyboardHeight > 0
               ? _lastKeyboardHeight
-              : MediaQuery.of(context).size.height * 0.42);
+              : MediaQuery.of(context).size.height * 0.36);
+    final lockedH = rawLockedH.clamp(260.0, 360.0);
+    debugPrint(
+      '[panel-toggle] _openStickersGifPanelImpl: lockedH calc '
+      'kbInset=$keyboardInset lastKb=$_lastKeyboardHeight '
+      'raw=$rawLockedH clamped=$lockedH',
+    );
     // Если клавиатура открыта — СНАЧАЛА скрываем её (анимация iOS
     // ~250ms), и ТОЛЬКО ПОТОМ открываем panel. Иначе panel рендерится
     // под уезжающей клавиатурой, и пользователь видит «шторка под
