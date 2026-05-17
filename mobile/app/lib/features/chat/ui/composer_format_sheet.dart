@@ -35,6 +35,12 @@ Future<void> showComposerFormatSheet({
   //   - useRootNavigator не нужен — route на текущем Navigator'е
   //     корректно поднимается над body, и AppBar остаётся видимым
   //     (потому что AppBar в Scaffold body, не в Navigator).
+  // Sentinel: явно отмечает версию popover-логики. Если в логах
+  // видно `POPOVER_BUILD=Phase14.6`, значит используется PageRouteBuilder
+  // (opaque:false, AppBar остаётся виден). Если `dialog dismissed` без
+  // sentinel'а — это старый Phase14.5 showGeneralDialog (opaque route,
+  // AppBar исчезает).
+  debugPrint('[format-popover] POPOVER_BUILD=Phase14.6');
   final anchorBox =
       anchorKey.currentContext?.findRenderObject() as RenderBox?;
   debugPrint(
