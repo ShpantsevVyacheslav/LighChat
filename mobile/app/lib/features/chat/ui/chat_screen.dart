@@ -569,8 +569,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     if (views.isEmpty) return;
     final view = views.first;
     final height = view.viewInsets.bottom / view.devicePixelRatio;
+    // ВАЖНО (Phase 14.4, fix): early-release floor СТРОГО при height >
+    // floor + 4. Раньше было `>= floor - 1`, и это сразу же сбрасывало
+    // hold-floor в момент его установки: мы ставим floor=kbInset=345,
+    // а следующий же didChangeMetrics с kbInset=345 даёт 345>=344 →
+    // floor=0. Из-за этого пока kb уезжала 345→0, footerHeight следовал
+    // за kbInset и композер падал вниз. Теперь release происходит
+    // только когда kb явно подросла ВЫШЕ floor (т.е. ещё одна kb
+    // поднялась поверх hold-floor — значит floor можно отпустить, kb
+    // теперь сама держит высоту). При закрытии kb (height < floor)
+    // floor сохраняется, фактический сброс — через таймер 900ms.
     if (_stickersTransitionFooterFloor > 0 &&
-        height >= _stickersTransitionFooterFloor - 1) {
+        height > _stickersTransitionFooterFloor + 4) {
+      debugPrint(
+        '[panel-toggle] _captureKeyboardHeight: kb=$height EXCEEDED '
+        'floor=$_stickersTransitionFooterFloor → release floor',
+      );
       _stickersTransitionFooterTimer?.cancel();
       if (mounted) {
         setState(() => _stickersTransitionFooterFloor = 0);
@@ -6103,9 +6117,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     // НЕ применяет Swift-side изменения, поэтому без rebuild
     // resign-firstResponder останется async и kb будет «висеть».
     debugPrint(
-      '[panel-toggle] _openStickersGifPanelImpl: BUILD=Phase14.3 enter '
+      '[panel-toggle] _openStickersGifPanelImpl: BUILD=Phase14.4 enter '
       'panelOpen=$_stickersPanelOpen focus=${_composerFocusNode.hasFocus} '
-      'kbInset=${MediaQuery.viewInsetsOf(context).bottom}',
+      'kbInset=${MediaQuery.viewInsetsOf(context).bottom} '
+      'floorBefore=$_stickersTransitionFooterFloor',
     );
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
@@ -6208,6 +6223,29 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       '[panel-toggle] _openStickersGifPanelImpl: setState→panelOpen=true '
       'lockedH=$lockedH hadKeyboard=$hadKeyboard',
     );
+    // ВАЖНО (Phase 14.4, fix): после setState'а composer rebuild'ится
+    // — native UITextView сменяется на Flutter TextField для sticker-
+    // search (см. `inStickerSearchMode` в chat_composer). Новый
+    // TextField получает свежий FocusNode binding, и FocusManager
+    // может авто-восстановить focus → откроется КЛАВИАТУРА ПОВЕРХ
+    // только что открытой sticker-шторки. Чтобы этого не было,
+    // в postFrame явно ещё раз снимаем focus после rebuild'а.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_composerFocusNode.hasFocus ||
+          FocusManager.instance.primaryFocus != null) {
+        debugPrint(
+          '[panel-toggle] _openStickersGifPanelImpl: post-frame '
+          'extra-unfocus (composerFocus=${_composerFocusNode.hasFocus} '
+          'primaryFocus=${FocusManager.instance.primaryFocus?.debugLabel})',
+        );
+        _composerFocusNode.unfocus();
+        FocusManager.instance.primaryFocus?.unfocus();
+        unawaited(
+          SystemChannels.textInput.invokeMethod<void>('TextInput.hide'),
+        );
+      }
+    });
   }
 
   void _switchFromStickersToKeyboard() {

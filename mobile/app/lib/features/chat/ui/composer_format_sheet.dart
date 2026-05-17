@@ -24,10 +24,19 @@ Future<void> showComposerFormatSheet({
   required GlobalKey anchorKey,
   required void Function(String tag) onToggle,
 }) async {
-  final overlay = Overlay.of(context);
+  // ВАЖНО (Phase 14.4, fix): используем ROOT navigator overlay вместо
+  // ближайшего. Локальный overlay в hybrid-composition может оказаться
+  // ПОД sticker-шторкой / клавиатурой по z-order'у, и popover виден
+  // только как лог `overlay inserted`, но не на экране. Root overlay
+  // — самый верхний по z-order, поверх всех routes и панелей.
+  final rootOverlay = Navigator.of(context, rootNavigator: true).overlay;
+  if (rootOverlay == null) {
+    debugPrint('[format-popover] open: bail — root overlay is null');
+    return;
+  }
   final anchorBox =
       anchorKey.currentContext?.findRenderObject() as RenderBox?;
-  final overlayBox = overlay.context.findRenderObject() as RenderBox?;
+  final overlayBox = rootOverlay.context.findRenderObject() as RenderBox?;
   debugPrint(
     '[format-popover] open: anchorBox=${anchorBox != null} '
     'hasSize=${anchorBox?.hasSize} overlayBox=${overlayBox != null} '
@@ -49,16 +58,16 @@ Future<void> showComposerFormatSheet({
   );
   final overlaySize = overlayBox.size;
   // Bottom-offset overlay'а: расстояние от низа экрана до верха
-  // композера. Сам popover ляжет immediately above composer'а с 8px
-  // gap'ом (как iOS callout). Гарантируем неотрицательное значение —
-  // иначе TransformLayer получит invalid matrix и Flutter валит
-  // [ERROR:flutter/flow/layers/transform_layer.cc] в консоль.
+  // композера. Гарантируем что popover не уйдёт под низ экрана.
   final bottomRaw = overlaySize.height - anchorTop.dy + 8;
-  final bottomFromOverlay = bottomRaw.isFinite && bottomRaw >= 0
-      ? bottomRaw
-      : 0.0;
+  // Min 60px от низа — даже если composer почти у нижней границы,
+  // popover должен быть виден над home-indicator/safe-area.
+  final bottomFromOverlay = bottomRaw.isFinite
+      ? bottomRaw.clamp(60.0, overlaySize.height - 100)
+      : 60.0;
   debugPrint(
-    '[format-popover] anchorTop=$anchorTop bottomFromOverlay=$bottomFromOverlay',
+    '[format-popover] anchorTop=$anchorTop bottomFromOverlay=$bottomFromOverlay '
+    'overlay=$overlaySize',
   );
 
   late OverlayEntry entry;
@@ -68,27 +77,35 @@ Future<void> showComposerFormatSheet({
 
   entry = OverlayEntry(
     builder: (_) {
-      // Без tap-outside dismiss (защита от случайных нажатий по требованию
-      // юзера). Закрытие только через крестик в шапке popover.
-      // Тапы вне popover проходят сквозь — клавиатура и композер
-      // полностью кликабельны (юзер может продолжать печатать).
+      // Tap outside popover закрывает его (защита от «висящего»
+      // popover'а если юзер передумал и тапнул в другом месте).
       return Stack(
         children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: dismiss,
+            ),
+          ),
           Positioned(
             left: 8,
             right: 8,
             bottom: bottomFromOverlay,
-            child: _FormatPopoverBody(
-              onToggle: onToggle,
-              onClose: dismiss,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {}, // блок tap-through на сам popover
+              child: _FormatPopoverBody(
+                onToggle: onToggle,
+                onClose: dismiss,
+              ),
             ),
           ),
         ],
       );
     },
   );
-  overlay.insert(entry);
-  debugPrint('[format-popover] overlay inserted');
+  rootOverlay.insert(entry);
+  debugPrint('[format-popover] overlay inserted to ROOT overlay');
 }
 
 class _FormatPopoverBody extends StatelessWidget {
