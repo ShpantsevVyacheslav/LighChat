@@ -62,6 +62,16 @@ final class ChatLocationMapView: NSObject, FlutterPlatformView, MKMapViewDelegat
   /// обновляет lat/lng + state.
   private var centerPinMode: Bool = false
 
+  /// Throttle для `regionChanged`: MKMapView фаерит
+  /// `regionDidChangeAnimated` непрерывно во время pan'а (на каждом
+  /// кадре). Если эмитить КАЖДОЕ изменение в Dart — там идёт
+  /// setState → rebuild → потенциально пересоздаются recognizers и
+  /// карта «залипает». Шлём не чаще ~20Hz во время движения, плюс
+  /// финальный snapshot на pan-end (willChange=true→false). Финал
+  /// гарантирует, что Dart получит корректную последнюю координату.
+  private var lastRegionEmit: CFTimeInterval = 0
+  private var isRegionChanging: Bool = false
+
   init(
     frame: CGRect,
     viewId: Int64,
@@ -275,12 +285,34 @@ final class ChatLocationMapView: NSObject, FlutterPlatformView, MKMapViewDelegat
 
   // MARK: MKMapViewDelegate
 
-  /// Center-pin mode: при каждом изменении видимого региона эмитим
+  /// Center-pin mode: при изменении видимого региона эмитим
   /// `regionChanged(lat,lng)` — текущий центр карты, под которым
   /// Flutter рисует фиксированный пин. Dart-side обновляет
   /// выбранную координату.
+  ///
+  /// Throttle ~20Hz: между двумя emit'ами должно пройти ≥50мс.
+  /// `regionDidChangeAnimated` может фаериться непрерывно во время
+  /// pan'а — без throttling Dart-side setState флудит и (несмотря
+  /// на стабильный gestureRecognizers Set) добавляет лишнюю
+  /// rebuild-нагрузку. На конце gesture гарантированно прилетит
+  /// финальный «отсроченный» вызов, который мы пропустим в Dart
+  /// уже без cap (см. поле `isRegionChanging`).
+  func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
+    isRegionChanging = true
+  }
+
   func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+    let wasChanging = isRegionChanging
+    isRegionChanging = false
     guard centerPinMode else { return }
+    let now = CACurrentMediaTime()
+    // Throttle continuous frame events до 20Hz, НО финальный emit
+    // (end-of-change — wasChanging=true и больше did не следует)
+    // пропускаем всегда, чтобы Dart увидел точную последнюю точку.
+    if !wasChanging && (now - lastRegionEmit) < 0.05 {
+      return
+    }
+    lastRegionEmit = now
     let c = mapView.region.center
     channel?.invokeMethod("regionChanged", arguments: [
       "lat": c.latitude,

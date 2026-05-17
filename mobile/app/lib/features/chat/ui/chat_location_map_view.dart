@@ -166,6 +166,21 @@ class _ChatLocationMapViewState extends State<ChatLocationMapView> {
       const <ChatLocationPinPosition>[];
   final MapController _flutterMapController = MapController();
 
+  /// КРИТИЧНО: gestureRecognizers Set ДОЛЖЕН быть стабильным между
+  /// build'ами. Если каждый build создаёт новый Set с новыми Factory
+  /// (closure'ами), Flutter PlatformView pipeline пересоздаёт
+  /// `EagerGestureRecognizer` на каждом rebuild → при setState
+  /// (например, после `regionChanged` в center-pin mode) recognizers
+  /// диспоузятся, и следующий pan/zoom не доходит до MKMapView. Юзер
+  /// видит «карта залипла, жесты не работают». Создаём один раз и
+  /// переиспользуем.
+  late final Set<Factory<OneSequenceGestureRecognizer>> _eagerGestureSet =
+      <Factory<OneSequenceGestureRecognizer>>{
+    Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+  };
+  static const Set<Factory<OneSequenceGestureRecognizer>>
+      _emptyGestureSet = <Factory<OneSequenceGestureRecognizer>>{};
+
   ChatLocationMapController get _effectiveController =>
       widget.controller ?? _internalController;
 
@@ -318,13 +333,13 @@ class _ChatLocationMapViewState extends State<ChatLocationMapView> {
             // arena сразу отдаёт pan-gesture MKMapView. Без него
             // ListView выигрывает арену и MKMapView не получает
             // pan/zoom, выглядя статичной.
-            gestureRecognizers: widget.interactive
-                ? <Factory<OneSequenceGestureRecognizer>>{
-                    Factory<OneSequenceGestureRecognizer>(
-                      () => EagerGestureRecognizer(),
-                    ),
-                  }
-                : const <Factory<OneSequenceGestureRecognizer>>{},
+            //
+            // ВАЖНО: используем кешированный Set (см. поле
+            // `_eagerGestureSet`), чтобы не пересоздавать recognizers
+            // на каждом rebuild'е — иначе после первого
+            // `regionChanged` + setState карта «залипает».
+            gestureRecognizers:
+                widget.interactive ? _eagerGestureSet : _emptyGestureSet,
           );
         },
       );
