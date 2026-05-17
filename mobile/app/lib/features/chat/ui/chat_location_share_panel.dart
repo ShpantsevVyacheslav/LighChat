@@ -72,7 +72,17 @@ class _ChatLocationSharePanelState extends State<ChatLocationSharePanel> {
     final l10n = AppLocalizations.of(context);
     final sendPinLabel =
         l10n?.share_location_send_pin ?? 'Send Pin';
-    return Stack(
+    // iMessage-parity: верхние углы карты закруглены (нижние —
+    // прямые, до краёв home-indicator'а). Radius 18 близок к
+    // системному iOS sheet corner. ClipRRect нужен потому, что
+    // ниже лежит UiKitView (PlatformView) — без явного клиппа
+    // он рендерится прямоугольником.
+    return ClipRRect(
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(18),
+        topRight: Radius.circular(18),
+      ),
+      child: Stack(
       children: [
         // Карта на весь footer — без SafeArea, до самого низа.
         Positioned.fill(
@@ -167,6 +177,7 @@ class _ChatLocationSharePanelState extends State<ChatLocationSharePanel> {
                 ),
         ),
       ],
+      ),
     );
   }
 }
