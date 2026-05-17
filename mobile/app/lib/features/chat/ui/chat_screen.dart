@@ -5613,30 +5613,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   /// специальное сообщение `locationRequest`; получатель видит bubble
   /// с Accept/Decline, отправитель — pulsing pin.
   ///
-  /// В E2EE-чате блокируем: `locationRequest` payload Firestore-side
-  /// не encrypted (нет E2EE-обёртки для request-сообщений), что
-  /// привело бы к leak'у в шифрованный чат. Показываем toast и
-  /// оставляем panel открытой — пользователь может всё же
-  /// «Поделиться» (своя локация = это его явный выбор поделиться,
-  /// в отличие от «Запросить» которое создаёт unencrypted-документ).
+  /// Работает и в E2EE-чате: `locationRequest` payload не содержит
+  /// контента (только signal «запросил локацию» + requesterId/
+  /// status/timestamps). Render в чате решается явно — chat_message_list
+  /// проверяет `message.locationRequest != null` ДО проверки
+  /// e2ee-text, поэтому request-bubble виден правильно вне зависимости
+  /// от шифрования основного payload.
   Future<void> _handleLocationPanelRequestTap() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    final convAsyncCheck = ref.read(
-      conversationsProvider((
-        key: conversationIdsCacheKey([widget.conversationId]),
-      )),
-    );
-    final convListCheck = convAsyncCheck.asData?.value;
-    final convCheck = convListCheck != null && convListCheck.isNotEmpty
-        ? convListCheck.first.data
-        : null;
-    if (convCheck != null && isConversationE2eeActive(convCheck)) {
-      _toast(
-        AppLocalizations.of(context)!.location_request_e2ee_unsupported,
-      );
-      return;
-    }
     final repo = ref.read(chatRepositoryProvider);
     if (repo == null) {
       _toast(AppLocalizations.of(context)!.chat_repository_unavailable);

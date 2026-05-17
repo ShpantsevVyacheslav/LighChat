@@ -290,7 +290,12 @@ Future<String?> _showGranularDurationsSheet(BuildContext context) async {
     context: context,
     barrierDismissible: true,
     barrierLabel: l10n.share_location_cancel,
-    barrierColor: Colors.black.withValues(alpha: 0.30),
+    // Усилили заливку с 0.30 → 0.65 + поверх blur'им весь
+    // background через BackdropFilter в transitionBuilder. Раньше
+    // под granular-popover'ом просвечивал главный popover (видно
+    // 5/15/30 minutes... поверх «Бессрочно/До конца дня…»), сейчас
+    // нижний слой сильно затемнён и заблюрен.
+    barrierColor: Colors.black.withValues(alpha: 0.65),
     transitionDuration: const Duration(milliseconds: 220),
     pageBuilder: (ctx, _, _) => const SizedBox.shrink(),
     transitionBuilder: (ctx, anim, _, child) {
@@ -300,12 +305,31 @@ Future<String?> _showGranularDurationsSheet(BuildContext context) async {
       final opacity = Tween<double>(begin: 0, end: 1).animate(
         CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
       );
-      return FadeTransition(
-        opacity: opacity,
-        child: ScaleTransition(
-          scale: scale,
-          child: _GranularPopoverShell(l10n: l10n),
-        ),
+      // BackdropFilter sigma анимируется параллельно scale: 0→12 за
+      // 220ms — мягкий «зум за стеклом».
+      final blurSigma = anim.value * 12.0;
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: true,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: blurSigma,
+                  sigmaY: blurSigma,
+                ),
+                child: const SizedBox.expand(),
+              ),
+            ),
+          ),
+          FadeTransition(
+            opacity: opacity,
+            child: ScaleTransition(
+              scale: scale,
+              child: _GranularPopoverShell(l10n: l10n),
+            ),
+          ),
+        ],
       );
     },
   );

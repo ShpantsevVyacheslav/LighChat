@@ -12,6 +12,8 @@ import 'chat_wallpaper_scope.dart';
 import 'chat_wallpaper_tone.dart';
 import 'message_attachments.dart';
 import 'message_html_text.dart';
+import 'message_location_card.dart';
+import 'message_location_request_bubble.dart';
 
 /// Паритет `MessageContextMenu.tsx` на вебе.
 const kMessageContextReactionEmojis = <String>[
@@ -628,12 +630,40 @@ class _ContextMenuInitiatorPreview extends StatelessWidget {
       );
     }
     if (message.locationShare != null && message.attachments.isEmpty) {
-      return _ContextMenuTextSummaryBubble(
-        scheme: scheme,
-        isCurrentUser: isCurrentUser,
-        summary: AppLocalizations.of(context)!.chat_location_label,
-        outgoingBubbleColor: outgoingBubbleColor,
-        incomingBubbleColor: incomingBubbleColor,
+      // Полноценное превью карты в header'е action-меню — раньше
+      // показывали только текст «Location», что выглядело как
+      // обычное сообщение. Теперь MessageLocationCard в compact-
+      // режиме (max 272pt — wide enough для context-menu).
+      return Align(
+        alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
+        child: SizedBox(
+          width: 272,
+          child: MessageLocationCard(
+            share: message.locationShare!,
+            senderId: message.senderId,
+            isMine: isCurrentUser,
+            createdAt: message.createdAt,
+            showTimestamps: false,
+            deliveryStatus: message.deliveryStatus,
+            readAt: message.readAt,
+          ),
+        ),
+      );
+    }
+    if (message.locationRequest != null) {
+      // Request-сообщение в header'е: те же pulsing pin + текст
+      // что и в чате. Action-кнопки скрыты (мы в context-menu).
+      return Align(
+        alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
+        child: SizedBox(
+          width: 272,
+          child: MessageLocationRequestBubble(
+            request: message.locationRequest!,
+            isMine: isCurrentUser,
+            onAccept: () {},
+            onDecline: () {},
+          ),
+        ),
       );
     }
 

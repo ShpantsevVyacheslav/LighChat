@@ -1417,13 +1417,19 @@ class _ChatMessageBubble extends StatelessWidget {
     final pollId = (message.chatPollId ?? '').trim();
     final hasPoll = pollId.isNotEmpty;
     final hasLocation = message.locationShare != null;
+    final hasLocationRequest = message.locationRequest != null;
+    // E2EE: `locationRequest` payload не encrypted — для request-only
+    // сообщений в шифрованном чате не надо подставлять E2EE
+    // fallback («Зашифрованное сообщение»), иначе bubble прячется
+    // под text-fallback'ом. request_bubble сам себя нарисует ниже.
     final hasE2eeOnlyCiphertext =
         message.hasE2eeCiphertext &&
         decryptedText == null &&
         !hasRawText &&
         !hasMedia &&
         !hasPoll &&
-        !hasLocation;
+        !hasLocation &&
+        !hasLocationRequest;
     final String e2eeFallback = decryptionFailed
         ? l10n.chat_e2ee_decrypt_failed_open_devices
         : l10n.chat_e2ee_encrypted_message_placeholder;
