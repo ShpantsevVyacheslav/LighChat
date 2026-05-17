@@ -63,6 +63,7 @@ import {
 import { isAnonymousPlaceholderEmail } from '@/lib/registration-index-keys';
 import { isRegistrationProfileComplete } from '@/lib/registration-profile-complete';
 import { writeDeviceSession } from '@/lib/device-session';
+import { AnalyticsEvents, identify, track } from '@/lib/analytics';
 import { applyPhoneMask, normalizePhoneDigits } from '@/lib/phone-utils';
 import { requestVerifiedEmailChange } from '@/lib/auth-email-change';
 import { logger } from '@/lib/logger';
@@ -378,6 +379,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     try {
+        // Analytics: logout — отправляем ДО signOut, чтобы консент ещё
+        // действовал и id-token был доступен server-sink'у.
+        try {
+          track(AnalyticsEvents.logout, {});
+          identify(null);
+        } catch (analyticsErr) {
+          logger.warn('auth', 'analytics logout track failed', analyticsErr);
+        }
         await signOut(auth);
         router.push('/auth');
     } catch (e) {

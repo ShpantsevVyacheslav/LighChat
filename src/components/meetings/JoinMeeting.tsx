@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Loader2, Video, VideoOff, Mic, MicOff, User as UserIcon, ArrowLeft } from 'lucide-react';
 import { useI18n } from '@/hooks/use-i18n';
+import { AnalyticsEvents, track as trackEvent } from '@/lib/analytics';
 
 interface JoinMeetingProps {
   meeting: Meeting;
@@ -78,10 +79,18 @@ export function JoinMeeting({ meeting, currentUser, requireNameInput = false, on
 
     setIsJoining(true);
     stopMedia();
-    
-    onJoin({ 
-      micMuted, 
-      videoOff, 
+
+    // Analytics: meeting_joined — отслеживаем момент входа в комнату.
+    // PII не пишем — meetingId не нужен; зато mic/video preset информативен.
+    trackEvent(AnalyticsEvents.meetingJoined, {
+      mic_muted_at_join: micMuted,
+      video_off_at_join: videoOff,
+      is_named_join: requireNameInput,
+    });
+
+    onJoin({
+      micMuted,
+      videoOff,
       name: finalName,
       stream: null
     });

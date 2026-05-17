@@ -15,6 +15,7 @@ import {
 import { inferKindHintFromFileName } from '@/lib/e2ee/infer-kind-hint';
 import { useE2eeConversation } from '@/hooks/use-e2ee-conversation';
 import { useE2eeMediaAttachments } from '@/hooks/use-e2ee-media-attachments';
+import { AnalyticsEvents, track, trackChatOpened } from '@/lib/analytics';
 import { useE2eeHydratedMessages } from '@/hooks/use-e2ee-hydrated-messages';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 
@@ -247,6 +248,29 @@ export function ChatWindow({
     const trimmed = (gid ?? '').trim();
     setOpenGameId(trimmed ? trimmed : null);
   }, [conversation.id, searchParams]);
+
+  // Analytics: chat_opened — отслеживание активных диалогов.
+  // `trackChatOpened` идемпотентно — на повторное открытие одного и того
+  // же chatId шлёт `is_first_open=false` (для воронки "первый раз / ретурн").
+  useEffect(() => {
+    const chatType: 'personal' | 'group' | 'secret' = conversation.secretChat?.enabled
+      ? 'secret'
+      : conversation.isGroup
+      ? 'group'
+      : 'personal';
+    trackChatOpened(conversation.id, {
+      chat_type: chatType,
+      participants_bucket:
+        conversation.participantIds.length <= 2
+          ? '1_2'
+          : conversation.participantIds.length <= 5
+          ? '3_5'
+          : conversation.participantIds.length <= 20
+          ? '6_20'
+          : 'gt_20',
+      e2ee_enabled: conversation.secretChat?.enabled === true,
+    });
+  }, [conversation.id, conversation.secretChat?.enabled, conversation.isGroup, conversation.participantIds.length]);
 
   const closeGameDialog = useCallback(() => {
     setOpenGameId(null);
@@ -1192,6 +1216,23 @@ export function ChatWindow({
       ...(replyContext && { replyTo: replyContext }),
     }]);
     if (replyContext) setReplyingTo(null);
+
+    // Analytics: message_sent. Шлём сразу после optimistic update —
+    // даже если сетевой send упадёт, событие отражает intent. PII не
+    // отправляем (нет text/messageId), только метаданные сообщения.
+    const totalAttachments = files.length + prebuilt.length;
+    track(AnalyticsEvents.messageSent, {
+      chat_type: conversation.secretChat?.enabled
+        ? 'secret'
+        : conversation.isGroup
+        ? 'group'
+        : 'personal',
+      has_text: !!(text && text.trim().length > 0),
+      has_attachments: totalAttachments > 0,
+      attachments_count: totalAttachments,
+      has_reply: !!replyContext,
+      e2ee_enabled: conversation.secretChat?.enabled === true,
+    });
 
     try {
       // E2EE v2 Phase 9: при активном шифровании файлы с encryptable MIME идут
@@ -2183,6 +2224,11 @@ export function ChatWindow({
                                       name: conversation.participantInfo[otherId]?.name ?? t('chat.userLabel'),
                                       blockedUserIds: partnerUserLive?.blockedUserIds,
                                     } as User);
+                                  track(AnalyticsEvents.callStarted, {
+                                    call_type: 'video',
+                                    initiator: 'self',
+                                    source: 'chat_header',
+                                  });
                                   void initiateCall(firestore, callerForCalls, recv, true, toast);
                                 }}
                               >
@@ -2202,6 +2248,11 @@ export function ChatWindow({
                                       name: conversation.participantInfo[otherId]?.name ?? t('chat.userLabel'),
                                       blockedUserIds: partnerUserLive?.blockedUserIds,
                                     } as User);
+                                  track(AnalyticsEvents.callStarted, {
+                                    call_type: 'audio',
+                                    initiator: 'self',
+                                    source: 'chat_header',
+                                  });
                                   void initiateCall(firestore, callerForCalls, recv, false, toast);
                                 }}
                               >
