@@ -3718,6 +3718,9 @@
       "meters": {}
     }
   },
+  "share_location_send_pin": "Отправить точку",
+  "share_location_enter_pin_mode": "Выбрать место на карте",
+  "share_location_exit_pin_mode": "Выйти из режима выбора",
   "location_panel_hint_address": "Введите адрес…",
   "shared_location_distance_meters": "{meters} м от вас",
   "@shared_location_distance_meters": {

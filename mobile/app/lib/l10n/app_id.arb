@@ -3374,6 +3374,9 @@
       "meters": {}
     }
   },
+  "share_location_send_pin": "Kirim titik",
+  "share_location_enter_pin_mode": "Pilih lokasi di peta",
+  "share_location_exit_pin_mode": "Keluar mode pemilihan",
   "location_panel_hint_address": "Masukkan alamat…",
   "shared_location_distance_meters": "{meters} m dari Anda",
   "@shared_location_distance_meters": {

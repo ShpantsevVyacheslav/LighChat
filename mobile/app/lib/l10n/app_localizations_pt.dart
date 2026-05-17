@@ -7384,6 +7384,15 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get share_location_send_pin => 'Enviar ponto';
+
+  @override
+  String get share_location_enter_pin_mode => 'Escolher local no mapa';
+
+  @override
+  String get share_location_exit_pin_mode => 'Sair do modo de seleção';
+
+  @override
   String get location_panel_hint_address => 'Insira o endereço…';
 
   @override
@@ -16101,6 +16110,15 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String location_card_accuracy(Object meters) {
     return '±${meters}m';
   }
+
+  @override
+  String get share_location_send_pin => 'Enviar ponto';
+
+  @override
+  String get share_location_enter_pin_mode => 'Escolher local no mapa';
+
+  @override
+  String get share_location_exit_pin_mode => 'Sair do modo de seleção';
 
   @override
   String get location_panel_hint_address => 'Insira o endereço…';

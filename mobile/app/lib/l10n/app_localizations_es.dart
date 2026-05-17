@@ -7402,6 +7402,15 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get share_location_send_pin => 'Enviar punto';
+
+  @override
+  String get share_location_enter_pin_mode => 'Elegir punto en el mapa';
+
+  @override
+  String get share_location_exit_pin_mode => 'Salir del modo de selección';
+
+  @override
   String get location_panel_hint_address => 'Introduce la dirección…';
 
   @override
@@ -16134,6 +16143,15 @@ class AppLocalizationsEsMx extends AppLocalizationsEs {
   String location_card_accuracy(Object meters) {
     return '±$meters m';
   }
+
+  @override
+  String get share_location_send_pin => 'Enviar punto';
+
+  @override
+  String get share_location_enter_pin_mode => 'Elegir punto en el mapa';
+
+  @override
+  String get share_location_exit_pin_mode => 'Salir del modo de selección';
 
   @override
   String get location_panel_hint_address => 'Introduce la dirección…';

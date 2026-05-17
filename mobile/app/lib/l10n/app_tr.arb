@@ -3374,6 +3374,9 @@
       "meters": {}
     }
   },
+  "share_location_send_pin": "Konum gönder",
+  "share_location_enter_pin_mode": "Haritadan konum seç",
+  "share_location_exit_pin_mode": "Seçim modundan çık",
   "location_panel_hint_address": "Adresi girin…",
   "shared_location_distance_meters": "sizden {meters} m",
   "@shared_location_distance_meters": {

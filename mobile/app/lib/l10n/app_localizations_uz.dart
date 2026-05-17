@@ -7380,6 +7380,15 @@ class AppLocalizationsUz extends AppLocalizations {
   }
 
   @override
+  String get share_location_send_pin => 'Nuqtani yuborish';
+
+  @override
+  String get share_location_enter_pin_mode => 'Xaritadan joy tanlash';
+
+  @override
+  String get share_location_exit_pin_mode => 'Tanlash rejimidan chiqish';
+
+  @override
   String get location_panel_hint_address => 'Manzilni kiriting…';
 
   @override

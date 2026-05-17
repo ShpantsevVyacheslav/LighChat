@@ -7345,6 +7345,15 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get share_location_send_pin => 'Konum gönder';
+
+  @override
+  String get share_location_enter_pin_mode => 'Haritadan konum seç';
+
+  @override
+  String get share_location_exit_pin_mode => 'Seçim modundan çık';
+
+  @override
   String get location_panel_hint_address => 'Adresi girin…';
 
   @override

@@ -7343,6 +7343,15 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
+  String get share_location_send_pin => 'Kirim titik';
+
+  @override
+  String get share_location_enter_pin_mode => 'Pilih lokasi di peta';
+
+  @override
+  String get share_location_exit_pin_mode => 'Keluar mode pemilihan';
+
+  @override
   String get location_panel_hint_address => 'Masukkan alamat…';
 
   @override

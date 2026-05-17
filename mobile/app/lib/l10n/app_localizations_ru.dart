@@ -7340,6 +7340,15 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get share_location_send_pin => 'Отправить точку';
+
+  @override
+  String get share_location_enter_pin_mode => 'Выбрать место на карте';
+
+  @override
+  String get share_location_exit_pin_mode => 'Выйти из режима выбора';
+
+  @override
   String get location_panel_hint_address => 'Введите адрес…';
 
   @override

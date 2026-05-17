@@ -7348,6 +7348,15 @@ class AppLocalizationsKk extends AppLocalizations {
   }
 
   @override
+  String get share_location_send_pin => 'Нүктені жіберу';
+
+  @override
+  String get share_location_enter_pin_mode => 'Картадан жер таңдау';
+
+  @override
+  String get share_location_exit_pin_mode => 'Таңдау режимінен шығу';
+
+  @override
   String get location_panel_hint_address => 'Мекенжайды енгізіңіз…';
 
   @override

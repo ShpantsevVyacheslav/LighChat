@@ -1760,7 +1760,19 @@ class _ChatMessageBubble extends StatelessWidget {
     }
 
     Widget body;
-    if (hasPoll && !hasVisibleText && !hasMedia) {
+    // Request-only сообщение (есть `locationRequest`, нет ничего
+    // другого) — UI рисуется через `MessageLocationRequestBubble`
+    // в Column-wrapper'е ниже; основной body должен быть пустым,
+    // иначе появляется лишний синий outgoing-pузырь под request-
+    // bubble'ом.
+    if (hasLocationRequest &&
+        !hasMedia &&
+        !hasPoll &&
+        !hasLocation &&
+        !hasVisibleText &&
+        !hasE2eeOnlyCiphertext) {
+      body = const SizedBox.shrink();
+    } else if (hasPoll && !hasVisibleText && !hasMedia) {
       body = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [pollBlock()],

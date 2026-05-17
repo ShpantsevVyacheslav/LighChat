@@ -12964,6 +12964,24 @@ abstract class AppLocalizations {
   /// **'±{meters} м'**
   String location_card_accuracy(Object meters);
 
+  /// No description provided for @share_location_send_pin.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить точку'**
+  String get share_location_send_pin;
+
+  /// No description provided for @share_location_enter_pin_mode.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выбрать место на карте'**
+  String get share_location_enter_pin_mode;
+
+  /// No description provided for @share_location_exit_pin_mode.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выйти из режима выбора'**
+  String get share_location_exit_pin_mode;
+
   /// No description provided for @location_panel_hint_address.
   ///
   /// In ru, this message translates to:

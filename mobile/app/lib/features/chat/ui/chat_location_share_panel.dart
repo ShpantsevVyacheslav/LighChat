@@ -2,13 +2,22 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'chat_location_map_view.dart';
 
 /// Карта на всю площадь footer'а, кнопки «Запросить» / «Поделиться»
 /// — поверх карты внизу как pill-капсулы с blur background. Стиль
 /// близкий к iMessage attach-карте: компактные, полупрозрачные,
 /// floating.
-class ChatLocationSharePanel extends StatelessWidget {
+///
+/// iMessage-style pin selection (May 2026): по умолчанию пин на
+/// карте не draggable — пилюли «Запросить»/«Поделиться» работают с
+/// текущей геопозицией пользователя. Кнопка `add_location_alt` в
+/// левом верхнем углу карты переключает «pin mode»: pin становится
+/// draggable, нижние пилюли скрываются и появляется одна кнопка
+/// «Send Pin». Toggle-кнопка превращается в крестик (выход из
+/// pin mode).
+class ChatLocationSharePanel extends StatefulWidget {
   const ChatLocationSharePanel({
     super.key,
     required this.lat,
@@ -43,68 +52,102 @@ class ChatLocationSharePanel extends StatelessWidget {
   final String requestLabel;
 
   @override
+  State<ChatLocationSharePanel> createState() => _ChatLocationSharePanelState();
+}
+
+class _ChatLocationSharePanelState extends State<ChatLocationSharePanel> {
+  bool _pinMode = false;
+
+  void _togglePinMode() {
+    setState(() => _pinMode = !_pinMode);
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Bug #3: SafeArea(top:false) обрезал карту снизу — на iPhone с
     // home-indicator оставалась чёрная полоса под картой. Карта теперь
     // на всю высоту footer'а; пилюли позиционируем с учётом
     // viewPadding.bottom вручную, чтобы они не залезали под индикатор.
     final mq = MediaQuery.of(context);
+    final l10n = AppLocalizations.of(context);
+    final sendPinLabel =
+        l10n?.share_location_send_pin ?? 'Send Pin';
     return Stack(
       children: [
         // Карта на весь footer — без SafeArea, до самого низа.
         Positioned.fill(
           child: ChatLocationMapView(
-            lat: lat,
-            lng: lng,
+            lat: widget.lat,
+            lng: widget.lng,
             interactive: true,
-            draggablePin: true,
-            onPinMoved: onPinMoved,
-            controller: controller,
+            // Pin draggable ТОЛЬКО в pin-mode — паритет с iMessage.
+            draggablePin: _pinMode,
+            onPinMoved: widget.onPinMoved,
+            controller: widget.controller,
           ),
         ),
-        // Bug C: пилюли в ~1.5 раза меньше и обе прозрачные (glass-blur).
-        // Не растягиваем на всю ширину — Wrap по контенту, центрируем
-        // снизу.
+        // Top-left toggle button. По умолчанию `add_location_alt` —
+        // намёк «активировать выбор точки». В pin-mode — крестик X.
+        Positioned(
+          left: 14,
+          top: 14,
+          child: _GlassCircleButton(
+            icon: _pinMode
+                ? Icons.close_rounded
+                : Icons.add_location_alt_outlined,
+            onTap: _togglePinMode,
+            tooltip: _pinMode
+                ? (l10n?.share_location_exit_pin_mode ??
+                    'Exit pin mode')
+                : (l10n?.share_location_enter_pin_mode ??
+                    'Choose location on map'),
+          ),
+        ),
         // Recenter-to-current-location FAB (compass icon) над
         // пилюлями справа. Стеклянный круглый button, glass-blur
         // как у outlined-pill.
-        if (onRecenterToCurrent != null)
+        if (widget.onRecenterToCurrent != null)
           Positioned(
             right: 14,
-            bottom: mq.padding.bottom + 60,
+            bottom: mq.padding.bottom + (_pinMode ? 64 : 60),
             child: _GlassCircleButton(
               icon: Icons.my_location_rounded,
-              onTap: onRecenterToCurrent!,
+              onTap: widget.onRecenterToCurrent!,
             ),
           ),
-        // T4 v2: опустили пилюли обратно (с +28 на +12); IntrinsicHeight
-        // + CrossAxisAlignment.stretch гарантируют одинаковую высоту
-        // обеих пилюль, чтобы «Запросить» не была визуально ниже
-        // «Поделиться» (раньше из-за разной длины текста padding
-        // округлялся по-разному).
+        // CTA снизу: pin-mode → одна «Send Pin» pill (filled).
+        // Иначе — пилюли «Запросить» / «Поделиться».
         Positioned(
           left: 14,
           right: 14,
           bottom: mq.padding.bottom + 12,
-          child: IntrinsicHeight(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _Pill(
-                  label: requestLabel,
-                  filled: false,
-                  onTap: onRequest,
+          child: _pinMode
+              ? Center(
+                  child: _Pill(
+                    label: sendPinLabel,
+                    filled: true,
+                    onTap: widget.onShare,
+                  ),
+                )
+              : IntrinsicHeight(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _Pill(
+                        label: widget.requestLabel,
+                        filled: false,
+                        onTap: widget.onRequest,
+                      ),
+                      const SizedBox(width: 8),
+                      _Pill(
+                        label: widget.shareLabel,
+                        filled: true,
+                        onTap: widget.onShare,
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 8),
-                _Pill(
-                  label: shareLabel,
-                  filled: true,
-                  onTap: onShare,
-                ),
-              ],
-            ),
-          ),
         ),
       ],
     );
@@ -188,10 +231,15 @@ class _Pill extends StatelessWidget {
 /// Стеклянный круглый glass-blur button. Используется для recenter-FAB
 /// в share-panel.
 class _GlassCircleButton extends StatelessWidget {
-  const _GlassCircleButton({required this.icon, required this.onTap});
+  const _GlassCircleButton({
+    required this.icon,
+    required this.onTap,
+    this.tooltip,
+  });
 
   final IconData icon;
   final VoidCallback onTap;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -201,7 +249,7 @@ class _GlassCircleButton extends StatelessWidget {
     final bg = (dark ? Colors.black : Colors.white).withValues(
       alpha: dark ? 0.28 : 0.55,
     );
-    return ClipOval(
+    final btn = ClipOval(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
         child: Material(
@@ -228,5 +276,9 @@ class _GlassCircleButton extends StatelessWidget {
         ),
       ),
     );
+    if (tooltip != null && tooltip!.isNotEmpty) {
+      return Tooltip(message: tooltip!, child: btn);
+    }
+    return btn;
   }
 }

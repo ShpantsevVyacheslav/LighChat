@@ -7315,6 +7315,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get share_location_send_pin => 'Send Pin';
+
+  @override
+  String get share_location_enter_pin_mode => 'Choose location on map';
+
+  @override
+  String get share_location_exit_pin_mode => 'Exit pin mode';
+
+  @override
   String get location_panel_hint_address => 'Enter address…';
 
   @override

@@ -3374,6 +3374,9 @@
       "meters": {}
     }
   },
+  "share_location_send_pin": "Нүктені жіберу",
+  "share_location_enter_pin_mode": "Картадан жер таңдау",
+  "share_location_exit_pin_mode": "Таңдау режимінен шығу",
   "location_panel_hint_address": "Мекенжайды енгізіңіз…",
   "shared_location_distance_meters": "сізден {meters} м",
   "@shared_location_distance_meters": {

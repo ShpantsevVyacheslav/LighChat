@@ -3407,6 +3407,9 @@
       "meters": {}
     }
   },
+  "share_location_send_pin": "Send Pin",
+  "share_location_enter_pin_mode": "Choose location on map",
+  "share_location_exit_pin_mode": "Exit pin mode",
   "location_panel_hint_address": "Enter address…",
   "shared_location_distance_meters": "{meters} m from you",
   "@shared_location_distance_meters": {
