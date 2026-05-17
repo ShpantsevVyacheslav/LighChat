@@ -40,3 +40,17 @@ env:
     availability:
       - BUILD
       - RUNTIME
+
+  # GA4 Measurement ID для web/PWA. Значение — `G-XXXXXXXXXX` из
+  # Google Analytics → Admin → Data streams → lighchat.online → Measurement ID.
+  # Подхватывается в `src/firebase/config.ts` и автоматически попадает в
+  # `firebase/analytics` SDK через initializeApp(...). Без этой переменной
+  # web события (page_view, auth events и пр.) пишутся ТОЛЬКО в Firestore
+  # коллекцию analyticsEvents и не доходят до GA4 дашборда.
+  # NEXT_PUBLIC_* инлайнятся в бандл на этапе сборки, поэтому BUILD-уровень
+  # обязателен.
+  - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    value: G-YG1C6DD3TC
+    availability:
+      - BUILD
+      - RUNTIME
