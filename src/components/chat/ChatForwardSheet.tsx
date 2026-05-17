@@ -351,7 +351,7 @@ export function ChatForwardSheet() {
           logger.warn('forward', 'contact user not loaded', uid);
           return null;
         }
-        const convId = await createOrOpenDirectChat(firestore, currentUser, otherUser);
+        const { id: convId } = await createOrOpenDirectChat(firestore, currentUser, otherUser);
         const snap = await getDoc(doc(firestore, 'conversations', convId));
         if (!snap.exists()) return null;
         return { id: snap.id, ...(snap.data() as Omit<Conversation, 'id'>) };

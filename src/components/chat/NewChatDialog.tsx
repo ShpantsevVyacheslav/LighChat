@@ -5,6 +5,7 @@ import React, { useState, useMemo } from 'react';
 import { useFirestore } from '@/firebase';
 import type { User } from '@/lib/types';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
+import { AnalyticsEvents, track } from '@/lib/analytics';
 import { autoEnableE2eeForNewDirectChat } from '@/lib/e2ee';
 import { logger } from '@/lib/logger';
 import { useSettings } from '@/hooks/use-settings';
@@ -81,7 +82,13 @@ export function NewChatDialog({
     setIsCreating(true);
 
     try {
-        const id = await createOrOpenDirectChat(firestore, currentUser, user);
+        const { id, created } = await createOrOpenDirectChat(firestore, currentUser, user);
+        if (created) {
+          track(AnalyticsEvents.chatCreated, {
+            chat_type: 'personal',
+            source: 'new_chat_dialog',
+          });
+        }
         let platformWants = false;
         try {
           const ps = await getDoc(doc(firestore, 'platformSettings', 'main'));

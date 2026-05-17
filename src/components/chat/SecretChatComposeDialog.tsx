@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { createOrOpenSecretDirectChat } from '@/lib/secret-chat/secret-chat-create';
+import { AnalyticsEvents, track } from '@/lib/analytics';
 import { setSecretChatPin } from '@/lib/secret-chat/secret-chat-callables';
 import type { SecretChatRestrictions, SecretChatTtlPresetSec } from '@/lib/types';
 
@@ -133,6 +134,18 @@ export function SecretChatComposeDialog({
           window.localStorage.setItem(SECRET_VAULT_PIN_KEY, pin);
         }
       }
+
+      // Analytics: secret_chat_enabled — adoption секретных чатов.
+      // PII не пишем; полезно — какие restrictions выбраны и какой TTL.
+      track(AnalyticsEvents.secretChatEnabled, {
+        ttl_preset_sec: ttl,
+        lock_required: lockRequired,
+        no_forward: noForward,
+        no_copy: noCopy,
+        no_save: noSave,
+        screenshot_protection: screenshotProtection,
+        has_pin: !!pin,
+      });
 
       onCreated(conversationId);
       handleOpenChange(false);

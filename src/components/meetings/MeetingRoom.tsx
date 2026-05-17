@@ -25,6 +25,8 @@ import { useMeetingWebRTC, type BackgroundConfig } from '@/hooks/use-meeting-web
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { userAvatarListUrl } from '@/lib/user-avatar-display';
 import { Button } from '../ui/button';
+import { AnalyticsEvents, track } from '@/lib/analytics';
+import { durationBucket } from '@/lib/analytics/events';
 import { useI18n } from '@/hooks/use-i18n';
 
 interface MeetingRoomProps {
@@ -509,7 +511,28 @@ export function MeetingRoom({
     <div className="fixed inset-0 z-[100] flex flex-col bg-[#0a0e17] text-white overflow-hidden font-body select-none">
       <MeetingRoomHeader 
         meetingName={meeting.name} isRecording={!!meeting.isRecording} participantCount={totalPeople}
-        onExit={() => { rtc.stopAllMedia(); router.push('/dashboard/meetings'); }} 
+        onExit={() => {
+          // Analytics: meeting_left + meeting_guest_count.
+          // meeting_left даёт duration bucket (для average meeting duration);
+          // meeting_guest_count — снимок participantCount в момент выхода
+          // (для funnel «маленькие звонки vs большие созывы»).
+          track(AnalyticsEvents.meetingLeft, {
+            duration_bucket: durationBucket(meetingDuration * 1000),
+            duration_sec: meetingDuration,
+            is_host: isAdmin,
+            is_recording: !!meeting.isRecording,
+          });
+          track(AnalyticsEvents.meetingGuestCount, {
+            participant_count: totalPeople,
+            participant_bucket:
+              totalPeople <= 2 ? '1_2' :
+              totalPeople <= 5 ? '3_5' :
+              totalPeople <= 10 ? '6_10' :
+              totalPeople <= 25 ? '11_25' : 'gt_25',
+          });
+          rtc.stopAllMedia();
+          router.push('/dashboard/meetings');
+        }}
         backgroundConfig={rtc.backgroundConfig} onBackgroundChange={rtc.setBackgroundConfig}
         standardBackgrounds={standardBackgrounds} isVideoOff={rtc.isVideoOff}
         isHost={isAdmin} onStartRecording={handleStartRecording} onStopRecording={handleStopRecording}

@@ -1117,7 +1117,13 @@ export function ChatWindow({
         return;
       }
       try {
-        const id = await createOrOpenDirectChat(firestore, currentUser, other);
+        const { id, created } = await createOrOpenDirectChat(firestore, currentUser, other);
+        if (created) {
+          track(AnalyticsEvents.chatCreated, {
+            chat_type: 'personal',
+            source: 'chat_window',
+          });
+        }
         let platformWants = false;
         try {
           const ps = await getDoc(doc(firestore, 'platformSettings', 'main'));

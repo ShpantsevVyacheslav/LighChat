@@ -47,11 +47,30 @@ function isDirectConversationForPair(
  * Найти существующий личный чат с пользователем или создать новый.
  * Гарантия уникальности: conversationId детерминирован по паре uid.
  */
+/**
+ * Идемпотентно создаёт или открывает direct-чат между двумя
+ * пользователями. Возвращает `{ id, created }`:
+ *   - `created: false` — найден существующий канонический или legacy
+ *     dm; вернули его id без записи.
+ *   - `created: true` — записали новый `conversations/{dm_*}` документ
+ *     в этом вызове.
+ *
+ * Раньше функция возвращала только `string`, что не позволяло отличить
+ * «открыл существующий» от «создал новый» — критично для analytics
+ * (chat_created event) и для UI welcome-flow «давайте напишем первое
+ * сообщение». Caller'ы, которым флаг не нужен, могут использовать
+ * деструктуризацию: `const { id } = await createOrOpenDirectChat(...)`.
+ */
+export type CreateOrOpenDirectChatResult = {
+  id: string;
+  created: boolean;
+};
+
 export async function createOrOpenDirectChat(
   firestore: Firestore,
   currentUser: User,
   otherUser: User
-): Promise<string> {
+): Promise<CreateOrOpenDirectChatResult> {
   if (!currentUser.id?.trim() || !otherUser.id?.trim()) {
     throw new Error('createOrOpenDirectChat requires non-empty user ids');
   }
@@ -95,7 +114,7 @@ export async function createOrOpenDirectChat(
       otherUser.id
     )
   ) {
-    return canonicalId;
+    return { id: canonicalId, created: false };
   }
 
   // Fallback для legacy-чатов с произвольным id (до введения детерминированного id).
@@ -144,7 +163,7 @@ export async function createOrOpenDirectChat(
       }
     }
   }
-  if (bestId) return bestId;
+  if (bestId) return { id: bestId, created: false };
 
   const nowIso = new Date().toISOString();
   const newConversation: Omit<Conversation, 'id'> = {
@@ -211,7 +230,7 @@ export async function createOrOpenDirectChat(
         otherUser.id
       )
     ) {
-      return canonicalId;
+      return { id: canonicalId, created: false };
     }
     try {
       await setDoc(canonicalRef, newConversation);
@@ -227,7 +246,7 @@ export async function createOrOpenDirectChat(
           otherUser.id
         )
       ) {
-        return canonicalId;
+        return { id: canonicalId, created: false };
       }
       throw setErr;
     }
@@ -242,5 +261,5 @@ export async function createOrOpenDirectChat(
   } catch {
     // Индекс также синхронизирует Cloud Function; не блокируем создание чата.
   }
-  return canonicalId;
+  return { id: canonicalId, created: true };
 }

@@ -356,7 +356,7 @@ export function ChatParticipantProfile({
     if (!isGroup && !isSelfSavedChat && profileDocId === otherId) {
       return { id: conversation.id, target: contactTargetUser };
     }
-    const id = await createOrOpenDirectChat(firestore, effectiveCurrentUser, contactTargetUser);
+    const { id } = await createOrOpenDirectChat(firestore, effectiveCurrentUser, contactTargetUser);
     let platformWants = false;
     try {
       const ps = await getDoc(doc(firestore, 'platformSettings', 'main'));

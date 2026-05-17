@@ -42,6 +42,8 @@ import { ChatScheduleMessageDialog } from '@/components/chat/ChatScheduleMessage
 import { AudioMessagePreviewBar } from '@/components/chat/AudioMessagePreviewBar';
 import { normalizeFilesAsStickersIfApplicable } from '@/lib/ios-sticker-detect';
 import { logger } from '@/lib/logger';
+import { AnalyticsEvents, track } from '@/lib/analytics';
+import { durationBucket } from '@/lib/analytics/events';
 import { chatDraftPlainFromHtml,
   clearChatMessageDraft,
   getChatMessageDraft,
@@ -614,6 +616,7 @@ const ChatMessageInputInner = (
         }
         const rec = audioRecorderRef.current;
         if (!rec || rec.state !== "recording") return;
+        const durationAtStopSec = audioRecordingTime;
         rec.onstop = () => {
             audioStreamRef.current?.getTracks().forEach(t => t.stop());
             const mimeType = rec.mimeType || "audio/webm";
@@ -631,6 +634,14 @@ const ChatMessageInputInner = (
             setAudioPreview({ url, file });
             setIsAudioRecording(false);
             setAudioRecordingTime(0);
+            // Analytics: voice_message_recorded — успешная остановка записи
+            // (blob >= 100 байт, preview готов к отправке). Это не «sent» —
+            // юзер ещё может отменить превью. Параметры: длительность по
+            // bucket'ам + кодек.
+            track(AnalyticsEvents.voiceMessageRecorded, {
+                duration_bucket: durationBucket(durationAtStopSec * 1000),
+                codec: mimeType.includes('mp4') ? 'mp4' : 'webm',
+            });
         };
         rec.stop();
     };

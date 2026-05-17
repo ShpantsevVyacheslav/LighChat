@@ -185,7 +185,7 @@ export function GroupChatParticipantsManageView({
     if (!firestore || p.id === currentUser.id) return;
     void (async () => {
       try {
-        const id = await createOrOpenDirectChat(firestore, currentUser, p);
+        const { id } = await createOrOpenDirectChat(firestore, currentUser, p);
         onSelectPersonalChat(id);
         onCloseProfileSheet();
       } catch (e) {

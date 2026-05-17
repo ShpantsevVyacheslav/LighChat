@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { logger } from '@/lib/logger';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { createOrOpenDirectChat } from '@/lib/direct-chat';
+import { AnalyticsEvents, track } from '@/lib/analytics';
 import { autoEnableE2eeForNewDirectChat } from '@/lib/e2ee';
 import { useSettings } from '@/hooks/use-settings';
 import type { PlatformSettingsDoc, User } from '@/lib/types';
@@ -56,7 +57,13 @@ export function ContactProfileClient({ contactUserId }: { contactUserId: string 
 
     (async () => {
       try {
-        const id = await createOrOpenDirectChat(firestore, currentUser, contactUser);
+        const { id, created } = await createOrOpenDirectChat(firestore, currentUser, contactUser);
+        if (created) {
+          track(AnalyticsEvents.chatCreated, {
+            chat_type: 'personal',
+            source: 'contact_profile',
+          });
+        }
         let platformWants = false;
         try {
           const ps = await getDoc(doc(firestore, 'platformSettings', 'main'));
