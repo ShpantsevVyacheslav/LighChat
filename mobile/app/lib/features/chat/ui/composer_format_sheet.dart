@@ -24,13 +24,17 @@ Future<void> showComposerFormatSheet({
   required GlobalKey anchorKey,
   required void Function(String tag) onToggle,
 }) async {
-  // ВАЖНО (Phase 14.5, fix): используем `showGeneralDialog` вместо
-  // OverlayEntry. На iOS hybrid composition нативный UITextView
-  // (PlatformView) рендерится в отдельном CALayer'е, который МОЖЕТ
-  // оказываться поверх Flutter OverlayEntry — popover технически
-  // создаётся, но визуально перекрывается native composer'ом.
-  // Dialog показывается через Navigator route (отдельный full-screen
-  // RouteEntry в render tree) — гарантированно поверх PlatformView.
+  // ВАЖНО (Phase 14.6, fix): Используем кастомный `PageRouteBuilder`
+  // с `opaque: false` и НЕ root navigator. Прежний showGeneralDialog
+  // делал full-screen opaque route и chat AppBar пропадал. Этот
+  // вариант:
+  //   - opaque: false → background сквозь видно (chat screen остаётся);
+  //   - barrierColor: transparent → composer не темнится;
+  //   - Material(transparency) wrapper → child рендерится без default
+  //     opaque background материала;
+  //   - useRootNavigator не нужен — route на текущем Navigator'е
+  //     корректно поднимается над body, и AppBar остаётся видимым
+  //     (потому что AppBar в Scaffold body, не в Navigator).
   final anchorBox =
       anchorKey.currentContext?.findRenderObject() as RenderBox?;
   debugPrint(
@@ -43,8 +47,6 @@ Future<void> showComposerFormatSheet({
   }
   final mq = MediaQuery.of(context);
   final screenH = mq.size.height;
-  // Считаем bottom-offset в screen coords чтобы popover лёг точно
-  // над композером с 8px gap'ом.
   final anchorGlobalTop = anchorBox.localToGlobal(Offset.zero);
   final bottomRaw = screenH - anchorGlobalTop.dy + 8;
   final bottomFromScreenBottom = bottomRaw.isFinite
@@ -55,42 +57,45 @@ Future<void> showComposerFormatSheet({
     'bottomFromScreenBottom=$bottomFromScreenBottom screenH=$screenH',
   );
 
-  await showGeneralDialog<void>(
-    context: context,
-    useRootNavigator: true,
-    barrierDismissible: true,
-    barrierLabel: 'format-popover-barrier',
-    // Прозрачный barrier — popover не темнит композер.
-    barrierColor: Colors.transparent,
-    transitionDuration: const Duration(milliseconds: 180),
-    pageBuilder: (dialogContext, anim, _) {
-      return Stack(
-        children: [
-          Positioned(
-            left: 8,
-            right: 8,
-            bottom: bottomFromScreenBottom,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {}, // блок tap-through, чтобы тапы по popover'у
-              // не закрывали его через barrierDismissible
-              child: _FormatPopoverBody(
-                onToggle: onToggle,
-                onClose: () => Navigator.of(dialogContext).pop(),
-              ),
+  final navigator = Navigator.of(context);
+  await navigator.push<void>(
+    PageRouteBuilder<void>(
+      opaque: false,
+      barrierColor: Colors.transparent,
+      barrierDismissible: true,
+      barrierLabel: 'format-popover-barrier',
+      transitionDuration: const Duration(milliseconds: 180),
+      reverseTransitionDuration: const Duration(milliseconds: 140),
+      pageBuilder: (dialogContext, anim, _) {
+        return Material(
+          type: MaterialType.transparency,
+          child: SafeArea(
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 8,
+                  right: 8,
+                  bottom: bottomFromScreenBottom,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {}, // блок tap-through на popover
+                    child: _FormatPopoverBody(
+                      onToggle: onToggle,
+                      onClose: () => Navigator.of(dialogContext).pop(),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      );
-    },
-    transitionBuilder: (_, anim, _, child) {
-      return FadeTransition(
-        opacity: anim,
-        child: child,
-      );
-    },
+        );
+      },
+      transitionsBuilder: (_, anim, _, child) {
+        return FadeTransition(opacity: anim, child: child);
+      },
+    ),
   );
-  debugPrint('[format-popover] dialog dismissed');
+  debugPrint('[format-popover] route popped');
 }
 
 class _FormatPopoverBody extends StatelessWidget {
